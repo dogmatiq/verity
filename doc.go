@@ -1,1 +1,1 @@
-package GITHUB_REPO_NAME
+package infix
