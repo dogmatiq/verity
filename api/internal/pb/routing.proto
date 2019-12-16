@@ -1,0 +1,49 @@
+syntax = "proto3";
+package dogma.api.messaging.v1;
+
+import "api/internal/pb/identity.proto";
+
+option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+
+// The Routing service is used to discover inter-application message routes.
+service Routing {
+  // DiscoverRoutes queries the server about the applications it hosts as they
+  // relate to a specific set of foreign message types that the caller is
+  // attempting to route.
+  rpc DiscoverRoutes(DiscoverRoutesRequest) returns (DiscoverRoutesResponse);
+}
+
+// DiscoverRoutesRequest is the request to a Routing.DiscoverRoutes() RPC.
+message DiscoverRoutesRequest {
+  // Commands is a list of protocol-names for foreign commands that are produced
+  // by the caller for which the destination application is unknown.
+  repeated string commands = 1;
+
+  // Events is a list of protocol-names for foreign events that are consumed by
+  // the caller for which the source application is unknown.
+  repeated string events = 2;
+}
+
+// DiscoverRoutesResponse is the response from a Routing.DiscoverRoutes() RPC.
+message DiscoverRoutesResponse {
+  // Routes is a list of routes to applications that (at least partially)
+  // satisfy the routing requirements of the caller.
+  repeated ApplicationRoute routes = 1;
+}
+
+// ApplicationRoute describes the message types for a specific application as
+// they relate to a DiscoverRoutesRequest.
+message ApplicationRoute {
+  // Application is the identity of the application.
+  Identity application = 1;
+
+  // Commands is a list of protocol-names for commands that are consumed by the
+  // application. It is not an exhaustive list, only including those command
+  // types that were specified in the original request.
+  repeated string commands = 2;
+
+  // Events is a list of protocol-names for events that are produced by the
+  // application. It is not an exhaustive list, only including those event
+  // types that were specified in the original request.
+  repeated string events = 3;
+}
