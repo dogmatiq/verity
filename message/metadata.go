@@ -9,8 +9,8 @@ import (
 
 // Source describes the source of a message.
 type Source struct {
-	// App is the identity of the Dogma application that produced this message.
-	App configkit.Identity
+	// Application is the identity of the Dogma application that produced this message.
+	Application configkit.Identity
 
 	// Handler is the identity of the handler that produced the message. It is the zero-value if the message was not
 	// produced by a handler.
@@ -23,7 +23,7 @@ type Source struct {
 
 // Validate returns an error if s is invalid.
 func (s *Source) Validate() error {
-	if s.App.IsZero() {
+	if s.Application.IsZero() {
 		return errors.New("source app name must not be empty")
 	}
 

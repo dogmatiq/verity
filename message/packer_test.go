@@ -27,8 +27,8 @@ var _ = Describe("type Packer", func() {
 		seq = 0
 		now = time.Now()
 		packer = &Packer{
-			App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			Marshaler: Marshaler,
+			Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			Marshaler:   Marshaler,
 			Roles: message.TypeRoles{
 				MessageCType: message.CommandRole,
 				MessageEType: message.EventRole,
@@ -64,7 +64,7 @@ var _ = Describe("type Packer", func() {
 
 			p := NewPackerForApplication(cfg, Marshaler)
 			Expect(p).To(Equal(&Packer{
-				App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+				Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 				Roles: message.TypeRoles{
 					MessageEType: message.EventRole,
 				},
@@ -84,7 +84,7 @@ var _ = Describe("type Packer", func() {
 						CausationID:   "00000001",
 						CorrelationID: "00000001",
 						Source: Source{
-							App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 						},
 						CreatedAt: now,
 					},
@@ -118,7 +118,7 @@ var _ = Describe("type Packer", func() {
 						CausationID:   "00000001",
 						CorrelationID: "00000001",
 						Source: Source{
-							App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 						},
 						CreatedAt: now,
 					},
@@ -151,7 +151,7 @@ var _ = Describe("type Packer", func() {
 					CausationID:   "<parent>",
 					CorrelationID: "<parent>",
 					Source: Source{
-						App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 					},
 				},
 				Message: MessageE1,
@@ -174,9 +174,9 @@ var _ = Describe("type Packer", func() {
 						CausationID:   "<parent>",
 						CorrelationID: "<parent>",
 						Source: Source{
-							App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
-							Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-							InstanceID: "<instance>",
+							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+							Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							InstanceID:  "<instance>",
 						},
 						CreatedAt: now,
 					},
@@ -219,7 +219,7 @@ var _ = Describe("type Packer", func() {
 					CausationID:   "<parent>",
 					CorrelationID: "<parent>",
 					Source: Source{
-						App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 					},
 				},
 				Message: MessageC1,
@@ -242,9 +242,9 @@ var _ = Describe("type Packer", func() {
 						CausationID:   "<parent>",
 						CorrelationID: "<parent>",
 						Source: Source{
-							App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
-							Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-							InstanceID: "<instance>",
+							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+							Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							InstanceID:  "<instance>",
 						},
 						CreatedAt: now,
 					},

@@ -27,7 +27,7 @@ var _ = Context("message envelopes", func() {
 					CausationID:   "<cause>",
 					CorrelationID: "<correlation>",
 					Source: imessage.Source{
-						App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
+						Application:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
 						Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
 						InstanceID: "<instance>",
 					},
@@ -48,7 +48,7 @@ var _ = Context("message envelopes", func() {
 					CausationId:   "<cause>",
 					CorrelationId: "<correlation>",
 					Source: &pb.MessageSource{
-						App:        &pb.Identity{Name: "<app-name>", Key: "<app-key>"},
+						Application:        &pb.Identity{Name: "<app-name>", Key: "<app-key>"},
 						Handler:    &pb.Identity{Name: "<handler-name>", Key: "<handler-key>"},
 						InstanceId: "<instance>",
 					},
@@ -73,7 +73,7 @@ var _ = Context("message envelopes", func() {
 					CausationId:   "<cause>",
 					CorrelationId: "<correlation>",
 					Source: &pb.MessageSource{
-						App:        &pb.Identity{Name: "<app-name>", Key: "<app-key>"},
+						Application:        &pb.Identity{Name: "<app-name>", Key: "<app-key>"},
 						Handler:    &pb.Identity{Name: "<handler-name>", Key: "<handler-key>"},
 						InstanceId: "<instance>",
 					},
@@ -105,7 +105,7 @@ var _ = Context("message envelopes", func() {
 					CausationID:   "<cause>",
 					CorrelationID: "<correlation>",
 					Source: imessage.Source{
-						App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
+						Application:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
 						Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
 						InstanceID: "<instance>",
 					},
@@ -132,7 +132,7 @@ var _ = Context("message envelopes", func() {
 		})
 
 		It("returns an error if the source app is invalid", func() {
-			src.MetaData.Source.App = nil
+			src.MetaData.Source.Application = nil
 
 			var dest imessage.Envelope
 			err := unmarshalMessageEnvelope(Marshaler, src, &dest)

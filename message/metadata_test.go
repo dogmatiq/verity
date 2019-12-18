@@ -18,9 +18,9 @@ var _ = Describe("type MetaData", func() {
 			CausationID:   "<id>",
 			CorrelationID: "<id>",
 			Source: Source{
-				App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
-				Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-				InstanceID: "<instance>",
+				Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+				Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+				InstanceID:  "<instance>",
 			},
 			CreatedAt:    time.Now(),
 			ScheduledFor: time.Now(),
@@ -55,7 +55,7 @@ var _ = Describe("type MetaData", func() {
 		})
 
 		It("returns an error if the source app is empty", func() {
-			md.Source.App = configkit.Identity{}
+			md.Source.Application = configkit.Identity{}
 
 			err := md.Validate()
 			Expect(err).To(MatchError("source app name must not be empty"))

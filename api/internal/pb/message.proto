@@ -8,7 +8,7 @@ option go_package = "github.com/dogmatiq/infix/api/internal/pb";
 
 // MessageSource describes the source of a message.
 message MessageSource {
-  Identity app = 4;
+  Identity application = 4;
   Identity handler = 5;
   string instance_id = 6;
 }

@@ -74,8 +74,8 @@ func unmarshalMessageMetaData(src *pb.MessageMetaData, dest *message.MetaData) e
 // representation.
 func marshalMessageSource(src *message.Source) *pb.MessageSource {
 	dest := &pb.MessageSource{
-		App:        marshalIdentity(src.App),
-		InstanceId: src.InstanceID,
+		Application: marshalIdentity(src.Application),
+		InstanceId:  src.InstanceID,
 	}
 
 	if !src.Handler.IsZero() {
@@ -90,7 +90,7 @@ func marshalMessageSource(src *message.Source) *pb.MessageSource {
 func unmarshalMessageSource(src *pb.MessageSource, dest *message.Source) error {
 	dest.InstanceID = src.GetInstanceId()
 
-	if err := unmarshalIdentity(src.GetApp(), &dest.App); err != nil {
+	if err := unmarshalIdentity(src.GetApplication(), &dest.Application); err != nil {
 		return err
 	}
 

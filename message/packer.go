@@ -12,8 +12,8 @@ import (
 
 // Packer puts messages into envelopes.
 type Packer struct {
-	// App is the identity of this application.
-	App configkit.Identity
+	// Application is the identity of this application.
+	Application configkit.Identity
 
 	// Marshaler is the marshaler used to marshal messages.
 	Marshaler marshalkit.Marshaler
@@ -38,9 +38,9 @@ func NewPackerForApplication(
 	ma marshalkit.Marshaler,
 ) *Packer {
 	return &Packer{
-		App:       cfg.Identity(),
-		Roles:     cfg.MessageTypes().Produced,
-		Marshaler: ma,
+		Application: cfg.Identity(),
+		Roles:       cfg.MessageTypes().Produced,
+		Marshaler:   ma,
 	}
 }
 
@@ -142,7 +142,7 @@ func (p *Packer) new(
 			causationID,
 			correlationID,
 			Source{
-				p.App,
+				p.Application,
 				handler,
 				instanceID,
 			},

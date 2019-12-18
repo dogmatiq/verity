@@ -16,7 +16,7 @@ service EventStream {
 // ConsumeRequest is the request to a EventStream.Consume() RPC.
 message ConsumeRequest {
   // Application identifies which application's stream to consume from.
-  Identity app = 1;
+  Identity application = 1;
 
   // Offset is the offset of the first event to consume.
   uint64 offset = 2;
