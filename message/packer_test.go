@@ -83,8 +83,10 @@ var _ = Describe("type Packer", func() {
 						MessageID:     "00000001",
 						CausationID:   "00000001",
 						CorrelationID: "00000001",
-						SourceApp:     configkit.MustNewIdentity("<app-name>", "<app-key>"),
-						CreatedAt:     now,
+						Source: Source{
+							App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+						},
+						CreatedAt: now,
 					},
 					Message: MessageC1,
 					Packet:  MessageC1Packet,
@@ -115,8 +117,10 @@ var _ = Describe("type Packer", func() {
 						MessageID:     "00000001",
 						CausationID:   "00000001",
 						CorrelationID: "00000001",
-						SourceApp:     configkit.MustNewIdentity("<app-name>", "<app-key>"),
-						CreatedAt:     now,
+						Source: Source{
+							App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+						},
+						CreatedAt: now,
 					},
 					Message: MessageE1,
 					Packet:  MessageE1Packet,
@@ -146,7 +150,9 @@ var _ = Describe("type Packer", func() {
 					MessageID:     "<parent>",
 					CausationID:   "<parent>",
 					CorrelationID: "<parent>",
-					SourceApp:     configkit.MustNewIdentity("<app-name>", "<app-key>"),
+					Source: Source{
+						App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+					},
 				},
 				Message: MessageE1,
 				Packet:  MessageE1Packet,
@@ -164,13 +170,15 @@ var _ = Describe("type Packer", func() {
 			Expect(env).To(Equal(
 				&Envelope{
 					MetaData: MetaData{
-						MessageID:        "00000001",
-						CausationID:      "<parent>",
-						CorrelationID:    "<parent>",
-						SourceApp:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
-						SourceHandler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-						SourceInstanceID: "<instance>",
-						CreatedAt:        now,
+						MessageID:     "00000001",
+						CausationID:   "<parent>",
+						CorrelationID: "<parent>",
+						Source: Source{
+							App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
+							Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							InstanceID: "<instance>",
+						},
+						CreatedAt: now,
 					},
 					Message: MessageC1,
 					Packet:  MessageC1Packet,
@@ -210,7 +218,9 @@ var _ = Describe("type Packer", func() {
 					MessageID:     "<parent>",
 					CausationID:   "<parent>",
 					CorrelationID: "<parent>",
-					SourceApp:     configkit.MustNewIdentity("<app-name>", "<app-key>"),
+					Source: Source{
+						App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+					},
 				},
 				Message: MessageC1,
 				Packet:  MessageC1Packet,
@@ -228,13 +238,15 @@ var _ = Describe("type Packer", func() {
 			Expect(env).To(Equal(
 				&Envelope{
 					MetaData: MetaData{
-						MessageID:        "00000001",
-						CausationID:      "<parent>",
-						CorrelationID:    "<parent>",
-						SourceApp:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
-						SourceHandler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-						SourceInstanceID: "<instance>",
-						CreatedAt:        now,
+						MessageID:     "00000001",
+						CausationID:   "<parent>",
+						CorrelationID: "<parent>",
+						Source: Source{
+							App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
+							Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							InstanceID: "<instance>",
+						},
+						CreatedAt: now,
 					},
 					Message: MessageE1,
 					Packet:  MessageE1Packet,

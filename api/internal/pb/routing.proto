@@ -15,11 +15,11 @@ service Routing {
 
 // DiscoverRoutesRequest is the request to a Routing.DiscoverRoutes() RPC.
 message DiscoverRoutesRequest {
-  // Commands is a list of protocol-names for foreign commands that are produced
+  // Commands is a list of media-types for foreign commands that are produced
   // by the caller for which the destination application is unknown.
   repeated string commands = 1;
 
-  // Events is a list of protocol-names for foreign events that are consumed by
+  // Events is a list of media-types for foreign events that are consumed by
   // the caller for which the source application is unknown.
   repeated string events = 2;
 }
@@ -37,12 +37,12 @@ message ApplicationRoute {
   // Application is the identity of the application.
   Identity application = 1;
 
-  // Commands is a list of protocol-names for commands that are consumed by the
+  // Commands is a list of media-types for commands that are consumed by the
   // application. It is not an exhaustive list, only including those command
   // types that were specified in the original request.
   repeated string commands = 2;
 
-  // Events is a list of protocol-names for events that are produced by the
+  // Events is a list of media-types for events that are produced by the
   // application. It is not an exhaustive list, only including those event
   // types that were specified in the original request.
   repeated string events = 3;

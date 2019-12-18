@@ -7,6 +7,33 @@ import (
 	"github.com/dogmatiq/configkit"
 )
 
+// Source describes the source of a message.
+type Source struct {
+	// App is the identity of the Dogma application that produced this message.
+	App configkit.Identity
+
+	// Handler is the identity of the handler that produced the message. It is the zero-value if the message was not
+	// produced by a handler.
+	Handler configkit.Identity
+
+	// InstanceID is the aggregate or process instance that produced the message. It is empty if the message was not
+	// produced by a handler, or it was produced by an integration handler.
+	InstanceID string
+}
+
+// Validate returns an error if s is invalid.
+func (s *Source) Validate() error {
+	if s.App.IsZero() {
+		return errors.New("source app name must not be empty")
+	}
+
+	if s.InstanceID != "" && s.Handler.IsZero() {
+		return errors.New("source handler name must not be empty when source instance ID is present")
+	}
+
+	return nil
+}
+
 // MetaData is a container for meta-data about a message.
 type MetaData struct {
 	// MessageID is a unique identifier for the message.
@@ -20,23 +47,8 @@ type MetaData struct {
 	// to cause the message identified by MessageID, either directly or indirectly.
 	CorrelationID string
 
-	// SourceApp is the identity of the Dogma application that produced this
-	// message.
-	SourceApp configkit.Identity
-
-	// SourceOffset is the offset of an event within its application's event
-	// store. It is nil if the message in this envelope is not an event, or it
-	// has not yet been written to the store.
-	SourceOffset *uint64
-
-	// SourceHandler is the identity of the handler that produced the message.
-	// It is the zero-value if the message was not produced by a handler.
-	SourceHandler configkit.Identity
-
-	// SourceInstanceID is the aggregate or process instance that produced the
-	// message. It is empty if the message was not produced by a handler, or it
-	// was produced by an integration handler.
-	SourceInstanceID string
+	// Source describes the source of the message.
+	Source Source
 
 	// CreatedAt is the time at which the message was created.
 	CreatedAt time.Time
@@ -60,17 +72,9 @@ func (md *MetaData) Validate() error {
 		return errors.New("correlation ID must not be empty")
 	}
 
-	if md.SourceApp.IsZero() {
-		return errors.New("source app name must not be empty")
-	}
-
-	if md.SourceInstanceID != "" && md.SourceHandler.IsZero() {
-		return errors.New("source handler name must not be empty when source instance ID is present")
-	}
-
 	if md.CreatedAt.IsZero() {
 		return errors.New("created-at time must not be zero")
 	}
 
-	return nil
+	return md.Source.Validate()
 }

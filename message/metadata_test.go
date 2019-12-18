@@ -14,14 +14,16 @@ var _ = Describe("type MetaData", func() {
 
 	BeforeEach(func() {
 		md = &MetaData{
-			MessageID:        "<id>",
-			CausationID:      "<id>",
-			CorrelationID:    "<id>",
-			SourceApp:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			SourceHandler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-			SourceInstanceID: "<instance>",
-			CreatedAt:        time.Now(),
-			ScheduledFor:     time.Now(),
+			MessageID:     "<id>",
+			CausationID:   "<id>",
+			CorrelationID: "<id>",
+			Source: Source{
+				App:        configkit.MustNewIdentity("<app-name>", "<app-key>"),
+				Handler:    configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+				InstanceID: "<instance>",
+			},
+			CreatedAt:    time.Now(),
+			ScheduledFor: time.Now(),
 		}
 	})
 
@@ -53,22 +55,22 @@ var _ = Describe("type MetaData", func() {
 		})
 
 		It("returns an error if the source app is empty", func() {
-			md.SourceApp = configkit.Identity{}
+			md.Source.App = configkit.Identity{}
 
 			err := md.Validate()
 			Expect(err).To(MatchError("source app name must not be empty"))
 		})
 
 		It("returns an error if the source handler is empty but the instance ID is set", func() {
-			md.SourceHandler = configkit.Identity{}
+			md.Source.Handler = configkit.Identity{}
 
 			err := md.Validate()
 			Expect(err).To(MatchError("source handler name must not be empty when source instance ID is present"))
 		})
 
 		It("does not return an error of both the source handler and instance ID are empty", func() {
-			md.SourceHandler = configkit.Identity{}
-			md.SourceInstanceID = ""
+			md.Source.Handler = configkit.Identity{}
+			md.Source.InstanceID = ""
 
 			err := md.Validate()
 			Expect(err).ShouldNot(HaveOccurred())

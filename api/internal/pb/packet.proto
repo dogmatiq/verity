@@ -1,0 +1,10 @@
+syntax = "proto3";
+package dogma.api.messaging.v1;
+
+option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+
+// Packet is a container for marshaled data.
+message Packet {
+  string media_type = 1;
+  bytes data = 2;
+}

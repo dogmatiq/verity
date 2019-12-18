@@ -1,0 +1,36 @@
+syntax = "proto3";
+package dogma.api.messaging.v1;
+
+import "api/internal/pb/message.proto";
+import "api/internal/pb/identity.proto";
+
+option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+
+// The EventStream service is used to read messages from an application's
+// ordered event stream.
+service EventStream {
+  // Consumes streams events from an applications event stream.
+  rpc Consume(ConsumeRequest) returns (stream ConsumeResponse);
+}
+
+// ConsumeRequest is the request to a EventStream.Consume() RPC.
+message ConsumeRequest {
+  // Application identifies which application's stream to consume from.
+  Identity app = 1;
+
+  // Offset is the offset of the first event to consume.
+  uint64 offset = 2;
+
+  // Events is a list of protocol-names for foreign events that the caller
+  // wishes to consume.
+  repeated string events = 3;
+}
+
+// ConsumeResponse is the response from a EventStream.Consume() RPC.
+message ConsumeResponse {
+  // Offset is the offset of message within the source application's stream.
+  uint64 offset = 1;
+
+  // Envelope is a container for the message.
+  MessageEnvelope envelope = 2;
+}

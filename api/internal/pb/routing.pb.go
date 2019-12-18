@@ -26,10 +26,10 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // DiscoverRoutesRequest is the request to a Routing.DiscoverRoutes() RPC.
 type DiscoverRoutesRequest struct {
-	// Commands is a list of protocol-names for foreign commands that are produced
+	// Commands is a list of media-types for foreign commands that are produced
 	// by the caller for which the destination application is unknown.
 	Commands []string `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
-	// Events is a list of protocol-names for foreign events that are consumed by
+	// Events is a list of media-types for foreign events that are consumed by
 	// the caller for which the source application is unknown.
 	Events               []string `protobuf:"bytes,2,rep,name=events,proto3" json:"events,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -123,11 +123,11 @@ func (m *DiscoverRoutesResponse) GetRoutes() []*ApplicationRoute {
 type ApplicationRoute struct {
 	// Application is the identity of the application.
 	Application *Identity `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
-	// Commands is a list of protocol-names for commands that are consumed by the
+	// Commands is a list of media-types for commands that are consumed by the
 	// application. It is not an exhaustive list, only including those command
 	// types that were specified in the original request.
 	Commands []string `protobuf:"bytes,2,rep,name=commands,proto3" json:"commands,omitempty"`
-	// Events is a list of protocol-names for events that are produced by the
+	// Events is a list of media-types for events that are produced by the
 	// application. It is not an exhaustive list, only including those event
 	// types that were specified in the original request.
 	Events               []string `protobuf:"bytes,3,rep,name=events,proto3" json:"events,omitempty"`
