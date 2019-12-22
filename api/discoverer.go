@@ -9,29 +9,57 @@ import (
 // Discoverer is an interface for discovering API endpoints of engines running
 // other Dogma applications.
 type Discoverer interface {
-	// Discover locates the API endpoints of engines running other Dogma
-	// applications.
-	Discover(ctx context.Context) ([]*grpc.ClientConn, error)
+	// Subscribe registers a subscriber with the discoverer, causing it to be
+	// notified of any changes to the set of known remote APIs.
+	Subscribe(DiscoverySubscriber)
+
+	// Unsubscribe removes a subscriber from the discoverer, stopping it from
+	// being notified of any changes to the set of known remote APIs.
+	Unsubscribe(DiscoverySubscriber)
 }
 
-// StaticDiscoverer is a discoverer that discovers API endpoints from a fixed
-// list of network addresses.
-type StaticDiscoverer struct {
-	Hosts   []string
-	Options []grpc.DialOption
+// DiscoverySubscriber is an interface that is notified by a discoverer when a
+// remote API is "discovered" or "undiscovered".
+type DiscoverySubscriber interface {
+	// Discovered is called by a discover when a remote API is discovered.
+	Discovered(*grpc.ClientConn)
+
+	// Undiscovered is called by a discover when a remote API is undiscovered.
+	Undiscovered(*grpc.ClientConn)
 }
 
-// Discover locates the API endpoints of engines running other Dogma
-// applications.
-func (d *StaticDiscoverer) Discover(ctx context.Context) ([]*grpc.ClientConn, error) {
-	conns := make([]*grpc.ClientConn, len(d.Hosts))
+// StaticDiscoverer is a discoverer that notifies subscribers of a fixed
+// list of gRPC clients.
+type StaticDiscoverer []*grpc.ClientConn
 
-	for i, host := range d.Hosts {
-		conn, err := grpc.DialContext(ctx, host, d.Options...)
+// NewStaticDiscoverer returns a discoverer that notifies subscribers of a fixed
+// list of gRPC clients.
+func NewStaticDiscoverer(
+	ctx context.Context,
+	hosts []string,
+	options ...grpc.DialOption,
+) (StaticDiscoverer, error) {
+	conns := make(StaticDiscoverer, len(hosts))
+
+	for i, h := range hosts {
+		conn, err := grpc.DialContext(ctx, h, options...)
 		if err == nil {
 			conns[i] = conn
 		}
 	}
 
 	return conns, nil
+}
+
+// Subscribe registers a subscriber with the discoverer, causing it to be
+// notified of any changes to the set of known remote APIs.
+func (d StaticDiscoverer) Subscribe(s DiscoverySubscriber) {
+	for _, c := range d {
+		s.Discovered(c)
+	}
+}
+
+// Unsubscribe removes a subscriber from the discoverer, stopping it from
+// being notified of any changes to the set of known remote APIs.
+func (d StaticDiscoverer) Unsubscribe(DiscoverySubscriber) {
 }
