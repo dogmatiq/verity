@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/dogmatiq/configkit v0.2.0
-	github.com/dogmatiq/dogma v0.6.2
+	github.com/dogmatiq/dogma v0.6.3
 	github.com/dogmatiq/example v0.0.0-20191217002352-e5ad51736793
 	github.com/dogmatiq/linger v0.1.0
 	github.com/dogmatiq/marshalkit v0.1.1-0.20191217233148-af866602d706
