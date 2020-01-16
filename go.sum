@@ -7,12 +7,16 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/dogmatiq/configkit v0.1.0/go.mod h1:k4Cgle0csPMTDOpBFiWs27apnX9MC+98QTs/JGyYNuM=
 github.com/dogmatiq/configkit v0.2.0 h1:FlIAO+DKKr0Zj3voArdNEYzbNV/Z/vrD7SSlOkxiw7Q=
 github.com/dogmatiq/configkit v0.2.0/go.mod h1:86SjxjPQaHBYQMqj/DcRj1Dcpn7Mp/0JGDhvhyC/KAI=
+github.com/dogmatiq/configkit v0.2.1 h1:i/Wp+mHTXV4L8yOjLfgeiGamPTlw7U6aeM+xRrESaKM=
+github.com/dogmatiq/configkit v0.2.1/go.mod h1:rdU30Lpfc1IbHja7fVd7vBdMshLXDTBrtiZA8dq0rn0=
 github.com/dogmatiq/dapper v0.3.3 h1:H/nh8tyo+p12c+btiGQRD9GezlGXxQW19+nU7AbyAfU=
 github.com/dogmatiq/dapper v0.3.3/go.mod h1:wvWzpY8JYKHRZE80Mf0jdjSDkMezyv/amjgbirHUyaw=
 github.com/dogmatiq/dogma v0.6.0/go.mod h1:Im+Z77qgdIza8H5g/rrbrxCkHkJK7hHFs49MAqMHLTc=
 github.com/dogmatiq/dogma v0.6.1/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/dogma v0.6.2 h1:srGSGAu8ZpQ+c23EUVq35mDn47HZbbLr5Q9PhGRH7NE=
 github.com/dogmatiq/dogma v0.6.2/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
+github.com/dogmatiq/dogma v0.6.3 h1:owkM3lOFmLmwaFpYogO46taVuPJU5sF5YApICZr4ljk=
+github.com/dogmatiq/dogma v0.6.3/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/enginekit v0.8.0 h1:hl/OWWduW7tojy7/x+e/ModKTHKR9IkxeXpj1YsEUbo=
 github.com/dogmatiq/enginekit v0.8.0/go.mod h1:sEWG4lEnwl74og8fDTzIohCnM4c8GZLz/LvqQMipAbw=
 github.com/dogmatiq/example v0.0.0-20191217002352-e5ad51736793 h1:p2UkACvNFjYnwAn1vrr+Hn1AdxpYIH1FYFGYiWEN/t8=
@@ -61,10 +65,12 @@ github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+W
 github.com/onsi/ginkgo v1.10.2/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.10.3 h1:OoxbjfXVZyod1fmWYhI7SEyaD8B00ynP3T+D5GiyHOY=
 github.com/onsi/ginkgo v1.10.3/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
+github.com/onsi/ginkgo v1.11.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/onsi/gomega v1.7.1 h1:K0jcRCwNQM3vFGh1ppMtDh/+7ApJrjldlX8fA0jDTLQ=
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
+github.com/onsi/gomega v1.8.1/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoTdcA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
@@ -111,6 +117,7 @@ golang.org/x/tools v0.0.0-20190114222345-bf090417da8b/go.mod h1:n7NCudcB/nEzxVGm
 golang.org/x/tools v0.0.0-20190226205152-f727befe758c/go.mod h1:9Yl7xja0Znq3iFh3HoIrodX9oNMXvdceNzlUR8zjMvY=
 golang.org/x/tools v0.0.0-20190311212946-11955173bddd/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
 golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135/go.mod h1:RgjU9mgBXZiqYHBnxXauZ1Gv1EHHAz9KjViQ78xBX0Q=
+golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
 google.golang.org/appengine v1.6.5 h1:tycE03LOZYQNhDpS27tcQdAzLCVMaj7QT2SXxebnpCM=
