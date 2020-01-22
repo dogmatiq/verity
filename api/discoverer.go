@@ -28,9 +28,12 @@ type DiscoverySubscriber interface {
 	Undiscovered(*grpc.ClientConn)
 }
 
-// StaticDiscoverer is a discoverer that notifies subscribers of a fixed
+// NilDiscoverer is a discoverer that does not discover any API endpoints.
+var NilDiscoverer Discoverer = staticDiscoverer{}
+
+// staticDiscoverer is a discoverer that notifies subscribers of a fixed
 // list of gRPC clients.
-type StaticDiscoverer []*grpc.ClientConn
+type staticDiscoverer []*grpc.ClientConn
 
 // NewStaticDiscoverer returns a discoverer that notifies subscribers of a fixed
 // list of gRPC clients.
@@ -38,8 +41,8 @@ func NewStaticDiscoverer(
 	ctx context.Context,
 	hosts []string,
 	options ...grpc.DialOption,
-) (StaticDiscoverer, error) {
-	conns := make(StaticDiscoverer, len(hosts))
+) (Discoverer, error) {
+	conns := make(staticDiscoverer, len(hosts))
 
 	for i, h := range hosts {
 		conn, err := grpc.DialContext(ctx, h, options...)
@@ -53,7 +56,7 @@ func NewStaticDiscoverer(
 
 // Subscribe registers a subscriber with the discoverer, causing it to be
 // notified of any changes to the set of known remote APIs.
-func (d StaticDiscoverer) Subscribe(s DiscoverySubscriber) {
+func (d staticDiscoverer) Subscribe(s DiscoverySubscriber) {
 	for _, c := range d {
 		s.Discovered(c)
 	}
@@ -61,5 +64,5 @@ func (d StaticDiscoverer) Subscribe(s DiscoverySubscriber) {
 
 // Unsubscribe removes a subscriber from the discoverer, stopping it from
 // being notified of any changes to the set of known remote APIs.
-func (d StaticDiscoverer) Unsubscribe(DiscoverySubscriber) {
+func (d staticDiscoverer) Unsubscribe(DiscoverySubscriber) {
 }

@@ -43,7 +43,7 @@ func resolveOptions(
 	}
 
 	if opts.Discoverer == nil {
-		opts.Discoverer = &api.StaticDiscoverer{}
+		opts.Discoverer = api.NilDiscoverer
 	}
 
 	if opts.Marshaler == nil {
