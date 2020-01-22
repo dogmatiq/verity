@@ -19,12 +19,11 @@ type Stream interface {
 	// on a stream is always at offset 0.
 	//
 	// filter is a set of messages types of which indicate which event types are
-	// returned by Cursor.Next(). If filter is empty, all events types are
-	// returned.
+	// returned by Cursor.Next().
 	Open(
 		ctx context.Context,
 		offset uint64,
-		filter []message.TypeCollection,
+		filter message.TypeCollection,
 	) (Cursor, error)
 }
 
