@@ -4,23 +4,20 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/dogmatiq/example"
 	"github.com/dogmatiq/example/database"
 	"github.com/dogmatiq/infix"
 )
 
-func main() {
-	app, err := example.NewApp(database.MustNew())
-	if err != nil {
-		panic(app)
-	}
-
+// newContext returns a cancelable context that is canceled when the process
+// receives a SIGTERM or SIGINT.
+func newContext() (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	sig := make(chan os.Signal)
-	signal.Notify(sig, os.Interrupt)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		select {
@@ -30,9 +27,19 @@ func main() {
 		}
 	}()
 
-	e := &infix.Engine{
-		Application: app,
+	return ctx, cancel
+}
+
+func main() {
+	ctx, cancel := newContext()
+	defer cancel()
+
+	app, err := example.NewApp(database.MustNew())
+	if err != nil {
+		panic(app)
 	}
+
+	e := infix.New(app)
 
 	if err := e.Run(ctx); err != context.Canceled {
 		panic(err)
