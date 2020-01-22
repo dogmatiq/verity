@@ -22,22 +22,23 @@ type DiscoverySubscriber interface {
 	Undiscovered(Stream)
 }
 
+// NoopDiscoverer is a discoverer that does not discover any streams.
+var NoopDiscoverer Discoverer = staticDiscoverer{}
+
 // staticDiscoverer is an implementation of Discoverer that "discovers" a fixed
 // set of streams.
-type staticDiscoverer struct {
-	streams []Stream
-}
+type staticDiscoverer []Stream
 
 // NewStaticDiscoverer returns a discoverer that always "discovers" a fixed set
 // of streams.
 func NewStaticDiscoverer(streams ...Stream) Discoverer {
-	return staticDiscoverer{streams}
+	return staticDiscoverer(streams)
 }
 
 // Subscribe registers a subscriber with the discoverer, causing it to be
 // notified of any changes to the set of known event streams.
 func (d staticDiscoverer) Subscribe(s DiscoverySubscriber) {
-	for _, str := range d.streams {
+	for _, str := range d {
 		s.Discovered(str)
 	}
 }

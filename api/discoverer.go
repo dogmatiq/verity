@@ -28,8 +28,8 @@ type DiscoverySubscriber interface {
 	Undiscovered(*grpc.ClientConn)
 }
 
-// NilDiscoverer is a discoverer that does not discover any API endpoints.
-var NilDiscoverer Discoverer = staticDiscoverer{}
+// NoopDiscoverer is a discoverer that does not discover any API endpoints.
+var NoopDiscoverer Discoverer = staticDiscoverer{}
 
 // staticDiscoverer is a discoverer that notifies subscribers of a fixed
 // list of gRPC clients.
