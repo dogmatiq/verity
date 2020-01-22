@@ -13,8 +13,6 @@ github.com/dogmatiq/dodeca v0.1.2 h1:A7BK/Uqbah00tCZHeZ8xxCWjLaINt/oXpNwkx+DvA2A
 github.com/dogmatiq/dodeca v0.1.2/go.mod h1:2lqZWogLVZ2MtiHkQDUJCN9bs0/X9zVY/6HKZaHHLM8=
 github.com/dogmatiq/dogma v0.6.0/go.mod h1:Im+Z77qgdIza8H5g/rrbrxCkHkJK7hHFs49MAqMHLTc=
 github.com/dogmatiq/dogma v0.6.1/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
-github.com/dogmatiq/dogma v0.6.2 h1:srGSGAu8ZpQ+c23EUVq35mDn47HZbbLr5Q9PhGRH7NE=
-github.com/dogmatiq/dogma v0.6.2/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/dogma v0.6.3 h1:owkM3lOFmLmwaFpYogO46taVuPJU5sF5YApICZr4ljk=
 github.com/dogmatiq/dogma v0.6.3/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/enginekit v0.8.0 h1:hl/OWWduW7tojy7/x+e/ModKTHKR9IkxeXpj1YsEUbo=
@@ -24,8 +22,8 @@ github.com/dogmatiq/example v0.0.0-20191217002352-e5ad51736793/go.mod h1:WSj+tHi
 github.com/dogmatiq/graphkit v0.3.0/go.mod h1:9vbqESyQyH7qh3rpSpxz0Mz+6bwi7mHvJS8IaJcWCeo=
 github.com/dogmatiq/iago v0.4.0 h1:57nZqVT34IZxtCZEW/RFif7DNUEjMXgevfr/Mmd0N8I=
 github.com/dogmatiq/iago v0.4.0/go.mod h1:fishMWBtzYcjgis6d873VTv9kFm/wHYLOzOyO9ECBDc=
-github.com/dogmatiq/marshalkit v0.1.1-0.20191217233148-af866602d706 h1:YY0t5Op308f7QHENFAvBKO0n4VgcvogUn0PPPUh9KdQ=
-github.com/dogmatiq/marshalkit v0.1.1-0.20191217233148-af866602d706/go.mod h1:ExBLhkZAxTieCzJvI6INQSUvgGNClvbmL8RLKMfcxUE=
+github.com/dogmatiq/marshalkit v0.2.0 h1:h9H+aAG+npdBeK4H1S2JUXHYmEhzgqzgNyiSQyBTHPU=
+github.com/dogmatiq/marshalkit v0.2.0/go.mod h1:x58v4ttKsKlZ9CneO1C0VtWYN8Q8SIdsCm2CDll9Fuc=
 github.com/dogmatiq/projectionkit v0.3.0 h1:UQ6++Ymk3zncp4IIyJNAN9/kWCUhfDdCRIg0T4JXKTo=
 github.com/dogmatiq/projectionkit v0.3.0/go.mod h1:z5wkJDnwnJS0n69lDYi3x8AN3BH78/3XtTbwn1WLJZc=
 github.com/dogmatiq/testkit v0.3.0 h1:0BU4rmJ65SjqlqYXLZvUd0rTHQiOmgi6PKij/+BQ388=
@@ -108,8 +106,6 @@ golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.0.0-20190204203706-41f3e6584952/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a h1:1BGLXjeY4akVXGgbC9HugT3Jv3hCI0z56oJR5vAMgBU=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
-golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd h1:3x5uuvBgE6oaXJjCOvpCC1IpgJogqQ+PqGGU3ZxAgII=
-golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2 h1:tW2bmiBqwgJj/UpqtC8EpXEZVYOwU0yG4iWbprSVAcs=
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
