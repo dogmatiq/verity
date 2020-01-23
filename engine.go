@@ -2,12 +2,11 @@ package infix
 
 import (
 	"context"
-	"fmt"
-	"net"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/api"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -42,31 +41,11 @@ func (e *Engine) Run(ctx context.Context) (err error) {
 
 // startGRPC runs the engine's gRPC server until ctx is canceled.
 func (e *Engine) startGRPC(ctx context.Context) error {
-	lis, err := net.Listen("tcp", e.opts.ListenAddress)
-	if err != nil {
-		return fmt.Errorf("unable to start gRPC server: %w", err)
-	}
-	defer lis.Close()
+	s := grpc.NewServer()
 
-	rpc := grpc.NewServer()
+	logging.Log(e.opts.Logger, "listening for gRPC requests on %s", e.opts.ListenAddress)
 
-	// GOROUTINE EXIT STRATEGY: This goroutine always blocks on ctx being
-	// canceled. A "clean shutdown" is triggered by this cancelation, and a
-	// "dirty shutdown" can only occur as a result of the errgroup g
-	// failing, which will also cause ctx to be canceled.
-	go func() {
-		<-ctx.Done()
-		rpc.Stop()
-	}()
-
-	logging.Log(e.opts.Logger, "listening for gRPC requests on %s", lis.Addr())
-
-	if err := rpc.Serve(lis); err != nil {
-		return fmt.Errorf("gRPC server stopped: %w", err)
-	}
-
-	// A clean exit is ultimately due to ctx being canceled.
-	return ctx.Err()
+	return api.Run(ctx, e.opts.ListenAddress, s)
 }
 
 // run starts a goroutine running fn in the given error group.
