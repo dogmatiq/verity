@@ -7,11 +7,14 @@ import (
 	"github.com/dogmatiq/configkit"
 )
 
+// EntryPoint is a function exected by a Supervisor for each stream.
+type EntryPoint func(context.Context, Stream)
+
 // Supervisor starts a goroutine for each discovered event stream.
 type Supervisor struct {
 	// Func is the entry-point for the goroutines started for each stream.
 	// The implementation must return when the supplied context is canceled.
-	Func func(context.Context, Stream)
+	Func EntryPoint
 
 	// Parent is the parent context for the ctx argument passed to Func.
 	Parent context.Context

@@ -34,23 +34,11 @@ func (e *Engine) Run(ctx context.Context) (err error) {
 	id := e.app.Identity()
 	logging.Log(e.opts.Logger, "hosting '%s' application (%s)", id.Name, id.Key)
 
-	run(ctx, g, e.startGRPC)
+	g.Go(func() error {
+		s := grpc.NewServer()
+		logging.Log(e.opts.Logger, "listening for gRPC requests on %s", e.opts.ListenAddress)
+		return api.Run(ctx, e.opts.ListenAddress, s)
+	})
 
 	return g.Wait()
-}
-
-// startGRPC runs the engine's gRPC server until ctx is canceled.
-func (e *Engine) startGRPC(ctx context.Context) error {
-	s := grpc.NewServer()
-
-	logging.Log(e.opts.Logger, "listening for gRPC requests on %s", e.opts.ListenAddress)
-
-	return api.Run(ctx, e.opts.ListenAddress, s)
-}
-
-// run starts a goroutine running fn in the given error group.
-func run(ctx context.Context, g *errgroup.Group, fn func(context.Context) error) {
-	g.Go(func() error {
-		return fn(ctx)
-	})
 }
