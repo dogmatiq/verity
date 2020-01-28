@@ -10,11 +10,13 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
+var _ eventstream.Stream = (*Stream)(nil)
+
 // Stream is an implementation of eventstream.Stream that obtains messages via
 // the messaging API.
 type Stream struct {
-	// Application is the identity of the app that the stream consumes from.
-	Application configkit.Identity
+	// App is the identity of the app that the stream consumes from.
+	App configkit.Identity
 
 	// Marshaler is used to marshal messages and their types.
 	Marshaler marshalkit.Marshaler
@@ -23,11 +25,9 @@ type Stream struct {
 	Client pb.EventStreamClient
 }
 
-// ID returns a unique identifier for the stream.
-//
-// The tuple of stream ID and event offset must uniquely identify a message.
-func (s *Stream) ID() string {
-	return s.Application.Key
+// Application returns the identity of the application that owns the stream.
+func (s *Stream) Application() configkit.Identity {
+	return s.App
 }
 
 // Open returns a cursor used to read events from this stream.
@@ -44,8 +44,8 @@ func (s *Stream) Open(
 ) (eventstream.Cursor, error) {
 	req := &pb.ConsumeRequest{
 		Application: &pb.Identity{
-			Name: s.Application.Name,
-			Key:  s.Application.Key,
+			Name: s.App.Name,
+			Key:  s.App.Key,
 		},
 		Offset: offset,
 		Events: s.marshalFilter(filter),
