@@ -16,5 +16,5 @@ require (
 	github.com/onsi/gomega v1.8.1
 	go.opentelemetry.io/otel v0.2.1
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	google.golang.org/grpc v1.26.0
+	google.golang.org/grpc v1.27.0
 )
