@@ -10,7 +10,7 @@ require (
 	github.com/dogmatiq/example v0.0.0-20191217002352-e5ad51736793
 	github.com/dogmatiq/linger v0.1.0
 	github.com/dogmatiq/marshalkit v0.2.0
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.3.3
 	github.com/google/uuid v1.1.1
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
