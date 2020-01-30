@@ -36,7 +36,7 @@ func main() {
 
 	app, err := example.NewApp(database.MustNew())
 	if err != nil {
-		panic(app)
+		panic(err)
 	}
 
 	e := infix.New(app)

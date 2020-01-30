@@ -1,0 +1,20 @@
+syntax = "proto3";
+package dogma.api.messaging.v1;
+
+import "api/internal/pb/identity.proto";
+
+option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+
+// Application describes the message types for a specific application.
+message Application {
+  // Identity is the identity of the application.
+  Identity identity = 1;
+
+  // Commands is a list of media-types for commands that are consumed by the
+  // application.
+  repeated string commands = 2;
+
+  // Events is a list of media-types for events that are produced by the
+  // application.
+  repeated string events = 3;
+}
