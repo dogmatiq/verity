@@ -28,9 +28,12 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZm
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
 github.com/dogmatiq/aperture v0.2.2 h1:wy27gOV1DfzPuZn4HOuq0Ve1D9SlW9p9Yiq+mpjkzFc=
 github.com/dogmatiq/aperture v0.2.2/go.mod h1:jtyPCe83zeeciBcON9tJD6dgdPE2V1m2YQ0k/JiBybg=
+github.com/dogmatiq/aperture v0.3.0 h1:kZEGR0PJw81By517UpH7wQvRxISWRQmVfVURVJkdL2o=
+github.com/dogmatiq/aperture v0.3.0/go.mod h1:csHck5nvro8RCkei5/6+mgzcItoBe9PPmMtEGPByeJE=
 github.com/dogmatiq/configkit v0.1.0/go.mod h1:k4Cgle0csPMTDOpBFiWs27apnX9MC+98QTs/JGyYNuM=
 github.com/dogmatiq/configkit v0.2.1 h1:i/Wp+mHTXV4L8yOjLfgeiGamPTlw7U6aeM+xRrESaKM=
 github.com/dogmatiq/configkit v0.2.1/go.mod h1:rdU30Lpfc1IbHja7fVd7vBdMshLXDTBrtiZA8dq0rn0=
+github.com/dogmatiq/configkit v0.3.0/go.mod h1:rdU30Lpfc1IbHja7fVd7vBdMshLXDTBrtiZA8dq0rn0=
 github.com/dogmatiq/dapper v0.3.3/go.mod h1:wvWzpY8JYKHRZE80Mf0jdjSDkMezyv/amjgbirHUyaw=
 github.com/dogmatiq/dodeca v0.1.2 h1:A7BK/Uqbah00tCZHeZ8xxCWjLaINt/oXpNwkx+DvA2A=
 github.com/dogmatiq/dodeca v0.1.2/go.mod h1:2lqZWogLVZ2MtiHkQDUJCN9bs0/X9zVY/6HKZaHHLM8=
