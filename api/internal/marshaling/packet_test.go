@@ -1,20 +1,21 @@
-package api
+package marshaling_test
 
 import (
+	. "github.com/dogmatiq/infix/api/internal/marshaling"
 	"github.com/dogmatiq/infix/api/internal/pb"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("func marshalPacket()", func() {
+var _ = Describe("func MarshalPacket()", func() {
 	It("marshals to protobuf", func() {
 		src := marshalkit.Packet{
 			MediaType: "<media-type>",
 			Data:      []byte("<data>"),
 		}
 
-		dest := marshalPacket(src)
+		dest := MarshalPacket(src)
 
 		Expect(dest).To(Equal(&pb.Packet{
 			MediaType: "<media-type>",
@@ -23,7 +24,7 @@ var _ = Describe("func marshalPacket()", func() {
 	})
 })
 
-var _ = Describe("func unmarshalPacket()", func() {
+var _ = Describe("func UnmarshalPacket()", func() {
 	It("unmarshals from protobuf", func() {
 		src := &pb.Packet{
 			MediaType: "<media-type>",
@@ -31,7 +32,7 @@ var _ = Describe("func unmarshalPacket()", func() {
 		}
 
 		var dest marshalkit.Packet
-		unmarshalPacket(src, &dest)
+		UnmarshalPacket(src, &dest)
 
 		Expect(dest).To(Equal(marshalkit.Packet{
 			MediaType: "<media-type>",
