@@ -12,7 +12,7 @@ require (
 	github.com/dogmatiq/marshalkit v0.2.0
 	github.com/golang/protobuf v1.3.3
 	github.com/google/uuid v1.1.1
-	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
 	go.opentelemetry.io/otel v0.2.1
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
