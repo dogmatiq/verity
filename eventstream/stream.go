@@ -13,6 +13,11 @@ type Stream interface {
 	// Application returns the identity of the application that owns the stream.
 	Application() configkit.Identity
 
+	// MessageTypes returns the set of message types available on the stream.
+	//
+	// The collection may not be exhaustive.
+	MessageTypes() message.TypeCollection
+
 	// Open returns a cursor used to read events from this stream.
 	//
 	// offset is the position of the first event to read. The first event
