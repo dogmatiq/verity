@@ -6,14 +6,12 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/api"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
 )
 
 // Engine hosts a Dogma application.
 type Engine struct {
-	app  configkit.RichApplication
+	cfg  configkit.RichApplication
 	opts *engineOptions
 }
 
@@ -22,7 +20,7 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 	cfg := configkit.FromApplication(app)
 
 	return &Engine{
-		app:  cfg,
+		cfg:  cfg,
 		opts: resolveOptions(cfg, options),
 	}
 }
@@ -31,14 +29,8 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 func (e *Engine) Run(ctx context.Context) (err error) {
 	g, ctx := errgroup.WithContext(ctx)
 
-	id := e.app.Identity()
+	id := e.cfg.Identity()
 	logging.Log(e.opts.Logger, "hosting '%s' application (%s)", id.Name, id.Key)
-
-	g.Go(func() error {
-		s := grpc.NewServer()
-		logging.Log(e.opts.Logger, "listening for gRPC requests on %s", e.opts.ListenAddress)
-		return api.Run(ctx, e.opts.ListenAddress, s)
-	})
 
 	return g.Wait()
 }
