@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 
+	"google.golang.org/grpc"
+
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/api/internal/pb"
@@ -10,24 +12,33 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-var _ eventstream.Stream = (*Stream)(nil)
-
 // Stream is an implementation of eventstream.Stream that obtains messages via
 // the messaging API.
 type Stream struct {
 	// App is the identity of the app that the stream consumes from.
 	App configkit.Identity
 
+	// Types is the (potentially non-exhaustive) set of message types available
+	// on this stream.
+	Types message.TypeCollection
+
 	// Marshaler is used to marshal messages and their types.
 	Marshaler marshalkit.Marshaler
 
-	// Client is the underlying gRPC event stream.
-	Client pb.EventStreamClient
+	// Client is the underlying gRPC messaging client.
+	Client grpc.ClientConnInterface
 }
 
 // Application returns the identity of the application that owns the stream.
 func (s *Stream) Application() configkit.Identity {
 	return s.App
+}
+
+// MessageTypes returns the set of message types available on the stream.
+//
+// The collection may not be exhaustive.
+func (s *Stream) MessageTypes() message.TypeCollection {
+	return s.Types
 }
 
 // Open returns a cursor used to read events from this stream.
@@ -42,7 +53,7 @@ func (s *Stream) Open(
 	offset uint64,
 	filter message.TypeCollection,
 ) (eventstream.Cursor, error) {
-	req := &pb.ConsumeRequest{
+	req := &pb.ConsumeEventsRequest{
 		Application: &pb.Identity{
 			Name: s.App.Name,
 			Key:  s.App.Key,
@@ -71,7 +82,7 @@ func (s *Stream) Open(
 	}()
 
 	// Start the gRPC consumer.
-	res, err := s.Client.Consume(consumeCtx, req)
+	res, err := pb.NewMessagingClient(s.Client).ConsumeEvents(consumeCtx, req)
 
 	// Abort the waiting goroutine so that consumeCtx will no longer be canceled
 	// when and if ctx is canceled.
@@ -101,7 +112,7 @@ func (s *Stream) Open(
 func (s *Stream) marshalFilter(types message.TypeCollection) []string {
 	var result []string
 
-	types.Each(
+	types.Range(
 		func(t message.Type) bool {
 			mt := marshalkit.MustMarshalType(s.Marshaler, t.ReflectType())
 			result = append(result, mt)
@@ -116,7 +127,7 @@ func (s *Stream) marshalFilter(types message.TypeCollection) []string {
 type cursor struct {
 	marshaler marshalkit.ValueMarshaler
 	cancel    func()
-	client    pb.EventStream_ConsumeClient
+	client    pb.Messaging_ConsumeEventsClient
 	next      chan *eventstream.Envelope
 	err       error
 }
