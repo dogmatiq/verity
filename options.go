@@ -5,11 +5,12 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/api"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
 	"github.com/dogmatiq/marshalkit/codec/json"
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
+	"go.opentelemetry.io/otel/api/metric"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // DefaultListenAddress is the default TCP address for the gRPC listener.
@@ -21,9 +22,10 @@ type EngineOption func(*engineOptions)
 // engineOptions is a container for a fully-resolved set of engine options.
 type engineOptions struct {
 	ListenAddress string
-	Discoverer    api.Discoverer
 	Marshaler     marshalkit.Marshaler
 	Logger        logging.Logger
+	Meter         metric.Meter
+	Tracer        trace.Tracer
 }
 
 // resolveOptions returns a fully-populated set of engine options built from the
@@ -42,12 +44,16 @@ func resolveOptions(
 		opts.ListenAddress = DefaultListenAddress
 	}
 
-	if opts.Discoverer == nil {
-		opts.Discoverer = api.NoopDiscoverer
-	}
-
 	if opts.Marshaler == nil {
 		opts.Marshaler = newMarshaler(cfg)
+	}
+
+	if opts.Meter == nil {
+		opts.Meter = metric.NoopMeter{}
+	}
+
+	if opts.Tracer == nil {
+		opts.Tracer = trace.NoopTracer{}
 	}
 
 	return opts
