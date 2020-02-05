@@ -6,24 +6,10 @@ import (
 	"time"
 )
 
-// Attempt contains information about a specific attempt to handle a message.
-type Attempt struct {
-	// RetryCount is the number of times this message has been retried.
-	// A value of zero indicates the first attempt.
-	RetryCount uint32
-}
-
-// RetryPolicy is an interface for determining when failed messages should be
-// retried.
+// RetryPolicy is an interface for determining when failed messages should next
+// be retried.
 type RetryPolicy interface {
-	NextRetry(now time.Time, a Attempt, cause []error) time.Time
-}
-
-// DefaultRetryPolicy is the retry policy used when no custom policy is specified.
-var DefaultRetryPolicy RetryPolicy = ExponentialBackoff{
-	100 * time.Millisecond,
-	1 * time.Hour,
-	0.25,
+	NextRetry(now time.Time, retries uint32, cause []error) time.Time
 }
 
 // ExponentialBackoff is a retry policy that uses exponential backoff.
@@ -36,11 +22,11 @@ type ExponentialBackoff struct {
 // NextRetry returns the time at which the message should next be retried.
 func (p ExponentialBackoff) NextRetry(
 	now time.Time,
-	a Attempt,
+	retries uint32,
 	_ []error,
 ) time.Time {
 	return now.Add(
-		p.delay(a.RetryCount),
+		p.delay(retries),
 	)
 }
 
