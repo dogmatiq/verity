@@ -1,10 +1,10 @@
-package message_test
+package envelope_test
 
 import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
-	. "github.com/dogmatiq/infix/message"
+	. "github.com/dogmatiq/infix/envelope"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

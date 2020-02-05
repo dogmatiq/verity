@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
-	imessage "github.com/dogmatiq/infix/message"
+	"github.com/dogmatiq/infix/handler"
 )
 
 // DefaultMaxRetryDelay is the default for the maximum amount of time to wait
@@ -22,7 +22,7 @@ type Supervisor struct {
 	Context     context.Context
 	Projections []configkit.RichProjection
 	Factory     *ProjectorFactory
-	RetryPolicy imessage.RetryPolicy
+	RetryPolicy handler.RetryPolicy
 
 	m       sync.Mutex
 	cancels map[string]context.CancelFunc

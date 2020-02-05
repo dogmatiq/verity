@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	imessage "github.com/dogmatiq/infix/message"
+	"github.com/dogmatiq/infix/envelope"
 )
 
 // A Stream is an ordered sequence of event messages.
@@ -50,7 +50,7 @@ type Cursor interface {
 
 // Envelope is a specialized envelope for messages consumed from a stream.
 type Envelope struct {
-	*imessage.Envelope
+	*envelope.Envelope
 
 	// StreamOffset is the offset of the message on the stream.
 	StreamOffset uint64

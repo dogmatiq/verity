@@ -1,4 +1,4 @@
-package message_test
+package envelope_test
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/message"
+	. "github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"

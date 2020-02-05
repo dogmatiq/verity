@@ -1,11 +1,11 @@
-package message_test
+package handler_test
 
 import (
 	"errors"
 	"math"
 	"time"
 
-	. "github.com/dogmatiq/infix/message"
+	. "github.com/dogmatiq/infix/handler"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

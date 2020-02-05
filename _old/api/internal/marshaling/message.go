@@ -2,13 +2,13 @@ package marshaling
 
 import (
 	"github.com/dogmatiq/infix/api/internal/pb"
-	"github.com/dogmatiq/infix/message"
+	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/marshalkit"
 )
 
 // MarshalMessageEnvelope marshals a message envelope to its protobuf
 // representation.
-func MarshalMessageEnvelope(src *message.Envelope) *pb.MessageEnvelope {
+func MarshalMessageEnvelope(src *envelope.Envelope) *pb.MessageEnvelope {
 	return &pb.MessageEnvelope{
 		MetaData: MarshalMessageMetaData(&src.MetaData),
 		Packet:   MarshalPacket(src.Packet),
@@ -20,7 +20,7 @@ func MarshalMessageEnvelope(src *message.Envelope) *pb.MessageEnvelope {
 func UnmarshalMessageEnvelope(
 	ma marshalkit.Marshaler,
 	src *pb.MessageEnvelope,
-	dest *message.Envelope,
+	dest *envelope.Envelope,
 ) error {
 	err := UnmarshalMessageMetaData(src.GetMetaData(), &dest.MetaData)
 	if err != nil {
@@ -35,7 +35,7 @@ func UnmarshalMessageEnvelope(
 
 // MarshalMessageMetaData marshals message meta-data to its protobuf
 // representation.
-func MarshalMessageMetaData(src *message.MetaData) *pb.MessageMetaData {
+func MarshalMessageMetaData(src *envelope.MetaData) *pb.MessageMetaData {
 	dest := &pb.MessageMetaData{
 		MessageId:     src.MessageID,
 		CausationId:   src.CausationID,
@@ -50,7 +50,7 @@ func MarshalMessageMetaData(src *message.MetaData) *pb.MessageMetaData {
 
 // UnmarshalMessageMetaData unmarshals message data from its protobuf
 // representation.
-func UnmarshalMessageMetaData(src *pb.MessageMetaData, dest *message.MetaData) error {
+func UnmarshalMessageMetaData(src *pb.MessageMetaData, dest *envelope.MetaData) error {
 	dest.MessageID = src.GetMessageId()
 	dest.CausationID = src.GetCausationId()
 	dest.CorrelationID = src.GetCorrelationId()
@@ -72,7 +72,7 @@ func UnmarshalMessageMetaData(src *pb.MessageMetaData, dest *message.MetaData) e
 
 // MarshalMessageSource marshals a message source to its protobuf
 // representation.
-func MarshalMessageSource(src *message.Source) *pb.MessageSource {
+func MarshalMessageSource(src *envelope.Source) *pb.MessageSource {
 	dest := &pb.MessageSource{
 		Application: MarshalIdentity(src.Application),
 		InstanceId:  src.InstanceID,
@@ -87,7 +87,7 @@ func MarshalMessageSource(src *message.Source) *pb.MessageSource {
 
 // UnmarshalMessageSource marshals a message source to its protobuf
 // representation.
-func UnmarshalMessageSource(src *pb.MessageSource, dest *message.Source) error {
+func UnmarshalMessageSource(src *pb.MessageSource, dest *envelope.Source) error {
 	dest.InstanceID = src.GetInstanceId()
 
 	if err := UnmarshalIdentity(src.GetApplication(), &dest.Application); err != nil {

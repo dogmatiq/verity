@@ -7,7 +7,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/api/internal/marshaling"
 	"github.com/dogmatiq/infix/api/internal/pb"
-	imessage "github.com/dogmatiq/infix/message"
+	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,15 +19,15 @@ var _ = Context("message envelopes", func() {
 		scheduledFor = time.Date(2011, 12, 13, 14, 15, 16, 17, time.UTC)
 	)
 	Describe("func MarshalMessageEnvelope()", func() {
-		var src *imessage.Envelope
+		var src *envelope.Envelope
 
 		BeforeEach(func() {
-			src = &imessage.Envelope{
-				MetaData: imessage.MetaData{
+			src = &envelope.Envelope{
+				MetaData: envelope.MetaData{
 					MessageID:     "<id>",
 					CausationID:   "<cause>",
 					CorrelationID: "<correlation>",
-					Source: imessage.Source{
+					Source: envelope.Source{
 						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 						Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
 						InstanceID:  "<instance>",
@@ -89,7 +89,7 @@ var _ = Context("message envelopes", func() {
 		})
 
 		It("unmarshals from protobuf", func() {
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -100,12 +100,12 @@ var _ = Context("message envelopes", func() {
 			dest.CreatedAt = time.Time{}
 			dest.ScheduledFor = time.Time{}
 
-			Expect(dest).To(Equal(imessage.Envelope{
-				MetaData: imessage.MetaData{
+			Expect(dest).To(Equal(envelope.Envelope{
+				MetaData: envelope.MetaData{
 					MessageID:     "<id>",
 					CausationID:   "<cause>",
 					CorrelationID: "<correlation>",
-					Source: imessage.Source{
+					Source: envelope.Source{
 						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 						Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
 						InstanceID:  "<instance>",
@@ -119,7 +119,7 @@ var _ = Context("message envelopes", func() {
 		It("returns an error if the created-at time can not be unmarshaled", func() {
 			src.MetaData.CreatedAt = "not-a-valid-time"
 
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).Should(HaveOccurred())
 		})
@@ -127,7 +127,7 @@ var _ = Context("message envelopes", func() {
 		It("returns an error if the scheduled-for time can not be unmarshaled", func() {
 			src.MetaData.ScheduledFor = "not-a-valid-time"
 
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).Should(HaveOccurred())
 		})
@@ -135,7 +135,7 @@ var _ = Context("message envelopes", func() {
 		It("returns an error if the source app is invalid", func() {
 			src.MetaData.Source.Application = nil
 
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).Should(HaveOccurred())
 		})
@@ -143,7 +143,7 @@ var _ = Context("message envelopes", func() {
 		It("returns an error if the source handler is invalid", func() {
 			src.MetaData.Source.Handler = &pb.Identity{Name: "", Key: "<key>"}
 
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).Should(HaveOccurred())
 		})
@@ -152,7 +152,7 @@ var _ = Context("message envelopes", func() {
 			src.MetaData.Source.Handler = nil
 			src.MetaData.Source.InstanceId = ""
 
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
@@ -160,7 +160,7 @@ var _ = Context("message envelopes", func() {
 		It("returns an error if the meta-data is not valid", func() {
 			src.MetaData.CreatedAt = ""
 
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).Should(HaveOccurred())
 		})
@@ -168,7 +168,7 @@ var _ = Context("message envelopes", func() {
 		It("returns an error if the marshaler fails", func() {
 			src.Packet.MediaType = "<unknown>"
 
-			var dest imessage.Envelope
+			var dest envelope.Envelope
 			err := UnmarshalMessageEnvelope(Marshaler, src, &dest)
 			Expect(err).Should(HaveOccurred())
 		})

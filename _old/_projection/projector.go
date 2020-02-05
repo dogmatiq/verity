@@ -12,7 +12,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/eventstream"
-	imessage "github.com/dogmatiq/infix/message"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger"
 	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/metric"
@@ -49,7 +49,7 @@ type Projector struct {
 
 	// RetryPolicy is the policy used to determine how long to wait before
 	// restarting the projector after an error occurs.
-	RetryPolicy imessage.RetryPolicy
+	RetryPolicy handler.RetryPolicy
 
 	// Logger is the target for log messages from the projector and the handler.
 	// If it is nil, logging.DefaultLogger is used.
