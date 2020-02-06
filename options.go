@@ -149,7 +149,7 @@ var DefaultTracer = trace.NoopTracer{}
 // If this option is omitted or t is nil, DefaultTraver is used.
 func Tracer(t trace.Tracer) EngineOption {
 	return func(opts *engineOptions) {
-		opts.Tracer = DefaultTracer
+		opts.Tracer = t
 	}
 }
 
