@@ -4,13 +4,13 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/retry"
 	"go.opentelemetry.io/otel/api/metric"
 	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -83,7 +83,7 @@ var _ = Describe("type EngineOption", func() {
 
 	Describe("func RetryPolicy()", func() {
 		It("sets the retry policy", func() {
-			p := &handler.ExponentialBackoff{}
+			p := &retry.ExponentialBackoff{}
 
 			opts := resolveOptions(cfg, []EngineOption{
 				RetryPolicy(p),

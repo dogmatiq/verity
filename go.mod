@@ -7,6 +7,7 @@ require (
 	github.com/dogmatiq/dodeca v0.1.2
 	github.com/dogmatiq/dogma v0.6.3
 	github.com/dogmatiq/example v0.0.0-20200204045209-1a925e611471
+	github.com/dogmatiq/linger v0.1.0
 	github.com/dogmatiq/marshalkit v0.2.0
 	github.com/golang/protobuf v1.3.3 // indirect
 	github.com/google/uuid v1.1.1

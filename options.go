@@ -8,7 +8,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/handler"
+	"github.com/dogmatiq/infix/retry"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
 	"github.com/dogmatiq/marshalkit/codec/json"
@@ -65,7 +65,7 @@ func MessageTimeout(d time.Duration) EngineOption {
 }
 
 // DefaultRetryPolicy is the default message retry policy.
-var DefaultRetryPolicy handler.RetryPolicy = handler.ExponentialBackoff{
+var DefaultRetryPolicy retry.Policy = retry.ExponentialBackoff{
 	Min:    100 * time.Millisecond,
 	Max:    1 * time.Hour,
 	Jitter: 0.25,
@@ -75,7 +75,7 @@ var DefaultRetryPolicy handler.RetryPolicy = handler.ExponentialBackoff{
 // when the engine should retry a message after a failure.
 //
 // If this option is omitted or p is nil DefaultMessagePolicy is used.
-func RetryPolicy(p handler.RetryPolicy) EngineOption {
+func RetryPolicy(p retry.Policy) EngineOption {
 	return func(opts *engineOptions) {
 		opts.RetryPolicy = p
 	}
@@ -157,7 +157,7 @@ func Tracer(t trace.Tracer) EngineOption {
 type engineOptions struct {
 	ListenAddress  string
 	MessageTimeout time.Duration
-	RetryPolicy    handler.RetryPolicy
+	RetryPolicy    retry.Policy
 	Marshaler      marshalkit.Marshaler
 	Logger         logging.Logger
 	Meter          metric.Meter

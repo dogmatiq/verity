@@ -1,11 +1,11 @@
-package handler_test
+package retry_test
 
 import (
 	"errors"
 	"math"
 	"time"
 
-	. "github.com/dogmatiq/infix/handler"
+	. "github.com/dogmatiq/infix/retry"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -38,7 +38,7 @@ var _ = Describe("type ExponentialBackoff", func() {
 	It("increases the delay with subsequent failures", func() {
 		var next time.Time
 
-		for retries := uint32(0); retries <= 5; retries++ {
+		for retries := 0; retries <= 5; retries++ {
 			n := rp.NextRetry(now, retries, cause)
 			Expect(n).To(BeTemporally(">", next))
 

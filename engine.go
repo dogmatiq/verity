@@ -32,5 +32,10 @@ func (e *Engine) Run(ctx context.Context) (err error) {
 	id := e.cfg.Identity()
 	logging.Log(e.opts.Logger, "hosting '%s' application (%s)", id.Name, id.Key)
 
+	g.Go(func() error {
+		<-ctx.Done()
+		return ctx.Err()
+	})
+
 	return g.Wait()
 }

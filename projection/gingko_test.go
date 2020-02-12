@@ -1,4 +1,4 @@
-package handler_test
+package projection_test
 
 import (
 	"reflect"
