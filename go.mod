@@ -9,6 +9,6 @@ require (
 	github.com/dogmatiq/marshalkit v0.2.0
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
-	go.opentelemetry.io/otel v0.2.2
+	go.opentelemetry.io/otel v0.2.3
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 )
