@@ -3,14 +3,11 @@ package infix
 import (
 	"time"
 
-	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/retry"
-	"go.opentelemetry.io/otel/api/metric"
-	"go.opentelemetry.io/otel/api/trace"
-
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -81,23 +78,23 @@ var _ = Describe("type EngineOption", func() {
 		})
 	})
 
-	Describe("func RetryPolicy()", func() {
-		It("sets the retry policy", func() {
-			p := &retry.ExponentialBackoff{}
+	Describe("func BackoffStrategy()", func() {
+		It("sets the backoff strategy", func() {
+			p := backoff.Constant(10 * time.Second)
 
 			opts := resolveOptions(cfg, []EngineOption{
-				RetryPolicy(p),
+				BackoffStrategy(p),
 			})
 
-			Expect(opts.RetryPolicy).To(BeIdenticalTo(p))
+			Expect(opts.BackoffStrategy(nil, 1)).To(Equal(10 * time.Second))
 		})
 
-		It("uses the default if the policy is nil", func() {
+		It("uses the default if the strategy is nil", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				RetryPolicy(nil),
+				BackoffStrategy(nil),
 			})
 
-			Expect(opts.RetryPolicy).To(Equal(DefaultRetryPolicy))
+			Expect(opts.BackoffStrategy).ToNot(BeNil())
 		})
 	})
 
@@ -136,46 +133,6 @@ var _ = Describe("type EngineOption", func() {
 			})
 
 			Expect(opts.Logger).To(Equal(DefaultLogger))
-		})
-	})
-
-	Describe("func Meter()", func() {
-		It("sets the mter", func() {
-			t := &metric.NoopMeter{}
-
-			opts := resolveOptions(cfg, []EngineOption{
-				Meter(t),
-			})
-
-			Expect(opts.Meter).To(BeIdenticalTo(t))
-		})
-
-		It("uses the default if the meter is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
-				Meter(nil),
-			})
-
-			Expect(opts.Meter).To(Equal(DefaultMeter))
-		})
-	})
-
-	Describe("func Tracer()", func() {
-		It("sets the tracer", func() {
-			t := &trace.NoopTracer{}
-
-			opts := resolveOptions(cfg, []EngineOption{
-				Tracer(t),
-			})
-
-			Expect(opts.Tracer).To(BeIdenticalTo(t))
-		})
-
-		It("uses the default if the tracer is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
-				Tracer(nil),
-			})
-
-			Expect(opts.Tracer).To(Equal(DefaultTracer))
 		})
 	})
 })

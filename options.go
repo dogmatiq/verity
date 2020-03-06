@@ -8,6 +8,8 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/linger"
+	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
 	"github.com/dogmatiq/marshalkit/codec/json"
@@ -38,6 +40,23 @@ func ListenAddress(addr string) EngineOption {
 
 	return func(opts *engineOptions) {
 		opts.ListenAddress = addr
+	}
+}
+
+// DefaultBackoffStrategy is the default message retry policy.
+var DefaultBackoffStrategy backoff.Strategy = backoff.WithTransforms(
+	backoff.Exponential(100*time.Millisecond),
+	linger.FullJitter,
+	linger.Limiter(0, 1*time.Hour),
+)
+
+// BackoffStrategy returns an option that sets the strategy used to determine
+// when the engine should retry a message after a failure.
+//
+// If this option is omitted or s is nil DefaultBackoffStrategy is used.
+func BackoffStrategy(s backoff.Strategy) EngineOption {
+	return func(opts *engineOptions) {
+		opts.BackoffStrategy = s
 	}
 }
 
@@ -109,10 +128,11 @@ func Logger(l logging.Logger) EngineOption {
 
 // engineOptions is a container for a fully-resolved set of engine options.
 type engineOptions struct {
-	ListenAddress  string
-	MessageTimeout time.Duration
-	Marshaler      marshalkit.Marshaler
-	Logger         logging.Logger
+	ListenAddress   string
+	BackoffStrategy backoff.Strategy
+	MessageTimeout  time.Duration
+	Marshaler       marshalkit.Marshaler
+	Logger          logging.Logger
 }
 
 // resolveOptions returns a fully-populated set of engine options built from the
@@ -129,6 +149,10 @@ func resolveOptions(
 
 	if opts.ListenAddress == "" {
 		opts.ListenAddress = DefaultListenAddress
+	}
+
+	if opts.BackoffStrategy == nil {
+		opts.BackoffStrategy = DefaultBackoffStrategy
 	}
 
 	if opts.MessageTimeout == 0 {
