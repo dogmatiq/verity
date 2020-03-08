@@ -4,15 +4,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/internal/engine"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/dogma"
 )
 
 // Engine hosts a Dogma application.
@@ -62,6 +61,7 @@ func (e *Engine) Run(ctx context.Context) (err error) {
 func (e *Engine) serve(ctx context.Context) error {
 	s := &engine.Server{
 		ListenAddress: e.opts.ListenAddress,
+		Options:       e.opts.ServerOptions,
 		Logger:        e.opts.Logger,
 	}
 

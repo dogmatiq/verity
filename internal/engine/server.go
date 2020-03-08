@@ -14,6 +14,7 @@ import (
 // Server encapsulates bootstrapping code for the engine's gRPC server.
 type Server struct {
 	ListenAddress string
+	Options       []grpc.ServerOption
 	Configs       []configkit.Application
 	Logger        logging.Logger
 

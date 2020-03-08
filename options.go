@@ -16,6 +16,7 @@ import (
 	"github.com/dogmatiq/marshalkit/codec"
 	"github.com/dogmatiq/marshalkit/codec/json"
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
+	"google.golang.org/grpc"
 )
 
 // EngineOption configures the behavior of an engine.
@@ -115,6 +116,13 @@ func WithDialer(d discovery.Dialer) EngineOption {
 	}
 }
 
+// WithServerOptions returns an option that adds gRPC server options.
+func WithServerOptions(options ...grpc.ServerOption) EngineOption {
+	return func(opts *engineOptions) {
+		opts.ServerOptions = append(opts.ServerOptions, options...)
+	}
+}
+
 // NewDefaultMarshaler returns the default marshaler to use for the given
 // application configuration.
 func NewDefaultMarshaler(cfg configkit.RichApplication) marshalkit.Marshaler {
@@ -168,6 +176,7 @@ type engineOptions struct {
 	MessageTimeout  time.Duration
 	Discoverer      Discoverer
 	Dialer          discovery.Dialer
+	ServerOptions   []grpc.ServerOption
 	Marshaler       marshalkit.Marshaler
 	Logger          logging.Logger
 }

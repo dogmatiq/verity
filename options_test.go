@@ -162,6 +162,17 @@ var _ = Describe("type EngineOption", func() {
 		})
 	})
 
+	Describe("func WithServerOptions()", func() {
+		It("appends to the options", func() {
+			opts := resolveOptions(cfg, []EngineOption{
+				WithServerOptions(grpc.ConnectionTimeout(0)),
+				WithServerOptions(grpc.ConnectionTimeout(0)),
+			})
+
+			Expect(opts.ServerOptions).To(HaveLen(2))
+		})
+	})
+
 	Describe("func WithMarshaler()", func() {
 		It("sets the marshaler", func() {
 			m := &codec.Marshaler{}
