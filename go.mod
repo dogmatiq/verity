@@ -3,7 +3,7 @@ module github.com/dogmatiq/infix
 go 1.13
 
 require (
-	github.com/dogmatiq/configkit v0.3.2-0.20200308090217-398d04cf56d7
+	github.com/dogmatiq/configkit v0.3.2-0.20200308225652-8999fd12f456
 	github.com/dogmatiq/dodeca v0.2.1
 	github.com/dogmatiq/dogma v0.6.3
 	github.com/dogmatiq/example v0.0.0-20200303005501-6ab2b41a6502
