@@ -103,7 +103,7 @@ var _ = Describe("type EngineOption", func() {
 
 	Describe("func WithDiscoverer()", func() {
 		It("sets the discoverer", func() {
-			d := func(ctx context.Context, obs discovery.ClientObserver) error {
+			d := func(ctx context.Context, obs discovery.TargetObserver) error {
 				return errors.New("<error>")
 			}
 

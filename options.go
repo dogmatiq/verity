@@ -82,11 +82,11 @@ func WithMessageTimeout(d time.Duration) EngineOption {
 	}
 }
 
-// Discoverer is a function that notifies when config API clients connect or
-// disconnect.
+// Discoverer is a function that notifies an observer when a gRPC target becomes
+// available or unavailable.
 //
-// It must run until ctx is canceled or a fatal error occurs.
-type Discoverer func(ctx context.Context, o discovery.ClientObserver) error
+// It blocks until ctx is canceled or a fatal error occurs.
+type Discoverer func(ctx context.Context, o discovery.TargetObserver) error
 
 // WithDiscoverer returns an option that sets the discover used to find other
 // Dogma applications running on the network.
