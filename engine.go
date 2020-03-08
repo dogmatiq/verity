@@ -2,15 +2,12 @@ package infix
 
 import (
 	"context"
-	"time"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/internal/engine"
-	"github.com/dogmatiq/linger"
-	"github.com/dogmatiq/linger/backoff"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -79,14 +76,10 @@ func (e *Engine) discover(ctx context.Context) error {
 	}
 
 	d := &engine.Discoverer{
-		Discover: e.opts.Discoverer,
-		Observer: &discovery.ApplicationObserverSet{},
-		Dialer:   e.opts.Dialer,
-		BackoffStrategy: backoff.WithTransforms(
-			backoff.Exponential(500*time.Millisecond),
-			linger.FullJitter,
-			linger.Limiter(0, 1*time.Minute),
-		), // TODO: make option to configure this strategy
+		Discover:        e.opts.Discoverer,
+		Observer:        &discovery.ApplicationObserverSet{},
+		Dialer:          e.opts.Dialer,
+		BackoffStrategy: e.opts.DialerBackoffStrategy,
 		ApplicationKeys: map[string]struct{}{},
 		Logger:          e.opts.Logger,
 	}

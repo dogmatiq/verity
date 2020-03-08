@@ -46,20 +46,20 @@ func WithListenAddress(addr string) EngineOption {
 	}
 }
 
-// DefaultBackoffStrategy is the default message retry policy.
-var DefaultBackoffStrategy backoff.Strategy = backoff.WithTransforms(
+// DefaultMessageBackoffStrategy is the default message backoff strategy.
+var DefaultMessageBackoffStrategy backoff.Strategy = backoff.WithTransforms(
 	backoff.Exponential(100*time.Millisecond),
 	linger.FullJitter,
 	linger.Limiter(0, 1*time.Hour),
 )
 
-// WithBackoffStrategy returns an option that sets the strategy used to
+// WithMessageBackoffStrategy returns an option that sets the strategy used to
 // determine when the engine should retry a message after a failure.
 //
 // If this option is omitted or s is nil DefaultBackoffStrategy is used.
-func WithBackoffStrategy(s backoff.Strategy) EngineOption {
+func WithMessageBackoffStrategy(s backoff.Strategy) EngineOption {
 	return func(opts *engineOptions) {
-		opts.BackoffStrategy = s
+		opts.MessageBackoffStrategy = s
 	}
 }
 
@@ -113,6 +113,23 @@ var DefaultDialer = discovery.DefaultDialer
 func WithDialer(d discovery.Dialer) EngineOption {
 	return func(opts *engineOptions) {
 		opts.Dialer = d
+	}
+}
+
+// DefaultDialerBackoffStrategy is the default backoff strategy for the dialer.
+var DefaultDialerBackoffStrategy backoff.Strategy = backoff.WithTransforms(
+	backoff.Exponential(100*time.Millisecond),
+	linger.FullJitter,
+	linger.Limiter(0, 1*time.Hour),
+)
+
+// WithDialerBackoffStrategy returns an option that sets the strategy used to
+// determine when the engine should retry dialing another engine instance.
+//
+// If this option is omitted or s is nil DefaultDialerBackoffStrategy is used.
+func WithDialerBackoffStrategy(s backoff.Strategy) EngineOption {
+	return func(opts *engineOptions) {
+		opts.DialerBackoffStrategy = s
 	}
 }
 
@@ -171,14 +188,15 @@ func WithLogger(l logging.Logger) EngineOption {
 
 // engineOptions is a container for a fully-resolved set of engine options.
 type engineOptions struct {
-	ListenAddress   string
-	BackoffStrategy backoff.Strategy
-	MessageTimeout  time.Duration
-	Discoverer      Discoverer
-	Dialer          discovery.Dialer
-	ServerOptions   []grpc.ServerOption
-	Marshaler       marshalkit.Marshaler
-	Logger          logging.Logger
+	ListenAddress          string
+	MessageBackoffStrategy backoff.Strategy
+	MessageTimeout         time.Duration
+	Discoverer             Discoverer
+	Dialer                 discovery.Dialer
+	DialerBackoffStrategy  backoff.Strategy
+	ServerOptions          []grpc.ServerOption
+	Marshaler              marshalkit.Marshaler
+	Logger                 logging.Logger
 }
 
 // resolveOptions returns a fully-populated set of engine options built from the
@@ -197,8 +215,8 @@ func resolveOptions(
 		opts.ListenAddress = DefaultListenAddress
 	}
 
-	if opts.BackoffStrategy == nil {
-		opts.BackoffStrategy = DefaultBackoffStrategy
+	if opts.MessageBackoffStrategy == nil {
+		opts.MessageBackoffStrategy = DefaultMessageBackoffStrategy
 	}
 
 	if opts.MessageTimeout == 0 {
@@ -209,6 +227,10 @@ func resolveOptions(
 		opts.Dialer = DefaultDialer
 	} else if opts.Discoverer == nil {
 		panic("WithDialer() can not be used without WithDiscoverer()")
+	}
+
+	if opts.DialerBackoffStrategy == nil {
+		opts.DialerBackoffStrategy = DefaultDialerBackoffStrategy
 	}
 
 	if opts.Marshaler == nil {

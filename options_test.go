@@ -82,23 +82,23 @@ var _ = Describe("type EngineOption", func() {
 		})
 	})
 
-	Describe("func WithBackoffStrategy()", func() {
+	Describe("func WithMessageBackoffStrategy()", func() {
 		It("sets the backoff strategy", func() {
 			p := backoff.Constant(10 * time.Second)
 
 			opts := resolveOptions(cfg, []EngineOption{
-				WithBackoffStrategy(p),
+				WithMessageBackoffStrategy(p),
 			})
 
-			Expect(opts.BackoffStrategy(nil, 1)).To(Equal(10 * time.Second))
+			Expect(opts.MessageBackoffStrategy(nil, 1)).To(Equal(10 * time.Second))
 		})
 
 		It("uses the default if the strategy is nil", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				WithBackoffStrategy(nil),
+				WithMessageBackoffStrategy(nil),
 			})
 
-			Expect(opts.BackoffStrategy).ToNot(BeNil())
+			Expect(opts.MessageBackoffStrategy).ToNot(BeNil())
 		})
 	})
 
@@ -159,6 +159,26 @@ var _ = Describe("type EngineOption", func() {
 					WithDialer(dialer),
 				})
 			}).To(Panic())
+		})
+	})
+
+	Describe("func WithDialerBackoffStrategy()", func() {
+		It("sets the backoff strategy", func() {
+			p := backoff.Constant(10 * time.Second)
+
+			opts := resolveOptions(cfg, []EngineOption{
+				WithDialerBackoffStrategy(p),
+			})
+
+			Expect(opts.DialerBackoffStrategy(nil, 1)).To(Equal(10 * time.Second))
+		})
+
+		It("uses the default if the strategy is nil", func() {
+			opts := resolveOptions(cfg, []EngineOption{
+				WithDialerBackoffStrategy(nil),
+			})
+
+			Expect(opts.DialerBackoffStrategy).ToNot(BeNil())
 		})
 	})
 
