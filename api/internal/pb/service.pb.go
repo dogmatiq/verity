@@ -25,7 +25,10 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type ExecuteRequest struct {
-	ApplicationKey       string    `protobuf:"bytes,1,opt,name=application_key,json=applicationKey,proto3" json:"application_key,omitempty"`
+	// ApplicationKey is the identity key of the application that handles the
+	// command.
+	ApplicationKey string `protobuf:"bytes,1,opt,name=application_key,json=applicationKey,proto3" json:"application_key,omitempty"`
+	// Command is the envelope containing the command to be executed.
 	Command              *Envelope `protobuf:"bytes,2,opt,name=command,proto3" json:"command,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
@@ -102,10 +105,98 @@ func (m *ExecuteResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ExecuteResponse proto.InternalMessageInfo
 
+type AckRequest struct {
+	// ApplicationKey is the identity key of the application that produced the
+	// command.
+	ApplicationKey string `protobuf:"bytes,1,opt,name=application_key,json=applicationKey,proto3" json:"application_key,omitempty"`
+	// MessageID is the command message's unique identifier.
+	MessageId            string   `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AckRequest) Reset()         { *m = AckRequest{} }
+func (m *AckRequest) String() string { return proto.CompactTextString(m) }
+func (*AckRequest) ProtoMessage()    {}
+func (*AckRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cbf1bd0c00876e46, []int{2}
+}
+
+func (m *AckRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AckRequest.Unmarshal(m, b)
+}
+func (m *AckRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AckRequest.Marshal(b, m, deterministic)
+}
+func (m *AckRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AckRequest.Merge(m, src)
+}
+func (m *AckRequest) XXX_Size() int {
+	return xxx_messageInfo_AckRequest.Size(m)
+}
+func (m *AckRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_AckRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AckRequest proto.InternalMessageInfo
+
+func (m *AckRequest) GetApplicationKey() string {
+	if m != nil {
+		return m.ApplicationKey
+	}
+	return ""
+}
+
+func (m *AckRequest) GetMessageId() string {
+	if m != nil {
+		return m.MessageId
+	}
+	return ""
+}
+
+type AckResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AckResponse) Reset()         { *m = AckResponse{} }
+func (m *AckResponse) String() string { return proto.CompactTextString(m) }
+func (*AckResponse) ProtoMessage()    {}
+func (*AckResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cbf1bd0c00876e46, []int{3}
+}
+
+func (m *AckResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AckResponse.Unmarshal(m, b)
+}
+func (m *AckResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AckResponse.Marshal(b, m, deterministic)
+}
+func (m *AckResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AckResponse.Merge(m, src)
+}
+func (m *AckResponse) XXX_Size() int {
+	return xxx_messageInfo_AckResponse.Size(m)
+}
+func (m *AckResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_AckResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AckResponse proto.InternalMessageInfo
+
 type ConsumeRequest struct {
-	ApplicationKey       string   `protobuf:"bytes,1,opt,name=application_key,json=applicationKey,proto3" json:"application_key,omitempty"`
-	Offset               uint64   `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
-	Events               []string `protobuf:"bytes,3,rep,name=events,proto3" json:"events,omitempty"`
+	// ApplicationKey is the identity key of the application to consume from.
+	ApplicationKey string `protobuf:"bytes,1,opt,name=application_key,json=applicationKey,proto3" json:"application_key,omitempty"`
+	// Offset is the offset of the earliest message to be consumed.
+	//
+	// The offset of the message returned will be greater than this value if the
+	// event at that offset is not within the set of provided filters.
+	Offset uint64 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	// Filter is the set of message types to include in the results, specified as
+	// protocol-buffers message names.
+	Filter               []string `protobuf:"bytes,3,rep,name=filter,proto3" json:"filter,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -115,7 +206,7 @@ func (m *ConsumeRequest) Reset()         { *m = ConsumeRequest{} }
 func (m *ConsumeRequest) String() string { return proto.CompactTextString(m) }
 func (*ConsumeRequest) ProtoMessage()    {}
 func (*ConsumeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cbf1bd0c00876e46, []int{2}
+	return fileDescriptor_cbf1bd0c00876e46, []int{4}
 }
 
 func (m *ConsumeRequest) XXX_Unmarshal(b []byte) error {
@@ -150,9 +241,9 @@ func (m *ConsumeRequest) GetOffset() uint64 {
 	return 0
 }
 
-func (m *ConsumeRequest) GetEvents() []string {
+func (m *ConsumeRequest) GetFilter() []string {
 	if m != nil {
-		return m.Events
+		return m.Filter
 	}
 	return nil
 }
@@ -169,7 +260,7 @@ func (m *ConsumeResponse) Reset()         { *m = ConsumeResponse{} }
 func (m *ConsumeResponse) String() string { return proto.CompactTextString(m) }
 func (*ConsumeResponse) ProtoMessage()    {}
 func (*ConsumeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cbf1bd0c00876e46, []int{3}
+	return fileDescriptor_cbf1bd0c00876e46, []int{5}
 }
 
 func (m *ConsumeResponse) XXX_Unmarshal(b []byte) error {
@@ -204,11 +295,66 @@ func (m *ConsumeResponse) GetEvent() *Envelope {
 	return nil
 }
 
+// UnrecognizedMessage is an error-details object attached to
+// INVALID_ARGUMENT errors that occurred because a specific message type was not
+// recognised by the server.
+type UnrecognizedMessage struct {
+	// ApplicationKey is the identity of the application that produced the error.
+	ApplicationKey string `protobuf:"bytes,1,opt,name=application_key,json=applicationKey,proto3" json:"application_key,omitempty"`
+	// Name is the protocol-buffers name of the message.
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UnrecognizedMessage) Reset()         { *m = UnrecognizedMessage{} }
+func (m *UnrecognizedMessage) String() string { return proto.CompactTextString(m) }
+func (*UnrecognizedMessage) ProtoMessage()    {}
+func (*UnrecognizedMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cbf1bd0c00876e46, []int{6}
+}
+
+func (m *UnrecognizedMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UnrecognizedMessage.Unmarshal(m, b)
+}
+func (m *UnrecognizedMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UnrecognizedMessage.Marshal(b, m, deterministic)
+}
+func (m *UnrecognizedMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UnrecognizedMessage.Merge(m, src)
+}
+func (m *UnrecognizedMessage) XXX_Size() int {
+	return xxx_messageInfo_UnrecognizedMessage.Size(m)
+}
+func (m *UnrecognizedMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_UnrecognizedMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UnrecognizedMessage proto.InternalMessageInfo
+
+func (m *UnrecognizedMessage) GetApplicationKey() string {
+	if m != nil {
+		return m.ApplicationKey
+	}
+	return ""
+}
+
+func (m *UnrecognizedMessage) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*ExecuteRequest)(nil), "dogma.messaging.v1.ExecuteRequest")
 	proto.RegisterType((*ExecuteResponse)(nil), "dogma.messaging.v1.ExecuteResponse")
+	proto.RegisterType((*AckRequest)(nil), "dogma.messaging.v1.AckRequest")
+	proto.RegisterType((*AckResponse)(nil), "dogma.messaging.v1.AckResponse")
 	proto.RegisterType((*ConsumeRequest)(nil), "dogma.messaging.v1.ConsumeRequest")
 	proto.RegisterType((*ConsumeResponse)(nil), "dogma.messaging.v1.ConsumeResponse")
+	proto.RegisterType((*UnrecognizedMessage)(nil), "dogma.messaging.v1.UnrecognizedMessage")
 }
 
 func init() {
@@ -216,28 +362,33 @@ func init() {
 }
 
 var fileDescriptor_cbf1bd0c00876e46 = []byte{
-	// 326 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0x4f, 0x4b, 0xc3, 0x40,
-	0x10, 0xc5, 0x89, 0xd5, 0x96, 0x4e, 0xa1, 0xc5, 0x3d, 0x48, 0xa9, 0x0a, 0x25, 0x1e, 0xac, 0x08,
-	0x59, 0x8d, 0xe0, 0x07, 0x50, 0x7a, 0xf2, 0xb6, 0x7a, 0x12, 0x44, 0xb6, 0xdb, 0x69, 0x5c, 0xec,
-	0xfe, 0x69, 0x76, 0x13, 0xda, 0x6f, 0x2f, 0x4d, 0x62, 0x69, 0x6b, 0x10, 0x3d, 0xce, 0x30, 0xef,
-	0xfd, 0xe6, 0x0d, 0x03, 0xe7, 0xdc, 0x4a, 0x2a, 0xb5, 0xc7, 0x54, 0xf3, 0x39, 0xb5, 0x13, 0xea,
-	0x30, 0xcd, 0xa5, 0xc0, 0xc8, 0xa6, 0xc6, 0x1b, 0x42, 0xa6, 0x26, 0x51, 0x3c, 0x52, 0xe8, 0x1c,
-	0x4f, 0xa4, 0x4e, 0xa2, 0xfc, 0x76, 0x70, 0xba, 0x2f, 0xf1, 0x2b, 0x8b, 0xae, 0x14, 0x84, 0x0b,
-	0xe8, 0x8e, 0x97, 0x28, 0x32, 0x8f, 0x0c, 0x17, 0x19, 0x3a, 0x4f, 0x2e, 0xa1, 0xc7, 0xad, 0x9d,
-	0x4b, 0xc1, 0xbd, 0x34, 0xfa, 0xfd, 0x13, 0x57, 0xfd, 0x60, 0x18, 0x8c, 0xda, 0xac, 0xbb, 0xd5,
-	0x7e, 0xc2, 0x15, 0xb9, 0x87, 0x96, 0x30, 0x4a, 0x71, 0x3d, 0xed, 0x1f, 0x0c, 0x83, 0x51, 0x27,
-	0x3e, 0x8b, 0x7e, 0xd2, 0xa3, 0xb1, 0xce, 0x71, 0x6e, 0x2c, 0xb2, 0xef, 0xe1, 0xf0, 0x18, 0x7a,
-	0x1b, 0xa4, 0xb3, 0x46, 0x3b, 0x0c, 0x25, 0x74, 0x1f, 0x8d, 0x76, 0x99, 0xfa, 0xff, 0x16, 0x27,
-	0xd0, 0x34, 0xb3, 0x99, 0x43, 0x5f, 0x2c, 0x71, 0xc8, 0xaa, 0x6a, 0xdd, 0xc7, 0x1c, 0xb5, 0x77,
-	0xfd, 0xc6, 0xb0, 0x31, 0x6a, 0xb3, 0xaa, 0x0a, 0xdf, 0xa0, 0xb7, 0x41, 0x95, 0xf4, 0x2d, 0x8b,
-	0x60, 0xc7, 0x22, 0x86, 0xa3, 0x42, 0xf4, 0xa7, 0x78, 0xe5, 0x68, 0x8c, 0x6b, 0xfb, 0x22, 0x67,
-	0x99, 0xd1, 0xa4, 0x84, 0x41, 0xab, 0xca, 0x4b, 0xc2, 0x5a, 0x8b, 0x9d, 0xfb, 0x0f, 0x2e, 0x7e,
-	0x9d, 0x29, 0x57, 0x8e, 0x05, 0x74, 0xc6, 0x6b, 0xde, 0xb3, 0x4f, 0x91, 0x2b, 0xf2, 0x02, 0xad,
-	0x2a, 0x54, 0x3d, 0x62, 0xf7, 0xb8, 0xf5, 0x88, 0xbd, 0xab, 0xdc, 0x04, 0x0f, 0xd7, 0xaf, 0x57,
-	0x89, 0xf4, 0x1f, 0xd9, 0x24, 0x12, 0x46, 0xd1, 0x42, 0xe2, 0xe5, 0x82, 0x4a, 0x3d, 0x93, 0x4b,
-	0xba, 0xf7, 0x54, 0x93, 0x66, 0xf1, 0x4f, 0x77, 0x5f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x37, 0x5b,
-	0x5d, 0x29, 0xa1, 0x02, 0x00, 0x00,
+	// 412 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0x5d, 0x8b, 0xd3, 0x40,
+	0x14, 0x25, 0x76, 0xdd, 0xd2, 0x5b, 0x6c, 0x71, 0x04, 0x29, 0xd5, 0xd5, 0x12, 0x1f, 0xac, 0x08,
+	0x89, 0x56, 0xf0, 0x7d, 0x95, 0x0a, 0x22, 0xbe, 0x8c, 0xeb, 0x8b, 0x20, 0xcb, 0x74, 0x72, 0x13,
+	0x87, 0x66, 0x3e, 0x9a, 0x99, 0x84, 0xad, 0xff, 0xc9, 0xff, 0x28, 0xcd, 0x8c, 0xeb, 0xb6, 0xc6,
+	0x65, 0xf7, 0x2d, 0x73, 0x73, 0xef, 0x39, 0xe7, 0x9e, 0x33, 0x03, 0x27, 0xcc, 0x88, 0x54, 0x28,
+	0x87, 0x95, 0x62, 0x65, 0x6a, 0x56, 0xa9, 0xc5, 0xaa, 0x11, 0x1c, 0x13, 0x53, 0x69, 0xa7, 0x09,
+	0xc9, 0x74, 0x21, 0x59, 0x22, 0xd1, 0x5a, 0x56, 0x08, 0x55, 0x24, 0xcd, 0xeb, 0xe9, 0xa3, 0xc3,
+	0x11, 0xb7, 0x35, 0x68, 0xfd, 0x40, 0xbc, 0x81, 0xd1, 0xf2, 0x02, 0x79, 0xed, 0x90, 0xe2, 0xa6,
+	0x46, 0xeb, 0xc8, 0x73, 0x18, 0x33, 0x63, 0x4a, 0xc1, 0x99, 0x13, 0x5a, 0x9d, 0xaf, 0x71, 0x3b,
+	0x89, 0x66, 0xd1, 0x7c, 0x40, 0x47, 0x57, 0xca, 0x9f, 0x70, 0x4b, 0xde, 0x42, 0x9f, 0x6b, 0x29,
+	0x99, 0xca, 0x26, 0x77, 0x66, 0xd1, 0x7c, 0xb8, 0x78, 0x9c, 0xfc, 0xcb, 0x9e, 0x2c, 0x55, 0x83,
+	0xa5, 0x36, 0x48, 0xff, 0x34, 0xc7, 0xf7, 0x61, 0x7c, 0x49, 0x69, 0x8d, 0x56, 0x16, 0xe3, 0x33,
+	0x80, 0x53, 0xbe, 0xbe, 0xb5, 0x82, 0x13, 0x00, 0xcf, 0x85, 0xe7, 0xc2, 0x8b, 0x18, 0xd0, 0x41,
+	0xa8, 0x7c, 0xcc, 0xe2, 0x7b, 0x30, 0x6c, 0x51, 0x03, 0x89, 0x80, 0xd1, 0x7b, 0xad, 0x6c, 0x2d,
+	0x6f, 0xbf, 0xea, 0x43, 0x38, 0xd6, 0x79, 0x6e, 0xd1, 0xb5, 0x24, 0x47, 0x34, 0x9c, 0x76, 0xf5,
+	0x5c, 0x94, 0x0e, 0xab, 0x49, 0x6f, 0xd6, 0x9b, 0x0f, 0x68, 0x38, 0xc5, 0xdf, 0x61, 0x7c, 0x49,
+	0xe5, 0xd9, 0xaf, 0x40, 0x44, 0x7b, 0x10, 0x0b, 0xb8, 0x8b, 0x0d, 0x2a, 0x77, 0x23, 0x0f, 0x7d,
+	0x6b, 0x4c, 0xe1, 0xc1, 0x57, 0x55, 0x21, 0xd7, 0x85, 0x12, 0x3f, 0x31, 0xfb, 0xec, 0x37, 0xbe,
+	0xf9, 0x3a, 0x04, 0x8e, 0x14, 0x93, 0x18, 0x1c, 0x6b, 0xbf, 0x17, 0xbf, 0xa2, 0x9d, 0xe6, 0x36,
+	0x21, 0x9f, 0x8e, 0xae, 0x08, 0x85, 0x7e, 0x48, 0x8a, 0xc4, 0x9d, 0xba, 0xf6, 0x6e, 0xce, 0xf4,
+	0xd9, 0xb5, 0x3d, 0xc1, 0x87, 0x0f, 0xd0, 0x3b, 0xe5, 0x6b, 0xf2, 0xa4, 0xab, 0xf7, 0xef, 0x1d,
+	0x98, 0x3e, 0xfd, 0xef, 0x7f, 0x8f, 0xb3, 0xe0, 0x30, 0x5c, 0xee, 0xcc, 0xf8, 0xe2, 0x2a, 0x64,
+	0x92, 0x9c, 0x41, 0x3f, 0x38, 0xde, 0x2d, 0x75, 0x3f, 0xf9, 0x6e, 0xa9, 0x07, 0x91, 0xbd, 0x8a,
+	0xde, 0xbd, 0xfc, 0xf6, 0xa2, 0x10, 0xee, 0x47, 0xbd, 0x4a, 0xb8, 0x96, 0x69, 0x3b, 0xe2, 0xc4,
+	0x26, 0x15, 0x2a, 0x17, 0x17, 0xe9, 0xc1, 0xb3, 0x5a, 0x1d, 0xb7, 0x2f, 0xea, 0xcd, 0xef, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0x54, 0xfd, 0xeb, 0xd0, 0xa3, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -252,7 +403,35 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type CommandExecutorClient interface {
+	// Execute executes a command.
+	//
+	// The caller is an engine instance that has produced a command that it does
+	// not handle itself. The server is the engine instance that executes commands
+	// of that type.
+	//
+	// The implementation MAY queue the command for execution at a later time.
+	//
+	// If the command has already been executed, or enqueued for execution, the
+	// server returns the ALREADY_EXISTS error code.
+	//
+	// If the server does not handle commands of this type the server returns the
+	// INVALID_ARGUMENT error code with an attached UnrecognizedMessage message.
+	//
+	// Upon receipt of any other temporary error the caller SHOULD retry execution
+	// until it receives an Ack() call for the message.
 	Execute(ctx context.Context, in *ExecuteRequest, opts ...grpc.CallOption) (*ExecuteResponse, error)
+	// Ack acknowledges execution of a command.
+	//
+	// The caller is an engine instance that has handled a command received via a
+	// prior call to Execute().
+	//
+	// The server MUST remove the nominated message from any outbound queue,
+	// guaranteeing that no future call to Execute() for this message will be
+	// made.
+	//
+	// If the server does not have the message in its queue it returns the
+	// NOT_FOUND error code.
+	Ack(ctx context.Context, in *AckRequest, opts ...grpc.CallOption) (*AckResponse, error)
 }
 
 type commandExecutorClient struct {
@@ -272,9 +451,46 @@ func (c *commandExecutorClient) Execute(ctx context.Context, in *ExecuteRequest,
 	return out, nil
 }
 
+func (c *commandExecutorClient) Ack(ctx context.Context, in *AckRequest, opts ...grpc.CallOption) (*AckResponse, error) {
+	out := new(AckResponse)
+	err := c.cc.Invoke(ctx, "/dogma.messaging.v1.CommandExecutor/Ack", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CommandExecutorServer is the server API for CommandExecutor service.
 type CommandExecutorServer interface {
+	// Execute executes a command.
+	//
+	// The caller is an engine instance that has produced a command that it does
+	// not handle itself. The server is the engine instance that executes commands
+	// of that type.
+	//
+	// The implementation MAY queue the command for execution at a later time.
+	//
+	// If the command has already been executed, or enqueued for execution, the
+	// server returns the ALREADY_EXISTS error code.
+	//
+	// If the server does not handle commands of this type the server returns the
+	// INVALID_ARGUMENT error code with an attached UnrecognizedMessage message.
+	//
+	// Upon receipt of any other temporary error the caller SHOULD retry execution
+	// until it receives an Ack() call for the message.
 	Execute(context.Context, *ExecuteRequest) (*ExecuteResponse, error)
+	// Ack acknowledges execution of a command.
+	//
+	// The caller is an engine instance that has handled a command received via a
+	// prior call to Execute().
+	//
+	// The server MUST remove the nominated message from any outbound queue,
+	// guaranteeing that no future call to Execute() for this message will be
+	// made.
+	//
+	// If the server does not have the message in its queue it returns the
+	// NOT_FOUND error code.
+	Ack(context.Context, *AckRequest) (*AckResponse, error)
 }
 
 // UnimplementedCommandExecutorServer can be embedded to have forward compatible implementations.
@@ -283,6 +499,9 @@ type UnimplementedCommandExecutorServer struct {
 
 func (*UnimplementedCommandExecutorServer) Execute(ctx context.Context, req *ExecuteRequest) (*ExecuteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Execute not implemented")
+}
+func (*UnimplementedCommandExecutorServer) Ack(ctx context.Context, req *AckRequest) (*AckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ack not implemented")
 }
 
 func RegisterCommandExecutorServer(s *grpc.Server, srv CommandExecutorServer) {
@@ -307,6 +526,24 @@ func _CommandExecutor_Execute_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CommandExecutor_Ack_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommandExecutorServer).Ack(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dogma.messaging.v1.CommandExecutor/Ack",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommandExecutorServer).Ack(ctx, req.(*AckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _CommandExecutor_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "dogma.messaging.v1.CommandExecutor",
 	HandlerType: (*CommandExecutorServer)(nil),
@@ -314,6 +551,10 @@ var _CommandExecutor_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Execute",
 			Handler:    _CommandExecutor_Execute_Handler,
+		},
+		{
+			MethodName: "Ack",
+			Handler:    _CommandExecutor_Ack_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -324,6 +565,7 @@ var _CommandExecutor_serviceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type EventStreamClient interface {
+	// Consume starts consuming from the server's event stream.
 	Consume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (EventStream_ConsumeClient, error)
 }
 
@@ -369,6 +611,7 @@ func (x *eventStreamConsumeClient) Recv() (*ConsumeResponse, error) {
 
 // EventStreamServer is the server API for EventStream service.
 type EventStreamServer interface {
+	// Consume starts consuming from the server's event stream.
 	Consume(*ConsumeRequest, EventStream_ConsumeServer) error
 }
 

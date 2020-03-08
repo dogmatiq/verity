@@ -7,29 +7,96 @@ import "api/internal/pb/types.proto";
 
 // CommandExecutor is a service for executing command messages.
 service CommandExecutor {
+  // Execute executes a command.
+  //
+  // The caller is an engine instance that has produced a command that it does
+  // not handle itself. The server is the engine instance that executes commands
+  // of that type.
+  //
+  // The implementation MAY queue the command for execution at a later time.
+  //
+  // If the command has already been executed, or enqueued for execution, the
+  // server returns the ALREADY_EXISTS error code.
+  //
+  // If the server does not handle commands of this type the server returns the
+  // INVALID_ARGUMENT error code with an attached UnrecognizedMessage message.
+  //
+  // Upon receipt of any other temporary error the caller SHOULD retry execution
+  // until it receives an Ack() call for the message.
   rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+
+  // Ack acknowledges execution of a command.
+  //
+  // The caller is an engine instance that has handled a command received via a
+  // prior call to Execute().
+  //
+  // The server MUST remove the nominated message from any outbound queue,
+  // guaranteeing that no future call to Execute() for this message will be
+  // made.
+  //
+  // If the server does not have the message in its queue it returns the
+  // NOT_FOUND error code.
+  rpc Ack(AckRequest) returns (AckResponse);
 }
 
+
 message ExecuteRequest{
+  // ApplicationKey is the identity key of the application that handles the
+  // command.
   string application_key = 1;
+
+  // Command is the envelope containing the command to be executed.
   Envelope command = 2;
 }
 
 message ExecuteResponse{
 }
 
+message AckRequest{
+  // ApplicationKey is the identity key of the application that produced the
+  // command.
+  string application_key = 1;
+
+  // MessageID is the command message's unique identifier.
+  string message_id = 2;
+}
+
+message AckResponse{
+}
+
 // EventStream is a service for consuming event messages.
 service EventStream {
+  // Consume starts consuming from the server's event stream.
   rpc Consume(ConsumeRequest) returns (stream ConsumeResponse);
 }
 
 message ConsumeRequest{
+  // ApplicationKey is the identity key of the application to consume from.
   string application_key = 1;
+
+  // Offset is the offset of the earliest message to be consumed.
+  //
+  // The offset of the message returned will be greater than this value if the
+  // event at that offset is not within the set of provided filters.
   uint64 offset = 2;
-  repeated string events = 3;
+
+  // Filter is the set of message types to include in the results, specified as
+  // protocol-buffers message names.
+  repeated string filter = 3;
 }
 
 message ConsumeResponse{
   uint64 offset = 1;
   Envelope event = 2;
+}
+
+// UnrecognizedMessage is an error-details object attached to
+// INVALID_ARGUMENT errors that occurred because a specific message type was not
+// recognised by the server.
+message UnrecognizedMessage {
+  // ApplicationKey is the identity of the application that produced the error.
+  string application_key = 1;
+
+  // Name is the protocol-buffers name of the message.
+  string name = 2;
 }
