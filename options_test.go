@@ -24,10 +24,10 @@ var _ = Describe("type EngineOption", func() {
 		})
 	})
 
-	Describe("func ListenAddress()", func() {
+	Describe("func WithListenAddress()", func() {
 		It("sets the listener address", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				ListenAddress("localhost:1234"),
+				WithListenAddress("localhost:1234"),
 			})
 
 			Expect(opts.ListenAddress).To(Equal("localhost:1234"))
@@ -35,7 +35,7 @@ var _ = Describe("type EngineOption", func() {
 
 		It("uses the default if the address is empty", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				ListenAddress(""),
+				WithListenAddress(""),
 			})
 
 			Expect(opts.ListenAddress).To(Equal(DefaultListenAddress))
@@ -43,21 +43,21 @@ var _ = Describe("type EngineOption", func() {
 
 		It("panics if the address is invalid", func() {
 			Expect(func() {
-				ListenAddress("missing-port")
+				WithListenAddress("missing-port")
 			}).To(Panic())
 		})
 
 		It("panics if the post is an unknown service name", func() {
 			Expect(func() {
-				ListenAddress("host:xxx")
+				WithListenAddress("host:xxx")
 			}).To(Panic())
 		})
 	})
 
-	Describe("func MessageTimeout()", func() {
+	Describe("func WithMessageTimeout()", func() {
 		It("sets the message timeout", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				MessageTimeout(10 * time.Minute),
+				WithMessageTimeout(10 * time.Minute),
 			})
 
 			Expect(opts.MessageTimeout).To(Equal(10 * time.Minute))
@@ -65,7 +65,7 @@ var _ = Describe("type EngineOption", func() {
 
 		It("uses the default if the duration is zero", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				MessageTimeout(0),
+				WithMessageTimeout(0),
 			})
 
 			Expect(opts.MessageTimeout).To(Equal(DefaultMessageTimeout))
@@ -73,17 +73,17 @@ var _ = Describe("type EngineOption", func() {
 
 		It("panics if the duration is less than zero", func() {
 			Expect(func() {
-				MessageTimeout(-1)
+				WithMessageTimeout(-1)
 			}).To(Panic())
 		})
 	})
 
-	Describe("func BackoffStrategy()", func() {
+	Describe("func WithBackoffStrategy()", func() {
 		It("sets the backoff strategy", func() {
 			p := backoff.Constant(10 * time.Second)
 
 			opts := resolveOptions(cfg, []EngineOption{
-				BackoffStrategy(p),
+				WithBackoffStrategy(p),
 			})
 
 			Expect(opts.BackoffStrategy(nil, 1)).To(Equal(10 * time.Second))
@@ -91,19 +91,19 @@ var _ = Describe("type EngineOption", func() {
 
 		It("uses the default if the strategy is nil", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				BackoffStrategy(nil),
+				WithBackoffStrategy(nil),
 			})
 
 			Expect(opts.BackoffStrategy).ToNot(BeNil())
 		})
 	})
 
-	Describe("func Marshaler()", func() {
+	Describe("func WithMarshaler()", func() {
 		It("sets the marshaler", func() {
 			m := &codec.Marshaler{}
 
 			opts := resolveOptions(cfg, []EngineOption{
-				Marshaler(m),
+				WithMarshaler(m),
 			})
 
 			Expect(opts.Marshaler).To(BeIdenticalTo(m))
@@ -111,17 +111,17 @@ var _ = Describe("type EngineOption", func() {
 
 		It("constructs a default if the marshaler is nil", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				Marshaler(nil),
+				WithMarshaler(nil),
 			})
 
 			Expect(opts.Marshaler).To(Equal(NewDefaultMarshaler(cfg)))
 		})
 	})
 
-	Describe("func Logger()", func() {
+	Describe("func WithLogger()", func() {
 		It("sets the logger", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				Logger(logging.DebugLogger),
+				WithLogger(logging.DebugLogger),
 			})
 
 			Expect(opts.Logger).To(BeIdenticalTo(logging.DebugLogger))
@@ -129,7 +129,7 @@ var _ = Describe("type EngineOption", func() {
 
 		It("uses the default if the logger is nil", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				Logger(nil),
+				WithLogger(nil),
 			})
 
 			Expect(opts.Logger).To(Equal(DefaultLogger))

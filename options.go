@@ -22,11 +22,11 @@ type EngineOption func(*engineOptions)
 // DefaultListenAddress is the default TCP address for the gRPC listener.
 const DefaultListenAddress = ":50555"
 
-// ListenAddress returns an option that sets the TCP address for the gRPC
+// WithListenAddress returns an option that sets the TCP address for the gRPC
 // listener.
 //
 // If this option is omitted or addr is empty DefaultListenAddress is used.
-func ListenAddress(addr string) EngineOption {
+func WithListenAddress(addr string) EngineOption {
 	if addr != "" {
 		_, port, err := net.SplitHostPort(addr)
 		if err != nil {
@@ -50,11 +50,11 @@ var DefaultBackoffStrategy backoff.Strategy = backoff.WithTransforms(
 	linger.Limiter(0, 1*time.Hour),
 )
 
-// BackoffStrategy returns an option that sets the strategy used to determine
-// when the engine should retry a message after a failure.
+// WithBackoffStrategy returns an option that sets the strategy used to
+// determine when the engine should retry a message after a failure.
 //
 // If this option is omitted or s is nil DefaultBackoffStrategy is used.
-func BackoffStrategy(s backoff.Strategy) EngineOption {
+func WithBackoffStrategy(s backoff.Strategy) EngineOption {
 	return func(opts *engineOptions) {
 		opts.BackoffStrategy = s
 	}
@@ -63,14 +63,14 @@ func BackoffStrategy(s backoff.Strategy) EngineOption {
 // DefaultMessageTimeout is the default timeout to apply when handling a message.
 const DefaultMessageTimeout = 5 * time.Second
 
-// MessageTimeout returns an option that sets the default timeout applied when
-// handling a message.
+// WithMessageTimeout returns an option that sets the default timeout applied
+// when handling a message.
 //
 // The default is only used if the specific message handler does not provide a
 // timeout hint.
 //
 // If this option is omitted or d is zero DefaultMessageTimeout is used.
-func MessageTimeout(d time.Duration) EngineOption {
+func WithMessageTimeout(d time.Duration) EngineOption {
 	if d < 0 {
 		panic("duration must not be negative")
 	}
@@ -102,12 +102,12 @@ func NewDefaultMarshaler(cfg configkit.RichApplication) marshalkit.Marshaler {
 	return m
 }
 
-// Marshaler returns an option that sets the marshaler used to marshal and
+// WithMarshaler returns an option that sets the marshaler used to marshal and
 // unmarshal messages and other types.
 //
 // If this option is omitted or m is nil NewDefaultMarshaler() is called to
 // obtain the default marshaler.
-func Marshaler(m marshalkit.Marshaler) EngineOption {
+func WithMarshaler(m marshalkit.Marshaler) EngineOption {
 	return func(opts *engineOptions) {
 		opts.Marshaler = m
 	}
@@ -116,11 +116,11 @@ func Marshaler(m marshalkit.Marshaler) EngineOption {
 // DefaultLogger is the default target for log messages produced by the engine.
 var DefaultLogger = logging.DefaultLogger
 
-// Logger returns an option that sets the target for log messages produced by
-// the engine.
+// WithLogger returns an option that sets the target for log messages produced
+// by the engine.
 //
 // If this option is omitted or l is nil DefaultLogger is used.
-func Logger(l logging.Logger) EngineOption {
+func WithLogger(l logging.Logger) EngineOption {
 	return func(opts *engineOptions) {
 		opts.Logger = l
 	}
