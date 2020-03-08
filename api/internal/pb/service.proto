@@ -1,0 +1,33 @@
+syntax = "proto3";
+package dogma.messaging.v1;
+
+option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+
+import "api/internal/pb/types.proto";
+
+// CommandExecutor is a service for executing command messages.
+service CommandExecutor {
+  rpc Execute(ExecuteRequest) returns (stream ExecuteResponse);
+}
+
+message ExecuteRequest{
+  Envelope command = 1;
+}
+
+message ExecuteResponse{
+}
+
+// EventStream is a service for consuming event messages.
+service EventStream {
+  rpc Consume(ConsumeRequest) returns (stream ConsumeResponse);
+}
+
+message ConsumeRequest{
+  uint64 offset = 1;
+  repeated string events = 2;
+}
+
+message ConsumeResponse{
+  uint64 offset = 1;
+  Envelope event = 2;
+}
