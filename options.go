@@ -1,12 +1,14 @@
 package infix
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"reflect"
 	"time"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
@@ -80,6 +82,22 @@ func WithMessageTimeout(d time.Duration) EngineOption {
 	}
 }
 
+// Discoverer is a function that notifies when config API clients connect or
+// disconnect.
+//
+// It must run until ctx is canceled or a fatal error occurs.
+type Discoverer func(ctx context.Context, o discovery.ClientObserver) error
+
+// WithDiscoverer returns an option that sets the discover used to find other
+// Dogma applications running on the network.
+//
+// If this option is omitted or d is nil, no discovery is performed.
+func WithDiscoverer(d Discoverer) EngineOption {
+	return func(opts *engineOptions) {
+		opts.Discoverer = d
+	}
+}
+
 // NewDefaultMarshaler returns the default marshaler to use for the given
 // application configuration.
 func NewDefaultMarshaler(cfg configkit.RichApplication) marshalkit.Marshaler {
@@ -131,6 +149,7 @@ type engineOptions struct {
 	ListenAddress   string
 	BackoffStrategy backoff.Strategy
 	MessageTimeout  time.Duration
+	Discoverer      Discoverer
 	Marshaler       marshalkit.Marshaler
 	Logger          logging.Logger
 }

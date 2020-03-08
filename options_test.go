@@ -1,9 +1,12 @@
 package infix
 
 import (
+	"context"
+	"errors"
 	"time"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
@@ -95,6 +98,29 @@ var _ = Describe("type EngineOption", func() {
 			})
 
 			Expect(opts.BackoffStrategy).ToNot(BeNil())
+		})
+	})
+
+	Describe("func WithDiscoverer()", func() {
+		It("sets the discoverer", func() {
+			d := func(ctx context.Context, obs discovery.ClientObserver) error {
+				return errors.New("<error>")
+			}
+
+			opts := resolveOptions(cfg, []EngineOption{
+				WithDiscoverer(d),
+			})
+
+			err := opts.Discoverer(context.Background(), nil)
+			Expect(err).To(MatchError("<error>"))
+		})
+
+		It("does not constructs a default if the discoverer is nil", func() {
+			opts := resolveOptions(cfg, []EngineOption{
+				WithDiscoverer(nil),
+			})
+
+			Expect(opts.Discoverer).To(BeNil())
 		})
 	})
 
