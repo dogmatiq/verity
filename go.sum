@@ -9,12 +9,14 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/dogmatiq/configkit v0.2.0/go.mod h1:86SjxjPQaHBYQMqj/DcRj1Dcpn7Mp/0JGDhvhyC/KAI=
 github.com/dogmatiq/configkit v0.3.0 h1:DHEhga+cVgGBaNuAKNk1yZMuFsGTkIK+WRLn2B43/mg=
 github.com/dogmatiq/configkit v0.3.0/go.mod h1:rdU30Lpfc1IbHja7fVd7vBdMshLXDTBrtiZA8dq0rn0=
-github.com/dogmatiq/configkit v0.3.1 h1:d7XZ24T+24GI1D3ZkgafrxTaXmLrYPbzoXh3Mh+38tY=
-github.com/dogmatiq/configkit v0.3.1/go.mod h1:EUtTfJRyCRiM3Vn2yTN8P9Rk3C7aW3n0t+4nKwcIKHg=
+github.com/dogmatiq/configkit v0.3.2-0.20200308062045-1b4feeb08963 h1:zV/6eRCZVpO4Z8uylH9hPcqrZ8xPsE6/0UirvWjbxUg=
+github.com/dogmatiq/configkit v0.3.2-0.20200308062045-1b4feeb08963/go.mod h1:EUtTfJRyCRiM3Vn2yTN8P9Rk3C7aW3n0t+4nKwcIKHg=
 github.com/dogmatiq/dapper v0.3.5 h1:F4bCCc8KKv/USNzYa22BeelzJEhLVbVhg3/vAk+xEL4=
 github.com/dogmatiq/dapper v0.3.5/go.mod h1:U32cRxzGYI5owhc/hMKjYLgBTVCdW/s3MdFJHwfDrLQ=
 github.com/dogmatiq/dodeca v0.2.0 h1:1Y/NtxUVEtaDpGcbYA0XQR6Sop2eTzpHbN3KjWets04=
 github.com/dogmatiq/dodeca v0.2.0/go.mod h1:YjUCbfmgl08gQ4QPNA0Dp9f+ge6kImQ7PgVM5K7Jtn0=
+github.com/dogmatiq/dodeca v0.2.1 h1:zc/bwYY5D1QkadQOKVEv5zXhiu+f+28kjQR1B0O2faE=
+github.com/dogmatiq/dodeca v0.2.1/go.mod h1:YjUCbfmgl08gQ4QPNA0Dp9f+ge6kImQ7PgVM5K7Jtn0=
 github.com/dogmatiq/dogma v0.6.2/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/dogma v0.6.3 h1:owkM3lOFmLmwaFpYogO46taVuPJU5sF5YApICZr4ljk=
 github.com/dogmatiq/dogma v0.6.3/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=

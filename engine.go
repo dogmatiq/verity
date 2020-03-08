@@ -2,8 +2,10 @@ package infix
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"golang.org/x/sync/errgroup"
@@ -33,9 +35,37 @@ func (e *Engine) Run(ctx context.Context) (err error) {
 	logging.Log(e.opts.Logger, "hosting '%s' application (%s)", id.Name, id.Key)
 
 	g.Go(func() error {
-		<-ctx.Done()
-		return ctx.Err()
+		return e.discover(ctx)
 	})
 
-	return g.Wait()
+	err = g.Wait()
+	logging.Log(e.opts.Logger, "engine stopped: %s", err)
+	return err
+}
+
+func (e *Engine) discover(ctx context.Context) error {
+	if e.opts.Discoverer == nil {
+		return nil
+	}
+
+	c := &discovery.Connector{
+		Observer:        &discovery.ClientObserverSet{}, // TODO
+		Dial:            e.opts.Dialer,
+		BackoffStrategy: e.opts.BackoffStrategy, // TODO: separate for strategy for message handling
+		Logger:          e.opts.Logger,
+	}
+
+	x := &discovery.TargetExecutor{
+		Task: func(ctx context.Context, t *discovery.Target) {
+			logging.Debug(e.opts.Logger, "config api '%s' target is available", t.Name)
+			defer logging.Debug(e.opts.Logger, "config api '%s' target is unavailable", t.Name)
+
+			// Note, Watch() only returns when ctx is canceled, so err is always
+			// a context-related error.
+			c.Watch(ctx, t)
+		},
+	}
+
+	err := e.opts.Discoverer(ctx, x)
+	return fmt.Errorf("discoverer stopped: %w", err)
 }

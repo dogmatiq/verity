@@ -6,6 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/configkit/api/discovery/simpledns"
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/example"
 	"github.com/dogmatiq/example/database"
 	"github.com/dogmatiq/infix"
@@ -39,7 +42,20 @@ func main() {
 		panic(err)
 	}
 
-	e := infix.New(app)
+	e := infix.New(
+		app,
+		infix.WithLogger(logging.DebugLogger),
+		infix.WithDiscoverer(
+			func(ctx context.Context, obs discovery.TargetObserver) error {
+				d := &simpledns.Discoverer{
+					QueryHost: "localhost",
+					Observer:  obs,
+				}
+
+				return d.Run(ctx)
+			},
+		),
+	)
 
 	if err := e.Run(ctx); err != context.Canceled {
 		panic(err)
