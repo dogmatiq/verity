@@ -2,19 +2,23 @@ package infix
 
 import (
 	"context"
-	"fmt"
+	"time"
+
+	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/infix/internal/engine"
+	"github.com/dogmatiq/linger"
+	"github.com/dogmatiq/linger/backoff"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"golang.org/x/sync/errgroup"
 )
 
 // Engine hosts a Dogma application.
 type Engine struct {
-	cfg  configkit.RichApplication
-	opts *engineOptions
+	configs []configkit.RichApplication
+	opts    *engineOptions
 }
 
 // New returns a new engine that hosts the given application.
@@ -22,50 +26,74 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 	cfg := configkit.FromApplication(app)
 
 	return &Engine{
-		cfg:  cfg,
-		opts: resolveOptions(cfg, options),
+		configs: []configkit.RichApplication{cfg},
+		opts:    resolveOptions(cfg, options),
 	}
 }
 
 // Run hosts the given application until ctx is canceled or an error occurs.
 func (e *Engine) Run(ctx context.Context) (err error) {
+	for _, cfg := range e.configs {
+		logging.Log(
+			e.opts.Logger,
+			"hosting '%s' application (%s)",
+			cfg.Identity().Name,
+			cfg.Identity().Key,
+		)
+	}
+
 	g, ctx := errgroup.WithContext(ctx)
 
-	id := e.cfg.Identity()
-	logging.Log(e.opts.Logger, "hosting '%s' application (%s)", id.Name, id.Key)
-
-	g.Go(func() error {
-		return e.discover(ctx)
-	})
+	g.Go(func() error { return e.serve(ctx) })
+	g.Go(func() error { return e.discover(ctx) })
 
 	err = g.Wait()
-	logging.Log(e.opts.Logger, "engine stopped: %s", err)
+
+	logging.Log(
+		e.opts.Logger,
+		"engine stopped: %s",
+		err,
+	)
+
 	return err
 }
 
+// server runs the gRPC server.
+func (e *Engine) serve(ctx context.Context) error {
+	s := &engine.Server{
+		ListenAddress: e.opts.ListenAddress,
+		Logger:        e.opts.Logger,
+	}
+
+	for _, cfg := range e.configs {
+		s.Configs = append(s.Configs, cfg)
+	}
+
+	return s.Run(ctx)
+}
+
+// discover runs the API server discovery system, if configured.
 func (e *Engine) discover(ctx context.Context) error {
 	if e.opts.Discoverer == nil {
 		return nil
 	}
 
-	c := &discovery.Connector{
-		Observer:        &discovery.ClientObserverSet{}, // TODO
-		Dial:            e.opts.Dialer,
-		BackoffStrategy: e.opts.BackoffStrategy, // TODO: separate for strategy for message handling
+	d := &engine.Discoverer{
+		Discover: e.opts.Discoverer,
+		Observer: &discovery.ApplicationObserverSet{},
+		Dialer:   e.opts.Dialer,
+		BackoffStrategy: backoff.WithTransforms(
+			backoff.Exponential(500*time.Millisecond),
+			linger.FullJitter,
+			linger.Limiter(0, 1*time.Minute),
+		), // TODO: make option to configure this strategy
+		ApplicationKeys: map[string]struct{}{},
 		Logger:          e.opts.Logger,
 	}
 
-	x := &discovery.TargetExecutor{
-		Task: func(ctx context.Context, t *discovery.Target) {
-			logging.Debug(e.opts.Logger, "config api '%s' target is available", t.Name)
-			defer logging.Debug(e.opts.Logger, "config api '%s' target is unavailable", t.Name)
-
-			// Note, Watch() only returns when ctx is canceled, so err is always
-			// a context-related error.
-			c.Watch(ctx, t)
-		},
+	for _, cfg := range e.configs {
+		d.ApplicationKeys[cfg.Identity().Key] = struct{}{}
 	}
 
-	err := e.opts.Discoverer(ctx, x)
-	return fmt.Errorf("discoverer stopped: %w", err)
+	return d.Run(ctx)
 }

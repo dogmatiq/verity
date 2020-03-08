@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -57,7 +58,9 @@ func main() {
 		),
 	)
 
-	if err := e.Run(ctx); err != context.Canceled {
+	err = e.Run(ctx)
+
+	if !errors.Is(err, context.Canceled) {
 		panic(err)
 	}
 }
