@@ -9,15 +9,17 @@ import (
 
 // Source describes the source of a message.
 type Source struct {
-	// Application is the identity of the Dogma application that produced this message.
+	// Application is the identity of the Dogma application that produced this
+	// message.
 	Application configkit.Identity
 
-	// Handler is the identity of the handler that produced the message. It is the zero-value if the message was not
-	// produced by a handler.
+	// Handler is the identity of the handler that produced the message. It is
+	// the zero-value if the message was not produced by a handler.
 	Handler configkit.Identity
 
-	// InstanceID is the aggregate or process instance that produced the message. It is empty if the message was not
-	// produced by a handler, or it was produced by an integration handler.
+	// InstanceID is the aggregate or process instance that produced the
+	// message. It is empty if the message was not produced by a handler, or it
+	// was produced by an integration handler.
 	InstanceID string
 }
 
@@ -39,12 +41,13 @@ type MetaData struct {
 	// MessageID is a unique identifier for the message.
 	MessageID string
 
-	// CausationID is the ID of the message that was being handled when the message
-	// identified by MessageID was produced.
+	// CausationID is the ID of the message that was being handled when the
+	// message identified by MessageID was produced.
 	CausationID string
 
-	// CorrelationID is the ID of the "root" message that entered the application
-	// to cause the message identified by MessageID, either directly or indirectly.
+	// CorrelationID is the ID of the "root" message that entered the
+	// application to cause the message identified by MessageID, either directly
+	// or indirectly.
 	CorrelationID string
 
 	// Source describes the source of the message.
