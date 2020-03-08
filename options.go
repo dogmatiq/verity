@@ -62,7 +62,8 @@ func WithBackoffStrategy(s backoff.Strategy) EngineOption {
 	}
 }
 
-// DefaultMessageTimeout is the default timeout to apply when handling a message.
+// DefaultMessageTimeout is the default timeout to apply when handling a
+// message.
 const DefaultMessageTimeout = 5 * time.Second
 
 // WithMessageTimeout returns an option that sets the default timeout applied
@@ -82,19 +83,35 @@ func WithMessageTimeout(d time.Duration) EngineOption {
 	}
 }
 
-// Discoverer is a function that notifies an observer when a gRPC target becomes
-// available or unavailable.
+// Discoverer is a function that notifies an observer when a config API target
+// becomes available or unavailable.
 //
 // It blocks until ctx is canceled or a fatal error occurs.
 type Discoverer func(ctx context.Context, o discovery.TargetObserver) error
 
-// WithDiscoverer returns an option that sets the discover used to find other
-// Dogma applications running on the network.
+// WithDiscoverer returns an option that sets the discoverer used to find other
+// engine instances.
 //
 // If this option is omitted or d is nil, no discovery is performed.
 func WithDiscoverer(d Discoverer) EngineOption {
 	return func(opts *engineOptions) {
 		opts.Discoverer = d
+	}
+}
+
+// DefaultDialer is the default dialer used to connect to other engine
+// instances.
+var DefaultDialer = discovery.DefaultDialer
+
+// WithDialer returns an option that sets the dialer used to connect to other
+// engine instances.
+//
+// If this option is omitted or d is nil, DefaultDialer is used.
+//
+// This option must be used in conjunction with WithDiscoverer().
+func WithDialer(d discovery.Dialer) EngineOption {
+	return func(opts *engineOptions) {
+		opts.Dialer = d
 	}
 }
 
@@ -150,6 +167,7 @@ type engineOptions struct {
 	BackoffStrategy backoff.Strategy
 	MessageTimeout  time.Duration
 	Discoverer      Discoverer
+	Dialer          discovery.Dialer
 	Marshaler       marshalkit.Marshaler
 	Logger          logging.Logger
 }
@@ -176,6 +194,12 @@ func resolveOptions(
 
 	if opts.MessageTimeout == 0 {
 		opts.MessageTimeout = DefaultMessageTimeout
+	}
+
+	if opts.Dialer == nil {
+		opts.Dialer = DefaultDialer
+	} else if opts.Discoverer == nil {
+		panic("WithDialer() can not be used without WithDiscoverer()")
 	}
 
 	if opts.Marshaler == nil {

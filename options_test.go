@@ -14,6 +14,7 @@ import (
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"google.golang.org/grpc"
 )
 
 var _ = Describe("type EngineOption", func() {
@@ -102,25 +103,62 @@ var _ = Describe("type EngineOption", func() {
 	})
 
 	Describe("func WithDiscoverer()", func() {
-		It("sets the discoverer", func() {
-			d := func(ctx context.Context, obs discovery.TargetObserver) error {
-				return errors.New("<error>")
-			}
+		discoverer := func(ctx context.Context, obs discovery.TargetObserver) error {
+			return errors.New("<error>")
+		}
 
+		It("sets the discoverer", func() {
 			opts := resolveOptions(cfg, []EngineOption{
-				WithDiscoverer(d),
+				WithDiscoverer(discoverer),
 			})
 
 			err := opts.Discoverer(context.Background(), nil)
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("does not constructs a default if the discoverer is nil", func() {
+		It("does not construct a default if the discoverer is nil", func() {
 			opts := resolveOptions(cfg, []EngineOption{
 				WithDiscoverer(nil),
 			})
 
 			Expect(opts.Discoverer).To(BeNil())
+		})
+	})
+
+	Describe("func WithDialer()", func() {
+		discoverer := func(ctx context.Context, obs discovery.TargetObserver) error {
+			panic("not implemented")
+		}
+
+		dialer := func(ctx context.Context, t *discovery.Target) (*grpc.ClientConn, error) {
+			return nil, errors.New("<error>")
+		}
+
+		It("sets the dialer", func() {
+			opts := resolveOptions(cfg, []EngineOption{
+				WithDiscoverer(discoverer),
+				WithDialer(dialer),
+			})
+
+			_, err := opts.Dialer(context.Background(), nil)
+			Expect(err).To(MatchError("<error>"))
+		})
+
+		It("constructs a default if the dialer is nil", func() {
+			opts := resolveOptions(cfg, []EngineOption{
+				WithDiscoverer(discoverer),
+				WithDiscoverer(nil),
+			})
+
+			Expect(opts.Dialer).NotTo(BeNil())
+		})
+
+		It("causes a panic if WithDiscoverer() is not used", func() {
+			Expect(func() {
+				resolveOptions(cfg, []EngineOption{
+					WithDialer(dialer),
+				})
+			}).To(Panic())
 		})
 	})
 
