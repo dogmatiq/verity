@@ -19,7 +19,7 @@ type Stream interface {
 	Open(
 		ctx context.Context,
 		offset uint64,
-		types []message.Type,
+		types message.TypeCollection,
 	) (Cursor, error)
 }
 

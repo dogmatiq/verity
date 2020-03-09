@@ -49,7 +49,7 @@ func NewStream(
 func (s *stream) Open(
 	ctx context.Context,
 	offset uint64,
-	types []message.Type,
+	types message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	req, err := s.newRequest(offset, types)
 	if err != nil {
@@ -114,23 +114,30 @@ func (s *stream) Open(
 // newRequest constructs a ConsumeRequest for the given offset and types.
 func (s *stream) newRequest(
 	offset uint64,
-	types []message.Type,
+	types message.TypeCollection,
 ) (*pb.ConsumeRequest, error) {
 	req := &pb.ConsumeRequest{
 		ApplicationKey: s.appKey,
 		Offset:         offset,
 	}
 
-	for _, t := range types {
-		n, err := s.marshaler.MarshalType(t.ReflectType())
+	var (
+		data string
+		err  error
+	)
+
+	types.Range(func(t message.Type) bool {
+		data, err = s.marshaler.MarshalType(t.ReflectType())
 		if err != nil {
-			return nil, err
+			return false
 		}
 
-		req.Types = append(req.Types, n)
-	}
+		req.Types = append(req.Types, data)
 
-	return req, nil
+		return true
+	})
+
+	return req, err
 }
 
 // cursor is an implementation of eventstream.Cursor that consumes messages via
