@@ -178,7 +178,7 @@ func (c *cursor) Close() error {
 	return nil
 }
 
-// consume waits receives new messages, unmarshals them and pipes them over the
+// consume receives new messages, unmarshals them, and pipes them over the
 // c.messages channel to a goroutine that calls Next().
 //
 // It exits when the context associated with c.stream is canceled or some other
