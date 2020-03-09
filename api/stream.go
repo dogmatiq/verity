@@ -8,12 +8,12 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/api/internal/pb"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"google.golang.org/grpc"
 )
 
-// stream is an implementation of eventstream.Stream that consumes messages via
+// stream is an implementation of persistence.Stream that consumes messages via
 // the EventStream gRPC API.
 type stream struct {
 	appKey    string
@@ -22,7 +22,7 @@ type stream struct {
 	prefetch  int
 }
 
-// NewStream returns a stream that consumes events from a specific source
+// NewEventStream returns a stream that consumes events from a specific source
 // application.
 //
 // id is the identity key of the application to consume from. c a connection to
@@ -32,12 +32,12 @@ type stream struct {
 // m is the marshaler used to marshal and unmarshal messages. n the "pre-fetch"
 // count, which is the number of messages to buffer in memory on the before they
 // are requested by a call to Cursor.Next().
-func NewStream(
+func NewEventStream(
 	id configkit.Identity,
 	c *grpc.ClientConn,
 	m marshalkit.Marshaler,
 	n int,
-) eventstream.Stream {
+) persistence.Stream {
 	return &stream{
 		appKey:    id.Key,
 		client:    pb.NewEventStreamClient(c),
@@ -46,11 +46,18 @@ func NewStream(
 	}
 }
 
+// Open returns a cursor used to read messages from this stream.
+//
+// offset is the position of the first message to read. The first message on a
+// stream is always at offset 0.
+//
+// types is a set of message types indicating which message types are returned
+// by Cursor.Next().
 func (s *stream) Open(
 	ctx context.Context,
 	offset uint64,
 	types message.TypeCollection,
-) (eventstream.Cursor, error) {
+) (persistence.StreamCursor, error) {
 	req, err := s.newRequest(offset, types)
 	if err != nil {
 		return nil, err
@@ -60,8 +67,8 @@ func (s *stream) Open(
 	// Consume() operation. This is how we cancel the gRPC stream, as it has no
 	// Close() method.
 	//
-	// It does NOT use ctx as a parent, because ctx is intended only to span
-	// the lifetime of this call to Open().
+	// It does NOT use ctx as a parent, because ctx is intended only to span the
+	// lifetime of this call to Open().
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
 	// done is signalling channel used to indicate that the call to Consume()
@@ -83,8 +90,8 @@ func (s *stream) Open(
 	select {
 	case <-ctx.Done():
 		// If the ctx closed while we were inside Consume() it doesn't really
-		// matter what the result is. cancelConsume() will be called by
-		// the goroutine above.
+		// matter what the result is. cancelConsume() will be called by the
+		// goroutine above.
 		return nil, ctx.Err()
 
 	case done <- struct{}{}:
@@ -102,7 +109,7 @@ func (s *stream) Open(
 			marshaler: s.marshaler,
 			stream:    stream,
 			cancel:    cancelConsume,
-			events:    make(chan *eventstream.Event, s.prefetch),
+			messages:  make(chan *persistence.StreamMessage, s.prefetch),
 		}
 
 		go c.consume(ctx)
@@ -140,37 +147,44 @@ func (s *stream) newRequest(
 	return req, err
 }
 
-// cursor is an implementation of eventstream.Cursor that consumes messages via
-// the EventStream gRPC API.
+// cursor is an implementation of persistence.StreamCursor that consumes
+// messages via the EventStream gRPC API.
 type cursor struct {
 	marshaler marshalkit.ValueMarshaler
 	stream    pb.EventStream_ConsumeClient
 	cancel    context.CancelFunc
-	events    chan *eventstream.Event
+	messages  chan *persistence.StreamMessage
 	err       error
 }
 
-func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
+// Next returns the next relevant message in the stream.
+//
+// If the end of the stream is reached it blocks until a relevant message is
+// appended to the stream or ctx is canceled.
+func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case e, _ := <-c.events:
-		return e, fmt.Errorf("the cursor is closed: %w", c.err)
+	case m, _ := <-c.messages:
+		return m, fmt.Errorf("the cursor is closed: %w", c.err)
 	}
 }
 
+// Close stops the cursor.
+//
+// Any current or future calls to Next() return a non-nil error.
 func (c *cursor) Close() error {
 	c.cancel()
 	return nil
 }
 
 // consume waits receives new messages, unmarshals them and pipes them over the
-// c.events channel to a goroutine that calls Next().
+// c.messages channel to a goroutine that calls Next().
 //
 // It exits when the context associated with c.stream is canceled or some other
 // error occurs while reading from the stream.
 func (c *cursor) consume(ctx context.Context) {
-	defer close(c.events)
+	defer close(c.messages)
 
 	for c.err == nil {
 		c.err = c.recv(ctx)
@@ -178,7 +192,7 @@ func (c *cursor) consume(ctx context.Context) {
 }
 
 // recv waits for the next message from the stream, unmarshals it and sends it
-// over the c.events channel.
+// over the c.messages channel.
 func (c *cursor) recv(ctx context.Context) error {
 	// We can't pass ctx to Recv(), but the stream is already bound to ctx.
 	res, err := c.stream.Recv()
@@ -186,7 +200,7 @@ func (c *cursor) recv(ctx context.Context) error {
 		return err
 	}
 
-	e := &eventstream.Event{
+	m := &persistence.StreamMessage{
 		Offset:   res.Offset,
 		Envelope: &envelope.Envelope{},
 	}
@@ -194,13 +208,13 @@ func (c *cursor) recv(ctx context.Context) error {
 	if err := unmarshalEnvelope(
 		c.marshaler,
 		res.GetEnvelope(),
-		e.Envelope,
+		m.Envelope,
 	); err != nil {
 		return err
 	}
 
 	select {
-	case c.events <- e:
+	case c.messages <- m:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
