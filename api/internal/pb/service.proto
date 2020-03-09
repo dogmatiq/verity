@@ -16,10 +16,15 @@ service CommandExecutor {
   // The implementation MAY queue the command for execution at a later time.
   //
   // If the command has already been executed, or enqueued for execution, the
-  // server returns the ALREADY_EXISTS error code.
+  // server returns an ALREADY_EXISTS error.
   //
-  // If the server does not handle commands of this type the server returns the
-  // INVALID_ARGUMENT error code with an attached UnrecognizedMessage message.
+  // If the server does not host the application specified in the request, it
+  // returns an INVALID_ARGUMENT error with an attached UnrecognizedApplication
+  // value.
+  //
+  // If the server does not handle commands of the type provided in the request,
+  // it returns an INVALID_ARGUMENT error with an attached UnrecognizedMessage
+  // value.
   //
   // Upon receipt of any other temporary error the caller SHOULD retry execution
   // until it receives an Ack() call for the message.
@@ -30,12 +35,12 @@ service CommandExecutor {
   // The caller is an engine instance that has handled a command received via a
   // prior call to Execute().
   //
-  // The server MUST remove the nominated message from any outbound queue,
-  // guaranteeing that no future call to Execute() for this message will be
-  // made.
+  // Upon returning a successful response, the server guarantees to never to
+  // retry execution of the message specified in the request.
   //
-  // If the server does not have the message in its queue it returns the
-  // NOT_FOUND error code.
+  // If the server does not have the message in its queue, either because it was
+  // never in the queue or it has already been removed by a prior call to Ack(),
+  // it returns a NOT_FOUND error.
   rpc Ack(AckRequest) returns (AckResponse);
 }
 
@@ -45,8 +50,8 @@ message ExecuteRequest{
   // command.
   string application_key = 1;
 
-  // Command is the envelope containing the command to be executed.
-  Envelope command = 2;
+  // Envelope is the envelope containing the command to be executed.
+  Envelope envelope = 2;
 }
 
 message ExecuteResponse{
@@ -86,12 +91,20 @@ message ConsumeRequest{
 
 message ConsumeResponse{
   uint64 offset = 1;
-  Envelope event = 2;
+  Envelope envelope = 2;
 }
 
-// UnrecognizedMessage is an error-details object attached to
-// INVALID_ARGUMENT errors that occurred because a specific message type was not
-// recognised by the server.
+// UnrecognizedApplication is an error-details value for INVALID_ARGUMENT
+// errors that occurred because a specific application key was not recognised by
+// the server.
+message UnrecognizedApplication {
+  // ApplicationKey is the identity of the application that produced the error.
+  string application_key = 1;
+}
+
+// UnrecognizedMessage is an error-details value for INVALID_ARGUMENT errors
+// that occurred because a specific message type was not recognised by the
+// server.
 message UnrecognizedMessage {
   // ApplicationKey is the identity of the application that produced the error.
   string application_key = 1;

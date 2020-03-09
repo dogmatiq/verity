@@ -38,7 +38,7 @@ func marshalEnvelope(in *envelope.Envelope) *pb.Envelope {
 // unmarshalEnvelope unmarshals a message envelope from its protobuf
 // representation.
 func unmarshalEnvelope(
-	m marshalkit.Marshaler,
+	m marshalkit.ValueMarshaler,
 	in *pb.Envelope,
 	out *envelope.Envelope,
 ) error {
