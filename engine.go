@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/api/discovery"
-	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"golang.org/x/sync/errgroup"
 )
@@ -29,27 +28,21 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 
 // Run hosts the given application until ctx is canceled or an error occurs.
 func (e *Engine) Run(ctx context.Context) (err error) {
-	for _, cfg := range e.configs {
-		logging.Log(
-			e.opts.Logger,
-			"hosting '%s' application (%s)",
-			cfg.Identity().Name,
-			cfg.Identity().Key,
-		)
-	}
-
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error { return e.serveAPI(ctx) })
 	g.Go(func() error { return e.discover(ctx) })
 
+	for _, cfg := range e.configs {
+		cfg := cfg // capture loop variable
+		g.Go(func() error { return e.hostApplication(ctx, cfg) })
+	}
+
 	err = g.Wait()
 
-	logging.Log(
-		e.opts.Logger,
-		"engine stopped: %s",
-		err,
-	)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 
 	return err
 }

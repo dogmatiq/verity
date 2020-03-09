@@ -13,6 +13,7 @@ import (
 	"github.com/dogmatiq/example"
 	"github.com/dogmatiq/example/database"
 	"github.com/dogmatiq/infix"
+	"google.golang.org/grpc"
 )
 
 // newContext returns a cancelable context that is canceled when the process
@@ -46,16 +47,8 @@ func main() {
 	e := infix.New(
 		app,
 		infix.WithLogger(logging.DebugLogger),
-		infix.WithDiscoverer(
-			func(ctx context.Context, obs discovery.TargetObserver) error {
-				d := &simpledns.Discoverer{
-					QueryHost: "localhost",
-					Observer:  obs,
-				}
-
-				return d.Run(ctx)
-			},
-		),
+		infix.WithDiscoverer(discover),
+		infix.WithDialer(dial),
 	)
 
 	err = e.Run(ctx)
@@ -63,4 +56,24 @@ func main() {
 	if !errors.Is(err, context.Canceled) {
 		panic(err)
 	}
+}
+
+func discover(ctx context.Context, obs discovery.TargetObserver) error {
+	d := &simpledns.Discoverer{
+		QueryHost: "localhost",
+		Observer:  obs,
+	}
+
+	return d.Run(ctx)
+}
+
+func dial(ctx context.Context, t *discovery.Target) (*grpc.ClientConn, error) {
+	options := append(
+		[]grpc.DialOption{
+			grpc.WithInsecure(),
+		},
+		t.Options...,
+	)
+
+	return grpc.DialContext(ctx, t.Name, options...)
 }

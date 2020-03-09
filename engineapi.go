@@ -47,5 +47,13 @@ func (e *Engine) serveAPI(ctx context.Context) error {
 	)
 
 	err = s.Serve(lis)
+
+	// If the server exists cleanly, it is because Stop() is called, which only
+	// happens when the context is canceled.
+	if err == nil {
+		<-ctx.Done()
+		err = ctx.Err()
+	}
+
 	return fmt.Errorf("gRPC server stopped: %w", err)
 }

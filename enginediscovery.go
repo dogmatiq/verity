@@ -31,6 +31,8 @@ func (e *Engine) discover(ctx context.Context) error {
 	c := &discovery.Connector{
 		Observer: &discovery.ClientExecutor{
 			Task: func(ctx context.Context, c *discovery.Client) {
+				logging.Log(e.opts.Logger, "connected to API server at %s", c.Target.Name)
+				defer logging.Log(e.opts.Logger, "disconnected from API server at %s", c.Target.Name)
 				i.Run(ctx, c)
 			},
 		},
