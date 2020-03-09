@@ -80,9 +80,8 @@ message ConsumeRequest{
   // event at that offset is not within the set of provided filters.
   uint64 offset = 2;
 
-  // Filter is the set of message types to include in the results, specified as
-  // protocol-buffers message names.
-  repeated string filter = 3;
+  // types is the set of message types to include in the results.
+  repeated string types = 3;
 }
 
 message ConsumeResponse{
@@ -97,6 +96,6 @@ message UnrecognizedMessage {
   // ApplicationKey is the identity of the application that produced the error.
   string application_key = 1;
 
-  // Name is the protocol-buffers name of the message.
+  // Name is the name of the message type.
   string name = 2;
 }

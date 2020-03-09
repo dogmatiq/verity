@@ -70,8 +70,70 @@ func (m *Identity) GetKey() string {
 	return ""
 }
 
-// Envelope is a protocol buffers representation of the envelope.Envelope type.
-type Envelope struct {
+type Source struct {
+	// Application is the identity of the Dogma application that produced this
+	// message.
+	Application *Identity `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
+	// Handler is the identity of the handler that produced the message. It is the
+	// zero-value if the message was not produced by a handler.
+	Handler *Identity `protobuf:"bytes,2,opt,name=handler,proto3" json:"handler,omitempty"`
+	// InstanceID is the aggregate or process instance that produced the message.
+	// It is empty if the message was not produced by a handler, or it was
+	// produced by an integration handler.
+	InstanceId           string   `protobuf:"bytes,3,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Source) Reset()         { *m = Source{} }
+func (m *Source) String() string { return proto.CompactTextString(m) }
+func (*Source) ProtoMessage()    {}
+func (*Source) Descriptor() ([]byte, []int) {
+	return fileDescriptor_565b712cd72dd24a, []int{1}
+}
+
+func (m *Source) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Source.Unmarshal(m, b)
+}
+func (m *Source) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Source.Marshal(b, m, deterministic)
+}
+func (m *Source) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Source.Merge(m, src)
+}
+func (m *Source) XXX_Size() int {
+	return xxx_messageInfo_Source.Size(m)
+}
+func (m *Source) XXX_DiscardUnknown() {
+	xxx_messageInfo_Source.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Source proto.InternalMessageInfo
+
+func (m *Source) GetApplication() *Identity {
+	if m != nil {
+		return m.Application
+	}
+	return nil
+}
+
+func (m *Source) GetHandler() *Identity {
+	if m != nil {
+		return m.Handler
+	}
+	return nil
+}
+
+func (m *Source) GetInstanceId() string {
+	if m != nil {
+		return m.InstanceId
+	}
+	return ""
+}
+
+// MetaData is a protocol buffers representation of the envelope.MetaData type.
+type MetaData struct {
 	// MessageID is a unique identifier for the message.
 	MessageId string `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	// CausationID is the ID of the message that was being handled when the
@@ -81,27 +143,92 @@ type Envelope struct {
 	// to cause the message identified by MessageID, either directly or
 	// indirectly.
 	CorrelationId string `protobuf:"bytes,3,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
-	// SourceApplication is the identity of the Dogma application that produced
-	// this message.
-	SourceApplication *Identity `protobuf:"bytes,4,opt,name=source_application,json=sourceApplication,proto3" json:"source_application,omitempty"`
-	// SourceHandler is the identity of the handler that produced the message. It
-	// is the zero-value if the message was not produced by a handler.
-	SourceHandler *Identity `protobuf:"bytes,5,opt,name=source_handler,json=sourceHandler,proto3" json:"source_handler,omitempty"`
-	// SourceInstanceID is the aggregate or process instance that produced the
-	// message. It is empty if the message was not produced by a handler, or it
-	// was produced by an integration handler.
-	SourceInstanceId string `protobuf:"bytes,6,opt,name=source_instance_id,json=sourceInstanceId,proto3" json:"source_instance_id,omitempty"`
+	// Source describes the source of the message.
+	Source *Source `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
 	// CreatedAt is the time at which the message was created, marshaled in
-	// RFC3339Nano format.
-	CreatedAt string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// binary format.
+	CreatedAt []byte `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// ScheduledFor is the time at which a timeout message was scheduled,
-	// marshaled in RFC3339Nano format.
-	ScheduledFor string `protobuf:"bytes,8,opt,name=scheduled_for,json=scheduledFor,proto3" json:"scheduled_for,omitempty"`
-	// MessageMediaType is a MIME media-type describing the content and encoding
-	// of the binary message data.
-	MessageMediaType string `protobuf:"bytes,9,opt,name=message_media_type,json=messageMediaType,proto3" json:"message_media_type,omitempty"`
-	// MessageData is the marshaled binary data representing the message.
-	MessageData          []byte   `protobuf:"bytes,10,opt,name=message_data,json=messageData,proto3" json:"message_data,omitempty"`
+	// marshaled in binary format.
+	ScheduledFor         []byte   `protobuf:"bytes,6,opt,name=scheduled_for,json=scheduledFor,proto3" json:"scheduled_for,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *MetaData) Reset()         { *m = MetaData{} }
+func (m *MetaData) String() string { return proto.CompactTextString(m) }
+func (*MetaData) ProtoMessage()    {}
+func (*MetaData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_565b712cd72dd24a, []int{2}
+}
+
+func (m *MetaData) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MetaData.Unmarshal(m, b)
+}
+func (m *MetaData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MetaData.Marshal(b, m, deterministic)
+}
+func (m *MetaData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MetaData.Merge(m, src)
+}
+func (m *MetaData) XXX_Size() int {
+	return xxx_messageInfo_MetaData.Size(m)
+}
+func (m *MetaData) XXX_DiscardUnknown() {
+	xxx_messageInfo_MetaData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MetaData proto.InternalMessageInfo
+
+func (m *MetaData) GetMessageId() string {
+	if m != nil {
+		return m.MessageId
+	}
+	return ""
+}
+
+func (m *MetaData) GetCausationId() string {
+	if m != nil {
+		return m.CausationId
+	}
+	return ""
+}
+
+func (m *MetaData) GetCorrelationId() string {
+	if m != nil {
+		return m.CorrelationId
+	}
+	return ""
+}
+
+func (m *MetaData) GetSource() *Source {
+	if m != nil {
+		return m.Source
+	}
+	return nil
+}
+
+func (m *MetaData) GetCreatedAt() []byte {
+	if m != nil {
+		return m.CreatedAt
+	}
+	return nil
+}
+
+func (m *MetaData) GetScheduledFor() []byte {
+	if m != nil {
+		return m.ScheduledFor
+	}
+	return nil
+}
+
+// Envelope is a protocol buffers representation of the envelope.Envelope type.
+type Envelope struct {
+	// MetaData is the message meta-data.
+	MetaData *MetaData `protobuf:"bytes,1,opt,name=meta_data,json=metaData,proto3" json:"meta_data,omitempty"`
+	// Packet contains the binary representation of the message.
+	Packet               *Packet  `protobuf:"bytes,2,opt,name=packet,proto3" json:"packet,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -111,7 +238,7 @@ func (m *Envelope) Reset()         { *m = Envelope{} }
 func (m *Envelope) String() string { return proto.CompactTextString(m) }
 func (*Envelope) ProtoMessage()    {}
 func (*Envelope) Descriptor() ([]byte, []int) {
-	return fileDescriptor_565b712cd72dd24a, []int{1}
+	return fileDescriptor_565b712cd72dd24a, []int{3}
 }
 
 func (m *Envelope) XXX_Unmarshal(b []byte) error {
@@ -132,79 +259,77 @@ func (m *Envelope) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Envelope proto.InternalMessageInfo
 
-func (m *Envelope) GetMessageId() string {
+func (m *Envelope) GetMetaData() *MetaData {
 	if m != nil {
-		return m.MessageId
-	}
-	return ""
-}
-
-func (m *Envelope) GetCausationId() string {
-	if m != nil {
-		return m.CausationId
-	}
-	return ""
-}
-
-func (m *Envelope) GetCorrelationId() string {
-	if m != nil {
-		return m.CorrelationId
-	}
-	return ""
-}
-
-func (m *Envelope) GetSourceApplication() *Identity {
-	if m != nil {
-		return m.SourceApplication
+		return m.MetaData
 	}
 	return nil
 }
 
-func (m *Envelope) GetSourceHandler() *Identity {
+func (m *Envelope) GetPacket() *Packet {
 	if m != nil {
-		return m.SourceHandler
+		return m.Packet
 	}
 	return nil
 }
 
-func (m *Envelope) GetSourceInstanceId() string {
+// Packet is a protocol buffers representation of the marshalkit.Packet type.
+type Packet struct {
+	// MediaType is a MIME media-type describing the content and encoding of the
+	// binary data.
+	MediaType string `protobuf:"bytes,1,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
+	// Data is the marshaled binary data.
+	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Packet) Reset()         { *m = Packet{} }
+func (m *Packet) String() string { return proto.CompactTextString(m) }
+func (*Packet) ProtoMessage()    {}
+func (*Packet) Descriptor() ([]byte, []int) {
+	return fileDescriptor_565b712cd72dd24a, []int{4}
+}
+
+func (m *Packet) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Packet.Unmarshal(m, b)
+}
+func (m *Packet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Packet.Marshal(b, m, deterministic)
+}
+func (m *Packet) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Packet.Merge(m, src)
+}
+func (m *Packet) XXX_Size() int {
+	return xxx_messageInfo_Packet.Size(m)
+}
+func (m *Packet) XXX_DiscardUnknown() {
+	xxx_messageInfo_Packet.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Packet proto.InternalMessageInfo
+
+func (m *Packet) GetMediaType() string {
 	if m != nil {
-		return m.SourceInstanceId
+		return m.MediaType
 	}
 	return ""
 }
 
-func (m *Envelope) GetCreatedAt() string {
+func (m *Packet) GetData() []byte {
 	if m != nil {
-		return m.CreatedAt
-	}
-	return ""
-}
-
-func (m *Envelope) GetScheduledFor() string {
-	if m != nil {
-		return m.ScheduledFor
-	}
-	return ""
-}
-
-func (m *Envelope) GetMessageMediaType() string {
-	if m != nil {
-		return m.MessageMediaType
-	}
-	return ""
-}
-
-func (m *Envelope) GetMessageData() []byte {
-	if m != nil {
-		return m.MessageData
+		return m.Data
 	}
 	return nil
 }
 
 func init() {
 	proto.RegisterType((*Identity)(nil), "dogma.messaging.v1.Identity")
+	proto.RegisterType((*Source)(nil), "dogma.messaging.v1.Source")
+	proto.RegisterType((*MetaData)(nil), "dogma.messaging.v1.MetaData")
 	proto.RegisterType((*Envelope)(nil), "dogma.messaging.v1.Envelope")
+	proto.RegisterType((*Packet)(nil), "dogma.messaging.v1.Packet")
 }
 
 func init() {
@@ -212,29 +337,32 @@ func init() {
 }
 
 var fileDescriptor_565b712cd72dd24a = []byte{
-	// 374 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0x4d, 0x8b, 0xdb, 0x30,
-	0x10, 0x86, 0x71, 0x93, 0xa6, 0x89, 0xf2, 0x41, 0xaa, 0x93, 0xa0, 0x2d, 0xa4, 0x29, 0x85, 0x94,
-	0x16, 0xbb, 0x1f, 0xbf, 0x20, 0xfd, 0xa2, 0xa6, 0xf4, 0x12, 0x7a, 0xda, 0x8b, 0x99, 0x48, 0x13,
-	0x47, 0xac, 0x2d, 0x69, 0x65, 0x39, 0xac, 0xff, 0xe1, 0xfe, 0xac, 0xc5, 0x92, 0xe3, 0x5d, 0x76,
-	0x2f, 0x7b, 0x13, 0xcf, 0xbc, 0xef, 0x48, 0xf3, 0x6a, 0xc8, 0x2b, 0x30, 0x32, 0x91, 0xca, 0xa1,
-	0x55, 0x50, 0x24, 0x66, 0x9f, 0xb8, 0xc6, 0x60, 0x15, 0x1b, 0xab, 0x9d, 0xa6, 0x54, 0xe8, 0xbc,
-	0x84, 0xb8, 0xc4, 0xaa, 0x82, 0x5c, 0xaa, 0x3c, 0x3e, 0x7d, 0x59, 0x7f, 0x26, 0xe3, 0x54, 0xa0,
-	0x72, 0xd2, 0x35, 0x94, 0x92, 0xa1, 0x82, 0x12, 0x59, 0xb4, 0x8a, 0x36, 0x93, 0x9d, 0x3f, 0xd3,
-	0x25, 0x19, 0x5c, 0x62, 0xc3, 0x9e, 0x79, 0xd4, 0x1e, 0xd7, 0x37, 0x03, 0x32, 0xfe, 0xa5, 0x4e,
-	0x58, 0x68, 0x83, 0xf4, 0x0d, 0x21, 0xa1, 0x1d, 0x66, 0x52, 0x74, 0xc6, 0x49, 0x47, 0x52, 0x41,
-	0xdf, 0x92, 0x19, 0x87, 0xba, 0x02, 0x27, 0xb5, 0x6a, 0x05, 0xa1, 0xcd, 0xb4, 0x67, 0xa9, 0xa0,
-	0xef, 0xc9, 0x82, 0x6b, 0x6b, 0xb1, 0xe8, 0x45, 0x03, 0x2f, 0x9a, 0xdf, 0xa3, 0xa9, 0xa0, 0x7f,
-	0x09, 0xad, 0x74, 0x6d, 0x39, 0x66, 0x60, 0x4c, 0x21, 0xb9, 0xe7, 0x6c, 0xb8, 0x8a, 0x36, 0xd3,
-	0xaf, 0xaf, 0xe3, 0xc7, 0x83, 0xc5, 0xe7, 0xa9, 0x76, 0x2f, 0x83, 0x6f, 0x7b, 0x67, 0xa3, 0x3f,
-	0xc8, 0xa2, 0x6b, 0x76, 0x04, 0x25, 0x0a, 0xb4, 0xec, 0xf9, 0x13, 0x1a, 0xcd, 0x83, 0xe7, 0x4f,
-	0xb0, 0xd0, 0x4f, 0xfd, 0x8b, 0xa4, 0xaa, 0x1c, 0x28, 0xee, 0x23, 0x18, 0xf9, 0xc7, 0x2f, 0x43,
-	0x25, 0xed, 0x0a, 0xa9, 0x68, 0x83, 0xe2, 0x16, 0xc1, 0xa1, 0xc8, 0xc0, 0xb1, 0x17, 0x21, 0xa8,
-	0x8e, 0x6c, 0x1d, 0x7d, 0x47, 0xe6, 0x15, 0x3f, 0xa2, 0xa8, 0x0b, 0x14, 0xd9, 0x41, 0x5b, 0x36,
-	0xf6, 0x8a, 0x59, 0x0f, 0x7f, 0x6b, 0x7f, 0xe3, 0x39, 0xec, 0x12, 0x85, 0x84, 0xac, 0xfd, 0x5c,
-	0x36, 0x09, 0x37, 0x76, 0x95, 0x7f, 0x6d, 0xe1, 0x7f, 0x63, 0xb0, 0xcd, 0xfe, 0xac, 0x16, 0xe0,
-	0x80, 0x91, 0x55, 0xb4, 0x99, 0xed, 0xa6, 0x1d, 0xfb, 0x09, 0x0e, 0xbe, 0x7f, 0xbc, 0xf8, 0x90,
-	0x4b, 0x77, 0xac, 0xf7, 0x31, 0xd7, 0x65, 0xe2, 0x67, 0x77, 0xf2, 0x2a, 0x91, 0xea, 0x20, 0xaf,
-	0x93, 0x07, 0x9b, 0xb4, 0x1f, 0xf9, 0x25, 0xfa, 0x76, 0x1b, 0x00, 0x00, 0xff, 0xff, 0x4f, 0x64,
-	0x21, 0xb1, 0x63, 0x02, 0x00, 0x00,
+	// 418 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x52, 0x5d, 0x8b, 0xd4, 0x40,
+	0x10, 0x24, 0x77, 0x67, 0xdc, 0xed, 0xdd, 0x13, 0x99, 0xa7, 0xe0, 0x07, 0x9e, 0x11, 0xe1, 0x44,
+	0x48, 0x74, 0x05, 0x41, 0x04, 0x41, 0x51, 0x21, 0x0f, 0x82, 0x44, 0x9f, 0x7c, 0x09, 0xbd, 0x33,
+	0x7d, 0xbb, 0xc3, 0x25, 0x33, 0xe3, 0xa4, 0xf7, 0x30, 0x3f, 0xc7, 0xdf, 0xe7, 0x9f, 0x90, 0x4c,
+	0x92, 0xf5, 0xd0, 0xc3, 0x7b, 0x6b, 0x8a, 0xea, 0xa9, 0xea, 0x9a, 0x82, 0xbb, 0xe8, 0x74, 0xae,
+	0x0d, 0x93, 0x37, 0x58, 0xe7, 0x6e, 0x9d, 0x73, 0xe7, 0xa8, 0xcd, 0x9c, 0xb7, 0x6c, 0x85, 0x50,
+	0x76, 0xd3, 0x60, 0xd6, 0x50, 0xdb, 0xe2, 0x46, 0x9b, 0x4d, 0x76, 0xf1, 0x3c, 0x7d, 0x06, 0xb3,
+	0x42, 0x91, 0x61, 0xcd, 0x9d, 0x10, 0x70, 0x64, 0xb0, 0xa1, 0x24, 0x3a, 0x89, 0x4e, 0xe7, 0x65,
+	0x98, 0xc5, 0x6d, 0x38, 0x3c, 0xa7, 0x2e, 0x39, 0x08, 0x50, 0x3f, 0xa6, 0x3f, 0x23, 0x88, 0xbf,
+	0xd8, 0x9d, 0x97, 0x24, 0xde, 0xc0, 0x02, 0x9d, 0xab, 0xb5, 0x44, 0xd6, 0xd6, 0x84, 0xbd, 0xc5,
+	0xea, 0x5e, 0xf6, 0xaf, 0x4c, 0x36, 0x69, 0x94, 0x97, 0x17, 0xc4, 0x4b, 0xb8, 0xb9, 0x45, 0xa3,
+	0x6a, 0xf2, 0x41, 0xe0, 0xba, 0xdd, 0x89, 0x2c, 0x1e, 0xc0, 0x42, 0x9b, 0x96, 0xd1, 0x48, 0xaa,
+	0xb4, 0x4a, 0x0e, 0x83, 0x39, 0x98, 0xa0, 0x42, 0xa5, 0xbf, 0x22, 0x98, 0x7d, 0x22, 0xc6, 0xf7,
+	0xc8, 0x28, 0xee, 0x03, 0x0c, 0xef, 0x05, 0xf2, 0x70, 0xdc, 0x7c, 0x44, 0x0a, 0x25, 0x1e, 0xc2,
+	0x52, 0xe2, 0xae, 0x0d, 0x8e, 0x7a, 0xc2, 0x70, 0xea, 0x62, 0x8f, 0x15, 0x4a, 0x3c, 0x86, 0x5b,
+	0xd2, 0x7a, 0x4f, 0xf5, 0x9e, 0x34, 0x48, 0x1e, 0x5f, 0x42, 0x0b, 0x25, 0x56, 0x10, 0xb7, 0x21,
+	0x98, 0xe4, 0x28, 0x5c, 0x73, 0xe7, 0xaa, 0x6b, 0x86, 0xe8, 0xca, 0x91, 0xd9, 0x9b, 0x93, 0x9e,
+	0x90, 0x49, 0x55, 0xc8, 0xc9, 0x8d, 0x93, 0xe8, 0x74, 0x59, 0xce, 0x47, 0xe4, 0x2d, 0x8b, 0x47,
+	0x70, 0xdc, 0xca, 0x2d, 0xa9, 0x5d, 0x4d, 0xaa, 0x3a, 0xb3, 0x3e, 0x89, 0x03, 0x63, 0xb9, 0x07,
+	0x3f, 0x5a, 0x9f, 0x76, 0x30, 0xfb, 0x60, 0x2e, 0xa8, 0xb6, 0x8e, 0xc4, 0x2b, 0x98, 0x37, 0xc4,
+	0x58, 0x29, 0x64, 0xfc, 0xdf, 0x87, 0x4c, 0xe9, 0x94, 0xb3, 0x66, 0xca, 0x69, 0x05, 0xb1, 0x43,
+	0x79, 0x4e, 0x3c, 0x7e, 0xc6, 0x95, 0xf6, 0x3f, 0x07, 0x46, 0x39, 0x32, 0xd3, 0xd7, 0x10, 0x0f,
+	0xc8, 0x90, 0xb2, 0xd2, 0x58, 0xf5, 0x8d, 0xfb, 0x93, 0xb2, 0xd2, 0xf8, 0xb5, 0x73, 0xd4, 0x77,
+	0x2b, 0x58, 0x3a, 0x08, 0xfe, 0xc3, 0xfc, 0xee, 0xe9, 0xb7, 0x27, 0x1b, 0xcd, 0xdb, 0xdd, 0x3a,
+	0x93, 0xb6, 0xc9, 0x83, 0x18, 0xeb, 0xef, 0xb9, 0x36, 0x67, 0xfa, 0x47, 0xfe, 0x57, 0x91, 0xd7,
+	0x71, 0xe8, 0xf0, 0x8b, 0xdf, 0x01, 0x00, 0x00, 0xff, 0xff, 0xd3, 0x42, 0xe0, 0x0a, 0xe2, 0x02,
+	0x00, 0x00,
 }
