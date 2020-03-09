@@ -12,8 +12,23 @@ message Identity {
   string key = 2;
 }
 
-// Envelope is a protocol buffers representation of the envelope.Envelope type.
-message Envelope {
+message Source {
+  // Application is the identity of the Dogma application that produced this
+  // message.
+  Identity application = 1;
+
+  // Handler is the identity of the handler that produced the message. It is the
+  // zero-value if the message was not produced by a handler.
+  Identity handler = 2;
+
+  // InstanceID is the aggregate or process instance that produced the message.
+  // It is empty if the message was not produced by a handler, or it was
+  // produced by an integration handler.
+  string instance_id = 3;
+}
+
+// MetaData is a protocol buffers representation of the envelope.MetaData type.
+message MetaData  {
   // MessageID is a unique identifier for the message.
   string message_id = 1;
 
@@ -26,31 +41,33 @@ message Envelope {
   // indirectly.
   string correlation_id = 3;
 
-  // SourceApplication is the identity of the Dogma application that produced
-  // this message.
-  Identity source_application = 4;
-
-  // SourceHandler is the identity of the handler that produced the message. It
-  // is the zero-value if the message was not produced by a handler.
-  Identity source_handler = 5;
-
-  // SourceInstanceID is the aggregate or process instance that produced the
-  // message. It is empty if the message was not produced by a handler, or it
-  // was produced by an integration handler.
-  string source_instance_id = 6;
+	// Source describes the source of the message.
+  Source source = 4;
 
 	// CreatedAt is the time at which the message was created, marshaled in
-	// RFC3339Nano format.
-	string created_at = 7;
+	// binary format.
+	bytes created_at = 5;
 
 	// ScheduledFor is the time at which a timeout message was scheduled,
-	// marshaled in RFC3339Nano format.
-	string scheduled_for = 8;
+	// marshaled in binary format.
+	bytes scheduled_for = 6;
+}
 
-	// MessageMediaType is a MIME media-type describing the content and encoding
-	// of the binary message data.
-	string message_media_type = 9;
+// Envelope is a protocol buffers representation of the envelope.Envelope type.
+message Envelope {
+  // MetaData is the message meta-data.
+  MetaData meta_data = 1;
 
-	// MessageData is the marshaled binary data representing the message.
-	bytes message_data = 10;
+  // Packet contains the binary representation of the message.
+  Packet packet = 2;
+}
+
+// Packet is a protocol buffers representation of the marshalkit.Packet type.
+message Packet {
+	// MediaType is a MIME media-type describing the content and encoding of the
+	// binary data.
+	string media_type = 1;
+
+	// Data is the marshaled binary data.
+	bytes data = 2;
 }
