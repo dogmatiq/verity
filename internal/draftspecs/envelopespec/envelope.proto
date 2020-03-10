@@ -1,7 +1,7 @@
 syntax = "proto3";
-package dogma.messaging.v1;
+package dogma.envelope.v1;
 
-option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+option go_package = "github.com/dogmatiq/infix/internal/draftspecs/envelopespec";
 
 // Identity is a protocol buffers representation of the configkit.Identity type.
 message Identity {
@@ -58,16 +58,10 @@ message Envelope {
   // MetaData is the message meta-data.
   MetaData meta_data = 1;
 
-  // Packet contains the binary representation of the message.
-  Packet packet = 2;
-}
-
-// Packet is a protocol buffers representation of the marshalkit.Packet type.
-message Packet {
 	// MediaType is a MIME media-type describing the content and encoding of the
-	// binary data.
-	string media_type = 1;
+	// binary message data.
+	string media_type = 2;
 
-	// Data is the marshaled binary data.
-	bytes data = 2;
+	// Data is the binary message data.
+	bytes data = 3;
 }

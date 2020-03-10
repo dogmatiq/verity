@@ -6,8 +6,9 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/api/internal/pb"
+	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -25,7 +26,7 @@ var _ = Describe("type streamServer", func() {
 		stream   *memory.Stream
 		listener net.Listener
 		gserver  *grpc.Server
-		client   pb.EventStreamClient
+		client   messagingspec.EventStreamClient
 	)
 
 	BeforeEach(func() {
@@ -54,7 +55,7 @@ var _ = Describe("type streamServer", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		client = pb.NewEventStreamClient(conn)
+		client = messagingspec.NewEventStreamClient(conn)
 	})
 
 	AfterEach(func() {
@@ -80,7 +81,7 @@ var _ = Describe("type streamServer", func() {
 		})
 
 		It("exposes the messages from the underlying stream", func() {
-			req := &pb.ConsumeRequest{
+			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"MessageA", "MessageB"},
 			}
@@ -91,24 +92,24 @@ var _ = Describe("type streamServer", func() {
 			m, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(m).To(Equal(
-				&pb.ConsumeResponse{
+				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: marshalEnvelope(env1),
+					Envelope: envelope.MustMarshal(env1),
 				},
 			))
 
 			m, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(m).To(Equal(
-				&pb.ConsumeResponse{
+				&messagingspec.ConsumeResponse{
 					Offset:   1,
-					Envelope: marshalEnvelope(env2),
+					Envelope: envelope.MustMarshal(env2),
 				},
 			))
 		})
 
 		It("honours the initial offset", func() {
-			req := &pb.ConsumeRequest{
+			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Offset:         2,
 				Types:          []string{"MessageA", "MessageB"},
@@ -120,15 +121,15 @@ var _ = Describe("type streamServer", func() {
 			m, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(m).To(Equal(
-				&pb.ConsumeResponse{
+				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: marshalEnvelope(env3),
+					Envelope: envelope.MustMarshal(env3),
 				},
 			))
 		})
 
 		It("limits results to the supplied message types", func() {
-			req := &pb.ConsumeRequest{
+			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"MessageA"},
 			}
@@ -139,24 +140,24 @@ var _ = Describe("type streamServer", func() {
 			m, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(m).To(Equal(
-				&pb.ConsumeResponse{
+				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: marshalEnvelope(env1),
+					Envelope: envelope.MustMarshal(env1),
 				},
 			))
 
 			m, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(m).To(Equal(
-				&pb.ConsumeResponse{
+				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: marshalEnvelope(env3),
+					Envelope: envelope.MustMarshal(env3),
 				},
 			))
 		})
 
 		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
-			req := &pb.ConsumeRequest{}
+			req := &messagingspec.ConsumeRequest{}
 
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -169,7 +170,7 @@ var _ = Describe("type streamServer", func() {
 		})
 
 		It("returns a NOT_FOUND error if the application is not recognized", func() {
-			req := &pb.ConsumeRequest{
+			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<unknown>",
 			}
 
@@ -182,14 +183,14 @@ var _ = Describe("type streamServer", func() {
 			Expect(s.Message()).To(Equal("unrecognized application: <unknown>"))
 			Expect(s.Code()).To(Equal(codes.NotFound))
 			Expect(s.Details()).To(ContainElement(
-				&pb.UnrecognizedApplication{
+				&messagingspec.UnrecognizedApplication{
 					ApplicationKey: "<unknown>",
 				},
 			))
 		})
 
 		It("returns an INVALID_ARGUMENT error if the message type collection is empty", func() {
-			req := &pb.ConsumeRequest{
+			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 			}
 
@@ -204,7 +205,7 @@ var _ = Describe("type streamServer", func() {
 		})
 
 		It("returns an INVALID_ARGUMENT error if the message type collection contains unrecognised messages", func() {
-			req := &pb.ConsumeRequest{
+			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"<unknown-1>", "<unknown-2>"},
 			}
@@ -218,10 +219,10 @@ var _ = Describe("type streamServer", func() {
 			Expect(s.Message()).To(Equal("unrecognized message type(s)"))
 			Expect(s.Code()).To(Equal(codes.InvalidArgument))
 			Expect(s.Details()).To(ContainElements(
-				&pb.UnrecognizedMessage{
+				&messagingspec.UnrecognizedMessage{
 					Name: "<unknown-1>",
 				},
-				&pb.UnrecognizedMessage{
+				&messagingspec.UnrecognizedMessage{
 					Name: "<unknown-2>",
 				},
 			))

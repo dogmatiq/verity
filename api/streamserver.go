@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/api/internal/pb"
+	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
@@ -25,7 +27,7 @@ func RegisterEventStreamServer(
 		streams:   streams,
 	}
 
-	pb.RegisterEventStreamServer(s, svr)
+	messagingspec.RegisterEventStreamServer(s, svr)
 }
 
 type streamServer struct {
@@ -34,8 +36,8 @@ type streamServer struct {
 }
 
 func (s *streamServer) Consume(
-	req *pb.ConsumeRequest,
-	consumer pb.EventStream_ConsumeServer,
+	req *messagingspec.ConsumeRequest,
+	consumer messagingspec.EventStream_ConsumeServer,
 ) error {
 	ctx := consumer.Context()
 
@@ -51,9 +53,9 @@ func (s *streamServer) Consume(
 			return err
 		}
 
-		res := &pb.ConsumeResponse{
+		res := &messagingspec.ConsumeResponse{
 			Offset:   m.Offset,
-			Envelope: marshalEnvelope(m.Envelope),
+			Envelope: envelope.MustMarshal(m.Envelope),
 		}
 
 		if err := consumer.Send(res); err != nil {
@@ -68,7 +70,7 @@ func (s *streamServer) Consume(
 // open returns a cursor for the stream specified in the request.
 func (s *streamServer) open(
 	ctx context.Context,
-	req *pb.ConsumeRequest,
+	req *messagingspec.ConsumeRequest,
 ) (persistence.StreamCursor, error) {
 	stream, err := s.stream(req.ApplicationKey)
 	if err != nil {
@@ -104,9 +106,51 @@ func (s *streamServer) stream(k string) (persistence.Stream, error) {
 	return nil, errorf(
 		codes.NotFound,
 		[]proto.Message{
-			&pb.UnrecognizedApplication{ApplicationKey: k},
+			&messagingspec.UnrecognizedApplication{ApplicationKey: k},
 		},
 		"unrecognized application: %s",
 		k,
 	)
+}
+
+// unmarshalMessageTypes unmarshals a collection of message types from their
+// protocol buffers representation.
+func unmarshalMessageTypes(
+	m marshalkit.TypeMarshaler,
+	in []string,
+) (message.TypeSet, error) {
+	out := message.TypeSet{}
+
+	var failed []proto.Message
+
+	for _, n := range in {
+		rt, err := m.UnmarshalType(n)
+		if err != nil {
+			failed = append(
+				failed,
+				&messagingspec.UnrecognizedMessage{Name: n},
+			)
+		} else {
+			t := message.TypeFromReflect(rt)
+			out[t] = struct{}{}
+		}
+	}
+
+	if len(failed) > 0 {
+		return nil, errorf(
+			codes.InvalidArgument,
+			failed,
+			"unrecognized message type(s)",
+		)
+	}
+
+	if len(out) == 0 {
+		return nil, errorf(
+			codes.InvalidArgument,
+			nil,
+			"message types can not be empty",
+		)
+	}
+
+	return out, nil
 }

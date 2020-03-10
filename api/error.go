@@ -18,6 +18,8 @@ func errorf(
 	var err error
 	s, err = s.WithDetails(details...)
 	if err != nil {
+		// CODE COVERAGE: This would only happen if we passed a success code for
+		// an error... so that should never happen, right?
 		panic(err)
 	}
 
