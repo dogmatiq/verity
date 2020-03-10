@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
+	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -17,45 +18,66 @@ import (
 // Declare declares generic behavioral tests for a specific driver
 // implementation.
 func Declare(
-	setup func(context.Context) persistence.Stream,
+	before func(context.Context) persistence.Stream,
+	after func(),
 	append func(context.Context, ...*envelope.Envelope),
 ) {
 
-	// assumedBlockingDuration specifies how long the tests should wait before
-	// assuming a call to Cursor.Next() is successfully blocking, waiting for a
-	// new message, as opposed to in the process of "checking" if any messages
-	// are already available.
-	const assumedBlockingDuration = 150 * time.Millisecond
+	const (
+		// testTimeout is the maximum duration allowed for the execution of each
+		// individual test.
+		testTimeout = 3 * time.Second
+
+		// assumedBlockingDuration specifies how long the tests should wait before
+		// assuming a call to Cursor.Next() is successfully blocking, waiting for a
+		// new message, as opposed to in the process of "checking" if any messages
+		// are already available.
+		assumedBlockingDuration = 150 * time.Millisecond
+	)
 
 	var (
 		ctx    context.Context
 		cancel func()
 		stream persistence.Stream
 		types  message.TypeSet
+
+		env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
+		env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
+		env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA2)
+		env3 = infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageB2)
+		env4 = infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageC1)
+
+		message0 = &persistence.StreamMessage{Offset: 0, Envelope: env0}
+		message1 = &persistence.StreamMessage{Offset: 1, Envelope: env1}
+		message2 = &persistence.StreamMessage{Offset: 2, Envelope: env2}
+		message3 = &persistence.StreamMessage{Offset: 3, Envelope: env3}
+		message4 = &persistence.StreamMessage{Offset: 4, Envelope: env4}
 	)
 
 	ginkgo.BeforeEach(func() {
-		ctx, cancel = context.WithTimeout(
-			context.Background(),
-			3*time.Second,
-		)
+		ctx, cancel = context.WithTimeout(context.Background(), testTimeout)
 
-		stream = setup(ctx)
+		stream = before(ctx)
 		types = message.NewTypeSet(
 			configkitfixtures.MessageAType,
 			configkitfixtures.MessageBType,
+			configkitfixtures.MessageCType,
 		)
 
 		append(
 			ctx,
-			&envelope.Envelope{Message: dogmafixtures.MessageA1},
-			&envelope.Envelope{Message: dogmafixtures.MessageB1},
-			&envelope.Envelope{Message: dogmafixtures.MessageA2},
-			&envelope.Envelope{Message: dogmafixtures.MessageB2},
+			env0,
+			env1,
+			env2,
+			env3,
 		)
 	})
 
 	ginkgo.AfterEach(func() {
+		if after != nil {
+			after()
+		}
+
 		cancel()
 	})
 
@@ -68,21 +90,7 @@ func Declare(
 
 				m, err := cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(m).To(gomega.Equal(
-					&persistence.StreamMessage{
-						Offset:   2,
-						Envelope: &envelope.Envelope{Message: dogmafixtures.MessageA2},
-					},
-				))
-
-				m, err = cur.Next(ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(m).To(gomega.Equal(
-					&persistence.StreamMessage{
-						Offset:   3,
-						Envelope: &envelope.Envelope{Message: dogmafixtures.MessageB2},
-					},
-				))
+				gomega.Expect(m).To(gomega.Equal(message2))
 			})
 
 			ginkgo.It("limits results to the supplied message types", func() {
@@ -96,27 +104,60 @@ func Declare(
 
 				m, err := cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(m).To(gomega.Equal(
-					&persistence.StreamMessage{
-						Offset:   0,
-						Envelope: &envelope.Envelope{Message: dogmafixtures.MessageA1},
-					},
-				))
+				gomega.Expect(m).To(gomega.Equal(message0))
 
 				m, err = cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(m).To(gomega.Equal(
-					&persistence.StreamMessage{
-						Offset:   2,
-						Envelope: &envelope.Envelope{Message: dogmafixtures.MessageA2},
-					},
-				))
+				gomega.Expect(m).To(gomega.Equal(message2))
 			})
 		})
 	})
 
 	ginkgo.Describe("type Cursor", func() {
 		ginkgo.Describe("func Next()", func() {
+			ginkgo.It("returns the messages in order", func() {
+				cur, err := stream.Open(ctx, 0, types)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer cur.Close()
+
+				m, err := cur.Next(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(m).To(gomega.Equal(message0))
+
+				m, err = cur.Next(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(m).To(gomega.Equal(message1))
+
+				m, err = cur.Next(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(m).To(gomega.Equal(message2))
+
+				m, err = cur.Next(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(m).To(gomega.Equal(message3))
+			})
+
+			ginkgo.It("returns an error if the cursor is closed", func() {
+				cur, err := stream.Open(ctx, 0, types)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+				cur.Close()
+
+				_, err = cur.Next(ctx)
+				gomega.Expect(err).Should(gomega.HaveOccurred())
+			})
+
+			ginkgo.It("returns an error if the context is canceled", func() {
+				cur, err := stream.Open(ctx, 4, types)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer cur.Close()
+
+				cancel()
+
+				_, err = cur.Next(ctx)
+				gomega.Expect(err).Should(gomega.HaveOccurred())
+			})
+
 			ginkgo.When("waiting for a new message", func() {
 				ginkgo.It("wakes if a message is appended", func() {
 					// Open a cursor after the offset of the existing messages.
@@ -126,21 +167,12 @@ func Declare(
 
 					go func() {
 						time.Sleep(assumedBlockingDuration)
-
-						append(
-							ctx,
-							&envelope.Envelope{Message: dogmafixtures.MessageA3},
-						)
+						append(ctx, env4)
 					}()
 
 					m, err := cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(
-						&persistence.StreamMessage{
-							Offset:   4,
-							Envelope: &envelope.Envelope{Message: dogmafixtures.MessageA3},
-						},
-					))
+					gomega.Expect(m).To(gomega.Equal(message4))
 				})
 
 				ginkgo.It("returns an error if the cursor is closed", func() {
@@ -200,12 +232,7 @@ func Declare(
 								return err
 							}
 
-							gomega.Expect(m).To(gomega.Equal(
-								&persistence.StreamMessage{
-									Offset:   4,
-									Envelope: &envelope.Envelope{Message: dogmafixtures.MessageA3},
-								},
-							))
+							gomega.Expect(m).To(gomega.Equal(message4))
 
 							return nil
 						})
@@ -223,35 +250,11 @@ func Declare(
 					time.Sleep(assumedBlockingDuration)
 
 					// wake the consumers
-					append(
-						ctx,
-						&envelope.Envelope{Message: dogmafixtures.MessageA3},
-					)
+					append(ctx, env4)
 
 					err := g.Wait()
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				})
-			})
-
-			ginkgo.It("returns an error if the cursor is closed", func() {
-				cur, err := stream.Open(ctx, 0, types)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-				cur.Close()
-
-				_, err = cur.Next(ctx)
-				gomega.Expect(err).Should(gomega.HaveOccurred())
-			})
-
-			ginkgo.It("returns an error if the context is canceled", func() {
-				cur, err := stream.Open(ctx, 4, types)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer cur.Close()
-
-				cancel()
-
-				_, err = cur.Next(ctx)
-				gomega.Expect(err).Should(gomega.HaveOccurred())
 			})
 		})
 

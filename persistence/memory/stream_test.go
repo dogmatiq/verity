@@ -18,6 +18,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			stream = &Stream{}
 			return stream
 		},
+		nil,
 		func(ctx context.Context, envelopes ...*envelope.Envelope) {
 			stream.Append(envelopes...)
 		},
