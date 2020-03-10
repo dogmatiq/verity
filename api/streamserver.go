@@ -57,6 +57,9 @@ func (s *streamServer) Consume(
 		}
 
 		if err := consumer.Send(res); err != nil {
+			// CODE COVERAGE: It's difficult to get the server to fail to send,
+			// possibly because of the outbound network buffer, or some
+			// in-process buffering on the server side.
 			return err
 		}
 	}
