@@ -1,9 +1,9 @@
 syntax = "proto3";
 package dogma.messaging.v1;
 
-option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messaging/pb";
 
-import "api/internal/pb/types.proto";
+import "internal/draftspecs/messaging/pb/types.proto";
 
 // CommandExecutor is a service for executing command messages.
 service CommandExecutor {

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/api/internal/pb"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/internal/draftspecs/messaging/pb"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"

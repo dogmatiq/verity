@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/api/internal/pb"
+	"github.com/dogmatiq/infix/internal/draftspecs/messaging/pb"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package dogma.messaging.v1;
 
-option go_package = "github.com/dogmatiq/infix/api/internal/pb";
+option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messaging/pb";
 
 // Identity is a protocol buffers representation of the configkit.Identity type.
 message Identity {

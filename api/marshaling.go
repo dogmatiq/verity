@@ -5,8 +5,8 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/api/internal/pb"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/internal/draftspecs/messaging/pb"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"

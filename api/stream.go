@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/api/internal/pb"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/internal/draftspecs/messaging/pb"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"google.golang.org/grpc"
