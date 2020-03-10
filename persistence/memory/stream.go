@@ -30,6 +30,10 @@ func (s *Stream) Open(
 	offset uint64,
 	types message.TypeCollection,
 ) (persistence.StreamCursor, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
 	return &cursor{
 		stream: s,
 		offset: offset,

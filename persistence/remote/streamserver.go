@@ -1,4 +1,4 @@
-package api
+package remote
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
+	"github.com/dogmatiq/infix/internal/grpcx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
@@ -92,7 +93,7 @@ func (s *streamServer) open(
 // stream returns the stream for the application with the specified key.
 func (s *streamServer) stream(k string) (persistence.Stream, error) {
 	if k == "" {
-		return nil, errorf(
+		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
 			nil,
 			"application key must not be empty",
@@ -103,7 +104,7 @@ func (s *streamServer) stream(k string) (persistence.Stream, error) {
 		return stream, nil
 	}
 
-	return nil, errorf(
+	return nil, grpcx.Errorf(
 		codes.NotFound,
 		[]proto.Message{
 			&messagingspec.UnrecognizedApplication{ApplicationKey: k},
@@ -137,7 +138,7 @@ func unmarshalMessageTypes(
 	}
 
 	if len(failed) > 0 {
-		return nil, errorf(
+		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
 			failed,
 			"unrecognized message type(s)",
@@ -145,7 +146,7 @@ func unmarshalMessageTypes(
 	}
 
 	if len(out) == 0 {
-		return nil, errorf(
+		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
 			nil,
 			"message types can not be empty",

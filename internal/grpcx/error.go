@@ -1,4 +1,4 @@
-package api
+package grpcx
 
 import (
 	"github.com/golang/protobuf/proto"
@@ -6,8 +6,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// errorf returns a new gRPC status error, with an optional detail messages.
-func errorf(
+// Errorf returns a new gRPC status error, with an optional detail messages.
+func Errorf(
 	code codes.Code,
 	details []proto.Message,
 	f string,
@@ -18,8 +18,6 @@ func errorf(
 	var err error
 	s, err = s.WithDetails(details...)
 	if err != nil {
-		// CODE COVERAGE: This would only happen if we passed a success code for
-		// an error... so that should never happen, right?
 		panic(err)
 	}
 

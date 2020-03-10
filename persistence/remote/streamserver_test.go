@@ -1,4 +1,4 @@
-package api
+package remote
 
 import (
 	"context"
@@ -25,7 +25,7 @@ var _ = Describe("type streamServer", func() {
 		cancel   func()
 		stream   *memory.Stream
 		listener net.Listener
-		gserver  *grpc.Server
+		server   *grpc.Server
 		client   messagingspec.EventStreamClient
 	)
 
@@ -38,16 +38,16 @@ var _ = Describe("type streamServer", func() {
 		listener, err = net.Listen("tcp", ":")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		gserver = grpc.NewServer()
+		server = grpc.NewServer()
 		RegisterEventStreamServer(
-			gserver,
+			server,
 			Marshaler,
 			map[string]persistence.Stream{
 				"<app-key>": stream,
 			},
 		)
 
-		go gserver.Serve(listener)
+		go server.Serve(listener)
 
 		conn, err := grpc.Dial(
 			listener.Addr().String(),
@@ -63,8 +63,8 @@ var _ = Describe("type streamServer", func() {
 			listener.Close()
 		}
 
-		if gserver != nil {
-			gserver.Stop()
+		if server != nil {
+			server.Stop()
 		}
 
 		cancel()
