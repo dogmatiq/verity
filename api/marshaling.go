@@ -4,9 +4,12 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/api/internal/pb"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc/codes"
 )
 
 // marshalIdentity marshals a configkit.Identity to its protocol buffers
@@ -124,7 +127,7 @@ func unmarshalPacket(in *pb.Packet, out *marshalkit.Packet) {
 	out.Data = in.GetData()
 }
 
-// marshalTime marshals a time.Time to its protobuf representation.
+// marshalTime marshals a time.Time to its protocol buffers representation.
 func marshalTime(in time.Time) []byte {
 	if in.IsZero() {
 		return nil
@@ -138,7 +141,8 @@ func marshalTime(in time.Time) []byte {
 	return buf
 }
 
-// unmarshalTime unmarshals a time.Time from its protobuf representation.
+// unmarshalTime unmarshals a time.Time from its protocol buffers
+// representation.
 func unmarshalTime(in []byte, out *time.Time) error {
 	if len(in) == 0 {
 		*out = time.Time{}
@@ -146,4 +150,65 @@ func unmarshalTime(in []byte, out *time.Time) error {
 	}
 
 	return out.UnmarshalBinary(in)
+}
+
+// marshalMessageTypes marshals a collection of message types to their protocol
+// buffers representation.
+func marshalMessageTypes(
+	m marshalkit.TypeMarshaler,
+	in message.TypeCollection,
+) []string {
+	var out []string
+
+	in.Range(func(t message.Type) bool {
+		out = append(
+			out,
+			marshalkit.MustMarshalType(m, t.ReflectType()),
+		)
+		return true
+	})
+
+	return out
+}
+
+// unmarshalMessageTypes unmarshals a collection of message types from their
+// protocol buffers representation.
+func unmarshalMessageTypes(
+	m marshalkit.TypeMarshaler,
+	in []string,
+) (message.TypeSet, error) {
+	out := message.TypeSet{}
+
+	var failed []proto.Message
+
+	for _, n := range in {
+		rt, err := m.UnmarshalType(n)
+		if err != nil {
+			failed = append(
+				failed,
+				&pb.UnrecognizedMessage{Name: n},
+			)
+		} else {
+			t := message.TypeFromReflect(rt)
+			out[t] = struct{}{}
+		}
+	}
+
+	if len(failed) > 0 {
+		return nil, errorf(
+			codes.InvalidArgument,
+			failed,
+			"unrecognized message type(s)",
+		)
+	}
+
+	if len(out) == 0 {
+		return nil, errorf(
+			codes.InvalidArgument,
+			nil,
+			"message types can not be empty",
+		)
+	}
+
+	return out, nil
 }
