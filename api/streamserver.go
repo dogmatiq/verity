@@ -58,11 +58,6 @@ func (s *streamServer) Consume(
 			Envelope: envelope.MustMarshal(m.Envelope),
 		}
 
-		res.Envelope, err = envelope.Marshal(m.Envelope)
-		if err != nil {
-			return err
-		}
-
 		if err := consumer.Send(res); err != nil {
 			// CODE COVERAGE: It's difficult to get the server to fail to send,
 			// possibly because of the outbound network buffer, or some
