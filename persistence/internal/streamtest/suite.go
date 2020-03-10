@@ -110,6 +110,13 @@ func Declare(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(m).To(gomega.Equal(message2))
 			})
+
+			ginkgo.It("returns an error if the context is closed", func() {
+				cancel()
+
+				_, err := stream.Open(ctx, 0, types)
+				gomega.Expect(err).Should(gomega.HaveOccurred())
+			})
 		})
 	})
 
