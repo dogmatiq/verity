@@ -1,4 +1,4 @@
-package api
+package envelope_test
 
 import (
 	"time"
@@ -6,53 +6,16 @@ import (
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/internal/draftspecs/messaging/pb"
+	. "github.com/dogmatiq/infix/envelope"
+	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/internal/draftspecs/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("func marshalIdentity()", func() {
-	It("returns the protobuf representation", func() {
-		in := configkit.MustNewIdentity("<name>", "<key>")
-
-		out := marshalIdentity(in)
-
-		Expect(out).To(Equal(&pb.Identity{
-			Name: "<name>",
-			Key:  "<key>",
-		}))
-	})
-})
-
-var _ = Describe("func unmarshalIdentity()", func() {
-	It("returns the native representation", func() {
-		in := &pb.Identity{
-			Name: "<name>",
-			Key:  "<key>",
-		}
-
-		var out configkit.Identity
-		err := unmarshalIdentity(in, &out)
-
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(out).To(Equal(
-			configkit.MustNewIdentity("<name>", "<key>"),
-		))
-	})
-
-	It("returns an error if the identity is invalid", func() {
-		in := &pb.Identity{}
-
-		var out configkit.Identity
-		err := unmarshalIdentity(in, &out)
-
-		Expect(err).Should(HaveOccurred())
-	})
-})
-
-var _ = Describe("func marshalEnvelope()", func() {
+var _ = Describe("func Marshal()", func() {
 	var in *envelope.Envelope
 
 	BeforeEach(func() {
@@ -78,7 +41,8 @@ var _ = Describe("func marshalEnvelope()", func() {
 	})
 
 	It("marshals to protobuf", func() {
-		out := marshalEnvelope(in)
+		out, err := Marshal(in)
+		Expect(err).ShouldNot(HaveOccurred())
 
 		createdAt, err := in.CreatedAt.MarshalBinary()
 		Expect(err).ShouldNot(HaveOccurred())
@@ -86,50 +50,78 @@ var _ = Describe("func marshalEnvelope()", func() {
 		scheduledFor, err := in.ScheduledFor.MarshalBinary()
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Expect(out).To(Equal(&pb.Envelope{
-			MetaData: &pb.MetaData{
+		Expect(out).To(Equal(&envelopespec.Envelope{
+			MetaData: &envelopespec.MetaData{
 				MessageId:     "<id>",
 				CausationId:   "<cause>",
 				CorrelationId: "<correlation>",
-				Source: &pb.Source{
-					Application: &pb.Identity{Name: "<app-name>", Key: "<app-key>"},
-					Handler:     &pb.Identity{Name: "<handler-name>", Key: "<handler-key>"},
+				Source: &envelopespec.Source{
+					Application: &envelopespec.Identity{Name: "<app-name>", Key: "<app-key>"},
+					Handler:     &envelopespec.Identity{Name: "<handler-name>", Key: "<handler-key>"},
 					InstanceId:  "<instance>",
 				},
 				CreatedAt:    createdAt,
 				ScheduledFor: scheduledFor,
 			},
-			Packet: &pb.Packet{
-				MediaType: MessageA1Packet.MediaType,
-				Data:      MessageA1Packet.Data,
-			},
+			MediaType: MessageA1Packet.MediaType,
+			Data:      MessageA1Packet.Data,
 		}))
 	})
 
 	It("marshals a zero scheduled-for time as an empty buffer", func() {
 		in.MetaData.ScheduledFor = time.Time{}
 
-		out := marshalEnvelope(in)
-
+		out, err := Marshal(in)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(out.MetaData.ScheduledFor).To(BeNil())
 	})
 
-	It("panics if a time-value cannot be marshaled", func() {
+	It("returns an error if the created-at time cannot be marshaled", func() {
 		in.MetaData.CreatedAt = time.Now().In(
 			time.FixedZone("fractional", 30),
 		)
 
+		_, err := Marshal(in)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("returns an error if the scheduled-for time cannot be marshaled", func() {
+		in.MetaData.ScheduledFor = time.Now().In(
+			time.FixedZone("fractional", 30),
+		)
+
+		_, err := Marshal(in)
+		Expect(err).Should(HaveOccurred())
+	})
+})
+
+var _ = Describe("func MustMarshal()", func() {
+	It("marshals the envelope", func() {
+		in := NewEnvelope("<id>", MessageA1)
+
+		expect, err := Marshal(in)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		out := MustMarshal(in)
+		Expect(out).To(Equal(expect))
+	})
+
+	It("panics if marshaling fails", func() {
+		in := NewEnvelope("<id>", MessageA1)
+		in.MetaData.ScheduledFor = time.Now().In(
+			time.FixedZone("fractional", 30),
+		)
+
 		Expect(func() {
-			// Should panic with "Time.MarshalBinary: zone offset has fractional minute"
-			marshalEnvelope(in)
+			MustMarshal(in)
 		}).To(Panic())
 	})
 })
 
-var _ = Describe("func unmarshalEnvelope()", func() {
+var _ = Describe("func Unmarshal()", func() {
 	var (
 		createdAt, scheduledFor time.Time
-		in                      *pb.Envelope
+		in                      *envelopespec.Envelope
 	)
 
 	BeforeEach(func() {
@@ -142,29 +134,27 @@ var _ = Describe("func unmarshalEnvelope()", func() {
 		scheduledForData, err := scheduledFor.MarshalBinary()
 		Expect(err).ShouldNot(HaveOccurred())
 
-		in = &pb.Envelope{
-			MetaData: &pb.MetaData{
+		in = &envelopespec.Envelope{
+			MetaData: &envelopespec.MetaData{
 				MessageId:     "<id>",
 				CausationId:   "<cause>",
 				CorrelationId: "<correlation>",
-				Source: &pb.Source{
-					Application: &pb.Identity{Name: "<app-name>", Key: "<app-key>"},
-					Handler:     &pb.Identity{Name: "<handler-name>", Key: "<handler-key>"},
+				Source: &envelopespec.Source{
+					Application: &envelopespec.Identity{Name: "<app-name>", Key: "<app-key>"},
+					Handler:     &envelopespec.Identity{Name: "<handler-name>", Key: "<handler-key>"},
 					InstanceId:  "<instance>",
 				},
 				CreatedAt:    createdAtData,
 				ScheduledFor: scheduledForData,
 			},
-			Packet: &pb.Packet{
-				MediaType: MessageA1Packet.MediaType,
-				Data:      MessageA1Packet.Data,
-			},
+			MediaType: MessageA1Packet.MediaType,
+			Data:      MessageA1Packet.Data,
 		}
 	})
 
 	It("unmarshals from protobuf", func() {
 		var out envelope.Envelope
-		err := unmarshalEnvelope(Marshaler, in, &out)
+		err := Unmarshal(Marshaler, in, &out)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(out.CreatedAt).To(BeTemporally("==", createdAt))
@@ -194,7 +184,7 @@ var _ = Describe("func unmarshalEnvelope()", func() {
 		in.MetaData.CreatedAt = []byte("not-a-valid-time")
 
 		var out envelope.Envelope
-		err := unmarshalEnvelope(Marshaler, in, &out)
+		err := Unmarshal(Marshaler, in, &out)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -202,7 +192,7 @@ var _ = Describe("func unmarshalEnvelope()", func() {
 		in.MetaData.ScheduledFor = []byte("not-a-valid-time")
 
 		var out envelope.Envelope
-		err := unmarshalEnvelope(Marshaler, in, &out)
+		err := Unmarshal(Marshaler, in, &out)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -210,7 +200,7 @@ var _ = Describe("func unmarshalEnvelope()", func() {
 		in.MetaData.ScheduledFor = nil
 
 		var out envelope.Envelope
-		err := unmarshalEnvelope(Marshaler, in, &out)
+		err := Unmarshal(Marshaler, in, &out)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(out.MetaData.ScheduledFor.IsZero()).To(BeTrue())
 	})
@@ -219,7 +209,7 @@ var _ = Describe("func unmarshalEnvelope()", func() {
 		in.MetaData.Source.Handler = nil
 
 		var out envelope.Envelope
-		err := unmarshalEnvelope(Marshaler, in, &out)
+		err := Unmarshal(Marshaler, in, &out)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -227,48 +217,15 @@ var _ = Describe("func unmarshalEnvelope()", func() {
 		in.MetaData.CreatedAt = nil
 
 		var out envelope.Envelope
-		err := unmarshalEnvelope(Marshaler, in, &out)
+		err := Unmarshal(Marshaler, in, &out)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("returns an error if the marshaler fails", func() {
-		in.Packet.MediaType = "<unknown>"
+		in.MediaType = "<unknown>"
 
 		var out envelope.Envelope
-		err := unmarshalEnvelope(Marshaler, in, &out)
+		err := Unmarshal(Marshaler, in, &out)
 		Expect(err).Should(HaveOccurred())
-	})
-})
-
-var _ = Describe("func marshalPacket()", func() {
-	It("marshals to protobuf", func() {
-		in := marshalkit.Packet{
-			MediaType: "<media-type>",
-			Data:      []byte("<data>"),
-		}
-
-		out := marshalPacket(in)
-
-		Expect(out).To(Equal(&pb.Packet{
-			MediaType: "<media-type>",
-			Data:      []byte("<data>"),
-		}))
-	})
-})
-
-var _ = Describe("func unmarshalPacket()", func() {
-	It("unmarshals from protobuf", func() {
-		in := &pb.Packet{
-			MediaType: "<media-type>",
-			Data:      []byte("<data>"),
-		}
-
-		var out marshalkit.Packet
-		unmarshalPacket(in, &out)
-
-		Expect(out).To(Equal(marshalkit.Packet{
-			MediaType: "<media-type>",
-			Data:      []byte("<data>"),
-		}))
 	})
 })

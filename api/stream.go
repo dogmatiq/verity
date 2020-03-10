@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/internal/draftspecs/messaging/pb"
+	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"google.golang.org/grpc"
@@ -30,7 +30,7 @@ func NewEventStream(
 ) persistence.Stream {
 	return &stream{
 		appKey:    k,
-		client:    pb.NewEventStreamClient(c),
+		client:    messagingspec.NewEventStreamClient(c),
 		marshaler: m,
 		prefetch:  n,
 	}
@@ -40,7 +40,7 @@ func NewEventStream(
 // the EventStream gRPC API.
 type stream struct {
 	appKey    string
-	client    pb.EventStreamClient
+	client    messagingspec.EventStreamClient
 	marshaler marshalkit.Marshaler
 	prefetch  int
 }
@@ -79,7 +79,7 @@ func (s *stream) Open(
 		}
 	}()
 
-	req := &pb.ConsumeRequest{
+	req := &messagingspec.ConsumeRequest{
 		ApplicationKey: s.appKey,
 		Offset:         offset,
 		Types:          marshalMessageTypes(s.marshaler, types),
@@ -156,7 +156,7 @@ func (c *cursor) Close() error {
 //
 // It exits when the context associated with c.stream is canceled or some other
 // error occurs while reading from the stream.
-func (c *cursor) consume(stream pb.EventStream_ConsumeClient) {
+func (c *cursor) consume(stream messagingspec.EventStream_ConsumeClient) {
 	defer close(c.messages)
 
 	for c.err == nil {
@@ -166,7 +166,7 @@ func (c *cursor) consume(stream pb.EventStream_ConsumeClient) {
 
 // recv waits for the next message from the stream, unmarshals it and sends it
 // over the c.messages channel.
-func (c *cursor) recv(stream pb.EventStream_ConsumeClient) error {
+func (c *cursor) recv(stream messagingspec.EventStream_ConsumeClient) error {
 	// We can't pass ctx to Recv(), but the stream is already bound to ctx.
 	res, err := stream.Recv()
 	if err != nil {
@@ -178,7 +178,7 @@ func (c *cursor) recv(stream pb.EventStream_ConsumeClient) error {
 		Envelope: &envelope.Envelope{},
 	}
 
-	if err := unmarshalEnvelope(
+	if err := envelope.Unmarshal(
 		c.marshaler,
 		res.GetEnvelope(),
 		m.Envelope,
@@ -192,4 +192,23 @@ func (c *cursor) recv(stream pb.EventStream_ConsumeClient) error {
 	case <-stream.Context().Done():
 		return stream.Context().Err()
 	}
+}
+
+// marshalMessageTypes marshals a collection of message types to their protocol
+// buffers representation.
+func marshalMessageTypes(
+	m marshalkit.TypeMarshaler,
+	in message.TypeCollection,
+) []string {
+	var out []string
+
+	in.Range(func(t message.Type) bool {
+		out = append(
+			out,
+			marshalkit.MustMarshalType(m, t.ReflectType()),
+		)
+		return true
+	})
+
+	return out
 }
