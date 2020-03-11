@@ -92,6 +92,7 @@ type cursor struct {
 	stream *Stream
 	offset uint64
 	types  message.TypeCollection
+	once   sync.Once
 	closed chan struct{}
 }
 
@@ -134,11 +135,9 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 //
 // Any current or future calls to Next() return a non-nil error.
 func (c *cursor) Close() error {
-	defer func() {
-		recover()
-	}()
-
-	close(c.closed)
+	c.once.Do(func() {
+		close(c.closed)
+	})
 
 	return nil
 }
