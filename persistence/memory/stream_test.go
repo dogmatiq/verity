@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	. "github.com/dogmatiq/infix/persistence/memory"
 	"github.com/dogmatiq/marshalkit"
@@ -12,16 +11,17 @@ import (
 )
 
 var _ = Describe("type Stream (standard test suite)", func() {
-	var stream *Stream
-
 	streamtest.Declare(
-		func(ctx context.Context, _ marshalkit.Marshaler) persistence.Stream {
-			stream = &Stream{}
-			return stream
+		func(ctx context.Context, _ marshalkit.Marshaler) streamtest.Config {
+			stream := &Stream{}
+
+			return streamtest.Config{
+				Stream: stream,
+				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
+					stream.Append(envelopes...)
+				},
+			}
 		},
 		nil,
-		func(ctx context.Context, envelopes ...*envelope.Envelope) {
-			stream.Append(envelopes...)
-		},
 	)
 })

@@ -25,13 +25,11 @@ var _ = Describe("type stream (standard test suite)", func() {
 	var (
 		listener net.Listener
 		server   *grpc.Server
-		source   *memory.Stream
-		stream   persistence.Stream
 	)
 
 	streamtest.Declare(
-		func(ctx context.Context, m marshalkit.Marshaler) persistence.Stream {
-			source = &memory.Stream{}
+		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
+			source := &memory.Stream{}
 
 			var err error
 			listener, err = net.Listen("tcp", ":")
@@ -54,9 +52,12 @@ var _ = Describe("type stream (standard test suite)", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			stream = NewEventStream("<app-key>", conn, Marshaler, 0)
-
-			return stream
+			return streamtest.Config{
+				Stream: NewEventStream("<app-key>", conn, Marshaler, 0),
+				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
+					source.Append(envelopes...)
+				},
+			}
 		},
 		func() {
 			if listener != nil {
@@ -66,9 +67,6 @@ var _ = Describe("type stream (standard test suite)", func() {
 			if server != nil {
 				server.Stop()
 			}
-		},
-		func(ctx context.Context, envelopes ...*envelope.Envelope) {
-			source.Append(envelopes...)
 		},
 	)
 })
