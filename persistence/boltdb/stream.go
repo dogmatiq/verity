@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dogmatiq/infix/internal/x/bboltx"
-
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"go.etcd.io/bbolt"
@@ -66,33 +65,26 @@ func (s *Stream) Append(
 ) (_ uint64, err error) {
 	defer bboltx.Recover(&err)
 
-	if tx.DB() != s.DB {
-		panic("transaction does not belong to the correct database")
+	b := bboltx.CreateBucketIfNotExists(tx, s.BucketPath...)
+	next := loadNextOffset(b)
+
+	if len(envelopes) > 0 {
+		next = appendMessages(b, next, envelopes)
+		storeNextOffset(b, next)
+
+		tx.OnCommit(func() {
+			s.rm.Lock()
+			defer s.rm.Unlock()
+
+			s.wm.Lock()
+			defer s.wm.Unlock()
+
+			if s.ready != nil {
+				close(s.ready)
+				s.ready = nil
+			}
+		})
 	}
-
-	b := bboltx.MustCreateBucketIfNotExists(tx, s.BucketPath...)
-	next := mustLoadNextOffset(b)
-
-	if len(envelopes) == 0 {
-		return next, nil
-	}
-
-	next = appendMessages(b, next, envelopes)
-
-	mustStoreNextOffset(b, next)
-
-	tx.OnCommit(func() {
-		s.rm.Lock()
-		defer s.rm.Unlock()
-
-		s.wm.Lock()
-		defer s.wm.Unlock()
-
-		if s.ready != nil {
-			close(s.ready)
-			s.ready = nil
-		}
-	})
 
 	return next, nil
 }
@@ -159,15 +151,15 @@ func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}) {
 	c.stream.rm.RLock()
 	defer c.stream.rm.RUnlock()
 
-	tx := bboltx.MustBeginRead(c.stream.DB)
+	tx := bboltx.BeginRead(c.stream.DB)
 	defer tx.Rollback()
 
 	if b := bboltx.Bucket(tx, c.stream.BucketPath...); b != nil {
-		next := mustLoadNextOffset(b)
+		next := loadNextOffset(b)
 
 		for next > c.offset {
 			offset := c.offset
-			env := mustLoadMessage(c.stream.Marshaler, b, offset)
+			env := loadMessage(c.stream.Marshaler, b, offset)
 
 			c.offset++
 
@@ -212,20 +204,20 @@ func unmarshalOffset(data []byte) uint64 {
 	}
 }
 
-// mistLoadNextOffset returns the next free offset.
-func mustLoadNextOffset(b *bbolt.Bucket) uint64 {
+// loadNextOffset returns the next free offset.
+func loadNextOffset(b *bbolt.Bucket) uint64 {
 	data := b.Get(offsetKey)
 	return unmarshalOffset(data)
 }
 
-// mustStoreNextOffset updates the next free offset.
-func mustStoreNextOffset(b *bbolt.Bucket, next uint64) {
+// storeNextOffset updates the next free offset.
+func storeNextOffset(b *bbolt.Bucket, next uint64) {
 	data := marshalOffset(next)
-	bboltx.MustPut(b, offsetKey, data)
+	bboltx.Put(b, offsetKey, data)
 }
 
-// mustLoadMessage loads a message at a specific offset.
-func mustLoadMessage(
+// loadMessage loads a message at a specific offset.
+func loadMessage(
 	m marshalkit.ValueMarshaler,
 	b *bbolt.Bucket,
 	offset uint64,
@@ -234,11 +226,7 @@ func mustLoadMessage(
 	v := b.Bucket(messagesKey).Get(k)
 
 	var env envelope.Envelope
-	if err := envelope.UnmarshalBinary(m, v, &env); err != nil {
-		panic(bboltx.PanicSentinel{
-			Cause: err,
-		})
-	}
+	bboltx.Must(envelope.UnmarshalBinary(m, v, &env))
 
 	return &env
 }
@@ -249,12 +237,12 @@ func appendMessages(
 	next uint64,
 	envelopes []*envelope.Envelope,
 ) uint64 {
-	messages := bboltx.MustCreateBucketIfNotExists(b, messagesKey)
+	messages := bboltx.CreateBucketIfNotExists(b, messagesKey)
 
 	for _, env := range envelopes {
 		k := marshalOffset(next)
 		v := envelope.MustMarshalBinary(env)
-		bboltx.MustPut(messages, k, v)
+		bboltx.Put(messages, k, v)
 		next++
 	}
 
