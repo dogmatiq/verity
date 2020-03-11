@@ -9,7 +9,6 @@ import (
 	. "github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/draftspecs/envelopespec"
-	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,25 +18,12 @@ var _ = Describe("func Marshal()", func() {
 	var in *envelope.Envelope
 
 	BeforeEach(func() {
-		in = &envelope.Envelope{
-			MetaData: envelope.MetaData{
-				MessageID:     "<id>",
-				CausationID:   "<cause>",
-				CorrelationID: "<correlation>",
-				Source: envelope.Source{
-					Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-					Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-					InstanceID:  "<instance>",
-				},
-				CreatedAt:    time.Now(),
-				ScheduledFor: time.Now().Add(1 * time.Hour),
-			},
-			Message: MessageA1,
-			Packet: marshalkit.Packet{
-				MediaType: MessageA1Packet.MediaType,
-				Data:      MessageA1Packet.Data,
-			},
-		}
+		in = NewEnvelope(
+			"<id>",
+			MessageA1,
+			time.Now(),
+			time.Now().Add(1*time.Hour),
+		)
 	})
 
 	It("marshals to protobuf", func() {
@@ -126,30 +112,14 @@ var _ = Describe("func Unmarshal()", func() {
 
 	BeforeEach(func() {
 		createdAt = time.Now()
-		scheduledFor = createdAt.Add(1 * time.Hour)
+		scheduledFor = time.Now().Add(1 * time.Hour)
 
-		createdAtData, err := createdAt.MarshalBinary()
-		Expect(err).ShouldNot(HaveOccurred())
-
-		scheduledForData, err := scheduledFor.MarshalBinary()
-		Expect(err).ShouldNot(HaveOccurred())
-
-		in = &envelopespec.Envelope{
-			MetaData: &envelopespec.MetaData{
-				MessageId:     "<id>",
-				CausationId:   "<cause>",
-				CorrelationId: "<correlation>",
-				Source: &envelopespec.Source{
-					Application: &envelopespec.Identity{Name: "<app-name>", Key: "<app-key>"},
-					Handler:     &envelopespec.Identity{Name: "<handler-name>", Key: "<handler-key>"},
-					InstanceId:  "<instance>",
-				},
-				CreatedAt:    createdAtData,
-				ScheduledFor: scheduledForData,
-			},
-			MediaType: MessageA1Packet.MediaType,
-			Data:      MessageA1Packet.Data,
-		}
+		in = MustMarshal(NewEnvelope(
+			"<id>",
+			MessageA1,
+			createdAt,
+			scheduledFor,
+		))
 	})
 
 	It("unmarshals from protobuf", func() {
