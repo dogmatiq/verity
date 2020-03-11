@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/dogmatiq/infix/internal/x/bboltx"
+
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
@@ -62,14 +64,14 @@ func (s *Stream) Append(
 	tx *bbolt.Tx,
 	envelopes ...*envelope.Envelope,
 ) (_ uint64, err error) {
-	defer dbRecover(&err)
+	defer bboltx.Recover(&err)
 
 	if tx.DB() != s.DB {
 		panic("transaction does not belong to the correct database")
 	}
 
-	b := createBucket(tx, s.BucketPath...)
-	next := loadNextOffset(b)
+	b := bboltx.MustCreateBucketIfNotExists(tx, s.BucketPath...)
+	next := mustLoadNextOffset(b)
 
 	if len(envelopes) == 0 {
 		return next, nil
@@ -77,7 +79,7 @@ func (s *Stream) Append(
 
 	next = appendMessages(b, next, envelopes)
 
-	storeNextOffset(b, next)
+	mustStoreNextOffset(b, next)
 
 	tx.OnCommit(func() {
 		s.rm.Lock()
@@ -109,7 +111,7 @@ var errCursorClosed = errors.New("cursor is closed")
 // If the end of the stream is reached it blocks until a relevant message is
 // appended to the stream or ctx is canceled.
 func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err error) {
-	defer dbRecover(&err)
+	defer bboltx.Recover(&err)
 
 	for {
 		select {
@@ -157,17 +159,15 @@ func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}) {
 	c.stream.rm.RLock()
 	defer c.stream.rm.RUnlock()
 
-	tx := beginRead(c.stream.DB)
+	tx := bboltx.MustBeginRead(c.stream.DB)
 	defer tx.Rollback()
 
-	b, ok := bucket(tx, c.stream.BucketPath...)
-
-	if ok {
-		next := loadNextOffset(b)
+	if b := bboltx.Bucket(tx, c.stream.BucketPath...); b != nil {
+		next := mustLoadNextOffset(b)
 
 		for next > c.offset {
 			offset := c.offset
-			env := loadMessage(c.stream.Marshaler, b, offset)
+			env := mustLoadMessage(c.stream.Marshaler, b, offset)
 
 			c.offset++
 
@@ -200,31 +200,32 @@ func marshalOffset(offset uint64) []byte {
 func unmarshalOffset(data []byte) uint64 {
 	n := len(data)
 
-	if n == 0 {
+	switch n {
+	case 0:
 		return 0
+	case 8:
+		return binary.BigEndian.Uint64(data)
+	default:
+		panic(bboltx.PanicSentinel{
+			Cause: fmt.Errorf("offset data is corrupt, expected 8 bytes, got %d", n),
+		})
 	}
-
-	if n != 8 {
-		dbPanic(fmt.Errorf("offset data is corrupt, expected 8 bytes, got %d", n))
-	}
-
-	return binary.BigEndian.Uint64(data)
 }
 
-// loadNextOffset returns the next free offset.
-func loadNextOffset(b *bbolt.Bucket) uint64 {
+// mistLoadNextOffset returns the next free offset.
+func mustLoadNextOffset(b *bbolt.Bucket) uint64 {
 	data := b.Get(offsetKey)
 	return unmarshalOffset(data)
 }
 
-// storeNextOffset updates the next free offset.
-func storeNextOffset(b *bbolt.Bucket, next uint64) {
+// mustStoreNextOffset updates the next free offset.
+func mustStoreNextOffset(b *bbolt.Bucket, next uint64) {
 	data := marshalOffset(next)
-	put(b, offsetKey, data)
+	bboltx.MustPut(b, offsetKey, data)
 }
 
-// loadMessage loads a message at a specific offset.
-func loadMessage(
+// mustLoadMessage loads a message at a specific offset.
+func mustLoadMessage(
 	m marshalkit.ValueMarshaler,
 	b *bbolt.Bucket,
 	offset uint64,
@@ -234,7 +235,9 @@ func loadMessage(
 
 	var env envelope.Envelope
 	if err := envelope.UnmarshalBinary(m, v, &env); err != nil {
-		dbPanic(err)
+		panic(bboltx.PanicSentinel{
+			Cause: err,
+		})
 	}
 
 	return &env
@@ -246,12 +249,12 @@ func appendMessages(
 	next uint64,
 	envelopes []*envelope.Envelope,
 ) uint64 {
-	messages := createBucket(b, messagesKey)
+	messages := bboltx.MustCreateBucketIfNotExists(b, messagesKey)
 
 	for _, env := range envelopes {
 		k := marshalOffset(next)
 		v := envelope.MustMarshalBinary(env)
-		put(messages, k, v)
+		bboltx.MustPut(messages, k, v)
 		next++
 	}
 
