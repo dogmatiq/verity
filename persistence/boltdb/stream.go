@@ -21,7 +21,7 @@ var (
 )
 
 // Stream is an implementation of persistence.Stream that stores messages
-// a BoltDB database.
+// in a BoltDB database.
 type Stream struct {
 	DB         *bbolt.DB
 	Marshaler  marshalkit.ValueMarshaler
@@ -86,6 +86,8 @@ func (s *Stream) Append(
 	return next, nil
 }
 
+// cursor is an implementation of persistence.Cursor that reads messages from a
+// BoltDB database.
 type cursor struct {
 	stream *Stream
 	offset uint64
