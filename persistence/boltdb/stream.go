@@ -26,7 +26,8 @@ type Stream struct {
 	Marshaler  marshalkit.ValueMarshaler
 	BucketPath [][]byte
 
-	m     sync.Mutex
+	rm    sync.RWMutex
+	wm    sync.Mutex
 	ready chan struct{}
 }
 
@@ -89,8 +90,11 @@ func (s *Stream) Append(
 	}
 
 	tx.OnCommit(func() {
-		s.m.Lock()
-		defer s.m.Unlock()
+		s.rm.Lock()
+		defer s.rm.Unlock()
+
+		s.wm.Lock()
+		defer s.wm.Unlock()
 
 		if s.ready != nil {
 			close(s.ready)
@@ -158,8 +162,8 @@ func (c *cursor) Close() error {
 // reached, it returns a "ready" channel that is closed when a message is
 // appended.
 func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}, error) {
-	c.stream.m.Lock()
-	defer c.stream.m.Unlock()
+	c.stream.rm.RLock()
+	defer c.stream.rm.RUnlock()
 
 	var m *persistence.StreamMessage
 
@@ -202,6 +206,8 @@ func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}, error) {
 	}
 
 	if c.stream.ready == nil {
+		c.stream.wm.Lock()
+		defer c.stream.wm.Unlock()
 		c.stream.ready = make(chan struct{})
 	}
 
