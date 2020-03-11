@@ -13,7 +13,7 @@ import (
 // Stream is an implementation of persistence.Stream that stores messages
 // in-memory.
 type Stream struct {
-	m         sync.RWMutex
+	m         sync.Mutex
 	ready     chan struct{}
 	envelopes []*envelope.Envelope
 }

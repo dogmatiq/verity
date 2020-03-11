@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/internal/grpcx"
+	"github.com/dogmatiq/infix/internal/x/grpcx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
