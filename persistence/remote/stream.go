@@ -106,12 +106,13 @@ func (s *stream) Open(
 		// If no error occured, we hand ownership of cancelConsume() over to the
 		// cursor to be called when the cursor is closed by the user.
 		c := &cursor{
+			stream:    stream,
 			marshaler: s.marshaler,
 			cancel:    cancelConsume,
 			messages:  make(chan *persistence.StreamMessage, s.prefetch),
 		}
 
-		go c.consume(stream)
+		go c.consume()
 
 		return c, nil
 	}
@@ -120,6 +121,7 @@ func (s *stream) Open(
 // cursor is an implementation of persistence.StreamCursor that consumes
 // messages via the EventStream gRPC API.
 type cursor struct {
+	stream    messagingspec.EventStream_ConsumeClient
 	marshaler marshalkit.ValueMarshaler
 	cancel    context.CancelFunc
 	messages  chan *persistence.StreamMessage
@@ -156,19 +158,19 @@ func (c *cursor) Close() error {
 //
 // It exits when the context associated with c.stream is canceled or some other
 // error occurs while reading from the stream.
-func (c *cursor) consume(stream messagingspec.EventStream_ConsumeClient) {
+func (c *cursor) consume() {
 	defer close(c.messages)
 
 	for c.err == nil {
-		c.err = c.recv(stream)
+		c.err = c.recv()
 	}
 }
 
 // recv waits for the next message from the stream, unmarshals it and sends it
 // over the c.messages channel.
-func (c *cursor) recv(stream messagingspec.EventStream_ConsumeClient) error {
-	// We can't pass ctx to Recv(), but the stream is already bound to ctx.
-	res, err := stream.Recv()
+func (c *cursor) recv() error {
+	// We can't pass ctx to Recv(), but the stream is already bound to a context.
+	res, err := c.stream.Recv()
 	if err != nil {
 		return err
 	}
@@ -189,8 +191,8 @@ func (c *cursor) recv(stream messagingspec.EventStream_ConsumeClient) error {
 	select {
 	case c.messages <- m:
 		return nil
-	case <-stream.Context().Done():
-		return stream.Context().Err()
+	case <-c.stream.Context().Done():
+		return c.stream.Context().Err()
 	}
 }
 
