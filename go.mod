@@ -9,9 +9,12 @@ require (
 	github.com/dogmatiq/example v0.0.0-20200303005501-6ab2b41a6502
 	github.com/dogmatiq/linger v0.2.0
 	github.com/dogmatiq/marshalkit v0.2.0
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.3.4
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/lib/pq v1.3.0
+	github.com/mattn/go-sqlite3 v1.13.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	go.etcd.io/bbolt v1.3.3
