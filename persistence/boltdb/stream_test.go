@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/persistence/boltdb"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
-	. "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"go.etcd.io/bbolt"
@@ -23,7 +23,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 	)
 
 	streamtest.Declare(
-		func(ctx context.Context) persistence.Stream {
+		func(ctx context.Context, m marshalkit.Marshaler) persistence.Stream {
 			f, err := ioutil.TempFile("", "*.boltdb")
 			Expect(err).ShouldNot(HaveOccurred())
 			f.Close()
@@ -34,7 +34,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 
 			stream = &Stream{
 				DB:        db,
-				Marshaler: Marshaler,
+				Marshaler: m,
 				BucketPath: [][]byte{
 					[]byte("path"),
 					[]byte("to"),

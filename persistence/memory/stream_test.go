@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	. "github.com/dogmatiq/infix/persistence/memory"
+	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
 )
 
@@ -14,7 +15,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 	var stream *Stream
 
 	streamtest.Declare(
-		func(ctx context.Context) persistence.Stream {
+		func(ctx context.Context, _ marshalkit.Marshaler) persistence.Stream {
 			stream = &Stream{}
 			return stream
 		},

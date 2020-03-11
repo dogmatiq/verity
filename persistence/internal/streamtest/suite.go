@@ -10,6 +10,8 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/marshalkit"
+	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"golang.org/x/sync/errgroup"
@@ -18,7 +20,7 @@ import (
 // Declare declares generic behavioral tests for a specific driver
 // implementation.
 func Declare(
-	before func(context.Context) persistence.Stream,
+	before func(context.Context, marshalkit.Marshaler) persistence.Stream,
 	after func(),
 	append func(context.Context, ...*envelope.Envelope),
 ) {
@@ -57,7 +59,7 @@ func Declare(
 	ginkgo.BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), testTimeout)
 
-		stream = before(ctx)
+		stream = before(ctx, marshalkitfixtures.Marshaler)
 		types = message.NewTypeSet(
 			configkitfixtures.MessageAType,
 			configkitfixtures.MessageBType,
@@ -75,55 +77,49 @@ func Declare(
 
 	ginkgo.Describe("type Stream", func() {
 		ginkgo.Describe("func Open()", func() {
-			ginkgo.Context("when the stream is empty", func() {
-
+			ginkgo.BeforeEach(func() {
+				append(
+					ctx,
+					env0,
+					env1,
+					env2,
+					env3,
+				)
 			})
 
-			ginkgo.Context("when the stream is not empty", func() {
-				ginkgo.BeforeEach(func() {
-					append(
-						ctx,
-						env0,
-						env1,
-						env2,
-						env3,
-					)
-				})
+			ginkgo.It("honours the initial offset", func() {
+				cur, err := stream.Open(ctx, 2, types)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer cur.Close()
 
-				ginkgo.It("honours the initial offset", func() {
-					cur, err := stream.Open(ctx, 2, types)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer cur.Close()
+				m, err := cur.Next(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(m).To(gomega.Equal(message2))
+			})
 
-					m, err := cur.Next(ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(message2))
-				})
+			ginkgo.It("limits results to the supplied message types", func() {
+				types = message.NewTypeSet(
+					configkitfixtures.MessageAType,
+				)
 
-				ginkgo.It("limits results to the supplied message types", func() {
-					types = message.NewTypeSet(
-						configkitfixtures.MessageAType,
-					)
+				cur, err := stream.Open(ctx, 0, types)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer cur.Close()
 
-					cur, err := stream.Open(ctx, 0, types)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer cur.Close()
+				m, err := cur.Next(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(m).To(gomega.Equal(message0))
 
-					m, err := cur.Next(ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(message0))
+				m, err = cur.Next(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(m).To(gomega.Equal(message2))
+			})
 
-					m, err = cur.Next(ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(message2))
-				})
+			ginkgo.It("returns an error if the context is closed", func() {
+				cancel()
 
-				ginkgo.It("returns an error if the context is closed", func() {
-					cancel()
-
-					_, err := stream.Open(ctx, 0, types)
-					gomega.Expect(err).Should(gomega.HaveOccurred())
-				})
+				_, err := stream.Open(ctx, 0, types)
+				gomega.Expect(err).Should(gomega.HaveOccurred())
 			})
 		})
 	})
