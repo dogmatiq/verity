@@ -157,12 +157,13 @@ func (c *cursor) Close() error {
 // get returns the next relevant message, or if the end of the stream is
 // reached, it returns a "ready" channel that is closed when a message is
 // appended.
-func (c *cursor) get() (
-	sm *persistence.StreamMessage,
-	r <-chan struct{},
-	_ error,
-) {
-	return sm, r, c.stream.DB.View(func(tx *bbolt.Tx) error {
+func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}, error) {
+	c.stream.m.Lock()
+	defer c.stream.m.Unlock()
+
+	var m *persistence.StreamMessage
+
+	err := c.stream.DB.View(func(tx *bbolt.Tx) error {
 		var next uint64
 
 		if b, ok := getBucket(tx, c.stream.BucketPath...); ok {
@@ -183,26 +184,28 @@ func (c *cursor) get() (
 				c.offset++
 
 				if c.types.HasM(env.Message) {
-					sm = &persistence.StreamMessage{
+					m = &persistence.StreamMessage{
 						Offset:   offset,
 						Envelope: env,
 					}
+
 					return nil
 				}
 			}
 		}
 
-		c.stream.m.Lock()
-		defer c.stream.m.Unlock()
-
-		if c.stream.ready == nil {
-			c.stream.ready = make(chan struct{})
-		}
-
-		r = c.stream.ready
-
 		return nil
 	})
+
+	if m != nil || err != nil {
+		return m, nil, err
+	}
+
+	if c.stream.ready == nil {
+		c.stream.ready = make(chan struct{})
+	}
+
+	return nil, c.stream.ready, nil
 }
 
 // marshalOffset marshals a stream offset to its binary representation.
