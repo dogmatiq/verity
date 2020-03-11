@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence"
 	infixsql "github.com/dogmatiq/infix/persistence/sql"
+	"go.uber.org/multierr"
 )
 
 // StreamDriver is an implementation of sql.StreamDriver for MySQL and
@@ -87,12 +88,15 @@ func (StreamDriver) Append(
 }
 
 // Open prepares a statement used to query for messages.
+//
+// It returns a function that should be used to close the statement, instead
+// of calling stmt.Close().
 func (StreamDriver) Open(
 	ctx context.Context,
 	db *sql.DB,
 	appKey string,
 	types []string,
-) (_ *sql.Stmt, err error) {
+) (_ *sql.Stmt, _ func() error, err error) {
 	defer sqlx.Recover(&err)
 
 	conn := sqlx.Conn(ctx, db)
@@ -121,7 +125,7 @@ func (StreamDriver) Open(
 		)
 	}
 
-	return sqlx.Prepare(
+	stmt := sqlx.Prepare(
 		ctx,
 		conn,
 		`SELECT
@@ -142,7 +146,16 @@ func (StreamDriver) Open(
 		WHERE source_app_key = ?
 		AND offset >= ?
 		LIMIT 1`,
-	), nil
+	)
+
+	close := func() error {
+		return multierr.Append(
+			stmt.Close(),
+			conn.Close(),
+		)
+	}
+
+	return stmt, close, nil
 }
 
 // Get reads the next message at or above the given offset, using a prepared
