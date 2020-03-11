@@ -61,33 +61,23 @@ func (s *Stream) Open(
 func (s *Stream) Append(
 	tx *bbolt.Tx,
 	envelopes ...*envelope.Envelope,
-) (uint64, error) {
+) (_ uint64, err error) {
+	defer dbRecover(&err)
+
 	if tx.DB() != s.DB {
 		panic("transaction does not belong to the correct database")
 	}
 
-	b, err := createBucket(tx, s.BucketPath...)
-	if err != nil {
-		return 0, err
-	}
-
-	next, err := loadNextOffset(b)
-	if err != nil {
-		return 0, err
-	}
+	b := createBucket(tx, s.BucketPath...)
+	next := loadNextOffset(b)
 
 	if len(envelopes) == 0 {
 		return next, nil
 	}
 
-	next, err = appendMessages(b, next, envelopes)
-	if err != nil {
-		return 0, err
-	}
+	next = appendMessages(b, next, envelopes)
 
-	if err := storeNextOffset(b, next); err != nil {
-		return 0, err
-	}
+	storeNextOffset(b, next)
 
 	tx.OnCommit(func() {
 		s.rm.Lock()
@@ -118,7 +108,9 @@ var errCursorClosed = errors.New("cursor is closed")
 //
 // If the end of the stream is reached it blocks until a relevant message is
 // appended to the stream or ctx is canceled.
-func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
+func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err error) {
+	defer dbRecover(&err)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -128,9 +120,9 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 		default:
 		}
 
-		m, ready, err := c.get()
+		m, ready := c.get()
 
-		if err != nil || ready == nil {
+		if ready == nil {
 			return m, err
 		}
 
@@ -161,48 +153,31 @@ func (c *cursor) Close() error {
 // get returns the next relevant message, or if the end of the stream is
 // reached, it returns a "ready" channel that is closed when a message is
 // appended.
-func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}, error) {
+func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}) {
 	c.stream.rm.RLock()
 	defer c.stream.rm.RUnlock()
 
-	var m *persistence.StreamMessage
+	tx := beginRead(c.stream.DB)
+	defer tx.Rollback()
 
-	err := c.stream.DB.View(func(tx *bbolt.Tx) error {
-		var next uint64
+	b, ok := bucket(tx, c.stream.BucketPath...)
 
-		if b, ok := getBucket(tx, c.stream.BucketPath...); ok {
-			var err error
-			next, err = loadNextOffset(b)
-			if err != nil {
-				return err
-			}
+	if ok {
+		next := loadNextOffset(b)
 
-			for next > c.offset {
-				offset := c.offset
+		for next > c.offset {
+			offset := c.offset
+			env := loadMessage(c.stream.Marshaler, b, offset)
 
-				env, err := loadMessage(c.stream.Marshaler, b, offset)
-				if err != nil {
-					return err
-				}
+			c.offset++
 
-				c.offset++
-
-				if c.types.HasM(env.Message) {
-					m = &persistence.StreamMessage{
-						Offset:   offset,
-						Envelope: env,
-					}
-
-					return nil
-				}
+			if c.types.HasM(env.Message) {
+				return &persistence.StreamMessage{
+					Offset:   offset,
+					Envelope: env,
+				}, nil
 			}
 		}
-
-		return nil
-	})
-
-	if m != nil || err != nil {
-		return m, nil, err
 	}
 
 	if c.stream.ready == nil {
@@ -211,7 +186,7 @@ func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}, error) {
 		c.stream.ready = make(chan struct{})
 	}
 
-	return nil, c.stream.ready, nil
+	return nil, c.stream.ready
 }
 
 // marshalOffset marshals a stream offset to its binary representation.
@@ -222,29 +197,30 @@ func marshalOffset(offset uint64) []byte {
 }
 
 // unmarshalOffset unmarshals a stream offset from its binary representation.
-func unmarshalOffset(data []byte) (uint64, error) {
+func unmarshalOffset(data []byte) uint64 {
 	n := len(data)
 
-	switch n {
-	case 0:
-		return 0, nil
-	case 8:
-		return binary.BigEndian.Uint64(data), nil
-	default:
-		return 0, fmt.Errorf("offset data is corrupt, expected 8 bytes, got %d", n)
+	if n == 0 {
+		return 0
 	}
+
+	if n != 8 {
+		dbPanic(fmt.Errorf("offset data is corrupt, expected 8 bytes, got %d", n))
+	}
+
+	return binary.BigEndian.Uint64(data)
 }
 
 // loadNextOffset returns the next free offset.
-func loadNextOffset(b *bbolt.Bucket) (uint64, error) {
+func loadNextOffset(b *bbolt.Bucket) uint64 {
 	data := b.Get(offsetKey)
 	return unmarshalOffset(data)
 }
 
 // storeNextOffset updates the next free offset.
-func storeNextOffset(b *bbolt.Bucket, next uint64) error {
+func storeNextOffset(b *bbolt.Bucket, next uint64) {
 	data := marshalOffset(next)
-	return b.Put(offsetKey, data)
+	put(b, offsetKey, data)
 }
 
 // loadMessage loads a message at a specific offset.
@@ -252,16 +228,16 @@ func loadMessage(
 	m marshalkit.ValueMarshaler,
 	b *bbolt.Bucket,
 	offset uint64,
-) (*envelope.Envelope, error) {
+) *envelope.Envelope {
 	k := marshalOffset(offset)
 	v := b.Bucket(messagesKey).Get(k)
 
 	var env envelope.Envelope
 	if err := envelope.UnmarshalBinary(m, v, &env); err != nil {
-		return nil, err
+		dbPanic(err)
 	}
 
-	return &env, nil
+	return &env
 }
 
 // appendMessages writes messages to the database.
@@ -269,22 +245,15 @@ func appendMessages(
 	b *bbolt.Bucket,
 	next uint64,
 	envelopes []*envelope.Envelope,
-) (uint64, error) {
-	messages, err := createBucket(b, messagesKey)
-	if err != nil {
-		return 0, err
-	}
+) uint64 {
+	messages := createBucket(b, messagesKey)
 
 	for _, env := range envelopes {
 		k := marshalOffset(next)
 		v := envelope.MustMarshalBinary(env)
-
-		if err := messages.Put(k, v); err != nil {
-			return 0, err
-		}
-
+		put(messages, k, v)
 		next++
 	}
 
-	return next, nil
+	return next
 }
