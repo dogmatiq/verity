@@ -67,24 +67,21 @@ func (s *Stream) Append(
 
 	b := bboltx.CreateBucketIfNotExists(tx, s.BucketPath...)
 	next := loadNextOffset(b)
+	next = appendMessages(b, next, envelopes)
+	storeNextOffset(b, next)
 
-	if len(envelopes) > 0 {
-		next = appendMessages(b, next, envelopes)
-		storeNextOffset(b, next)
+	tx.OnCommit(func() {
+		s.rm.Lock()
+		defer s.rm.Unlock()
 
-		tx.OnCommit(func() {
-			s.rm.Lock()
-			defer s.rm.Unlock()
+		s.wm.Lock()
+		defer s.wm.Unlock()
 
-			s.wm.Lock()
-			defer s.wm.Unlock()
-
-			if s.ready != nil {
-				close(s.ready)
-				s.ready = nil
-			}
-		})
-	}
+		if s.ready != nil {
+			close(s.ready)
+			s.ready = nil
+		}
+	})
 
 	return next, nil
 }
