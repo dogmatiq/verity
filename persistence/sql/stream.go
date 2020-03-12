@@ -89,7 +89,6 @@ func (s *Stream) Append(
 		if err := s.Driver.Append(
 			ctx,
 			tx,
-			s.ApplicationKey,
 			next,
 			marshalkit.MustMarshalType(
 				s.Marshaler,

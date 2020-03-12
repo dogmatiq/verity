@@ -119,12 +119,14 @@ func (StreamDriver) IncrementOffset(
 	row := tx.QueryRowContext(
 		ctx,
 		`INSERT INTO infix.stream_offset AS o (
+			source_app_key,
 			next_offset
 		) VALUES (
-			$1
-		) ON CONFLICT (singleton) DO UPDATE SET
+			$1, $2
+		) ON CONFLICT (source_app_key) DO UPDATE SET
 			next_offset = o.next_offset + excluded.next_offset
 		RETURNING next_offset`,
+		appKey,
 		count,
 	)
 
@@ -137,7 +139,6 @@ func (StreamDriver) IncrementOffset(
 func (StreamDriver) Append(
 	ctx context.Context,
 	tx *sql.Tx,
-	appKey string,
 	offset uint64,
 	typename string,
 	description string,

@@ -20,10 +20,8 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		ctx,
 		db,
 		`CREATE TABLE infix.stream_offset (
-			singleton   BOOL NOT NULL DEFAULT TRUE PRIMARY KEY,
-			next_offset BIGINT NOT NULL,
-
-			CONSTRAINT singleton CHECK (singleton)
+			source_app_key TEXT NOT NULL PRIMARY KEY,
+			next_offset    BIGINT NOT NULL
 		)`,
 	)
 

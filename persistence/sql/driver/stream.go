@@ -41,7 +41,6 @@ type StreamDriver interface {
 	Append(
 		ctx context.Context,
 		tx *sql.Tx,
-		appKey string,
 		offset uint64,
 		typename string,
 		description string,

@@ -115,9 +115,11 @@ func (StreamDriver) IncrementOffset(
 		ctx,
 		tx,
 		`INSERT INTO stream_offset SET
+			source_app_key = ?,
 			next_offset = ?
 		ON DUPLICATE KEY UPDATE
 			next_offset = next_offset + VALUE(next_offset)`,
+		appKey,
 		count,
 	)
 
@@ -126,7 +128,9 @@ func (StreamDriver) IncrementOffset(
 		tx,
 		`SELECT
 			next_offset
-		FROM stream_offset`,
+		FROM stream_offset
+		WHERE source_app_key = ?`,
+		appKey,
 	)
 
 	return next, nil
@@ -136,7 +140,6 @@ func (StreamDriver) IncrementOffset(
 func (StreamDriver) Append(
 	ctx context.Context,
 	tx *sql.Tx,
-	appKey string,
 	offset uint64,
 	typename string,
 	description string,

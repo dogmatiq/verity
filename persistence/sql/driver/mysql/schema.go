@@ -15,8 +15,8 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		ctx,
 		db,
 		`CREATE TABLE stream_offset (
-			singleton   ENUM('') PRIMARY KEY DEFAULT '',
-			next_offset BIGINT NOT NULL
+			source_app_key VARBINARY(255) NOT NULL PRIMARY KEY,
+			next_offset    BIGINT NOT NULL
 		) ENGINE=InnoDB`,
 	)
 
