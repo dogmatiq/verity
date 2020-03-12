@@ -106,7 +106,7 @@ func (StreamDriver) CreateFilter(
 func (StreamDriver) IncrementOffset(
 	ctx context.Context,
 	tx *sql.Tx,
-	app string,
+	appKey string,
 	count uint64,
 ) (_ uint64, err error) {
 	defer sqlx.Recover(&err)
@@ -136,7 +136,7 @@ func (StreamDriver) IncrementOffset(
 func (StreamDriver) Append(
 	ctx context.Context,
 	tx *sql.Tx,
-	app string,
+	appKey string,
 	offset uint64,
 	typename string,
 	description string,
@@ -183,7 +183,7 @@ func (StreamDriver) Append(
 func (StreamDriver) Get(
 	ctx context.Context,
 	db *sql.DB,
-	app string,
+	appKey string,
 	offset uint64,
 	filterID uint64,
 ) (_ *persistence.StreamMessage, _ bool, err error) {
@@ -211,7 +211,7 @@ func (StreamDriver) Get(
 		AND t.filter_id = ?
 		ORDER BY s.stream_offset
 		LIMIT 1`,
-		app,
+		appKey,
 		offset,
 		filterID,
 	)

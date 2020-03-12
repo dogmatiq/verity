@@ -33,7 +33,7 @@ type StreamDriver interface {
 	IncrementOffset(
 		ctx context.Context,
 		tx *sql.Tx,
-		app string,
+		appKey string,
 		count uint64,
 	) (uint64, error)
 
@@ -41,7 +41,7 @@ type StreamDriver interface {
 	Append(
 		ctx context.Context,
 		tx *sql.Tx,
-		app string,
+		appKey string,
 		offset uint64,
 		typename string,
 		description string,
@@ -57,7 +57,7 @@ type StreamDriver interface {
 	Get(
 		ctx context.Context,
 		db *sql.DB,
-		app string,
+		appKey string,
 		offset uint64,
 		filterID uint64,
 	) (*persistence.StreamMessage, bool, error)
