@@ -1,15 +1,16 @@
-package mysql_test
+package sqlite_test
 
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	infixsql "github.com/dogmatiq/infix/persistence/sql"
-	. "github.com/dogmatiq/infix/persistence/sql/driver/mysql"
+	. "github.com/dogmatiq/infix/persistence/sql/driver/sqlite"
 	"github.com/dogmatiq/infix/persistence/sql/internal/sqltest"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
@@ -22,9 +23,12 @@ var _ = Describe("type StreamDriver (standard test suite)", func() {
 
 	streamtest.Declare(
 		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
-			db = sqltest.Open("mysql")
+			db = sqltest.Open("sqlite3")
 
 			err := DropSchema(ctx, db)
+			if err != nil && strings.Contains(err.Error(), "CGO_ENABLED") {
+				Skip(err.Error())
+			}
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = CreateSchema(ctx, db)

@@ -1,4 +1,6 @@
-package mysql_test
+// +build cgo
+
+package sql_test
 
 import (
 	"context"
@@ -8,8 +10,8 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
-	infixsql "github.com/dogmatiq/infix/persistence/sql"
-	. "github.com/dogmatiq/infix/persistence/sql/driver/mysql"
+	. "github.com/dogmatiq/infix/persistence/sql"
+	"github.com/dogmatiq/infix/persistence/sql/driver/sqlite"
 	"github.com/dogmatiq/infix/persistence/sql/internal/sqltest"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
@@ -17,23 +19,23 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type StreamDriver (standard test suite)", func() {
+var _ = Describe("type Stream (standard test suite)", func() {
 	var db *sql.DB
 
 	streamtest.Declare(
 		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
-			db = sqltest.Open("mysql")
+			db = sqltest.Open("sqlite3")
 
-			err := DropSchema(ctx, db)
+			err := sqlite.DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = CreateSchema(ctx, db)
+			err = sqlite.CreateSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			stream := &infixsql.Stream{
+			stream := &Stream{
 				ApplicationKey:  "<app-key>",
 				DB:              db,
-				Driver:          StreamDriver{},
+				Driver:          sqlite.StreamDriver{},
 				Marshaler:       m,
 				BackoffStrategy: backoff.Constant(10 * time.Millisecond),
 			}
