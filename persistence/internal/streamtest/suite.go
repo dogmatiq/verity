@@ -2,6 +2,7 @@ package streamtest
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	configkitfixtures "github.com/dogmatiq/configkit/fixtures"
@@ -14,7 +15,6 @@ import (
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"golang.org/x/sync/errgroup"
 )
 
 // Config is the result of setting up a test suite.
@@ -262,9 +262,9 @@ func Declare(
 					})
 
 					ginkgo.It("does not compete with other waiting cursors", func() {
-						// This test ensures that when there are multiple cursors
-						// awaiting a new message they are all woken when a message
-						// is appended.
+						// This test ensures that when there are multiple
+						// cursors awaiting a new message they are all woken
+						// when a message is appended.
 
 						const cursors = 3
 
@@ -272,29 +272,28 @@ func Declare(
 						// cursors have started blocking.
 						barrier := make(chan struct{}, cursors)
 
-						g, ctx := errgroup.WithContext(ctx)
+						var g sync.WaitGroup
+						defer g.Wait()
+
+						g.Add(cursors)
 
 						// start the cursors
 						for i := 0; i < cursors; i++ {
-							g.Go(func() error {
+							go func() error {
+								defer g.Done()
 								defer ginkgo.GinkgoRecover()
 
 								cur, err := cfg.Stream.Open(ctx, 4, types)
-								if err != nil {
-									return err
-								}
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 								defer cur.Close()
 
 								barrier <- struct{}{}
 								m, err := cur.Next(ctx)
-								if err != nil {
-									return err
-								}
-
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 								gomega.Expect(m).To(gomega.Equal(message4))
 
 								return nil
-							})
+							}()
 						}
 
 						// wait for the cursors to signal they are about to block
@@ -310,9 +309,6 @@ func Declare(
 
 						// wake the consumers
 						cfg.Append(ctx, env4)
-
-						err := g.Wait()
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					})
 				})
 			})
