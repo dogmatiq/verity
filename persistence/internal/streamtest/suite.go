@@ -139,7 +139,7 @@ func Declare(
 				gomega.Expect(m).To(gomega.Equal(message2))
 			})
 
-			ginkgo.It("returns an error if the context is closed", func() {
+			ginkgo.It("returns an error if the context is canceled", func() {
 				cancel()
 
 				_, err := cfg.Stream.Open(ctx, 0, types)
@@ -204,7 +204,7 @@ func Declare(
 					cur.Close()
 
 					_, err = cur.Next(ctx)
-					gomega.Expect(err).Should(gomega.HaveOccurred())
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrStreamCursorClosed))
 				})
 
 				ginkgo.It("returns an error if the context is canceled", func() {
@@ -245,7 +245,7 @@ func Declare(
 						}()
 
 						_, err = cur.Next(ctx)
-						gomega.Expect(err).Should(gomega.HaveOccurred())
+						gomega.Expect(err).To(gomega.Equal(persistence.ErrStreamCursorClosed))
 					})
 
 					ginkgo.It("returns an error if the context is canceled", func() {
@@ -322,7 +322,7 @@ func Declare(
 		})
 
 		ginkgo.Describe("func Close()", func() {
-			ginkgo.It("does not return an error if the cursor is already closed", func() {
+			ginkgo.It("returns an error if the cursor is already closed", func() {
 				cur, err := cfg.Stream.Open(ctx, 4, types)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
@@ -330,7 +330,7 @@ func Declare(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				err = cur.Close()
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(err).To(gomega.Equal(persistence.ErrStreamCursorClosed))
 			})
 		})
 	})

@@ -2,10 +2,15 @@ package persistence
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 )
+
+// ErrStreamCursorClosed is returned by StreamCursor.Next() and Close() if the
+// stream is closed.
+var ErrStreamCursorClosed = errors.New("stream cursor is closed")
 
 // A Stream is an ordered sequence of messages.
 type Stream interface {
@@ -31,11 +36,14 @@ type StreamCursor interface {
 	//
 	// If the end of the stream is reached it blocks until a relevant message is
 	// appended to the stream or ctx is canceled.
+	//
+	// If the stream is closed before or during a call to Next(), it returns
+	// ErrStreamCursorClosed.
 	Next(ctx context.Context) (*StreamMessage, error)
 
 	// Close stops the cursor.
 	//
-	// Any current or future calls to Next() return a non-nil error.
+	// Any current or future calls to Next() return ErrStreamCursorClosed.
 	Close() error
 }
 
