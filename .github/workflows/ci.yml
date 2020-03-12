@@ -10,6 +10,33 @@ jobs:
   ci:
     name: Continuous Integration
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.4
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/mysql
+          --health-cmd="mysqladmin ping --host 127.0.0.1 --port 3306 --user root --password=rootpass"
+          --health-interval 2s
+          --health-timeout 10s
+          --health-retries 10
+        ports:
+        - 3306/tcp
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: dogmatiq
+          MYSQL_USER: dogmatiq
+          MYSQL_PASSWORD: dogmatiq
+      postgres:
+        image: postgres:12.0-alpine
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 10s
+          --health-retries 10
+        env:
+          POSTGRES_PASSWORD: rootpass
+        ports:
+        - 5432/tcp
     steps:
     - name: Set up Go
       uses: actions/setup-go@v1
@@ -18,8 +45,18 @@ jobs:
       id: go
     - name: Checkout
       uses: actions/checkout@v1
-    - name: Make
+    - name: Make (with CGO)
       run: make ci
+      env:
+        CGO_ENABLED: "1"
+        DOGMATIQ_TEST_MYSQL_DSN: "root:rootpass@tcp(127.0.0.1:${{ job.services.mariadb.ports['3306'] }})/dogmatiq"
+        DOGMATIQ_TEST_POSTGRES_DSN: "user=postgres password=rootpass sslmode=disable port=${{ job.services.postgres.ports['5432'] }}"
+    - name: Make (tests only, without CGO)
+      run: make test
+      env:
+        CGO_ENABLED: "0"
+        DOGMATIQ_TEST_MYSQL_DSN: "root:rootpass@tcp(127.0.0.1:${{ job.services.mariadb.ports['3306'] }})/dogmatiq"
+        DOGMATIQ_TEST_POSTGRES_DSN: "user=postgres password=rootpass sslmode=disable port=${{ job.services.postgres.ports['5432'] }}"
     - name: Upload Coverage Reports
       if: success()
       run: |
