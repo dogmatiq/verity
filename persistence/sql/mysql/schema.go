@@ -24,7 +24,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		ctx,
 		db,
 		`CREATE TABLE stream (
-			offset              BIGINT(20) UNSIGNED NOT NULL,
+			stream_offset       BIGINT(20) UNSIGNED NOT NULL,
 			message_type        VARBINARY(255) NOT NULL,
 			description         VARBINARY(255) NOT NULL,
 			message_id          VARBINARY(255) NOT NULL,
@@ -39,8 +39,8 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 			media_type          VARBINARY(255) NOT NULL,
 			data                LONGBLOB NOT NULL,
 
-			PRIMARY KEY (source_app_key, offset),
-			INDEX (source_app_key, message_type, offset)
+			PRIMARY KEY (source_app_key, stream_offset),
+			INDEX (source_app_key, message_type, stream_offset)
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
 
@@ -60,7 +60,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		ctx,
 		db,
 		`CREATE TABLE stream_filter_type (
-			filter_id    BIGINT(20) UNSIGNED AUTO_INCREMENT,
+			filter_id    BIGINT(20) UNSIGNED NOT NULL,
 			message_type VARBINARY(255) NOT NULL,
 
 			PRIMARY KEY (filter_id, message_type)
