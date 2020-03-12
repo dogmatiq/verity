@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
+	infixsql "github.com/dogmatiq/infix/persistence/sql"
 	. "github.com/dogmatiq/infix/persistence/sql/driver/mysql"
 	"github.com/dogmatiq/infix/persistence/sql/internal/drivertest"
 	"github.com/dogmatiq/linger/backoff"
@@ -29,9 +30,10 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			err = CreateSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			stream := &Stream{
+			stream := &infixsql.Stream{
 				ApplicationKey:  "<app-key>",
 				DB:              db,
+				Driver:          StreamDriver{},
 				Marshaler:       m,
 				BackoffStrategy: backoff.Constant(10 * time.Millisecond),
 			}
