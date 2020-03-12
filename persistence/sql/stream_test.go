@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/internal/sqltest"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	. "github.com/dogmatiq/infix/persistence/sql"
 	"github.com/dogmatiq/infix/persistence/sql/driver/sqlite"
-	"github.com/dogmatiq/infix/persistence/sql/internal/sqltest"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
