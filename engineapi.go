@@ -11,6 +11,37 @@ import (
 	"google.golang.org/grpc"
 )
 
+// DefaultListenAddress is the default TCP address for the gRPC listener.
+const DefaultListenAddress = ":50555"
+
+// WithListenAddress returns an option that sets the TCP address for the gRPC
+// listener.
+//
+// If this option is omitted or addr is empty DefaultListenAddress is used.
+func WithListenAddress(addr string) EngineOption {
+	if addr != "" {
+		_, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			panic(fmt.Sprintf("invalid listen address: %s", err))
+		}
+
+		if _, err := net.LookupPort("tcp", port); err != nil {
+			panic(fmt.Sprintf("invalid listen address: %s", err))
+		}
+	}
+
+	return func(opts *engineOptions) {
+		opts.ListenAddress = addr
+	}
+}
+
+// WithServerOptions returns an option that adds gRPC server options.
+func WithServerOptions(options ...grpc.ServerOption) EngineOption {
+	return func(opts *engineOptions) {
+		opts.ServerOptions = append(opts.ServerOptions, options...)
+	}
+}
+
 // serveAPI runs the gRPC server.
 func (e *Engine) serveAPI(ctx context.Context) error {
 	s := grpc.NewServer(e.opts.ServerOptions...)

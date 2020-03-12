@@ -1,9 +1,6 @@
 package infix
 
 import (
-	"context"
-	"fmt"
-	"net"
 	"reflect"
 	"time"
 
@@ -21,30 +18,6 @@ import (
 
 // EngineOption configures the behavior of an engine.
 type EngineOption func(*engineOptions)
-
-// DefaultListenAddress is the default TCP address for the gRPC listener.
-const DefaultListenAddress = ":50555"
-
-// WithListenAddress returns an option that sets the TCP address for the gRPC
-// listener.
-//
-// If this option is omitted or addr is empty DefaultListenAddress is used.
-func WithListenAddress(addr string) EngineOption {
-	if addr != "" {
-		_, port, err := net.SplitHostPort(addr)
-		if err != nil {
-			panic(fmt.Sprintf("invalid listen address: %s", err))
-		}
-
-		if _, err := net.LookupPort("tcp", port); err != nil {
-			panic(fmt.Sprintf("invalid listen address: %s", err))
-		}
-	}
-
-	return func(opts *engineOptions) {
-		opts.ListenAddress = addr
-	}
-}
 
 // DefaultMessageBackoffStrategy is the default message backoff strategy.
 var DefaultMessageBackoffStrategy backoff.Strategy = backoff.WithTransforms(
@@ -81,62 +54,6 @@ func WithMessageTimeout(d time.Duration) EngineOption {
 
 	return func(opts *engineOptions) {
 		opts.MessageTimeout = d
-	}
-}
-
-// Discoverer is a function that notifies an observer when a config API target
-// becomes available or unavailable.
-//
-// It blocks until ctx is canceled or a fatal error occurs.
-type Discoverer func(ctx context.Context, o discovery.TargetObserver) error
-
-// WithDiscoverer returns an option that sets the discoverer used to find other
-// engine instances.
-//
-// If this option is omitted or d is nil, no discovery is performed.
-func WithDiscoverer(d Discoverer) EngineOption {
-	return func(opts *engineOptions) {
-		opts.Discoverer = d
-	}
-}
-
-// DefaultDialer is the default dialer used to connect to other engine
-// instances.
-var DefaultDialer = discovery.DefaultDialer
-
-// WithDialer returns an option that sets the dialer used to connect to other
-// engine instances.
-//
-// If this option is omitted or d is nil, DefaultDialer is used.
-//
-// This option must be used in conjunction with WithDiscoverer().
-func WithDialer(d discovery.Dialer) EngineOption {
-	return func(opts *engineOptions) {
-		opts.Dialer = d
-	}
-}
-
-// DefaultDialerBackoffStrategy is the default backoff strategy for the dialer.
-var DefaultDialerBackoffStrategy backoff.Strategy = backoff.WithTransforms(
-	backoff.Exponential(100*time.Millisecond),
-	linger.FullJitter,
-	linger.Limiter(0, 1*time.Hour),
-)
-
-// WithDialerBackoffStrategy returns an option that sets the strategy used to
-// determine when the engine should retry dialing another engine instance.
-//
-// If this option is omitted or s is nil DefaultDialerBackoffStrategy is used.
-func WithDialerBackoffStrategy(s backoff.Strategy) EngineOption {
-	return func(opts *engineOptions) {
-		opts.DialerBackoffStrategy = s
-	}
-}
-
-// WithServerOptions returns an option that adds gRPC server options.
-func WithServerOptions(options ...grpc.ServerOption) EngineOption {
-	return func(opts *engineOptions) {
-		opts.ServerOptions = append(opts.ServerOptions, options...)
 	}
 }
 
