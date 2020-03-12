@@ -63,12 +63,12 @@ func cleanseTime(t *time.Time) {
 		return
 	}
 
-	data, err := t.MarshalBinary()
+	data, err := t.MarshalText()
 	if err != nil {
 		panic(err)
 	}
 
-	err = t.UnmarshalBinary(data)
+	err = t.UnmarshalText(data)
 	if err != nil {
 		panic(err)
 	}
