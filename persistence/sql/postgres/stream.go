@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"reflect"
 	"sync"
 
@@ -160,8 +159,6 @@ type cursor struct {
 	closed    chan struct{}
 }
 
-var errCursorClosed = errors.New("cursor is closed")
-
 // Next returns the next relevant message in the stream.
 //
 // If the end of the stream is reached it blocks until a relevant message is
@@ -170,7 +167,7 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 	// Check immediately if the cursor is already closed.
 	select {
 	case <-c.closed:
-		return nil, errCursorClosed
+		return nil, persistence.ErrStreamCursorClosed
 	default:
 	}
 
@@ -192,7 +189,7 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 		if err == context.Canceled {
 			select {
 			case <-c.closed:
-				err = errCursorClosed
+				err = persistence.ErrStreamCursorClosed
 			default:
 			}
 		}
@@ -276,10 +273,13 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 // Close stops the cursor.
 //
 // Any current or future calls to Next() return a non-nil error.
-func (c *cursor) Close() (err error) {
+func (c *cursor) Close() error {
+	err := persistence.ErrStreamCursorClosed
+
 	c.once.Do(func() {
+		err = nil
 		close(c.closed)
 	})
 
-	return nil
+	return err
 }

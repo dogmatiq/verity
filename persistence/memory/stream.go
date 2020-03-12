@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/dogmatiq/configkit/message"
@@ -55,14 +54,15 @@ func (s *Stream) Append(envelopes ...*envelope.Envelope) {
 	}
 }
 
+// cursor is an implementation of persistence.Cursor that reads messages from an
+// in-memory stream.
 type cursor struct {
 	stream *Stream
 	offset uint64
 	types  message.TypeCollection
+	once   sync.Once
 	closed chan struct{}
 }
-
-var errCursorClosed = errors.New("cursor is closed")
 
 // Next returns the next relevant message in the stream.
 //
@@ -74,7 +74,7 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, errCursorClosed
+			return nil, persistence.ErrStreamCursorClosed
 		default:
 		}
 
@@ -88,7 +88,7 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, errCursorClosed
+			return nil, persistence.ErrStreamCursorClosed
 		case <-ready:
 			continue // added to see coverage
 		}
@@ -99,13 +99,14 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 //
 // Any current or future calls to Next() return a non-nil error.
 func (c *cursor) Close() error {
-	defer func() {
-		recover()
-	}()
+	err := persistence.ErrStreamCursorClosed
 
-	close(c.closed)
+	c.once.Do(func() {
+		err = nil
+		close(c.closed)
+	})
 
-	return nil
+	return err
 }
 
 // get returns the next relevant message, or if the end of the stream is

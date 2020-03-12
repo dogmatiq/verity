@@ -2,7 +2,7 @@ package remote
 
 import (
 	"context"
-	"fmt"
+	"sync"
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
@@ -123,6 +123,7 @@ func (s *stream) Open(
 type cursor struct {
 	stream    messagingspec.EventStream_ConsumeClient
 	marshaler marshalkit.ValueMarshaler
+	once      sync.Once
 	cancel    context.CancelFunc
 	messages  chan *persistence.StreamMessage
 	err       error
@@ -141,7 +142,7 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 			return m, nil
 		}
 
-		return nil, fmt.Errorf("the cursor is closed: %w", c.err)
+		return nil, c.err
 	}
 }
 
@@ -149,7 +150,10 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 //
 // Any current or future calls to Next() return a non-nil error.
 func (c *cursor) Close() error {
-	c.cancel()
+	if !c.close(persistence.ErrStreamCursorClosed) {
+		return persistence.ErrStreamCursorClosed
+	}
+
 	return nil
 }
 
@@ -161,9 +165,27 @@ func (c *cursor) Close() error {
 func (c *cursor) consume() {
 	defer close(c.messages)
 
-	for c.err == nil {
-		c.err = c.recv()
+	for {
+		err := c.recv()
+
+		if err != nil {
+			c.close(err)
+			return
+		}
 	}
+}
+
+// close closes the cursor. It returns false if the cursor was already closed.
+func (c *cursor) close(cause error) bool {
+	ok := false
+
+	c.once.Do(func() {
+		c.cancel()
+		c.err = cause
+		ok = true
+	})
+
+	return ok
 }
 
 // recv waits for the next message from the stream, unmarshals it and sends it
