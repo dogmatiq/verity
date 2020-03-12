@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
+// Stream is a persistence.Stream backed by an SQL database.
 type Stream interface {
 	persistence.Stream
 
