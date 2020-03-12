@@ -11,6 +11,7 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
@@ -280,6 +281,12 @@ func Declare(
 						// start the cursors
 						for i := 0; i < cursors; i++ {
 							go func() error {
+								linger.SleepX(
+									ctx,
+									linger.FullJitter,
+									cfg.AssumeBlockingDuration,
+								)
+
 								defer g.Done()
 								defer ginkgo.GinkgoRecover()
 
