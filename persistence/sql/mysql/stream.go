@@ -18,7 +18,7 @@ import (
 )
 
 // Stream is an implementation of persistence.Stream that stores messages
-// in an SQL database.
+// in a MySQL database.
 type Stream struct {
 	ApplicationKey  string
 	DB              *sql.DB
@@ -130,8 +130,10 @@ func (s *Stream) Append(
 	return next, nil
 }
 
-// findOrCreateFilter returns a filter ID for filtering stream reads to the
-// given message types.
+// findOrCreateFilter returns the filter ID for a filter that limits cursor
+// results to the given message type names.
+//
+// If no such filter exists, a new one is created.
 func (s *Stream) findOrCreateFilter(
 	ctx context.Context,
 	types message.TypeCollection,
@@ -147,8 +149,8 @@ func (s *Stream) findOrCreateFilter(
 	return createFilter(ctx, s.DB, hash, names), nil
 }
 
-// cursor is an implementation of persistence.Cursor that reads messages from an
-// SQL database.
+// cursor is an implementation of persistence.Cursor that reads messages from a
+// MySQL database.
 type cursor struct {
 	appKey    string
 	offset    uint64

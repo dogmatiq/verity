@@ -9,8 +9,8 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// Hash marshals the message names in types and computes a determintic hash of
-// those names.
+// Hash marshals the given message types to their "portable name" and computes a
+// deterministic hash of those names.
 func Hash(
 	m marshalkit.Marshaler,
 	types message.TypeCollection,

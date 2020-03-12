@@ -48,9 +48,9 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		ctx,
 		db,
 		`CREATE TABLE stream_filter (
-			id          BIGINT(20) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-			hash        VARBINARY(255) NOT NULL,
-			used_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			id      BIGINT(20) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+			hash    VARBINARY(255) NOT NULL,
+			used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
 			KEY (hash)
 		) ENGINE=InnoDB`,

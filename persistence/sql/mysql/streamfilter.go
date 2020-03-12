@@ -8,8 +8,7 @@ import (
 	"github.com/dogmatiq/infix/persistence/sql/internal/streamfilter"
 )
 
-// findFilter returns a filter ID for an existing filter for the givene mssage
-// types.
+// findFilter returns the ID of a filter containing the given type names.
 func findFilter(
 	ctx context.Context,
 	db *sql.DB,
@@ -60,7 +59,7 @@ func findFilter(
 	return 0, false
 }
 
-// createFilter creates a new filter for the given message types.
+// createFilter creates a new filter containing the given type names.
 func createFilter(
 	ctx context.Context,
 	db *sql.DB,
