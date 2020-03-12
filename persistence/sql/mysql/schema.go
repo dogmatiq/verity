@@ -44,6 +44,29 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
 
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE stream_filter (
+			id          BIGINT(20) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+			hash        VARBINARY(255) NOT NULL,
+			used_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+			KEY (hash)
+		) ENGINE=InnoDB`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE stream_filter_type (
+			filter_id    BIGINT(20) UNSIGNED AUTO_INCREMENT,
+			message_type VARBINARY(255) NOT NULL,
+
+			PRIMARY KEY (filter_id, message_type)
+		) ENGINE=InnoDB`,
+	)
+
 	return nil
 }
 
@@ -53,6 +76,8 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_offset`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_filter`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_filter_type`)
 
 	return nil
 }

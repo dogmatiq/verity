@@ -18,7 +18,6 @@ require (
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	go.etcd.io/bbolt v1.3.3
-	go.uber.org/multierr v1.4.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db // indirect
 	google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03 // indirect
