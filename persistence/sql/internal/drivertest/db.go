@@ -1,4 +1,4 @@
-package sqltest
+package drivertest
 
 import (
 	"database/sql"

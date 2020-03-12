@@ -1,4 +1,4 @@
-package mysql_test
+package postgres_test
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
-	"github.com/dogmatiq/infix/persistence/sql/internal/sqltest"
-	. "github.com/dogmatiq/infix/persistence/sql/mysql"
+	. "github.com/dogmatiq/infix/persistence/sql/driver/postgres"
+	"github.com/dogmatiq/infix/persistence/sql/internal/drivertest"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
@@ -21,7 +21,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 
 	streamtest.Declare(
 		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
-			db = sqltest.Open("mysql")
+			db = drivertest.Open("postgres")
 
 			err := DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
