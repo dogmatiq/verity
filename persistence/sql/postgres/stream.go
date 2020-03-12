@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 )
 
 // Stream is an implementation of persistence.Stream that stores messages
-// in a MySQL database.
+// in a PostgreSQL database.
 type Stream struct {
 	ApplicationKey  string
 	DB              *sql.DB
@@ -68,43 +68,41 @@ func (s *Stream) Append(
 
 	count := uint64(len(envelopes))
 
-	sqlx.Exec(
-		ctx,
-		tx,
-		`INSERT INTO stream_offset SET
-			next_offset = ?
-		ON DUPLICATE KEY UPDATE
-			next_offset = next_offset + VALUE(next_offset)`,
-		count,
-	)
-
 	next := sqlx.QueryN(
 		ctx,
 		tx,
-		`SELECT
+		`INSERT INTO infix.stream_offset AS o (
 			next_offset
-		FROM stream_offset`,
+		) VALUES (
+			$1
+		) ON CONFLICT (singleton) DO UPDATE SET
+			next_offset = o.next_offset + excluded.next_offset
+		RETURNING next_offset`,
+		count,
 	) - count
 
 	for _, env := range envelopes {
 		sqlx.Exec(
 			ctx,
 			tx,
-			`INSERT INTO stream SET
-				stream_offset       = ?,
-				message_type        = ?,
-				description         = ?,
-				message_id          = ?,
-				causation_id        = ?,
-				correlation_id      = ?,
-				source_app_name     = ?,
-				source_app_key      = ?,
-				source_handler_name = ?,
-				source_handler_key  = ?,
-				source_instance_id  = ?,
-				created_at          = ?,
-				media_type          = ?,
-				data                = ?`,
+			`INSERT INTO infix.stream (
+				stream_offset,
+				message_type,
+				description,
+				message_id,
+				causation_id,
+				correlation_id,
+				source_app_name,
+				source_app_key,
+				source_handler_name,
+				source_handler_key,
+				source_instance_id,
+				created_at,
+				media_type,
+				data
+			) VALUES (
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+			)`,
 			next,
 			marshalkit.MustMarshalType(
 				s.Marshaler,
@@ -150,7 +148,7 @@ func (s *Stream) findOrCreateFilter(
 }
 
 // cursor is an implementation of persistence.Cursor that reads messages from a
-// MySQL database.
+// PostgreSQL database.
 type cursor struct {
 	appKey    string
 	offset    uint64
@@ -220,12 +218,12 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 				created_at,
 				media_type,
 				data
-			FROM stream AS s
-			INNER JOIN stream_filter_type AS t
+			FROM infix.stream AS s
+			INNER JOIN infix.stream_filter_type AS t
 			ON t.message_type = s.message_type
-			WHERE s.source_app_key = ?
-			AND s.stream_offset >= ?
-			AND t.filter_id = ?
+			WHERE s.source_app_key = $1
+			AND s.stream_offset >= $2
+			AND t.filter_id = $3
 			ORDER BY s.stream_offset
 			LIMIT 1`,
 			c.appKey,
