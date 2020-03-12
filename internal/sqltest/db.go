@@ -9,9 +9,6 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"           // keep driver import near code that uses it
 	_ "github.com/mattn/go-sqlite3" // keep driver import near code that uses it
-
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 )
 
 // DSN returns the DSN for the test database to use with the given SQL driver.
@@ -32,7 +29,7 @@ func DSN(driver string) string {
 		env = "DOGMATIQ_TEST_POSTGRES_DSN"
 		dsn = "user=postgres password=rootpass sslmode=disable"
 	default:
-		ginkgo.Fail("unsupported driver: " + driver)
+		panic("unsupported driver: " + driver)
 	}
 
 	if v := os.Getenv(env); v != "" {
@@ -47,7 +44,9 @@ func Open(driver string) *sql.DB {
 	dsn := DSN(driver)
 
 	db, err := sql.Open(driver, dsn)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	if err != nil {
+		panic(err)
+	}
 
 	return db
 }
