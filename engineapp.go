@@ -2,6 +2,7 @@ package infix
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
@@ -14,12 +15,22 @@ import (
 // At least one WithApplication() option must be specified.
 func WithApplication(app dogma.Application) EngineOption {
 	return func(opts *engineOptions) {
-		opts.AppConfigs = append(
-			opts.AppConfigs,
-			configkit.FromApplication(app),
-		)
+		cfg := configkit.FromApplication(app)
+
+		for _, c := range opts.AppConfigs {
+			if c.Identity().ConflictsWith(cfg.Identity()) {
+				panic(fmt.Sprintf(
+					"can not host both %s and %s because they have conflicting identities",
+					c.Identity(),
+					cfg.Identity(),
+				))
+			}
+		}
+
+		opts.AppConfigs = append(opts.AppConfigs, cfg)
 	}
 }
+
 func hostApplication(
 	ctx context.Context,
 	opts *engineOptions,

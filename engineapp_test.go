@@ -25,6 +25,15 @@ var _ = Describe("func WithApplication()", func() {
 		))
 	})
 
+	It("panics if application identities conflict", func() {
+		Expect(func() {
+			resolveOptions([]EngineOption{
+				WithApplication(TestApplication),
+				WithApplication(TestApplication),
+			})
+		}).To(Panic())
+	})
+
 	It("panics if the none are provided", func() {
 		Expect(func() {
 			resolveOptions(nil)
