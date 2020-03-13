@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/dogma"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -14,7 +15,14 @@ type Engine struct {
 }
 
 // New returns a new engine that hosts the given application.
-func New(options ...EngineOption) *Engine {
+//
+// app is the Dogma application to host on the engine. It may be nil, in which
+// case at least one WithApplication() option must be specified.
+func New(app dogma.Application, options ...EngineOption) *Engine {
+	if app != nil {
+		options = append(options, WithApplication(app))
+	}
+
 	return &Engine{
 		opts: resolveOptions(options),
 	}

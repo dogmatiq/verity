@@ -92,7 +92,7 @@ func main() {
 		infix.WithDiscoverer(discover),
 	)
 
-	e := infix.New(options...)
+	e := infix.New(nil, options...)
 
 	err := e.Run(ctx)
 

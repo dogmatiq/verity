@@ -9,10 +9,8 @@ import (
 	"github.com/dogmatiq/dogma"
 )
 
-// WithApplication returns an option that hosts the given application on the
+// WithApplication returns an option that hosts an additional application on the
 // engine.
-//
-// At least one WithApplication() option must be specified.
 func WithApplication(app dogma.Application) EngineOption {
 	return func(opts *engineOptions) {
 		cfg := configkit.FromApplication(app)
