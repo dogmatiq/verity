@@ -22,14 +22,14 @@ func New(options ...EngineOption) *Engine {
 
 // Run hosts the given application until ctx is canceled or an error occurs.
 func (e *Engine) Run(ctx context.Context) (err error) {
-	g, ctx := errgroup.WithContext(ctx)
+	g, groupCtx := errgroup.WithContext(ctx)
 
-	g.Go(func() error { return serveAPI(ctx, e.opts) })
-	g.Go(func() error { return discover(ctx, e.opts, &e.observer) })
+	g.Go(func() error { return serveAPI(groupCtx, e.opts) })
+	g.Go(func() error { return discover(groupCtx, e.opts, &e.observer) })
 
 	for _, cfg := range e.opts.AppConfigs {
 		cfg := cfg // capture loop variable
-		g.Go(func() error { return hostApplication(ctx, e.opts, cfg) })
+		g.Go(func() error { return hostApplication(groupCtx, e.opts, cfg) })
 	}
 
 	err = g.Wait()
