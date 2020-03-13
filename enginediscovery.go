@@ -62,15 +62,19 @@ func WithDialerBackoffStrategy(s backoff.Strategy) EngineOption {
 }
 
 // discover runs the API server discovery system, if configured.
-func (e *Engine) discover(ctx context.Context) error {
-	if e.opts.Discoverer == nil {
+func discover(
+	ctx context.Context,
+	opts *engineOptions,
+	obs discovery.ApplicationObserver,
+) error {
+	if opts.Discoverer == nil {
 		return nil
 	}
 
 	i := &discovery.Inspector{
-		Observer: &e.observer,
+		Observer: obs,
 		Ignore: func(cfg configkit.Application) bool {
-			for _, c := range e.configs {
+			for _, c := range opts.AppConfigs {
 				if c.Identity().ConflictsWith(cfg.Identity()) {
 					return true
 				}
@@ -83,22 +87,22 @@ func (e *Engine) discover(ctx context.Context) error {
 	c := &discovery.Connector{
 		Observer: &discovery.ClientExecutor{
 			Task: func(ctx context.Context, c *discovery.Client) {
-				logging.Log(e.opts.Logger, "connected to API server at %s", c.Target.Name)
-				defer logging.Log(e.opts.Logger, "disconnected from API server at %s", c.Target.Name)
+				logging.Log(opts.Logger, "connected to API server at %s", c.Target.Name)
+				defer logging.Log(opts.Logger, "disconnected from API server at %s", c.Target.Name)
 				i.Run(ctx, c)
 			},
 		},
-		Dial:            e.opts.Dialer,
-		BackoffStrategy: e.opts.DialerBackoffStrategy,
-		Logger:          e.opts.Logger,
+		Dial:            opts.Dialer,
+		BackoffStrategy: opts.DialerBackoffStrategy,
+		Logger:          opts.Logger,
 	}
 
-	err := e.opts.Discoverer(
+	err := opts.Discoverer(
 		ctx,
 		&discovery.TargetExecutor{
 			Task: func(ctx context.Context, t *discovery.Target) {
-				logging.Log(e.opts.Logger, "discovered API server at %s", t.Name)
-				defer logging.Log(e.opts.Logger, "lost API server at %s", t.Name)
+				logging.Log(opts.Logger, "discovered API server at %s", t.Name)
+				defer logging.Log(opts.Logger, "lost API server at %s", t.Name)
 				c.Run(ctx, t)
 			},
 		},

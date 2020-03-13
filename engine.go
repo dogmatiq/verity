@@ -3,14 +3,12 @@ package infix
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/api/discovery"
 	"golang.org/x/sync/errgroup"
 )
 
 // Engine hosts a Dogma application.
 type Engine struct {
-	configs  []configkit.RichApplication
 	opts     *engineOptions
 	observer discovery.ApplicationObserverSet
 }
@@ -26,12 +24,12 @@ func New(options ...EngineOption) *Engine {
 func (e *Engine) Run(ctx context.Context) (err error) {
 	g, ctx := errgroup.WithContext(ctx)
 
-	g.Go(func() error { return e.serveAPI(ctx) })
-	g.Go(func() error { return e.discover(ctx) })
+	g.Go(func() error { return serveAPI(ctx, e.opts) })
+	g.Go(func() error { return discover(ctx, e.opts, &e.observer) })
 
-	for _, cfg := range e.configs {
+	for _, cfg := range e.opts.AppConfigs {
 		cfg := cfg // capture loop variable
-		g.Go(func() error { return e.hostApplication(ctx, cfg) })
+		g.Go(func() error { return hostApplication(ctx, e.opts, cfg) })
 	}
 
 	err = g.Wait()

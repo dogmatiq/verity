@@ -43,17 +43,17 @@ func WithServerOptions(options ...grpc.ServerOption) EngineOption {
 }
 
 // serveAPI runs the gRPC server.
-func (e *Engine) serveAPI(ctx context.Context) error {
-	s := grpc.NewServer(e.opts.ServerOptions...)
+func serveAPI(ctx context.Context, opts *engineOptions) error {
+	s := grpc.NewServer(opts.ServerOptions...)
 
 	// config []RichApplication to []Application
-	configs := make([]configkit.Application, len(e.configs))
-	for i, cfg := range e.configs {
+	configs := make([]configkit.Application, len(opts.AppConfigs))
+	for i, cfg := range opts.AppConfigs {
 		configs[i] = cfg
 	}
 	api.RegisterServer(s, configs...)
 
-	lis, err := net.Listen("tcp", e.opts.ListenAddress)
+	lis, err := net.Listen("tcp", opts.ListenAddress)
 	if err != nil {
 		return fmt.Errorf("unable to start gRPC listener: %w", err)
 	}
@@ -72,9 +72,9 @@ func (e *Engine) serveAPI(ctx context.Context) error {
 	}()
 
 	logging.Log(
-		e.opts.Logger,
+		opts.Logger,
 		"listening for API requests on %s",
-		e.opts.ListenAddress,
+		opts.ListenAddress,
 	)
 
 	err = s.Serve(lis)
