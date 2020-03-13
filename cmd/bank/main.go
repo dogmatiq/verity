@@ -15,7 +15,7 @@ import (
 	"github.com/dogmatiq/infix/cmd/bank/account"
 	"github.com/dogmatiq/infix/cmd/bank/customer"
 	"github.com/dogmatiq/infix/internal/sqltest"
-	"github.com/dogmatiq/infix/persistence/sql/driver/postgres"
+	"github.com/dogmatiq/infix/persistence/provider/sql/driver/postgres"
 	"google.golang.org/grpc"
 )
 

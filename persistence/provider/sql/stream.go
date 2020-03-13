@@ -10,8 +10,8 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/sql/driver"
-	"github.com/dogmatiq/infix/persistence/sql/internal/streamfilter"
+	"github.com/dogmatiq/infix/persistence/provider/sql/driver"
+	"github.com/dogmatiq/infix/persistence/provider/sql/internal/streamfilter"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 )

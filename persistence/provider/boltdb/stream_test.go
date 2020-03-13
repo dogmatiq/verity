@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/dogmatiq/infix/envelope"
-	. "github.com/dogmatiq/infix/persistence/boltdb"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
+	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

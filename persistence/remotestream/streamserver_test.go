@@ -10,7 +10,7 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/memory"
+	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

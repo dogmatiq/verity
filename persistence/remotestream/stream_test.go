@@ -12,7 +12,7 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
-	"github.com/dogmatiq/infix/persistence/memory"
+	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/infix/persistence/remotestream"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"

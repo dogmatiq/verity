@@ -3,7 +3,7 @@ package streamfilter_test
 import (
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
-	. "github.com/dogmatiq/infix/persistence/sql/internal/streamfilter"
+	. "github.com/dogmatiq/infix/persistence/provider/sql/internal/streamfilter"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"

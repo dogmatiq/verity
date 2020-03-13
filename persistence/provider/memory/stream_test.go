@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
-	. "github.com/dogmatiq/infix/persistence/memory"
+	. "github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
 )

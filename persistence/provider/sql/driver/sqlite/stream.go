@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/sql/internal/streamfilter"
+	"github.com/dogmatiq/infix/persistence/provider/sql/internal/streamfilter"
 )
 
 // StreamDriver is an implementation of driver.StreamDriver that stores messages
