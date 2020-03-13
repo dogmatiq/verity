@@ -22,6 +22,9 @@ type Discoverer func(ctx context.Context, o discovery.TargetObserver) error
 // engine instances.
 //
 // If this option is omitted or d is nil, no discovery is performed.
+//
+// TODO: Use Bonjour as the default discovery mechanism.
+// See https://github.com/dogmatiq/configkit/issues/58.
 func WithDiscoverer(d Discoverer) EngineOption {
 	return func(opts *engineOptions) {
 		opts.Discoverer = d
