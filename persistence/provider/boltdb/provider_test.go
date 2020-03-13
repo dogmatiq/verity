@@ -57,6 +57,12 @@ var _ = Describe("type Provider", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		AfterEach(func() {
+			if store != nil {
+				store.Close()
+			}
+		})
+
 		Describe("func Stream()", func() {
 			It("returns a stream for the given application", func() {
 				stream, err := store.EventStream(ctx)
