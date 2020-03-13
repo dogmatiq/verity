@@ -3,15 +3,13 @@ package infix
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dogma"
 	"golang.org/x/sync/errgroup"
 )
 
 // Engine hosts a Dogma application.
 type Engine struct {
-	opts     *engineOptions
-	observer discovery.ApplicationObserverSet
+	opts *engineOptions
 }
 
 // New returns a new engine that hosts the given application.
@@ -32,14 +30,17 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 func (e *Engine) Run(ctx context.Context) (err error) {
 	g, groupCtx := errgroup.WithContext(ctx)
 
-	if e.opts.Network != nil {
-		g.Go(func() error { return serveAPI(groupCtx, e.opts) })
-		g.Go(func() error { return discover(groupCtx, e.opts, &e.observer) })
-	}
-
 	for _, cfg := range e.opts.AppConfigs {
 		cfg := cfg // capture loop variable
-		g.Go(func() error { return hostApplication(groupCtx, e.opts, cfg) })
+		g.Go(func() error {
+			return runApplication(groupCtx, e.opts, cfg)
+		})
+	}
+
+	if e.opts.Network != nil {
+		g.Go(func() error {
+			return runNetwork(groupCtx, e.opts)
+		})
 	}
 
 	err = g.Wait()

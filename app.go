@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 )
 
-func hostApplication(
+func runApplication(
 	ctx context.Context,
 	opts *engineOptions,
 	cfg configkit.RichApplication,

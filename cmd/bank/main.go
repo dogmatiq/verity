@@ -8,15 +8,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/dogmatiq/infix/persistence/provider/boltdb"
-
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/configkit/api/discovery/static"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix"
 	"github.com/dogmatiq/infix/cmd/bank/account"
 	"github.com/dogmatiq/infix/cmd/bank/customer"
 	"github.com/dogmatiq/infix/internal/sqltest"
+	"github.com/dogmatiq/infix/persistence/provider/boltdb"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/postgres"
 	"google.golang.org/grpc"
 )
@@ -56,70 +56,44 @@ func main() {
 		fmt.Println(err)
 	}
 
-	apps := os.Args[1:]
-	networking := true
-	if len(apps) == 0 {
-		networking = false
-		apps = append(apps, "customer", "account")
+	if len(os.Args) != 2 {
+		fmt.Println("usage: bank [customer|account]")
+		os.Exit(1)
 	}
 
 	var (
-		engineOptions = []infix.EngineOption{
-			infix.WithPersistence(&boltdb.Provider{
-				Path: "/tmp/infix.db",
-			}),
-			infix.WithLogger(logging.DebugLogger),
-		}
-		networkOptions = []infix.NetworkOption{
-			infix.WithDialer(dial),
-			infix.WithDiscoverer(discover),
-		}
+		addr string
+		app  dogma.Application
 	)
 
-	for _, app := range apps {
-		switch app {
-		case "account":
-			engineOptions = append(
-				engineOptions,
-				infix.WithApplication(
-					&account.App{
-						ProjectionDB: db,
-					},
-				),
-			)
-
-			networkOptions = append(
-				networkOptions,
-				infix.WithListenAddress(accountListenAddress),
-			)
-		case "customer":
-			engineOptions = append(
-				engineOptions,
-				infix.WithApplication(
-					&customer.App{
-						ProjectionDB: db,
-					},
-				),
-			)
-
-			networkOptions = append(
-				networkOptions,
-				infix.WithListenAddress(customerListenAddress),
-			)
-		default:
-			fmt.Printf("unknown app: %s", os.Args[1])
-			os.Exit(1)
+	switch os.Args[1] {
+	case "account":
+		addr = accountListenAddress
+		app = &account.App{
+			ProjectionDB: db,
 		}
+	case "customer":
+		addr = customerListenAddress
+		app = &customer.App{
+			ProjectionDB: db,
+		}
+	default:
+		fmt.Printf("unknown app: %s", os.Args[1])
+		os.Exit(1)
 	}
 
-	if networking {
-		engineOptions = append(
-			engineOptions,
-			infix.WithNetworking(networkOptions...),
-		)
-	}
-
-	e := infix.New(nil, engineOptions...)
+	e := infix.New(
+		app,
+		infix.WithPersistence(&boltdb.Provider{
+			Path: fmt.Sprintf("/tmp/infix-%s.db", os.Args[1]),
+		}),
+		infix.WithNetworking(
+			infix.WithListenAddress(addr),
+			infix.WithDialer(dial),
+			infix.WithDiscoverer(discover),
+		),
+		infix.WithLogger(logging.DebugLogger),
+	)
 
 	err := e.Run(ctx)
 
