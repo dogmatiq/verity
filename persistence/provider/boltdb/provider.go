@@ -6,15 +6,15 @@ import (
 	"sync/atomic"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 	"go.etcd.io/bbolt"
 )
 
 // Provider is a implementation of provider.Provider for BoltDB.
 type Provider struct {
-	File    string
+	Path    string
 	Mode    os.FileMode
 	Options *bbolt.Options
 
@@ -33,29 +33,12 @@ func (p *Provider) Open(
 	p.marshaler = m
 
 	if atomic.AddInt64(&p.refs, 1) == 1 {
-		file := p.File
-		if file == "" {
-			file = "/var/run/infix.boltdb"
+		path := p.Path
+		if path == "" {
+			path = "/var/run/infix.boltdb"
 		}
 
-		mode := p.Mode
-		if mode == 0 {
-			mode = 0600
-		}
-
-		opts := p.Options
-
-		if timeout, ok := linger.FromContextDeadline(ctx); ok {
-			if opts == nil {
-				opts = &bbolt.Options{}
-			}
-
-			if timeout < opts.Timeout || opts.Timeout == 0 {
-				opts.Timeout = timeout
-			}
-		}
-
-		p.db, err = bbolt.Open(file, mode, opts)
+		p.db, err = bboltx.Open(ctx, path, p.Mode, p.Options)
 	}
 
 	if err != nil {

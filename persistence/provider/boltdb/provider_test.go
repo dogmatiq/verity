@@ -32,7 +32,7 @@ var _ = Describe("type Provider", func() {
 		tmpfile = f.Name()
 
 		provider = &Provider{
-			File: tmpfile,
+			Path: tmpfile,
 		}
 	})
 

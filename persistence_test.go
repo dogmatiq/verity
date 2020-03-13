@@ -10,7 +10,7 @@ import (
 var _ = Describe("func WithPersistenceProvider()", func() {
 	It("sets the persistence provider", func() {
 		p := &boltdb.Provider{
-			File: "<filename>",
+			Path: "<filename>",
 		}
 
 		opts := resolveOptions([]EngineOption{
