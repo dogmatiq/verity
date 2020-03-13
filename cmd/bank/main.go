@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/dogmatiq/infix/persistence/provider/boltdb"
+
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/configkit/api/discovery/static"
 	"github.com/dogmatiq/dodeca/logging"
@@ -55,28 +57,53 @@ func main() {
 	}
 
 	apps := os.Args[1:]
+	networking := true
 	if len(apps) == 0 {
+		networking = false
 		apps = append(apps, "customer", "account")
 	}
 
-	var options []infix.EngineOption
+	var (
+		engineOptions = []infix.EngineOption{
+			infix.WithPersistence(&boltdb.Provider{
+				Path: "/tmp/infix.db",
+			}),
+			infix.WithLogger(logging.DebugLogger),
+		}
+		networkOptions = []infix.NetworkOption{
+			infix.WithDialer(dial),
+			infix.WithDiscoverer(discover),
+		}
+	)
 
 	for _, app := range apps {
 		switch app {
 		case "account":
-			options = append(
-				options,
-				infix.WithApplication(&account.App{
-					ProjectionDB: db,
-				}),
+			engineOptions = append(
+				engineOptions,
+				infix.WithApplication(
+					&account.App{
+						ProjectionDB: db,
+					},
+				),
+			)
+
+			networkOptions = append(
+				networkOptions,
 				infix.WithListenAddress(accountListenAddress),
 			)
 		case "customer":
-			options = append(
-				options,
-				infix.WithApplication(&customer.App{
-					ProjectionDB: db,
-				}),
+			engineOptions = append(
+				engineOptions,
+				infix.WithApplication(
+					&customer.App{
+						ProjectionDB: db,
+					},
+				),
+			)
+
+			networkOptions = append(
+				networkOptions,
 				infix.WithListenAddress(customerListenAddress),
 			)
 		default:
@@ -85,14 +112,14 @@ func main() {
 		}
 	}
 
-	options = append(
-		options,
-		infix.WithLogger(logging.DebugLogger),
-		infix.WithDialer(dial),
-		infix.WithDiscoverer(discover),
-	)
+	if networking {
+		engineOptions = append(
+			engineOptions,
+			infix.WithNetworking(networkOptions...),
+		)
+	}
 
-	e := infix.New(nil, options...)
+	e := infix.New(nil, engineOptions...)
 
 	err := e.Run(ctx)
 

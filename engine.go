@@ -24,7 +24,7 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 	}
 
 	return &Engine{
-		opts: resolveOptions(options),
+		opts: resolveEngineOptions(options...),
 	}
 }
 
@@ -32,8 +32,10 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 func (e *Engine) Run(ctx context.Context) (err error) {
 	g, groupCtx := errgroup.WithContext(ctx)
 
-	g.Go(func() error { return serveAPI(groupCtx, e.opts) })
-	g.Go(func() error { return discover(groupCtx, e.opts, &e.observer) })
+	if e.opts.Network != nil {
+		g.Go(func() error { return serveAPI(groupCtx, e.opts) })
+		g.Go(func() error { return discover(groupCtx, e.opts, &e.observer) })
+	}
 
 	for _, cfg := range e.opts.AppConfigs {
 		cfg := cfg // capture loop variable
