@@ -22,7 +22,7 @@ var (
 	// DefaultPersistenceProvider is the default persistence provider.
 	//
 	// It is overridden by the WithPersistence() option.
-	DefaultPersistenceProvider persistence.Provider = &boltdb.Provider{}
+	DefaultPersistenceProvider persistence.Provider = boltdb.NewOpener("/var/run/infix.boltdb", 0, nil)
 
 	// DefaultMessageTimeout is the default duration the engine allows for the handling a single message.
 	//

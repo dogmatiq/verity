@@ -3,7 +3,7 @@ package boltdb
 import (
 	"context"
 	"os"
-	"sync/atomic"
+	"sync"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
@@ -12,66 +12,90 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// Provider is a implementation of provider.Provider for BoltDB.
-type Provider struct {
-	Path    string
-	Mode    os.FileMode
-	Options *bbolt.Options
+// provider is a implementation of provider.Provider for BoltDB uses an
+// existing open database.
+type provider struct {
+	DB *bbolt.DB
+}
 
-	refs      int64 // atomic
-	db        *bbolt.DB
-	marshaler marshalkit.Marshaler
+// New returns a persistence provider that uses the given BoltDB database.
+func New(db *bbolt.DB) persistence.Provider {
+	return &provider{db}
 }
 
 // Open returns a data-store for a specific application.
-func (p *Provider) Open(
+func (p *provider) Open(
 	ctx context.Context,
 	app configkit.Identity,
 	m marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
-	var err error
-	p.marshaler = m
-
-	if atomic.AddInt64(&p.refs, 1) == 1 {
-		path := p.Path
-		if path == "" {
-			path = "/var/run/infix.boltdb"
-		}
-
-		p.db, err = bboltx.Open(ctx, path, p.Mode, p.Options)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
 	return &dataStore{
-		provider: p,
-		stream: &Stream{
-			DB:        p.db,
-			Marshaler: p.marshaler,
-			BucketPath: [][]byte{
-				[]byte(app.Key),
-				[]byte("eventstream"),
-			},
-		},
+		App:       app,
+		Marshaler: m,
+		DB:        p.DB,
 	}, nil
 }
 
-type dataStore struct {
-	provider *Provider
-	stream   *Stream
+// opener is a implementation of provider.Provider for BoltDB that opens a
+// BoltDB database file.
+type opener struct {
+	Path    string
+	Mode    os.FileMode
+	Options *bbolt.Options
+
+	m    sync.Mutex
+	refs int64
+	db   *bbolt.DB
 }
 
-// EventStream returns the event stream for the given application.
-func (ds *dataStore) EventStream(_ context.Context) (persistence.Stream, error) {
-	return ds.stream, nil
+// NewOpener returns a persistence provider that opens a BoltDB database.
+func NewOpener(
+	path string,
+	mode os.FileMode,
+	options *bbolt.Options,
+) persistence.Provider {
+	return &opener{
+		Path:    path,
+		Mode:    mode,
+		Options: options,
+	}
 }
 
-// Close closes the data store.
-func (ds *dataStore) Close() error {
-	if atomic.AddInt64(&ds.provider.refs, -1) == 0 {
-		return ds.provider.db.Close()
+// Open returns a data-store for a specific application.
+func (p *opener) Open(
+	ctx context.Context,
+	app configkit.Identity,
+	m marshalkit.Marshaler,
+) (persistence.DataStore, error) {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.refs == 0 {
+		var err error
+		p.db, err = bboltx.Open(ctx, p.Path, p.Mode, p.Options)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	p.refs++
+
+	return &dataStore{
+		App:       app,
+		Marshaler: m,
+		DB:        p.db,
+		Closer:    p.close,
+	}, nil
+}
+
+func (p *opener) close() error {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	p.refs--
+
+	if p.refs == 0 {
+		return p.db.Close()
 	}
 
 	return nil

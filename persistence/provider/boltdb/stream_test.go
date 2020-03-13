@@ -2,10 +2,9 @@ package boltdb_test
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
 
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
 	"github.com/dogmatiq/marshalkit"
@@ -16,19 +15,13 @@ import (
 
 var _ = Describe("type Stream (standard test suite)", func() {
 	var (
-		tmpfile string
-		db      *bbolt.DB
+		db    *bbolt.DB
+		close func()
 	)
 
 	streamtest.Declare(
 		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
-			f, err := ioutil.TempFile("", "*.boltdb")
-			Expect(err).ShouldNot(HaveOccurred())
-			f.Close()
-			tmpfile = f.Name()
-
-			db, err = bbolt.Open(tmpfile, 0600, bbolt.DefaultOptions)
-			Expect(err).ShouldNot(HaveOccurred())
+			db, close = boltdbtest.Open()
 
 			stream := &Stream{
 				DB:        db,
@@ -52,13 +45,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			}
 		},
 		func() {
-			if db != nil {
-				db.Close()
-			}
-
-			if tmpfile != "" {
-				os.Remove(tmpfile)
-			}
+			close()
 		},
 	)
 })

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/internal/sqltest"
+	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"

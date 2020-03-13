@@ -61,9 +61,7 @@ var _ = Describe("func WithApplication()", func() {
 
 var _ = Describe("func WithPersistence()", func() {
 	It("sets the persistence provider", func() {
-		p := &boltdb.Provider{
-			Path: "<filename>",
-		}
+		p := boltdb.NewOpener("<filename>", 0, nil)
 
 		opts := resolveEngineOptions(
 			WithApplication(TestApplication),

@@ -26,9 +26,9 @@ func Open(
 
 	if timeout, ok := linger.FromContextDeadline(ctx); ok {
 		if opts == nil {
-			opts = &bbolt.Options{
-				Timeout: timeout,
-			}
+			clone := *bbolt.DefaultOptions
+			opts = &clone
+			opts.Timeout = timeout
 		} else if opts.Timeout == 0 || opts.Timeout > timeout {
 			clone := *opts
 			opts = &clone
