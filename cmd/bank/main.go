@@ -11,11 +11,13 @@ import (
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/configkit/api/discovery/static"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix"
 	"github.com/dogmatiq/infix/cmd/bank/account"
 	"github.com/dogmatiq/infix/cmd/bank/customer"
-	"github.com/dogmatiq/infix/internal/sqltest"
-	"github.com/dogmatiq/infix/persistence/sql/driver/postgres"
+	"github.com/dogmatiq/infix/internal/testing/sqltest"
+	"github.com/dogmatiq/infix/persistence/provider/boltdb"
+	"github.com/dogmatiq/infix/persistence/provider/sql/driver/postgres"
 	"google.golang.org/grpc"
 )
 
@@ -54,45 +56,46 @@ func main() {
 		fmt.Println(err)
 	}
 
-	apps := os.Args[1:]
-	if len(apps) == 0 {
-		apps = append(apps, "customer", "account")
+	if len(os.Args) != 2 {
+		fmt.Println("usage: bank [customer|account]")
+		os.Exit(1)
 	}
 
-	var options []infix.EngineOption
-
-	for _, app := range apps {
-		switch app {
-		case "account":
-			options = append(
-				options,
-				infix.WithApplication(&account.App{
-					ProjectionDB: db,
-				}),
-				infix.WithListenAddress(accountListenAddress),
-			)
-		case "customer":
-			options = append(
-				options,
-				infix.WithApplication(&customer.App{
-					ProjectionDB: db,
-				}),
-				infix.WithListenAddress(customerListenAddress),
-			)
-		default:
-			fmt.Printf("unknown app: %s", os.Args[1])
-			os.Exit(1)
-		}
-	}
-
-	options = append(
-		options,
-		infix.WithLogger(logging.DebugLogger),
-		infix.WithDialer(dial),
-		infix.WithDiscoverer(discover),
+	var (
+		addr string
+		app  dogma.Application
 	)
 
-	e := infix.New(options...)
+	switch os.Args[1] {
+	case "account":
+		addr = accountListenAddress
+		app = &account.App{
+			ProjectionDB: db,
+		}
+	case "customer":
+		addr = customerListenAddress
+		app = &customer.App{
+			ProjectionDB: db,
+		}
+	default:
+		fmt.Printf("unknown app: %s", os.Args[1])
+		os.Exit(1)
+	}
+
+	e := infix.New(
+		app,
+		infix.WithPersistence(boltdb.NewOpener(
+			fmt.Sprintf("/tmp/infix-%s.db", os.Args[1]),
+			0,
+			nil,
+		)),
+		infix.WithNetworking(
+			infix.WithListenAddress(addr),
+			infix.WithDialer(dial),
+			infix.WithDiscoverer(discover),
+		),
+		infix.WithLogger(logging.DebugLogger),
+	)
 
 	err := e.Run(ctx)
 

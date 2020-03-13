@@ -44,7 +44,7 @@ const (
 	DefaultAssumeBlockingDuration = 150 * time.Millisecond
 )
 
-// Declare declares generic behavioral tests for a specific driver
+// Declare declares generic behavioral tests for a specific stream
 // implementation.
 func Declare(
 	before func(context.Context, marshalkit.Marshaler) Config,
