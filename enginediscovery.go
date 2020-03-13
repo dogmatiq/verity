@@ -48,7 +48,7 @@ func WithDialer(d discovery.Dialer) EngineOption {
 var DefaultDialerBackoffStrategy backoff.Strategy = backoff.WithTransforms(
 	backoff.Exponential(100*time.Millisecond),
 	linger.FullJitter,
-	linger.Limiter(0, 1*time.Hour),
+	linger.Limiter(0, 30*time.Second),
 )
 
 // WithDialerBackoffStrategy returns an option that sets the strategy used to
@@ -72,10 +72,30 @@ func discover(
 	}
 
 	i := &discovery.Inspector{
-		Observer: obs,
+		Observer: discovery.NewApplicationObserverSet(
+			obs,
+			&discovery.ApplicationExecutor{
+				Task: func(_ context.Context, a *discovery.Application) {
+					logging.Log(
+						opts.Logger,
+						"found %s application at %s (%s)",
+						a.Identity().Name,
+						a.Client.Target.Name,
+						a.Identity().Key,
+					)
+				},
+			},
+		),
 		Ignore: func(cfg configkit.Application) bool {
 			for _, c := range opts.AppConfigs {
 				if c.Identity().ConflictsWith(cfg.Identity()) {
+					logging.Debug(
+						opts.Logger,
+						"ignoring conflicting %s application (%s) ",
+						cfg.Identity().Name,
+						cfg.Identity().Key,
+					)
+
 					return true
 				}
 			}
