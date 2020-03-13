@@ -12,6 +12,8 @@ github.com/dogmatiq/configkit v0.3.0 h1:DHEhga+cVgGBaNuAKNk1yZMuFsGTkIK+WRLn2B43
 github.com/dogmatiq/configkit v0.3.0/go.mod h1:rdU30Lpfc1IbHja7fVd7vBdMshLXDTBrtiZA8dq0rn0=
 github.com/dogmatiq/configkit v0.4.1 h1:RfZTNFKaoXLtaEY++fSBFripxaQXKQ/3RUuSnt92Fgc=
 github.com/dogmatiq/configkit v0.4.1/go.mod h1:jksKTde33ZnNdgEDpPmawSIeWsPvH8oxDgQjcwdZdj8=
+github.com/dogmatiq/configkit v0.4.2 h1:kUfzcQ0xif/uOPg+gAwzN/AwQ+BumHcrGbqv+xQSYho=
+github.com/dogmatiq/configkit v0.4.2/go.mod h1:+2OsCco+kVaHQQFMXn56sYDP+Yre4QODYvBAmBr+5EE=
 github.com/dogmatiq/dapper v0.3.5 h1:F4bCCc8KKv/USNzYa22BeelzJEhLVbVhg3/vAk+xEL4=
 github.com/dogmatiq/dapper v0.3.5/go.mod h1:U32cRxzGYI5owhc/hMKjYLgBTVCdW/s3MdFJHwfDrLQ=
 github.com/dogmatiq/dodeca v0.2.1 h1:zc/bwYY5D1QkadQOKVEv5zXhiu+f+28kjQR1B0O2faE=
