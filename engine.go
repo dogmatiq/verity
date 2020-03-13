@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/api/discovery"
-	"github.com/dogmatiq/dogma"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -17,12 +16,9 @@ type Engine struct {
 }
 
 // New returns a new engine that hosts the given application.
-func New(app dogma.Application, options ...EngineOption) *Engine {
-	cfg := configkit.FromApplication(app)
-
+func New(options ...EngineOption) *Engine {
 	return &Engine{
-		configs: []configkit.RichApplication{cfg},
-		opts:    resolveOptions(cfg, options),
+		opts: resolveOptions(options),
 	}
 }
 
