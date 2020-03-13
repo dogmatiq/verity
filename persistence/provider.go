@@ -7,12 +7,23 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// Provider is an interface used be the engine to persist and retrieve
-// application state.
+// Provider is an interface used by the engine to obtain application-specific
+// DataStore instances.
 type Provider interface {
-	// Initialize prepare the provider for use.
-	Initialize(ctx context.Context, m marshalkit.Marshaler) error
+	// Open returns a data-store for a specific application.
+	Open(
+		ctx context.Context,
+		app configkit.Identity,
+		m marshalkit.Marshaler,
+	) (DataStore, error)
+}
 
+// DataStore is an interface used by the engine to persist and retrieve
+// application state.
+type DataStore interface {
 	// EventStream returns the event stream for the given application.
-	EventStream(ctx context.Context, app configkit.Identity) (Stream, error)
+	EventStream(ctx context.Context) (Stream, error)
+
+	// Close closes the data store.
+	Close() error
 }

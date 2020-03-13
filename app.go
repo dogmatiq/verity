@@ -43,5 +43,16 @@ func hostApplication(
 		cfg.Identity().Key,
 	)
 
-	return nil
+	ds, err := opts.PersistenceProvider.Open(
+		ctx,
+		cfg.Identity(),
+		opts.Marshaler,
+	)
+	if err != nil {
+		return err
+	}
+	defer ds.Close()
+
+	<-ctx.Done()
+	return ctx.Err()
 }
