@@ -1,4 +1,4 @@
-package remote_test
+package remotestream_test
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	"github.com/dogmatiq/infix/persistence/memory"
-	. "github.com/dogmatiq/infix/persistence/remote"
+	. "github.com/dogmatiq/infix/persistence/remotestream"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"

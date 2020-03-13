@@ -1,4 +1,4 @@
-package remote
+package remotestream
 
 import (
 	"context"
