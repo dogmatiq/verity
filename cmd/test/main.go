@@ -45,7 +45,7 @@ func main() {
 	}
 
 	e := infix.New(
-		app,
+		infix.WithApplication(app),
 		infix.WithLogger(logging.DebugLogger),
 		infix.WithDiscoverer(discover),
 		infix.WithDialer(dial),

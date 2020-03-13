@@ -18,19 +18,38 @@ import (
 )
 
 var _ = Describe("type EngineOption", func() {
-	var cfg configkit.RichApplication
+	var app dogma.Application
 
 	BeforeSuite(func() {
-		cfg = configkit.FromApplication(&Application{
+		app = &Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 				c.Identity("<app-name>", "<app-key>")
 			},
+		}
+	})
+
+	Describe("func WithApplication()", func() {
+		It("adds the application", func() {
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
+			})
+
+			Expect(opts.AppConfigs).To(ConsistOf(
+				configkit.FromApplication(app),
+			))
+		})
+
+		It("panics if the none are provided", func() {
+			Expect(func() {
+				resolveOptions(nil)
+			}).To(Panic())
 		})
 	})
 
 	Describe("func WithListenAddress()", func() {
 		It("sets the listener address", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithListenAddress("localhost:1234"),
 			})
 
@@ -38,7 +57,8 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("uses the default if the address is empty", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithListenAddress(""),
 			})
 
@@ -60,7 +80,8 @@ var _ = Describe("type EngineOption", func() {
 
 	Describe("func WithMessageTimeout()", func() {
 		It("sets the message timeout", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithMessageTimeout(10 * time.Minute),
 			})
 
@@ -68,7 +89,8 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("uses the default if the duration is zero", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithMessageTimeout(0),
 			})
 
@@ -86,7 +108,8 @@ var _ = Describe("type EngineOption", func() {
 		It("sets the backoff strategy", func() {
 			p := backoff.Constant(10 * time.Second)
 
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithMessageBackoffStrategy(p),
 			})
 
@@ -94,7 +117,8 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("uses the default if the strategy is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithMessageBackoffStrategy(nil),
 			})
 
@@ -108,7 +132,8 @@ var _ = Describe("type EngineOption", func() {
 		}
 
 		It("sets the discoverer", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithDiscoverer(discoverer),
 			})
 
@@ -117,7 +142,8 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("does not construct a default if the discoverer is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithDiscoverer(nil),
 			})
 
@@ -135,7 +161,8 @@ var _ = Describe("type EngineOption", func() {
 		}
 
 		It("sets the dialer", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithDiscoverer(discoverer),
 				WithDialer(dialer),
 			})
@@ -145,7 +172,8 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("constructs a default if the dialer is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithDiscoverer(discoverer),
 				WithDiscoverer(nil),
 			})
@@ -155,7 +183,8 @@ var _ = Describe("type EngineOption", func() {
 
 		It("causes a panic if WithDiscoverer() is not used", func() {
 			Expect(func() {
-				resolveOptions(cfg, []EngineOption{
+				resolveOptions([]EngineOption{
+					WithApplication(app),
 					WithDialer(dialer),
 				})
 			}).To(Panic())
@@ -166,7 +195,8 @@ var _ = Describe("type EngineOption", func() {
 		It("sets the backoff strategy", func() {
 			p := backoff.Constant(10 * time.Second)
 
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithDialerBackoffStrategy(p),
 			})
 
@@ -174,7 +204,8 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("uses the default if the strategy is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithDialerBackoffStrategy(nil),
 			})
 
@@ -184,7 +215,8 @@ var _ = Describe("type EngineOption", func() {
 
 	Describe("func WithServerOptions()", func() {
 		It("appends to the options", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithServerOptions(grpc.ConnectionTimeout(0)),
 				WithServerOptions(grpc.ConnectionTimeout(0)),
 			})
@@ -197,7 +229,8 @@ var _ = Describe("type EngineOption", func() {
 		It("sets the marshaler", func() {
 			m := &codec.Marshaler{}
 
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithMarshaler(m),
 			})
 
@@ -205,17 +238,21 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("constructs a default if the marshaler is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithMarshaler(nil),
 			})
 
-			Expect(opts.Marshaler).To(Equal(NewDefaultMarshaler(cfg)))
+			Expect(opts.Marshaler).To(Equal(
+				NewDefaultMarshaler(opts.AppConfigs),
+			))
 		})
 	})
 
 	Describe("func WithLogger()", func() {
 		It("sets the logger", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithLogger(logging.DebugLogger),
 			})
 
@@ -223,7 +260,8 @@ var _ = Describe("type EngineOption", func() {
 		})
 
 		It("uses the default if the logger is nil", func() {
-			opts := resolveOptions(cfg, []EngineOption{
+			opts := resolveOptions([]EngineOption{
+				WithApplication(app),
 				WithLogger(nil),
 			})
 

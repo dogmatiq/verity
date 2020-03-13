@@ -59,10 +59,12 @@ func WithMessageTimeout(d time.Duration) EngineOption {
 
 // NewDefaultMarshaler returns the default marshaler to use for the given
 // application configuration.
-func NewDefaultMarshaler(cfg configkit.RichApplication) marshalkit.Marshaler {
+func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshaler {
 	var types []reflect.Type
-	for t := range cfg.MessageTypes().All() {
-		types = append(types, t.ReflectType())
+	for _, cfg := range configs {
+		for t := range cfg.MessageTypes().All() {
+			types = append(types, t.ReflectType())
+		}
 	}
 
 	m, err := codec.NewMarshaler(
@@ -105,6 +107,7 @@ func WithLogger(l logging.Logger) EngineOption {
 
 // engineOptions is a container for a fully-resolved set of engine options.
 type engineOptions struct {
+	AppConfigs             []configkit.RichApplication
 	ListenAddress          string
 	MessageBackoffStrategy backoff.Strategy
 	MessageTimeout         time.Duration
@@ -119,13 +122,16 @@ type engineOptions struct {
 // resolveOptions returns a fully-populated set of engine options built from the
 // given set of option functions.
 func resolveOptions(
-	cfg configkit.RichApplication,
 	options []EngineOption,
 ) *engineOptions {
 	opts := &engineOptions{}
 
 	for _, o := range options {
 		o(opts)
+	}
+
+	if len(opts.AppConfigs) == 0 {
+		panic("at least one WithApplication() option must be provided")
 	}
 
 	if opts.ListenAddress == "" {
@@ -151,7 +157,7 @@ func resolveOptions(
 	}
 
 	if opts.Marshaler == nil {
-		opts.Marshaler = NewDefaultMarshaler(cfg)
+		opts.Marshaler = NewDefaultMarshaler(opts.AppConfigs)
 	}
 
 	if opts.Logger == nil {
