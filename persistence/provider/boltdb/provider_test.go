@@ -20,11 +20,30 @@ import (
 
 var _ = Context("providers", func() {
 	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-		db     *bbolt.DB
-		close  func()
+		ctx     context.Context
+		cancel  context.CancelFunc
+		db      *bbolt.DB
+		close   func()
+		entries []TableEntry
 	)
+
+	entries = []TableEntry{
+		Entry(
+			"func New()",
+			func() persistence.Provider {
+				return New(db)
+			},
+		),
+		Entry(
+			"func NewOpener()",
+			func() persistence.Provider {
+				filename := db.Path()
+				db.Close()
+
+				return NewOpener(filename, 0, nil)
+			},
+		),
+	}
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
@@ -80,20 +99,48 @@ var _ = Context("providers", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(m.Envelope).To(Equal(env))
 		},
-		Entry(
-			"func New()",
-			func() persistence.Provider {
-				return New(db)
-			},
-		),
-		Entry(
-			"func NewOpener()",
-			func() persistence.Provider {
-				filename := db.Path()
-				db.Close()
-
-				return NewOpener(filename, 0, nil)
-			},
-		),
+		entries...,
 	)
+
+	DescribeTable(
+		"it allows multiple open data-stores for the same application",
+		func(get func() persistence.Provider) {
+			provider := get()
+
+			store1, err := provider.Open(
+				ctx,
+				configkit.MustNewIdentity("<app>", "<app-key>"),
+				Marshaler,
+			)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer store1.Close()
+
+			store2, err := provider.Open(
+				ctx,
+				configkit.MustNewIdentity("<app>", "<app-key>"),
+				Marshaler,
+			)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer store2.Close()
+		},
+		entries...,
+	)
+
+	Describe("func NewOpener()", func() {
+		Describe("func Open()", func() {
+			It("returns an error if the DB can not be opened", func() {
+				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
+				defer cancel()
+
+				p := NewOpener(db.Path(), 0, nil)
+
+				_, err := p.Open(
+					ctx,
+					configkit.MustNewIdentity("<app>", "<app-key>"),
+					Marshaler,
+				)
+				Expect(err).To(Equal(context.DeadlineExceeded))
+			})
+		})
+	})
 })

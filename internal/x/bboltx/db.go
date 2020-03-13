@@ -36,5 +36,11 @@ func Open(
 		}
 	}
 
-	return bbolt.Open(path, mode, opts)
+	db, err := bbolt.Open(path, mode, opts)
+
+	if err != nil && err.Error() == "timeout" {
+		err = context.DeadlineExceeded
+	}
+
+	return db, err
 }
