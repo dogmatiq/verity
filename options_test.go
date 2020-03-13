@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/linger/backoff"
-	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -55,30 +54,6 @@ var _ = Describe("func WithMessageBackoffStrategy()", func() {
 		})
 
 		Expect(opts.MessageBackoffStrategy).ToNot(BeNil())
-	})
-})
-
-var _ = Describe("func WithMarshaler()", func() {
-	It("sets the marshaler", func() {
-		m := &codec.Marshaler{}
-
-		opts := resolveOptions([]EngineOption{
-			WithApplication(TestApplication),
-			WithMarshaler(m),
-		})
-
-		Expect(opts.Marshaler).To(BeIdenticalTo(m))
-	})
-
-	It("constructs a default if the marshaler is nil", func() {
-		opts := resolveOptions([]EngineOption{
-			WithApplication(TestApplication),
-			WithMarshaler(nil),
-		})
-
-		Expect(opts.Marshaler).To(Equal(
-			NewDefaultMarshaler(opts.AppConfigs),
-		))
 	})
 })
 

@@ -1,18 +1,15 @@
 package infix
 
 import (
-	"reflect"
 	"time"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/marshalkit/codec"
-	"github.com/dogmatiq/marshalkit/codec/json"
-	"github.com/dogmatiq/marshalkit/codec/protobuf"
 	"google.golang.org/grpc"
 )
 
@@ -57,41 +54,6 @@ func WithMessageTimeout(d time.Duration) EngineOption {
 	}
 }
 
-// NewDefaultMarshaler returns the default marshaler to use for the given
-// application configuration.
-func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshaler {
-	var types []reflect.Type
-	for _, cfg := range configs {
-		for t := range cfg.MessageTypes().All() {
-			types = append(types, t.ReflectType())
-		}
-	}
-
-	m, err := codec.NewMarshaler(
-		types,
-		[]codec.Codec{
-			&protobuf.NativeCodec{},
-			&json.Codec{},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	return m
-}
-
-// WithMarshaler returns an option that sets the marshaler used to marshal and
-// unmarshal messages and other types.
-//
-// If this option is omitted or m is nil NewDefaultMarshaler() is called to
-// obtain the default marshaler.
-func WithMarshaler(m marshalkit.Marshaler) EngineOption {
-	return func(opts *engineOptions) {
-		opts.Marshaler = m
-	}
-}
-
 // DefaultLogger is the default target for log messages produced by the engine.
 var DefaultLogger = logging.DefaultLogger
 
@@ -108,6 +70,7 @@ func WithLogger(l logging.Logger) EngineOption {
 // engineOptions is a container for a fully-resolved set of engine options.
 type engineOptions struct {
 	AppConfigs             []configkit.RichApplication
+	PersistenceProvider    persistence.Provider
 	ListenAddress          string
 	MessageBackoffStrategy backoff.Strategy
 	MessageTimeout         time.Duration
@@ -132,6 +95,10 @@ func resolveOptions(
 
 	if len(opts.AppConfigs) == 0 {
 		panic("at least one WithApplication() option must be provided")
+	}
+
+	if opts.PersistenceProvider == nil {
+		opts.PersistenceProvider = DefaultPersistenceProvider
 	}
 
 	if opts.ListenAddress == "" {
