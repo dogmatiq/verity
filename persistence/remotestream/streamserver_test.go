@@ -39,7 +39,7 @@ var _ = Describe("type streamServer", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		server = grpc.NewServer()
-		RegisterEventStreamServer(
+		RegisterServer(
 			server,
 			Marshaler,
 			map[string]persistence.Stream{

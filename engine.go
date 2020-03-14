@@ -4,12 +4,15 @@ import (
 	"context"
 
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/persistence"
 	"golang.org/x/sync/errgroup"
 )
 
 // Engine hosts a Dogma application.
 type Engine struct {
-	opts *engineOptions
+	opts       *engineOptions
+	group      *errgroup.Group
+	dataStores map[string]persistence.DataStore
 }
 
 // New returns a new engine that hosts the given application.
@@ -27,23 +30,19 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 }
 
 // Run hosts the given application until ctx is canceled or an error occurs.
-func (e *Engine) Run(ctx context.Context) (err error) {
-	g, groupCtx := errgroup.WithContext(ctx)
+func (e *Engine) Run(ctx context.Context) error {
+	var gctx context.Context
+	e.group, gctx = errgroup.WithContext(ctx)
 
-	for _, cfg := range e.opts.AppConfigs {
-		cfg := cfg // capture loop variable
-		g.Go(func() error {
-			return runApplication(groupCtx, e.opts, cfg)
-		})
+	if err := e.setupPersistence(gctx); err != nil {
+		return err
 	}
+	defer e.tearDownPersistence()
 
-	if e.opts.Network != nil {
-		g.Go(func() error {
-			return runNetwork(groupCtx, e.opts)
-		})
-	}
+	e.setupNetwork(gctx)
+	e.setupApplications(gctx)
 
-	err = g.Wait()
+	err := e.group.Wait()
 
 	if ctx.Err() != nil {
 		return ctx.Err()

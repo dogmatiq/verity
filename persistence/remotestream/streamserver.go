@@ -14,11 +14,10 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// RegisterEventStreamServer registers an event stream server for the given
-// streams.
+// RegisterServer registers an event stream server for the given streams.
 //
 // streams is a map of application key to the stream of that application.
-func RegisterEventStreamServer(
+func RegisterServer(
 	s *grpc.Server,
 	m marshalkit.TypeMarshaler,
 	streams map[string]persistence.Stream,
