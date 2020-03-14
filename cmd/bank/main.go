@@ -84,11 +84,9 @@ func main() {
 
 	e := infix.New(
 		app,
-		infix.WithPersistence(boltdb.NewOpener(
-			fmt.Sprintf("/tmp/infix-%s.db", os.Args[1]),
-			0,
-			nil,
-		)),
+		infix.WithPersistence(&boltdb.FileProvider{
+			Path: fmt.Sprintf("/tmp/infix-%s.db", os.Args[1]),
+		}),
 		infix.WithNetworking(
 			infix.WithListenAddress(addr),
 			infix.WithDialer(dial),

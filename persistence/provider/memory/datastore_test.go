@@ -15,10 +15,10 @@ var _ = Describe("type dataStpre", func() {
 	var dataStore persistence.DataStore
 
 	BeforeEach(func() {
-		p := New()
+		provider := &Provider{}
 
 		var err error
-		dataStore, err = p.Open(
+		dataStore, err = provider.Open(
 			context.Background(),
 			configkit.MustNewIdentity("<app>", "<app-key>"),
 			Marshaler,

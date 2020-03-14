@@ -29,18 +29,20 @@ var _ = Context("providers", func() {
 
 	entries = []TableEntry{
 		Entry(
-			"func New()",
+			"type Provider",
 			func() persistence.Provider {
-				return New(db)
+				return &Provider{db}
 			},
 		),
 		Entry(
-			"func NewOpener()",
+			"type FileProvider",
 			func() persistence.Provider {
 				filename := db.Path()
 				db.Close()
 
-				return NewOpener(filename, 0, nil)
+				return &FileProvider{
+					Path: filename,
+				}
 			},
 		),
 	}
@@ -126,13 +128,15 @@ var _ = Context("providers", func() {
 		entries...,
 	)
 
-	Describe("type opener", func() {
+	Describe("type FileProvider", func() {
 		Describe("func Open()", func() {
 			It("returns an error if the DB can not be opened", func() {
 				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 				defer cancel()
 
-				p := NewOpener(db.Path(), 0, nil)
+				p := &FileProvider{
+					Path: db.Path(),
+				}
 
 				_, err := p.Open(
 					ctx,

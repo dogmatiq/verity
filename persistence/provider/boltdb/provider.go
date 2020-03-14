@@ -12,19 +12,14 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// provider is a implementation of provider.Provider for BoltDB that uses an
+// Provider is a implementation of provider.Provider for BoltDB that uses an
 // existing open database.
-type provider struct {
+type Provider struct {
 	DB *bbolt.DB
 }
 
-// New returns a persistence provider that uses the given BoltDB database.
-func New(db *bbolt.DB) persistence.Provider {
-	return &provider{db}
-}
-
 // Open returns a data-store for a specific application.
-func (p *provider) Open(
+func (p *Provider) Open(
 	ctx context.Context,
 	app configkit.Identity,
 	m marshalkit.Marshaler,
@@ -36,9 +31,9 @@ func (p *provider) Open(
 	}, nil
 }
 
-// opener is a implementation of provider.Provider for BoltDB that opens a
+// FileProvider is a implementation of provider.Provider for BoltDB that opens a
 // BoltDB database file.
-type opener struct {
+type FileProvider struct {
 	Path    string
 	Mode    os.FileMode
 	Options *bbolt.Options
@@ -48,21 +43,8 @@ type opener struct {
 	db   *bbolt.DB
 }
 
-// NewOpener returns a persistence provider that opens a BoltDB database.
-func NewOpener(
-	path string,
-	mode os.FileMode,
-	options *bbolt.Options,
-) persistence.Provider {
-	return &opener{
-		Path:    path,
-		Mode:    mode,
-		Options: options,
-	}
-}
-
 // Open returns a data-store for a specific application.
-func (p *opener) Open(
+func (p *FileProvider) Open(
 	ctx context.Context,
 	app configkit.Identity,
 	m marshalkit.Marshaler,
@@ -88,7 +70,7 @@ func (p *opener) Open(
 	}, nil
 }
 
-func (p *opener) close() error {
+func (p *FileProvider) close() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 

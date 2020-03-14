@@ -9,18 +9,13 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// provider is an in-memory implementation of provider.Provider.
-type provider struct {
+// Provider is an in-memory implementation of provider.Provider.
+type Provider struct {
 	dataStores sync.Map
 }
 
-// New returns a persistence provider that stores data in-memory.
-func New() persistence.Provider {
-	return &provider{}
-}
-
 // Open returns a data-store for a specific application.
-func (p *provider) Open(
+func (p *Provider) Open(
 	ctx context.Context,
 	app configkit.Identity,
 	_ marshalkit.Marshaler,
