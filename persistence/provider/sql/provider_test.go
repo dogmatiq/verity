@@ -1,29 +1,34 @@
-package boltdb_test
+// +build cgo
+
+package sql_test
 
 import (
 	"context"
+	"database/sql"
 	"time"
+
+	"github.com/dogmatiq/infix/internal/x/sqlx"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
+	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	"github.com/dogmatiq/infix/persistence"
-	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
+	. "github.com/dogmatiq/infix/persistence/provider/sql"
+	"github.com/dogmatiq/infix/persistence/provider/sql/driver/sqlite"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"go.etcd.io/bbolt"
 )
 
 var _ = Context("providers", func() {
 	var (
 		ctx     context.Context
 		cancel  context.CancelFunc
-		db      *bbolt.DB
-		close   func()
+		dsn     string
+		db      *sql.DB
 		entries []TableEntry
 	)
 
@@ -31,17 +36,17 @@ var _ = Context("providers", func() {
 		Entry(
 			"type Provider",
 			func() persistence.Provider {
-				return &Provider{db}
+				return &Provider{
+					DB: db,
+				}
 			},
 		),
 		Entry(
-			"type FileProvider",
+			"type DSNProvider",
 			func() persistence.Provider {
-				filename := db.Path()
-				db.Close()
-
-				return &FileProvider{
-					Path: filename,
+				return &DSNProvider{
+					DriverName: "sqlite3",
+					DSN:        dsn,
 				}
 			},
 		),
@@ -49,11 +54,25 @@ var _ = Context("providers", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-		db, close = boltdbtest.Open()
+
+		dsn = sqltest.DSN("sqlite3")
+
+		var err error
+		db, err = sql.Open("sqlite3", dsn)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = sqlite.DropSchema(ctx, db)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = sqlite.CreateSchema(ctx, db)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		close()
+		if db != nil {
+			db.Close()
+		}
+
 		cancel()
 	})
 
@@ -64,19 +83,19 @@ var _ = Context("providers", func() {
 			env := NewEnvelope("<id>", MessageA1)
 
 			writer := &Stream{
-				DB:        db,
-				Marshaler: Marshaler,
-				BucketPath: [][]byte{
-					[]byte("<app-key>"),
-					[]byte("eventstream"),
-				},
+				ApplicationKey: "<app-key>",
+				DB:             db,
+				Driver:         sqlite.StreamDriver{},
+				Marshaler:      Marshaler,
 			}
 
-			err := db.Update(func(tx *bbolt.Tx) error {
-				_, err := writer.Append(tx, env)
-				return err
-			})
+			tx := sqlx.Begin(ctx, db)
+			defer tx.Rollback()
+
+			_, err := writer.Append(ctx, tx, env)
 			Expect(err).ShouldNot(HaveOccurred())
+
+			sqlx.Commit(tx)
 
 			// Then we create the provider. and confirm that it gives us a
 			// data-store that reads from the same database.
@@ -128,24 +147,51 @@ var _ = Context("providers", func() {
 		entries...,
 	)
 
-	Describe("type FileProvider", func() {
+	Describe("type Provider", func() {
 		Describe("func Open()", func() {
-			It("returns an error if the DB can not be opened", func() {
-				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
-				defer cancel()
-
-				p := &FileProvider{
-					Path: db.Path(),
+			It("returns an error if the driver can not be deduced", func() {
+				p := &Provider{
+					DB: sqltest.MockDB(),
 				}
 
-				// Note that we did not close db, so we expect this to timeout
-				// waiting for the file lock.
 				_, err := p.Open(
 					ctx,
 					configkit.MustNewIdentity("<app>", "<app-key>"),
 					Marshaler,
 				)
-				Expect(err).To(Equal(context.DeadlineExceeded))
+				Expect(err).To(MatchError("can not deduce the appropriate SQL driver for *sqltest.MockDriver"))
+			})
+		})
+	})
+
+	Describe("type FileProvider", func() {
+		Describe("func Open()", func() {
+			It("returns an error if the DB can not be opened", func() {
+				p := &DSNProvider{
+					DriverName: "<nonsense-driver>",
+					DSN:        "<nonsense-dsn>",
+				}
+
+				_, err := p.Open(
+					ctx,
+					configkit.MustNewIdentity("<app>", "<app-key>"),
+					Marshaler,
+				)
+				Expect(err).Should(HaveOccurred())
+			})
+
+			It("returns an error if the driver can not be deduced", func() {
+				p := &DSNProvider{
+					DriverName: sqltest.MockDriverName(),
+					DSN:        "<nonsense-dsn>",
+				}
+
+				_, err := p.Open(
+					ctx,
+					configkit.MustNewIdentity("<app>", "<app-key>"),
+					Marshaler,
+				)
+				Expect(err).To(MatchError("can not deduce the appropriate SQL driver for *sqltest.MockDriver"))
 			})
 		})
 	})

@@ -16,7 +16,7 @@ import (
 	"github.com/dogmatiq/infix/cmd/bank/account"
 	"github.com/dogmatiq/infix/cmd/bank/customer"
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	"github.com/dogmatiq/infix/persistence/provider/boltdb"
+	"github.com/dogmatiq/infix/persistence/provider/sql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/postgres"
 	"google.golang.org/grpc"
 )
@@ -84,8 +84,8 @@ func main() {
 
 	e := infix.New(
 		app,
-		infix.WithPersistence(&boltdb.FileProvider{
-			Path: fmt.Sprintf("/tmp/infix-%s.db", os.Args[1]),
+		infix.WithPersistence(&sql.Provider{
+			DB: db,
 		}),
 		infix.WithNetworking(
 			infix.WithListenAddress(addr),
