@@ -16,6 +16,13 @@ import (
 )
 
 var (
+	// DefaultStreamBackoff is the default backoff strategy for stream polling.
+	DefaultStreamBackoff backoff.Strategy = backoff.WithTransforms(
+		backoff.Exponential(10*time.Millisecond),
+		linger.FullJitter,
+		linger.Limiter(0, 5*time.Second),
+	)
+
 	// DefaultMaxIdleConns is the default maximum number of idle connections
 	// allowed in the database pool.
 	DefaultMaxIdleConns = runtime.GOMAXPROCS(0)
@@ -27,20 +34,22 @@ var (
 	// DefaultMaxConnLifetime is the default maximum lifetime of database
 	// connections.
 	DefaultMaxConnLifetime = 10 * time.Minute
-
-	// DefaultStreamBackoff is the default backoff strategy for stream polling.
-	DefaultStreamBackoff backoff.Strategy = backoff.WithTransforms(
-		backoff.Exponential(10*time.Millisecond),
-		linger.FullJitter,
-		linger.Limiter(0, 5*time.Second),
-	)
 )
 
 // Provider is an implementation of provider.Provider for SQL that uses an
 // existing open database pool.
 type Provider struct {
-	DB            *sql.DB
-	Driver        *driver.Driver
+	// DB is the SQL database to use.
+	DB *sql.DB
+
+	// Driver is the Infix SQL driver to use with this database.
+	// If it is nil, it is determined automatically for built-in drivers.
+	Driver *driver.Driver
+
+	// StreamBackoff is the backoff strategy used to determine delays betweens
+	// stream polls that do not produce any results.
+	//
+	// If it is nil, DefaultStreamBackoff is used.
 	StreamBackoff backoff.Strategy
 }
 
@@ -71,13 +80,37 @@ func (p *Provider) Open(
 // DSNProvider is an implementation of provider.Provider for SQL that opens a
 // a database pool using a DSN.
 type DSNProvider struct {
-	DriverName      string
-	DSN             string
-	Driver          *driver.Driver
-	MaxIdleConns    int
-	MaxOpenConns    int
+	// DriverName is the driver name to be passed to sql.Open().
+	DriverName string
+
+	// DSN is the data-source name to be passed to sql.Open().
+	DSN string
+
+	// Driver is the Infix SQL driver to use with this database.
+	// If it is nil, it is determined automatically for built-in drivers.
+	Driver *driver.Driver
+
+	// StreamBackoff is the backoff strategy used to determine delays betweens
+	// stream polls that do not produce any results.
+	//
+	// If it is nil, DefaultStreamBackoff is used.
+	StreamBackoff backoff.Strategy
+
+	// MaxIdleConnections is the maximum number of idle connections allowed in
+	// the database pool.
+	//
+	// If it is zero, DefaultMaxIdleConns is used.
+	MaxIdleConns int
+
+	// MaxOpenConnections is the maximum number of open connections allowed in
+	// the database pool.
+	//
+	// If it is zero, DefaultMaxOpenConns is used.
+	MaxOpenConns int
+
+	// maxConnLifetime is the maximum lifetime of database connections.
+	// If it is zero, DefaultMaxConnLifetime is used.
 	MaxConnLifetime time.Duration
-	StreamBackoff   backoff.Strategy
 
 	m      sync.Mutex
 	refs   int64

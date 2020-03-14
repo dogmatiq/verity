@@ -15,6 +15,7 @@ import (
 // Provider is an implementation of provider.Provider for BoltDB that uses an
 // existing open database.
 type Provider struct {
+	// DB is the BoltDB database to use.
 	DB *bbolt.DB
 }
 
@@ -34,8 +35,15 @@ func (p *Provider) Open(
 // FileProvider is an implementation of provider.Provider for BoltDB that opens
 // a BoltDB database file.
 type FileProvider struct {
-	Path    string
-	Mode    os.FileMode
+	// Path is the path to the BoltDB database to open or create.
+	Path string
+
+	// Mode is the file mode for the created file.
+	// If it is zero, 0600 (owner read/write only) is used.
+	Mode os.FileMode
+
+	// Options is the BoltDB options for the database.
+	// If it is nil, bbolt.DefaultOptions is used.
 	Options *bbolt.Options
 
 	m    sync.Mutex

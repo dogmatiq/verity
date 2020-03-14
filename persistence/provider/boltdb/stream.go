@@ -22,8 +22,14 @@ var (
 // Stream is an implementation of persistence.Stream that stores messages
 // in a BoltDB database.
 type Stream struct {
-	DB         *bbolt.DB
-	Marshaler  marshalkit.ValueMarshaler
+	// DB is the BoltDB database containing the stream's data.
+	DB *bbolt.DB
+
+	// Marshaler is used to marshal and unmarshal messages for storage.
+	Marshaler marshalkit.ValueMarshaler
+
+	// BucketPath is the "path" to a nested bucket with the database that
+	// contains the stream's data.
 	BucketPath [][]byte
 
 	m     sync.Mutex
