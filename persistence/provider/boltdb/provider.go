@@ -12,7 +12,7 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// Provider is a implementation of provider.Provider for BoltDB that uses an
+// Provider is an implementation of provider.Provider for BoltDB that uses an
 // existing open database.
 type Provider struct {
 	DB *bbolt.DB
@@ -31,8 +31,8 @@ func (p *Provider) Open(
 	}, nil
 }
 
-// FileProvider is a implementation of provider.Provider for BoltDB that opens a
-// BoltDB database file.
+// FileProvider is an implementation of provider.Provider for BoltDB that opens
+// a BoltDB database file.
 type FileProvider struct {
 	Path    string
 	Mode    os.FileMode

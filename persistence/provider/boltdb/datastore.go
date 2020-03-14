@@ -22,7 +22,7 @@ type dataStore struct {
 }
 
 // EventStream returns the event stream for the given application.
-func (ds *dataStore) EventStream(_ context.Context) (persistence.Stream, error) {
+func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
 			DB:        ds.DB,
