@@ -12,7 +12,7 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// provider is a implementation of provider.Provider for BoltDB uses an
+// provider is a implementation of provider.Provider for BoltDB that uses an
 // existing open database.
 type provider struct {
 	DB *bbolt.DB

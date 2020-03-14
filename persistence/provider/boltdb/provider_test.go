@@ -126,7 +126,7 @@ var _ = Context("providers", func() {
 		entries...,
 	)
 
-	Describe("func NewOpener()", func() {
+	Describe("type opener", func() {
 		Describe("func Open()", func() {
 			It("returns an error if the DB can not be opened", func() {
 				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
