@@ -19,7 +19,7 @@ var _ = Describe("func WithNetworking()", func() {
 			WithNetworking(),
 		)
 
-		Expect(opts.Network).NotTo(BeNil())
+		Expect(opts.Network).ToNot(BeNil())
 	})
 
 	It("does not construct a default if the option is omitted", func() {
@@ -91,7 +91,7 @@ var _ = Describe("func WithDialer()", func() {
 			WithDialer(nil),
 		)
 
-		Expect(opts.Dialer).NotTo(BeNil())
+		Expect(opts.Dialer).ToNot(BeNil())
 	})
 })
 

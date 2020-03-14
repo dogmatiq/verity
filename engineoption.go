@@ -102,7 +102,7 @@ func WithMessageTimeout(d time.Duration) EngineOption {
 // WithMessageBackoff returns an engine option that sets the backoff strategy
 // used to delay message handling retries.
 //
-// If this option is omitted or s is nil DefaultBackoffStrategy is used.
+// If this option is omitted or s is nil DefaultMessageBackoff is used.
 func WithMessageBackoff(s backoff.Strategy) EngineOption {
 	return func(opts *engineOptions) {
 		opts.MessageBackoff = s
