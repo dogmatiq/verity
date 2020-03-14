@@ -7,27 +7,25 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 )
 
-func runApplication(
+func (e *Engine) setupApplications(ctx context.Context) {
+	for _, cfg := range e.opts.AppConfigs {
+		cfg := cfg // capture loop variable
+		e.group.Go(func() error {
+			return e.runApplication(ctx, cfg)
+		})
+	}
+}
+
+func (e *Engine) runApplication(
 	ctx context.Context,
-	opts *engineOptions,
 	cfg configkit.RichApplication,
 ) error {
 	logging.Log(
-		opts.Logger,
+		e.opts.Logger,
 		"hosting '%s' application (%s)",
 		cfg.Identity().Name,
 		cfg.Identity().Key,
 	)
-
-	ds, err := opts.PersistenceProvider.Open(
-		ctx,
-		cfg.Identity(),
-		opts.Marshaler,
-	)
-	if err != nil {
-		return err
-	}
-	defer ds.Close()
 
 	<-ctx.Done()
 	return ctx.Err()

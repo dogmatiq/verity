@@ -36,7 +36,7 @@ var _ = Describe("type stream (standard test suite)", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			server = grpc.NewServer()
-			RegisterEventStreamServer(
+			RegisterServer(
 				server,
 				m,
 				map[string]persistence.Stream{
@@ -96,7 +96,7 @@ var _ = Describe("type stream", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		server = grpc.NewServer()
-		RegisterEventStreamServer(
+		RegisterServer(
 			server,
 			Marshaler,
 			map[string]persistence.Stream{
