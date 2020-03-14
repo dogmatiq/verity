@@ -52,12 +52,17 @@ func (s *Stream) Open(
 		}
 	}
 
+	strategy := s.BackoffStrategy
+	if strategy == nil {
+		strategy = DefaultStreamBackoff
+	}
+
 	return &cursor{
 		stream:   s,
 		offset:   offset,
 		filterID: filterID,
 		counter: backoff.Counter{
-			Strategy: s.BackoffStrategy,
+			Strategy: strategy,
 		},
 		closed: make(chan struct{}),
 	}, nil
