@@ -28,7 +28,9 @@ var _ = Describe("type stream (standard test suite)", func() {
 
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
-			source := &memory.Stream{}
+			source := &memory.Stream{
+				Types: in.MessageTypes,
+			}
 
 			var err error
 			listener, err = net.Listen("tcp", ":")
@@ -51,8 +53,17 @@ var _ = Describe("type stream (standard test suite)", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
+			stream, err := NewEventStream(
+				ctx,
+				"<app-key>",
+				conn,
+				in.Marshaler,
+				0,
+			)
+			Expect(err).ShouldNot(HaveOccurred())
+
 			return streamtest.Out{
-				Stream: NewEventStream("<app-key>", conn, Marshaler, 0),
+				Stream: stream,
 				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
 					source.Append(envelopes...)
 				},
@@ -70,12 +81,36 @@ var _ = Describe("type stream (standard test suite)", func() {
 	)
 })
 
+var _ = Describe("func NewEventStream()", func() {
+	It("returns an error if the message types can not be queried", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		conn, err := grpc.Dial(
+			"<nonsense target>",
+			grpc.WithInsecure(),
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+		defer conn.Close()
+
+		_, err = NewEventStream(
+			ctx,
+			"<app-key>",
+			conn,
+			Marshaler,
+			0,
+		)
+		Expect(err).Should(HaveOccurred())
+	})
+})
+
 var _ = Describe("type stream", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
 		listener net.Listener
 		server   *grpc.Server
+		conn     *grpc.ClientConn
 		source   *memory.Stream
 		stream   persistence.Stream
 		types    message.TypeSet
@@ -87,7 +122,11 @@ var _ = Describe("type stream", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		types = message.NewTypeSet(MessageAType)
-		source = &memory.Stream{}
+		source = &memory.Stream{
+			Types: message.TypesOf(
+				env.Message,
+			),
+		}
 		source.Append(env)
 
 		var err error
@@ -105,13 +144,20 @@ var _ = Describe("type stream", func() {
 
 		go server.Serve(listener)
 
-		conn, err := grpc.Dial(
+		conn, err = grpc.Dial(
 			listener.Addr().String(),
 			grpc.WithInsecure(),
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stream = NewEventStream("<app-key>", conn, Marshaler, 0)
+		stream, err = NewEventStream(
+			ctx,
+			"<app-key>",
+			conn,
+			Marshaler,
+			0,
+		)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -123,12 +169,16 @@ var _ = Describe("type stream", func() {
 			server.Stop()
 		}
 
+		if conn != nil {
+			conn.Close()
+		}
+
 		cancel()
 	})
 
 	Describe("func Open()", func() {
 		It("returns an error if the making the request fails", func() {
-			server.Stop()
+			conn.Close()
 
 			_, err := stream.Open(ctx, 0, types)
 			Expect(err).Should(HaveOccurred())

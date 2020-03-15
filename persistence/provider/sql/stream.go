@@ -19,10 +19,23 @@ import (
 // Stream is an implementation of persistence.Stream that stores messages
 // in an SQL database.
 type Stream struct {
-	ApplicationKey  string
-	DB              *sql.DB
-	Driver          driver.StreamDriver
-	Marshaler       marshalkit.Marshaler
+	// ApplicationKey is the identity key of the source application.
+	ApplicationKey string
+
+	// DB is the SQL database containing the stream's data.
+	DB *sql.DB
+
+	// Driver performs the database-system-specific SQL queries.
+	Driver driver.StreamDriver
+
+	// Types is the set of supported message types.
+	Types message.TypeCollection
+
+	// Marshaler is used to marshal and unmarshal messages for storage.
+	Marshaler marshalkit.Marshaler
+
+	// BackoffStrategy is the backoff strategy used to determine delays betweens
+	// polls that do not produce any results.
 	BackoffStrategy backoff.Strategy
 }
 
@@ -68,6 +81,11 @@ func (s *Stream) Open(
 	}, nil
 }
 
+// MessageTypes returns the message types that may appear on the stream.
+func (s *Stream) MessageTypes() message.TypeCollection {
+	return s.Types
+}
+
 // Append appends messages to the stream.
 //
 // It returns the next free offset.
@@ -91,6 +109,10 @@ func (s *Stream) Append(
 	next -= count
 
 	for _, env := range envelopes {
+		if !s.Types.HasM(env.Message) {
+			panic("unsupported message type: " + message.TypeOf(env.Message).String())
+		}
+
 		if err := s.Driver.Append(
 			ctx,
 			tx,

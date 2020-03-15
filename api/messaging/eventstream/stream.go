@@ -23,17 +23,40 @@ import (
 // count, which is the number of messages to buffer in memory on the before they
 // are requested by a call to Cursor.Next().
 func NewEventStream(
+	ctx context.Context,
 	k string,
 	c *grpc.ClientConn,
 	m marshalkit.Marshaler,
 	n int,
-) persistence.Stream {
+) (persistence.Stream, error) {
+	es := messagingspec.NewEventStreamClient(c)
+
+	req := &messagingspec.MessageTypesRequest{
+		ApplicationKey: k,
+	}
+
+	res, err := es.MessageTypes(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a type-set containing any message types supported by the remote end
+	// that we know how to unmarshal on this end.
+	types := message.TypeSet{}
+	for _, t := range res.GetMessageTypes() {
+		rt, err := m.UnmarshalType(t.PortableName)
+		if err == nil {
+			types.Add(message.TypeFromReflect(rt))
+		}
+	}
+
 	return &stream{
 		appKey:    k,
-		client:    messagingspec.NewEventStreamClient(c),
+		client:    es,
+		types:     types,
 		marshaler: m,
 		prefetch:  n,
-	}
+	}, nil
 }
 
 // stream is an implementation of persistence.Stream that consumes messages via
@@ -41,6 +64,7 @@ func NewEventStream(
 type stream struct {
 	appKey    string
 	client    messagingspec.EventStreamClient
+	types     message.TypeCollection
 	marshaler marshalkit.Marshaler
 	prefetch  int
 }
@@ -116,6 +140,11 @@ func (s *stream) Open(
 
 		return c, nil
 	}
+}
+
+// MessageTypes returns the message types that may appear on the stream.
+func (s *stream) MessageTypes() message.TypeCollection {
+	return s.types
 }
 
 // cursor is an implementation of persistence.StreamCursor that consumes

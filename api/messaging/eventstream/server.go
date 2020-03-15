@@ -113,6 +113,35 @@ func (s *streamServer) stream(k string) (persistence.Stream, error) {
 	)
 }
 
+func (s *streamServer) MessageTypes(
+	ctx context.Context,
+	req *messagingspec.MessageTypesRequest,
+) (*messagingspec.MessageTypesResponse, error) {
+	stream, err := s.stream(req.ApplicationKey)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &messagingspec.MessageTypesResponse{}
+
+	stream.MessageTypes().Range(
+		func(t message.Type) bool {
+			res.MessageTypes = append(
+				res.MessageTypes,
+				&messagingspec.MessageType{
+					PortableName: marshalkit.MustMarshalType(s.marshaler, t.ReflectType()),
+					ConfigName:   t.Name().String(),
+					MediaTypes:   nil, // TODO: https://github.com/dogmatiq/infix/issues/49
+				},
+			)
+
+			return true
+		},
+	)
+
+	return res, nil
+}
+
 // unmarshalMessageTypes unmarshals a collection of message types from their
 // protocol buffers representation.
 func unmarshalMessageTypes(

@@ -1,24 +1,40 @@
-package memory_test
+// +build cgo
+
+package sql_test
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	"github.com/dogmatiq/infix/persistence"
-	. "github.com/dogmatiq/infix/persistence/provider/memory"
+	. "github.com/dogmatiq/infix/persistence/provider/sql"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("type dataStore", func() {
-	var dataStore persistence.DataStore
+	var (
+		ctx       context.Context
+		cancel    context.CancelFunc
+		db        *sql.DB
+		dataStore persistence.DataStore
+	)
 
 	BeforeEach(func() {
-		provider := &Provider{}
+		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
+		db = sqltest.Open("sqlite3")
+
+		provider := &Provider{
+			DB: db,
+		}
 
 		cfg := configkit.FromApplication(&Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
@@ -35,7 +51,7 @@ var _ = Describe("type dataStore", func() {
 
 		var err error
 		dataStore, err = provider.Open(
-			context.Background(),
+			ctx,
 			cfg,
 			Marshaler,
 		)
@@ -43,27 +59,25 @@ var _ = Describe("type dataStore", func() {
 	})
 
 	AfterEach(func() {
-		dataStore.Close()
+		if dataStore != nil {
+			dataStore.Close()
+		}
+
+		if db != nil {
+			db.Close()
+		}
+
+		cancel()
 	})
 
 	Describe("func EventStream()", func() {
 		It("configures the stream with the expected message types", func() {
-			stream, err := dataStore.EventStream(context.Background())
+			stream, err := dataStore.EventStream(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(stream.MessageTypes()).To(Equal(
 				message.TypesOf(MessageE{}),
 			))
-		})
-
-		It("returns the same instance on subsequent calls", func() {
-			stream1, err := dataStore.EventStream(context.Background())
-			Expect(err).ShouldNot(HaveOccurred())
-
-			stream2, err := dataStore.EventStream(context.Background())
-			Expect(err).ShouldNot(HaveOccurred())
-
-			Expect(stream1).To(BeIdenticalTo(stream2))
 		})
 	})
 })

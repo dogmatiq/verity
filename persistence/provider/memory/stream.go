@@ -12,6 +12,9 @@ import (
 // Stream is an implementation of persistence.Stream that stores messages
 // in-memory.
 type Stream struct {
+	// Types is the set of supported message types.
+	Types message.TypeCollection
+
 	m         sync.Mutex
 	ready     chan struct{}
 	envelopes []*envelope.Envelope
@@ -41,8 +44,20 @@ func (s *Stream) Open(
 	}, nil
 }
 
+// MessageTypes returns the message types that may appear on the stream.
+func (s *Stream) MessageTypes() message.TypeCollection {
+	return s.Types
+}
+
 // Append appends messages to the stream.
 func (s *Stream) Append(envelopes ...*envelope.Envelope) {
+	for _, env := range envelopes {
+		t := message.TypeOf(env.Message)
+		if !s.Types.Has(t) {
+			panic("unsupported message type: " + t.String())
+		}
+	}
+
 	s.m.Lock()
 	defer s.m.Unlock()
 

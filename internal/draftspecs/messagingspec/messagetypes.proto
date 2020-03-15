@@ -1,0 +1,30 @@
+syntax = "proto3";
+package dogma.messaging.v1;
+
+option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messagingspec";
+
+message MessageTypesRequest{
+  // ApplicationKey is the identity key of the application to query.
+  string application_key = 1;
+}
+
+message MessageTypesResponse{
+  // MessageTypes is the set of messages supported by the server.
+  repeated MessageType message_types = 1;
+}
+
+message MessageType {
+  // PortableName is the unique name used to identity messages of this type.
+  string portable_name = 1;
+
+  // ConfigName is the name used to identify this message type in the
+  // dogma.config.v1 API.
+  //
+  // This name may differ across builds, as it is based on the fully-qualified
+  // Go type name.
+  string config_name = 2;
+
+  // MediaTypes is a list of MIME media-types that the server may use to
+  // represent messages of this type.
+  repeated string media_types = 3;
+}

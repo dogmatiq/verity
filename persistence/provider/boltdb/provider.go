@@ -26,7 +26,7 @@ func (p *Provider) Open(
 	m marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
 	return &dataStore{
-		App:       cfg.Identity(),
+		AppConfig: cfg,
 		Marshaler: m,
 		DB:        p.DB,
 	}, nil
@@ -71,7 +71,7 @@ func (p *FileProvider) Open(
 	p.refs++
 
 	return &dataStore{
-		App:       cfg.Identity(),
+		AppConfig: cfg,
 		Marshaler: m,
 		DB:        p.db,
 		Closer:    p.close,

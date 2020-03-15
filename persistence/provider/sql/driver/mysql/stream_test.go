@@ -33,6 +33,7 @@ var _ = Describe("type StreamDriver (standard test suite)", func() {
 				ApplicationKey:  "<app-key>",
 				DB:              db,
 				Driver:          StreamDriver{},
+				Types:           in.MessageTypes,
 				Marshaler:       in.Marshaler,
 				BackoffStrategy: backoff.Constant(10 * time.Millisecond),
 			}

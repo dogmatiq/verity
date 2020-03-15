@@ -69,7 +69,7 @@ func (p *Provider) Open(
 	}
 
 	return &dataStore{
-		App:           cfg.Identity(),
+		AppConfig:     cfg,
 		Marshaler:     m,
 		DB:            p.DB,
 		Driver:        d,
@@ -136,7 +136,7 @@ func (p *DSNProvider) Open(
 	p.refs++
 
 	return &dataStore{
-		App:           cfg.Identity(),
+		AppConfig:     cfg,
 		Marshaler:     m,
 		DB:            p.db,
 		Driver:        p.driver,

@@ -4,6 +4,7 @@ package dogma.messaging.v1;
 option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messagingspec";
 
 import "internal/draftspecs/envelopespec/envelope.proto";
+import "internal/draftspecs/messagingspec/messagetypes.proto";
 
 // CommandQueue is a service for sending command messages between Dogma
 // applications hosted on different engines.
@@ -52,6 +53,14 @@ service CommandQueue {
   // Upon returning a successful response, the server MUST NOT make any future
   // call to Enqueue() for the specified message.
   rpc Ack(AckRequest) returns (AckResponse);
+
+  // MessageTypes queries the messages types that the server supports for a
+  // specific application.
+  //
+  // If the server does not host the application specified in the request, it
+  // MUST return a NOT_FOUND error with an attached UnrecognizedApplication
+  // value.
+  rpc MessageTypes(MessageTypesRequest) returns (MessageTypesResponse);
 }
 
 message EnqueueRequest{
