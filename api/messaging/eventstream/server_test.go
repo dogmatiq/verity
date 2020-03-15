@@ -236,4 +236,35 @@ var _ = Describe("type streamServer", func() {
 			))
 		})
 	})
+
+	Describe("func MessageTypes()", func() {
+		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
+			req := &messagingspec.MessageTypesRequest{}
+
+			_, err := client.MessageTypes(ctx, req)
+
+			s, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(s.Message()).To(Equal("application key must not be empty"))
+			Expect(s.Code()).To(Equal(codes.InvalidArgument))
+		})
+
+		It("returns a NOT_FOUND error if the application is not recognized", func() {
+			req := &messagingspec.MessageTypesRequest{
+				ApplicationKey: "<unknown>",
+			}
+
+			_, err := client.MessageTypes(ctx, req)
+
+			s, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(s.Message()).To(Equal("unrecognized application: <unknown>"))
+			Expect(s.Code()).To(Equal(codes.NotFound))
+			Expect(s.Details()).To(ContainElement(
+				&messagingspec.UnrecognizedApplication{
+					ApplicationKey: "<unknown>",
+				},
+			))
+		})
+	})
 })
