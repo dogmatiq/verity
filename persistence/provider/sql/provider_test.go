@@ -7,14 +7,13 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
+	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/persistence/provider/sql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/sqlite"
@@ -93,6 +92,7 @@ var _ = Context("providers", func() {
 			writer := &Stream{
 				ApplicationKey: "<app-key>",
 				DB:             db,
+				Types:          message.TypesOf(MessageA1),
 				Driver:         sqlite.StreamDriver{},
 				Marshaler:      Marshaler,
 			}

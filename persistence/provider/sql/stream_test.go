@@ -35,6 +35,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 				ApplicationKey:  "<app-key>",
 				DB:              db,
 				Driver:          sqlite.StreamDriver{},
+				Types:           in.MessageTypes,
 				Marshaler:       in.Marshaler,
 				BackoffStrategy: backoff.Constant(10 * time.Millisecond),
 			}

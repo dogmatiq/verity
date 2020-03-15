@@ -12,7 +12,7 @@ import (
 // Hash marshals the given message types to their "portable name" and computes a
 // deterministic hash of those names.
 func Hash(
-	m marshalkit.Marshaler,
+	m marshalkit.TypeMarshaler,
 	types message.TypeCollection,
 ) ([]byte, []string) {
 	var names []string
