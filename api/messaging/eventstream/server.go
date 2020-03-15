@@ -12,6 +12,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // RegisterServer registers an event stream server for the given streams.
@@ -111,6 +112,18 @@ func (s *streamServer) stream(k string) (persistence.Stream, error) {
 		"unrecognized application: %s",
 		k,
 	)
+}
+
+func (s *streamServer) MessageTypes(
+	ctx context.Context,
+	req *messagingspec.MessageTypesRequest,
+) (*messagingspec.MessageTypesResponse, error) {
+	_, err := s.stream(req.ApplicationKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 // unmarshalMessageTypes unmarshals a collection of message types from their
