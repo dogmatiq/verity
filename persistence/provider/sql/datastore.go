@@ -29,23 +29,16 @@ type dataStore struct {
 // EventStream returns the event stream for the given application.
 func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 	ds.once.Do(func() {
-		// TODO: This can be cleaned up with a single function.
-		// See https://github.com/dogmatiq/infix/issues/48
-		types := message.TypeSet{}
-
-		for t, r := range ds.AppConfig.MessageTypes().Produced {
-			if r == message.EventRole {
-				types.Add(t)
-			}
-		}
-
 		ds.stream = &Stream{
 			ApplicationKey:  ds.AppConfig.Identity().Key,
 			DB:              ds.DB,
 			Driver:          ds.Driver.StreamDriver,
-			Types:           types,
 			Marshaler:       ds.Marshaler,
 			BackoffStrategy: ds.StreamBackoff,
+			Types: ds.AppConfig.
+				MessageTypes().
+				Produced.
+				FilterByRole(message.EventRole),
 		}
 	})
 
