@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type dataStpre", func() {
+var _ = Describe("type dataStore", func() {
 	var dataStore persistence.DataStore
 
 	BeforeEach(func() {
