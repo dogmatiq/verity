@@ -29,8 +29,8 @@ type dataStore struct {
 // EventStream returns the event stream for the given application.
 func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 	ds.once.Do(func() {
-		// This can be cleaned up with a single function.
-		// See https://github.com/dogmatiq/configkit/issues/62
+		// TODO: This can be cleaned up with a single function.
+		// See https://github.com/dogmatiq/infix/issues/48
 		types := message.TypeSet{}
 
 		for t, r := range ds.AppConfig.MessageTypes().Produced {
