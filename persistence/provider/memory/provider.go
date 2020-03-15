@@ -22,7 +22,9 @@ func (p *Provider) Open(
 ) (persistence.DataStore, error) {
 	ds, _ := p.dataStores.LoadOrStore(
 		cfg.Identity().Key,
-		&dataStore{},
+		&dataStore{
+			AppConfig: cfg,
+		},
 	)
 
 	return ds.(persistence.DataStore), nil

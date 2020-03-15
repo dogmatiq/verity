@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/persistence"
@@ -22,6 +23,13 @@ var _ = Describe("type dataStpre", func() {
 		cfg := configkit.FromApplication(&Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 				c.Identity("<app>", "<app-key>")
+				c.RegisterAggregate(&AggregateMessageHandler{
+					ConfigureFunc: func(c dogma.AggregateConfigurer) {
+						c.Identity("<agg>", "<agg-key>")
+						c.ConsumesCommandType(MessageC{})
+						c.ProducesEventType(MessageE{})
+					},
+				})
 			},
 		})
 
@@ -39,6 +47,15 @@ var _ = Describe("type dataStpre", func() {
 	})
 
 	Describe("func EventStream()", func() {
+		It("configures the stream with the expected message types", func() {
+			stream, err := dataStore.EventStream(context.Background())
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(stream.MessageTypes()).To(Equal(
+				message.TypesOf(MessageE{}),
+			))
+		})
+
 		It("returns the same instance on subsequent calls", func() {
 			stream1, err := dataStore.EventStream(context.Background())
 			Expect(err).ShouldNot(HaveOccurred())

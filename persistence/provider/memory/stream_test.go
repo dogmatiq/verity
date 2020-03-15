@@ -3,16 +3,23 @@ package memory_test
 import (
 	"context"
 
+	. "github.com/dogmatiq/configkit/fixtures"
+	"github.com/dogmatiq/configkit/message"
+	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
+	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/testing/streamtest"
 	. "github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("type Stream (standard test suite)", func() {
 	streamtest.Declare(
-		func(ctx context.Context, _ streamtest.In) streamtest.Out {
-			stream := &Stream{}
+		func(ctx context.Context, in streamtest.In) streamtest.Out {
+			stream := &Stream{
+				Types: in.MessageTypes,
+			}
 
 			return streamtest.Out{
 				Stream: stream,
@@ -23,4 +30,22 @@ var _ = Describe("type Stream (standard test suite)", func() {
 		},
 		nil,
 	)
+})
+
+var _ = Describe("type Stream", func() {
+	Describe("func Append()", func() {
+		It("panics if the message type is not supported", func() {
+			env := NewEnvelope("<id>", MessageA1)
+
+			stream := &Stream{
+				Types: message.NewTypeSet(
+					MessageBType,
+				),
+			}
+
+			Expect(func() {
+				stream.Append(env)
+			}).To(Panic())
+		})
+	})
 })
