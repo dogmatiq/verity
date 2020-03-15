@@ -30,9 +30,10 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 
 // Run hosts the given application until ctx is canceled or an error occurs.
 func (e *Engine) Run(ctx context.Context) error {
-	g, gctx := errgroup.WithContext(ctx)
+	parent := ctx
+	g, ctx := errgroup.WithContext(ctx)
 
-	if err := e.setupPersistence(gctx); err != nil {
+	if err := e.setupPersistence(ctx); err != nil {
 		return err
 	}
 	defer e.tearDownPersistence()
@@ -49,6 +50,7 @@ func (e *Engine) Run(ctx context.Context) error {
 
 	for _, cfg := range e.opts.AppConfigs {
 		cfg := cfg // capture loop variable
+
 		g.Go(func() error {
 			return e.runApplication(ctx, cfg)
 		})
@@ -56,8 +58,8 @@ func (e *Engine) Run(ctx context.Context) error {
 
 	err := g.Wait()
 
-	if ctx.Err() != nil {
-		return ctx.Err()
+	if parent.Err() != nil {
+		return parent.Err()
 	}
 
 	return err

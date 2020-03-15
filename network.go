@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	configapi "github.com/dogmatiq/configkit/api"
 	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/api/messaging/eventstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
@@ -17,25 +18,15 @@ import (
 
 // serve starts the listener and gRPC server.
 func (e *Engine) serve(ctx context.Context) error {
-	var configs []configkit.Application // convert []RichApplication to []Application
-	streams := map[string]persistence.Stream{}
+	server := grpc.NewServer(e.opts.Network.ServerOptions...)
 
-	for _, cfg := range e.opts.AppConfigs {
-		configs = append(configs, cfg)
-
-		k := cfg.Identity().Key
-		ds := e.dataStores[k]
-		stream, err := ds.EventStream(ctx)
-		if err != nil {
-			return err
-		}
-
-		streams[k] = stream
+	if err := e.registerConfigServer(ctx, server); err != nil {
+		return fmt.Errorf("unable to register config gRPC server: %w", err)
 	}
 
-	server := grpc.NewServer(e.opts.Network.ServerOptions...)
-	configapi.RegisterServer(server, configs...)
-	eventstream.RegisterServer(server, e.opts.Marshaler, streams)
+	if err := e.registerEventStreamServer(ctx, server); err != nil {
+		return fmt.Errorf("unable to register event-stream gRPC server: %w", err)
+	}
 
 	lis, err := net.Listen("tcp", e.opts.Network.ListenAddress)
 	if err != nil {
@@ -53,6 +44,41 @@ func (e *Engine) serve(ctx context.Context) error {
 	return fmt.Errorf("gRPC server stopped: %w", err)
 }
 
+// registerConfigServer registers the Config server with the gRPC server.
+func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error {
+	var configs []configkit.Application
+	for _, cfg := range e.opts.AppConfigs {
+		// convert []RichApplication to []Application
+		configs = append(configs, cfg)
+	}
+
+	configapi.RegisterServer(s, configs...)
+
+	return nil
+}
+
+// registerConfigServer registers the EventStream server with the gRPC server.
+func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) error {
+	streams := map[string]persistence.Stream{}
+
+	for k, ds := range e.dataStores {
+		stream, err := ds.EventStream(ctx)
+		if err != nil {
+			return err
+		}
+
+		streams[k] = stream
+	}
+
+	eventstream.RegisterServer(
+		s,
+		e.opts.Marshaler,
+		streams,
+	)
+
+	return nil
+}
+
 // discover starts the gRPC server discovery system.
 func (e *Engine) discover(ctx context.Context) error {
 	i := &discovery.Inspector{
@@ -66,6 +92,35 @@ func (e *Engine) discover(ctx context.Context) error {
 						a.Client.Target.Name,
 						a.Identity().Key,
 					)
+
+					stream, err := eventstream.NewEventStream(
+						ctx,
+						a.Identity().Key,
+						a.Client.Connection,
+						e.opts.Marshaler,
+						0, // TODO: make configurable
+					)
+					if err != nil {
+						logging.Log(
+							e.opts.Logger,
+							"unable to stream events from '%s' application: %s (%s)",
+							a.Identity().Name,
+							err,
+							a.Identity().Key,
+						)
+						return
+					}
+
+					stream.MessageTypes().Range(func(t message.Type) bool {
+						logging.Log(
+							e.opts.Logger,
+							"found '%s' messages at the '%s' application (%s)",
+							t,
+							a.Identity().Name,
+							a.Identity().Key,
+						)
+						return true
+					})
 				},
 			},
 		),
