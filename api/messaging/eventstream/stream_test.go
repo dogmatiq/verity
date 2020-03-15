@@ -14,7 +14,6 @@ import (
 	"github.com/dogmatiq/infix/internal/testing/streamtest"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +27,7 @@ var _ = Describe("type stream (standard test suite)", func() {
 	)
 
 	streamtest.Declare(
-		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
+		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			source := &memory.Stream{}
 
 			var err error
@@ -38,7 +37,7 @@ var _ = Describe("type stream (standard test suite)", func() {
 			server = grpc.NewServer()
 			RegisterServer(
 				server,
-				m,
+				in.Marshaler,
 				map[string]persistence.Stream{
 					"<app-key>": source,
 				},
@@ -52,7 +51,7 @@ var _ = Describe("type stream (standard test suite)", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			return streamtest.Config{
+			return streamtest.Out{
 				Stream: NewEventStream("<app-key>", conn, Marshaler, 0),
 				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
 					source.Append(envelopes...)

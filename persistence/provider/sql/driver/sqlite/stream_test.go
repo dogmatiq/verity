@@ -13,7 +13,6 @@ import (
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
 	. "github.com/dogmatiq/infix/persistence/provider/sql/driver/sqlite"
 	"github.com/dogmatiq/linger/backoff"
-	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -22,7 +21,7 @@ var _ = Describe("type StreamDriver (standard test suite)", func() {
 	var db *sql.DB
 
 	streamtest.Declare(
-		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
+		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			db = sqltest.Open("sqlite3")
 
 			err := DropSchema(ctx, db)
@@ -38,11 +37,11 @@ var _ = Describe("type StreamDriver (standard test suite)", func() {
 				ApplicationKey:  "<app-key>",
 				DB:              db,
 				Driver:          StreamDriver{},
-				Marshaler:       m,
+				Marshaler:       in.Marshaler,
 				BackoffStrategy: backoff.Constant(10 * time.Millisecond),
 			}
 
-			return streamtest.Config{
+			return streamtest.Out{
 				Stream: stream,
 				Append: func(ctx context.Context, envelopes ...*envelope.Envelope) {
 					tx := sqlx.Begin(ctx, db)

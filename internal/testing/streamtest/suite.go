@@ -18,8 +18,20 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// Config is the result of setting up a test suite.
-type Config struct {
+// In is a container for values that are provided to the stream-specific
+// "before" function from the test-suite.
+type In struct {
+	// MessageTypes is the set of messages that the test suite will use for
+	// testing.
+	MessageTypes message.TypeCollection
+
+	// Marshaler a marshaler that supports the test message types.
+	Marshaler marshalkit.Marshaler
+}
+
+// Out is a container for values that are provided by the stream-specific
+// "before" from to the test-suite.
+type Out struct {
 	// Stream is the stream to be tested.
 	Stream persistence.Stream
 
@@ -47,14 +59,14 @@ const (
 // Declare declares generic behavioral tests for a specific stream
 // implementation.
 func Declare(
-	before func(context.Context, marshalkit.Marshaler) Config,
+	before func(context.Context, In) Out,
 	after func(),
 ) {
 	var (
 		ctx    context.Context
 		cancel func()
-		cfg    Config
-		types  message.TypeSet
+		in     In
+		out    Out
 
 		env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
 		env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
@@ -72,23 +84,27 @@ func Declare(
 	ginkgo.BeforeEach(func() {
 		setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancelSetup()
-		cfg = before(setupCtx, marshalkitfixtures.Marshaler)
 
-		if cfg.TestTimeout <= 0 {
-			cfg.TestTimeout = DefaultTestTimeout
+		in = In{
+			message.NewTypeSet(
+				configkitfixtures.MessageAType,
+				configkitfixtures.MessageBType,
+				configkitfixtures.MessageCType,
+			),
+			marshalkitfixtures.Marshaler,
 		}
 
-		if cfg.AssumeBlockingDuration <= 0 {
-			cfg.AssumeBlockingDuration = DefaultAssumeBlockingDuration
+		out = before(setupCtx, in)
+
+		if out.TestTimeout <= 0 {
+			out.TestTimeout = DefaultTestTimeout
 		}
 
-		ctx, cancel = context.WithTimeout(context.Background(), cfg.TestTimeout)
+		if out.AssumeBlockingDuration <= 0 {
+			out.AssumeBlockingDuration = DefaultAssumeBlockingDuration
+		}
 
-		types = message.NewTypeSet(
-			configkitfixtures.MessageAType,
-			configkitfixtures.MessageBType,
-			configkitfixtures.MessageCType,
-		)
+		ctx, cancel = context.WithTimeout(context.Background(), out.TestTimeout)
 	})
 
 	ginkgo.AfterEach(func() {
@@ -102,7 +118,7 @@ func Declare(
 	ginkgo.Describe("type Stream", func() {
 		ginkgo.Describe("func Open()", func() {
 			ginkgo.BeforeEach(func() {
-				cfg.Append(
+				out.Append(
 					ctx,
 					env0,
 					env1,
@@ -112,7 +128,7 @@ func Declare(
 			})
 
 			ginkgo.It("honours the initial offset", func() {
-				cur, err := cfg.Stream.Open(ctx, 2, types)
+				cur, err := out.Stream.Open(ctx, 2, in.MessageTypes)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer cur.Close()
 
@@ -122,11 +138,11 @@ func Declare(
 			})
 
 			ginkgo.It("limits results to the supplied message types", func() {
-				types = message.NewTypeSet(
+				types := message.NewTypeSet(
 					configkitfixtures.MessageAType,
 				)
 
-				cur, err := cfg.Stream.Open(ctx, 0, types)
+				cur, err := out.Stream.Open(ctx, 0, types)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer cur.Close()
 
@@ -142,7 +158,7 @@ func Declare(
 			ginkgo.It("returns an error if the context is canceled", func() {
 				cancel()
 
-				_, err := cfg.Stream.Open(ctx, 0, types)
+				_, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 				gomega.Expect(err).Should(gomega.HaveOccurred())
 			})
 		})
@@ -152,11 +168,11 @@ func Declare(
 		ginkgo.Describe("func Next()", func() {
 			ginkgo.Context("when the stream is empty", func() {
 				ginkgo.It("blocks", func() {
-					cur, err := cfg.Stream.Open(ctx, 0, types)
+					cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
-					ctx, cancel := context.WithTimeout(ctx, cfg.AssumeBlockingDuration)
+					ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration)
 					defer cancel()
 
 					_, err = cur.Next(ctx)
@@ -166,7 +182,7 @@ func Declare(
 
 			ginkgo.Context("when the stream is not empty", func() {
 				ginkgo.BeforeEach(func() {
-					cfg.Append(
+					out.Append(
 						ctx,
 						env0,
 						env1,
@@ -176,7 +192,7 @@ func Declare(
 				})
 
 				ginkgo.It("returns the messages in order", func() {
-					cur, err := cfg.Stream.Open(ctx, 0, types)
+					cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
@@ -198,7 +214,7 @@ func Declare(
 				})
 
 				ginkgo.It("returns an error if the cursor is closed", func() {
-					cur, err := cfg.Stream.Open(ctx, 0, types)
+					cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					cur.Close()
@@ -208,7 +224,7 @@ func Declare(
 				})
 
 				ginkgo.It("returns an error if the context is canceled", func() {
-					cur, err := cfg.Stream.Open(ctx, 4, types)
+					cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
@@ -221,13 +237,13 @@ func Declare(
 				ginkgo.When("waiting for a new message", func() {
 					ginkgo.It("wakes if a message is appended", func() {
 						// Open a cursor after the offset of the existing messages.
-						cur, err := cfg.Stream.Open(ctx, 4, types)
+						cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
 						go func() {
-							time.Sleep(cfg.AssumeBlockingDuration)
-							cfg.Append(ctx, env4)
+							time.Sleep(out.AssumeBlockingDuration)
+							out.Append(ctx, env4)
 						}()
 
 						m, err := cur.Next(ctx)
@@ -236,11 +252,11 @@ func Declare(
 					})
 
 					ginkgo.It("returns an error if the cursor is closed", func() {
-						cur, err := cfg.Stream.Open(ctx, 4, types)
+						cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						go func() {
-							time.Sleep(cfg.AssumeBlockingDuration)
+							time.Sleep(out.AssumeBlockingDuration)
 							cur.Close()
 						}()
 
@@ -249,12 +265,12 @@ func Declare(
 					})
 
 					ginkgo.It("returns an error if the context is canceled", func() {
-						cur, err := cfg.Stream.Open(ctx, 4, types)
+						cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
 						go func() {
-							time.Sleep(cfg.AssumeBlockingDuration)
+							time.Sleep(out.AssumeBlockingDuration)
 							cancel()
 						}()
 
@@ -284,13 +300,13 @@ func Declare(
 								linger.SleepX(
 									ctx,
 									linger.FullJitter,
-									cfg.AssumeBlockingDuration,
+									out.AssumeBlockingDuration,
 								)
 
 								defer g.Done()
 								defer ginkgo.GinkgoRecover()
 
-								cur, err := cfg.Stream.Open(ctx, 4, types)
+								cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
 								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 								defer cur.Close()
 
@@ -312,10 +328,10 @@ func Declare(
 							}
 						}
 
-						time.Sleep(cfg.AssumeBlockingDuration)
+						time.Sleep(out.AssumeBlockingDuration)
 
 						// wake the consumers
-						cfg.Append(ctx, env4)
+						out.Append(ctx, env4)
 					})
 				})
 			})
@@ -323,7 +339,7 @@ func Declare(
 
 		ginkgo.Describe("func Close()", func() {
 			ginkgo.It("returns an error if the cursor is already closed", func() {
-				cur, err := cfg.Stream.Open(ctx, 4, types)
+				cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				err = cur.Close()

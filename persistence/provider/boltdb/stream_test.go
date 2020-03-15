@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
 	"github.com/dogmatiq/infix/internal/testing/streamtest"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
-	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"go.etcd.io/bbolt"
@@ -20,12 +19,12 @@ var _ = Describe("type Stream (standard test suite)", func() {
 	)
 
 	streamtest.Declare(
-		func(ctx context.Context, m marshalkit.Marshaler) streamtest.Config {
+		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			db, close = boltdbtest.Open()
 
 			stream := &Stream{
 				DB:        db,
-				Marshaler: m,
+				Marshaler: in.Marshaler,
 				BucketPath: [][]byte{
 					[]byte("path"),
 					[]byte("to"),
@@ -33,7 +32,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 				},
 			}
 
-			return streamtest.Config{
+			return streamtest.Out{
 				Stream: stream,
 				Append: func(ctx context.Context, envelopes ...*envelope.Envelope) {
 					err := db.Update(func(tx *bbolt.Tx) error {
