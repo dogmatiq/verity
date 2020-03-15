@@ -25,6 +25,9 @@ type Stream struct {
 	// DB is the BoltDB database containing the stream's data.
 	DB *bbolt.DB
 
+	// Types is the set of supported message types.
+	Types message.TypeCollection
+
 	// Marshaler is used to marshal and unmarshal messages for storage.
 	Marshaler marshalkit.ValueMarshaler
 
@@ -60,6 +63,11 @@ func (s *Stream) Open(
 	}, nil
 }
 
+// MessageTypes returns the message types that may appear on the stream.
+func (s *Stream) MessageTypes() message.TypeCollection {
+	return s.Types
+}
+
 // Append appends messages to the stream.
 //
 // It returns the next free offset.
@@ -67,6 +75,13 @@ func (s *Stream) Append(
 	tx *bbolt.Tx,
 	envelopes ...*envelope.Envelope,
 ) (_ uint64, err error) {
+	for _, env := range envelopes {
+		t := message.TypeOf(env.Message)
+		if !s.Types.Has(t) {
+			panic("unsupported message type: " + t.String())
+		}
+	}
+
 	defer bboltx.Recover(&err)
 
 	b := bboltx.CreateBucketIfNotExists(tx, s.BucketPath...)

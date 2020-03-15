@@ -51,6 +51,7 @@ var _ = Context("providers", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
 		db, close = boltdbtest.Open()
 
 		cfg = configkit.FromApplication(&Application{
@@ -73,6 +74,7 @@ var _ = Context("providers", func() {
 
 			writer := &Stream{
 				DB:        db,
+				Types:     message.TypesOf(MessageA1),
 				Marshaler: Marshaler,
 				BucketPath: [][]byte{
 					[]byte("<app-key>"),
