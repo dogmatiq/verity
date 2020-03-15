@@ -40,7 +40,7 @@ func NewEventStream(
 		return nil, err
 	}
 
-	// Built a type-set containing any message types supported by the remote end
+	// Build a type-set containing any message types supported by the remote end
 	// that we know how to unmarshal on this end.
 	types := message.TypeSet{}
 	for _, t := range res.GetMessageTypes() {
