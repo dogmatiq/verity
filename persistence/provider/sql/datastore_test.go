@@ -59,8 +59,14 @@ var _ = Describe("type dataStore", func() {
 	})
 
 	AfterEach(func() {
-		dataStore.Close()
-		db.Close()
+		if dataStore != nil {
+			dataStore.Close()
+		}
+
+		if db != nil {
+			db.Close()
+		}
+
 		cancel()
 	})
 

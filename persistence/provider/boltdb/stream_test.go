@@ -55,11 +55,23 @@ var _ = Describe("type Stream (standard test suite)", func() {
 })
 
 var _ = Describe("type Stream", func() {
+	var (
+		db    *bbolt.DB
+		close func()
+	)
+
+	BeforeEach(func() {
+		db, close = boltdbtest.Open()
+	})
+
+	AfterEach(func() {
+		if close != nil {
+			close()
+		}
+	})
+
 	Describe("func Append()", func() {
 		It("panics if the message type is not supported", func() {
-			db, close := boltdbtest.Open()
-			defer close()
-
 			env := NewEnvelope("<id>", MessageA1)
 
 			stream := &Stream{

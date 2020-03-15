@@ -7,13 +7,18 @@ import (
 	"database/sql"
 	"time"
 
+	. "github.com/dogmatiq/configkit/fixtures"
+	"github.com/dogmatiq/configkit/message"
+	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
+	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	"github.com/dogmatiq/infix/internal/testing/streamtest"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	. "github.com/dogmatiq/infix/persistence/provider/sql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/sqlite"
 	"github.com/dogmatiq/linger/backoff"
+	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -63,4 +68,55 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			}
 		},
 	)
+})
+
+var _ = Describe("type Stream", func() {
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+		db     *sql.DB
+	)
+
+	BeforeEach(func() {
+		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
+		db = sqltest.Open("sqlite3")
+
+		err := sqlite.DropSchema(ctx, db)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = sqlite.CreateSchema(ctx, db)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		if db != nil {
+			db.Close()
+		}
+
+		cancel()
+	})
+
+	Describe("func Append()", func() {
+		It("panics if the message type is not supported", func() {
+			env := NewEnvelope("<id>", MessageA1)
+
+			stream := &Stream{
+				ApplicationKey: "<app-key>",
+				DB:             db,
+				Driver:         sqlite.StreamDriver{},
+				Types: message.NewTypeSet(
+					MessageBType,
+				),
+				Marshaler: Marshaler,
+			}
+
+			tx := sqlx.Begin(ctx, db)
+			defer tx.Rollback()
+
+			Expect(func() {
+				stream.Append(ctx, tx, env)
+			}).To(Panic())
+		})
+	})
 })
