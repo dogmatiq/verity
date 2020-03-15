@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
-	"github.com/dogmatiq/infix/persistence/internal/streamtest"
+	"github.com/dogmatiq/infix/internal/testing/streamtest"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/onsi/ginkgo"

@@ -1,4 +1,4 @@
-package remotestream_test
+package eventstream_test
 
 import (
 	"reflect"

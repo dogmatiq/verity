@@ -1,4 +1,4 @@
-package remotestream
+package eventstream
 
 import (
 	"context"

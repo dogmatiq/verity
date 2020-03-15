@@ -6,12 +6,12 @@ import (
 	"net"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/api"
+	configapi "github.com/dogmatiq/configkit/api"
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/api/messaging/eventstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/remotestream"
 	"google.golang.org/grpc"
 )
 
@@ -34,8 +34,8 @@ func (e *Engine) serve(ctx context.Context) error {
 	}
 
 	server := grpc.NewServer(e.opts.Network.ServerOptions...)
-	api.RegisterServer(server, configs...)
-	remotestream.RegisterServer(server, e.opts.Marshaler, streams)
+	configapi.RegisterServer(server, configs...)
+	eventstream.RegisterServer(server, e.opts.Marshaler, streams)
 
 	lis, err := net.Listen("tcp", e.opts.Network.ListenAddress)
 	if err != nil {

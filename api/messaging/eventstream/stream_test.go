@@ -1,4 +1,4 @@
-package remotestream_test
+package eventstream_test
 
 import (
 	"context"
@@ -8,12 +8,12 @@ import (
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/infix/api/messaging/eventstream"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/internal/testing/streamtest"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/streamtest"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	. "github.com/dogmatiq/infix/persistence/remotestream"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
