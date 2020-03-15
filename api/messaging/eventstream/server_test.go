@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var _ = Describe("type streamServer", func() {
+var _ = Describe("type server", func() {
 	var (
 		ctx      context.Context
 		cancel   func()

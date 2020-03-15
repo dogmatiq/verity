@@ -22,7 +22,7 @@ func RegisterServer(
 	m marshalkit.TypeMarshaler,
 	streams map[string]persistence.Stream,
 ) {
-	svr := &streamServer{
+	svr := &server{
 		marshaler: m,
 		streams:   streams,
 	}
@@ -30,12 +30,12 @@ func RegisterServer(
 	messagingspec.RegisterEventStreamServer(s, svr)
 }
 
-type streamServer struct {
+type server struct {
 	marshaler marshalkit.TypeMarshaler
 	streams   map[string]persistence.Stream
 }
 
-func (s *streamServer) Consume(
+func (s *server) Consume(
 	req *messagingspec.ConsumeRequest,
 	consumer messagingspec.EventStream_ConsumeServer,
 ) error {
@@ -68,7 +68,7 @@ func (s *streamServer) Consume(
 }
 
 // open returns a cursor for the stream specified in the request.
-func (s *streamServer) open(
+func (s *server) open(
 	ctx context.Context,
 	req *messagingspec.ConsumeRequest,
 ) (persistence.StreamCursor, error) {
@@ -90,7 +90,7 @@ func (s *streamServer) open(
 }
 
 // stream returns the stream for the application with the specified key.
-func (s *streamServer) stream(k string) (persistence.Stream, error) {
+func (s *server) stream(k string) (persistence.Stream, error) {
 	if k == "" {
 		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
@@ -113,7 +113,7 @@ func (s *streamServer) stream(k string) (persistence.Stream, error) {
 	)
 }
 
-func (s *streamServer) MessageTypes(
+func (s *server) MessageTypes(
 	ctx context.Context,
 	req *messagingspec.MessageTypesRequest,
 ) (*messagingspec.MessageTypesResponse, error) {
