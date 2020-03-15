@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
@@ -24,6 +25,7 @@ var _ = Context("providers", func() {
 		cancel  context.CancelFunc
 		db      *bbolt.DB
 		close   func()
+		cfg     configkit.RichApplication
 		entries []TableEntry
 	)
 
@@ -50,6 +52,12 @@ var _ = Context("providers", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 		db, close = boltdbtest.Open()
+
+		cfg = configkit.FromApplication(&Application{
+			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
+				c.Identity("<app>", "<app-key>")
+			},
+		})
 	})
 
 	AfterEach(func() {
@@ -84,7 +92,7 @@ var _ = Context("providers", func() {
 
 			store, err := provider.Open(
 				ctx,
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -111,7 +119,7 @@ var _ = Context("providers", func() {
 
 			store1, err := provider.Open(
 				ctx,
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -119,7 +127,7 @@ var _ = Context("providers", func() {
 
 			store2, err := provider.Open(
 				ctx,
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -142,7 +150,7 @@ var _ = Context("providers", func() {
 				// waiting for the file lock.
 				_, err := p.Open(
 					ctx,
-					configkit.MustNewIdentity("<app>", "<app-key>"),
+					cfg,
 					Marshaler,
 				)
 				Expect(err).To(Equal(context.DeadlineExceeded))

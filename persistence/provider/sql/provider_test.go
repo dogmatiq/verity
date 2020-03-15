@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 
 	"github.com/dogmatiq/configkit"
@@ -29,6 +30,7 @@ var _ = Context("providers", func() {
 		cancel  context.CancelFunc
 		dsn     string
 		db      *sql.DB
+		cfg     configkit.RichApplication
 		entries []TableEntry
 	)
 
@@ -66,6 +68,12 @@ var _ = Context("providers", func() {
 
 		err = sqlite.CreateSchema(ctx, db)
 		Expect(err).ShouldNot(HaveOccurred())
+
+		cfg = configkit.FromApplication(&Application{
+			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
+				c.Identity("<app>", "<app-key>")
+			},
+		})
 	})
 
 	AfterEach(func() {
@@ -103,7 +111,7 @@ var _ = Context("providers", func() {
 
 			store, err := provider.Open(
 				ctx,
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -130,7 +138,7 @@ var _ = Context("providers", func() {
 
 			store1, err := provider.Open(
 				ctx,
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -138,7 +146,7 @@ var _ = Context("providers", func() {
 
 			store2, err := provider.Open(
 				ctx,
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -156,7 +164,7 @@ var _ = Context("providers", func() {
 
 				_, err := p.Open(
 					ctx,
-					configkit.MustNewIdentity("<app>", "<app-key>"),
+					cfg,
 					Marshaler,
 				)
 				Expect(err).To(MatchError("can not deduce the appropriate SQL driver for *sqltest.MockDriver"))
@@ -174,7 +182,7 @@ var _ = Context("providers", func() {
 
 				_, err := p.Open(
 					ctx,
-					configkit.MustNewIdentity("<app>", "<app-key>"),
+					cfg,
 					Marshaler,
 				)
 				Expect(err).Should(HaveOccurred())
@@ -188,7 +196,7 @@ var _ = Context("providers", func() {
 
 				_, err := p.Open(
 					ctx,
-					configkit.MustNewIdentity("<app>", "<app-key>"),
+					cfg,
 					Marshaler,
 				)
 				Expect(err).To(MatchError("can not deduce the appropriate SQL driver for *sqltest.MockDriver"))

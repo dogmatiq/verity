@@ -12,7 +12,7 @@ func (e *Engine) setupPersistence(ctx context.Context) error {
 	for _, cfg := range e.opts.AppConfigs {
 		ds, err := e.opts.PersistenceProvider.Open(
 			ctx,
-			cfg.Identity(),
+			cfg,
 			e.opts.Marshaler,
 		)
 		if err != nil {
