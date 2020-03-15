@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/configkit"
 	configapi "github.com/dogmatiq/configkit/api"
 	"github.com/dogmatiq/configkit/api/discovery"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/api/messaging/eventstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
@@ -81,18 +80,13 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 
 // discover starts the gRPC server discovery system.
 func (e *Engine) discover(ctx context.Context) error {
+	logger := discoveryLogger{e.opts.Logger}
+
 	i := &discovery.Inspector{
 		Observer: discovery.NewApplicationObserverSet(
+			logger,
 			&discovery.ApplicationExecutor{
 				Task: func(ctx context.Context, a *discovery.Application) {
-					logging.Log(
-						e.opts.Logger,
-						"found '%s' application at %s (%s)",
-						a.Identity().Name,
-						a.Client.Target.Name,
-						a.Identity().Key,
-					)
-
 					stream, err := eventstream.NewEventStream(
 						ctx,
 						a.Identity().Key,
@@ -111,16 +105,7 @@ func (e *Engine) discover(ctx context.Context) error {
 						return
 					}
 
-					stream.MessageTypes().Range(func(t message.Type) bool {
-						logging.Log(
-							e.opts.Logger,
-							"found '%s' messages at the '%s' application (%s)",
-							t,
-							a.Identity().Name,
-							a.Identity().Key,
-						)
-						return true
-					})
+					e.streamEvents(ctx, a, stream)
 				},
 			},
 		),
@@ -144,29 +129,79 @@ func (e *Engine) discover(ctx context.Context) error {
 	}
 
 	c := &discovery.Connector{
-		Observer: &discovery.ClientExecutor{
-			Task: func(ctx context.Context, c *discovery.Client) {
-				logging.Log(e.opts.Logger, "connected to API server at %s", c.Target.Name)
-				defer logging.Log(e.opts.Logger, "disconnected from API server at %s", c.Target.Name)
-				i.Run(ctx, c)
-				<-ctx.Done()
+		Observer: discovery.NewClientObserverSet(
+			logger,
+			&discovery.ClientExecutor{
+				Task: func(ctx context.Context, c *discovery.Client) {
+					i.Run(ctx, c)
+					<-ctx.Done()
+				},
 			},
-		},
+		),
 		Dial:            e.opts.Network.Dialer,
 		BackoffStrategy: e.opts.Network.DialerBackoff,
-		Logger:          e.opts.Logger,
 	}
 
 	err := e.opts.Network.Discoverer(
 		ctx,
-		&discovery.TargetExecutor{
-			Task: func(ctx context.Context, t *discovery.Target) {
-				logging.Log(e.opts.Logger, "discovered API server at %s", t.Name)
-				defer logging.Log(e.opts.Logger, "lost API server at %s", t.Name)
-				c.Run(ctx, t)
+		discovery.NewTargetObserverSet(
+			logger,
+			&discovery.TargetExecutor{
+				Task: func(ctx context.Context, t *discovery.Target) {
+					c.Run(ctx, t)
+				},
 			},
-		},
+		),
 	)
 
 	return fmt.Errorf("discoverer stopped: %w", err)
+}
+
+type discoveryLogger struct {
+	Logger logging.Logger
+}
+
+func (l discoveryLogger) TargetAvailable(t *discovery.Target) {
+	logging.Log(
+		l.Logger,
+		"discovered API server at %s",
+		t.Name,
+	)
+}
+
+func (l discoveryLogger) TargetUnavailable(t *discovery.Target) {
+	logging.Log(
+		l.Logger,
+		"lost API server at %s",
+		t.Name,
+	)
+}
+
+func (l discoveryLogger) ClientConnected(c *discovery.Client) {
+	logging.Log(
+		l.Logger,
+		"connected to API server at %s",
+		c.Target.Name,
+	)
+}
+
+func (l discoveryLogger) ClientDisconnected(c *discovery.Client) {
+	logging.Log(
+		l.Logger,
+		"disconnected from API server at %s",
+		c.Target.Name,
+	)
+}
+
+func (l discoveryLogger) ApplicationAvailable(a *discovery.Application) {
+	logging.Log(
+		l.Logger,
+		"found '%s' application at %s (%s)",
+		a.Identity().Name,
+		a.Client.Target.Name,
+		a.Identity().Key,
+	)
+}
+
+func (l discoveryLogger) ApplicationUnavailable(a *discovery.Application) {
 }
