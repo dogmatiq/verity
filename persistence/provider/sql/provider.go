@@ -56,7 +56,7 @@ type Provider struct {
 // Open returns a data-store for a specific application.
 func (p *Provider) Open(
 	ctx context.Context,
-	app configkit.Identity,
+	cfg configkit.RichApplication,
 	m marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
 	d := p.Driver
@@ -69,7 +69,7 @@ func (p *Provider) Open(
 	}
 
 	return &dataStore{
-		App:           app,
+		App:           cfg.Identity(),
 		Marshaler:     m,
 		DB:            p.DB,
 		Driver:        d,
@@ -121,7 +121,7 @@ type DSNProvider struct {
 // Open returns a data-store for a specific application.
 func (p *DSNProvider) Open(
 	ctx context.Context,
-	app configkit.Identity,
+	cfg configkit.RichApplication,
 	m marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
 	p.m.Lock()
@@ -136,7 +136,7 @@ func (p *DSNProvider) Open(
 	p.refs++
 
 	return &dataStore{
-		App:           app,
+		App:           cfg.Identity(),
 		Marshaler:     m,
 		DB:            p.db,
 		Driver:        p.driver,

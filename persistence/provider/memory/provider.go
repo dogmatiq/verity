@@ -17,11 +17,11 @@ type Provider struct {
 // Open returns a data-store for a specific application.
 func (p *Provider) Open(
 	ctx context.Context,
-	app configkit.Identity,
+	cfg configkit.RichApplication,
 	_ marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
 	ds, _ := p.dataStores.LoadOrStore(
-		app.Key,
+		cfg.Identity().Key,
 		&dataStore{},
 	)
 

@@ -22,11 +22,11 @@ type Provider struct {
 // Open returns a data-store for a specific application.
 func (p *Provider) Open(
 	ctx context.Context,
-	app configkit.Identity,
+	cfg configkit.RichApplication,
 	m marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
 	return &dataStore{
-		App:       app,
+		App:       cfg.Identity(),
 		Marshaler: m,
 		DB:        p.DB,
 	}, nil
@@ -54,7 +54,7 @@ type FileProvider struct {
 // Open returns a data-store for a specific application.
 func (p *FileProvider) Open(
 	ctx context.Context,
-	app configkit.Identity,
+	cfg configkit.RichApplication,
 	m marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
 	p.m.Lock()
@@ -71,7 +71,7 @@ func (p *FileProvider) Open(
 	p.refs++
 
 	return &dataStore{
-		App:       app,
+		App:       cfg.Identity(),
 		Marshaler: m,
 		DB:        p.db,
 		Closer:    p.close,

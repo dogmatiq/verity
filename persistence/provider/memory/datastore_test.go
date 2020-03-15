@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/dogma"
+	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -17,10 +19,16 @@ var _ = Describe("type dataStpre", func() {
 	BeforeEach(func() {
 		provider := &Provider{}
 
+		cfg := configkit.FromApplication(&Application{
+			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
+				c.Identity("<app>", "<app-key>")
+			},
+		})
+
 		var err error
 		dataStore, err = provider.Open(
 			context.Background(),
-			configkit.MustNewIdentity("<app>", "<app-key>"),
+			cfg,
 			Marshaler,
 		)
 		Expect(err).ShouldNot(HaveOccurred())

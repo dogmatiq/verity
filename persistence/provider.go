@@ -13,7 +13,7 @@ type Provider interface {
 	// Open returns a data-store for a specific application.
 	Open(
 		ctx context.Context,
-		app configkit.Identity,
+		cfg configkit.RichApplication,
 		m marshalkit.Marshaler,
 	) (DataStore, error)
 }

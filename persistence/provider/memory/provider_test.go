@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/dogma"
+	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
@@ -11,9 +13,24 @@ import (
 )
 
 var _ = Describe("type Provider", func() {
-	var provider *Provider
+	var (
+		cfg1, cfg2 configkit.RichApplication
+		provider   *Provider
+	)
 
 	BeforeEach(func() {
+		cfg1 = configkit.FromApplication(&Application{
+			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
+				c.Identity("<app-1>", "<app-key-1>")
+			},
+		})
+
+		cfg2 = configkit.FromApplication(&Application{
+			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
+				c.Identity("<app-2>", "<app-key-2>")
+			},
+		})
+
 		provider = &Provider{}
 	})
 
@@ -21,7 +38,7 @@ var _ = Describe("type Provider", func() {
 		It("returns the same instance for each application", func() {
 			ds1, err := provider.Open(
 				context.Background(),
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg1,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -29,7 +46,7 @@ var _ = Describe("type Provider", func() {
 
 			ds2, err := provider.Open(
 				context.Background(),
-				configkit.MustNewIdentity("<app>", "<app-key>"),
+				cfg1,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -41,7 +58,7 @@ var _ = Describe("type Provider", func() {
 		It("returns the different instances for different application", func() {
 			ds1, err := provider.Open(
 				context.Background(),
-				configkit.MustNewIdentity("<app-1>", "<app-key-1>"),
+				cfg1,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -49,7 +66,7 @@ var _ = Describe("type Provider", func() {
 
 			ds2, err := provider.Open(
 				context.Background(),
-				configkit.MustNewIdentity("<app-2>", "<app-key-2>"),
+				cfg2,
 				Marshaler,
 			)
 			Expect(err).ShouldNot(HaveOccurred())
