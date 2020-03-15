@@ -1,4 +1,4 @@
-package customer
+package apps
 
 import (
 	"database/sql"
@@ -9,13 +9,13 @@ import (
 	pksql "github.com/dogmatiq/projectionkit/sql"
 )
 
-// App is an implementation of dogma.Application for the bank example.
-type App struct {
+// CustomerApp is an implementation of dogma.Application for the bank example.
+type CustomerApp struct {
 	ProjectionDB *sql.DB
 }
 
 // Configure configures the Dogma engine for this application.
-func (a *App) Configure(c dogma.ApplicationConfigurer) {
+func (a *CustomerApp) Configure(c dogma.ApplicationConfigurer) {
 	p, err := pksql.New(
 		a.ProjectionDB,
 		&projections.CustomerProjectionHandler{},
@@ -28,6 +28,5 @@ func (a *App) Configure(c dogma.ApplicationConfigurer) {
 	c.Identity("bank.customer", "db385bd2-59e6-400b-a573-cd9f5ac3381b")
 
 	c.RegisterAggregate(domain.CustomerHandler{})
-
 	c.RegisterProjection(p)
 }
