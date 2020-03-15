@@ -15,22 +15,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (e *Engine) setupNetwork(ctx context.Context) {
-	if e.opts.Network == nil {
-		return
-	}
-
-	e.group.Go(func() error {
-		return e.serveAPI(ctx)
-	})
-
-	e.group.Go(func() error {
-		return e.discoverAPIs(ctx)
-	})
-}
-
-// serveAPI starts the listener and gRPC server.
-func (e *Engine) serveAPI(ctx context.Context) error {
+// serve starts the listener and gRPC server.
+func (e *Engine) serve(ctx context.Context) error {
 	var configs []configkit.Application // convert []RichApplication to []Application
 	streams := map[string]persistence.Stream{}
 
@@ -67,15 +53,15 @@ func (e *Engine) serveAPI(ctx context.Context) error {
 	return fmt.Errorf("gRPC server stopped: %w", err)
 }
 
-// discoverAPIs starts the gRPC server discovery system.
-func (e *Engine) discoverAPIs(ctx context.Context) error {
+// discover starts the gRPC server discovery system.
+func (e *Engine) discover(ctx context.Context) error {
 	i := &discovery.Inspector{
 		Observer: discovery.NewApplicationObserverSet(
 			&discovery.ApplicationExecutor{
-				Task: func(_ context.Context, a *discovery.Application) {
+				Task: func(ctx context.Context, a *discovery.Application) {
 					logging.Log(
 						e.opts.Logger,
-						"found %s application at %s (%s)",
+						"found '%s' application at %s (%s)",
 						a.Identity().Name,
 						a.Client.Target.Name,
 						a.Identity().Key,
@@ -83,14 +69,15 @@ func (e *Engine) discoverAPIs(ctx context.Context) error {
 				},
 			},
 		),
-		Ignore: func(cfg configkit.Application) bool {
+		Ignore: func(a *discovery.Application) bool {
 			for _, c := range e.opts.AppConfigs {
-				if c.Identity().ConflictsWith(cfg.Identity()) {
+				if c.Identity().ConflictsWith(a.Identity()) {
 					logging.Debug(
 						e.opts.Logger,
-						"ignoring conflicting %s application (%s) ",
-						cfg.Identity().Name,
-						cfg.Identity().Key,
+						"ignoring conflicting '%s' application at %s (%s) ",
+						a.Identity().Name,
+						a.Client.Target.Name,
+						a.Identity().Key,
 					)
 
 					return true
