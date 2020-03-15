@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
@@ -27,12 +28,24 @@ var _ = Describe("type streamServer", func() {
 		listener net.Listener
 		server   *grpc.Server
 		client   messagingspec.EventStreamClient
+
+		env1 = NewEnvelope("<message-1>", MessageA1)
+		env2 = NewEnvelope("<message-2>", MessageB1)
+		env3 = NewEnvelope("<message-3>", MessageA2)
+		env4 = NewEnvelope("<message-4>", MessageB2)
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		stream = &memory.Stream{}
+		stream = &memory.Stream{
+			Types: message.TypesOf(
+				env1.Message,
+				env2.Message,
+				env3.Message,
+				env4.Message,
+			),
+		}
 
 		var err error
 		listener, err = net.Listen("tcp", ":")
@@ -71,11 +84,6 @@ var _ = Describe("type streamServer", func() {
 	})
 
 	Describe("func Consume()", func() {
-		env1 := NewEnvelope("<message-1>", MessageA1)
-		env2 := NewEnvelope("<message-2>", MessageB1)
-		env3 := NewEnvelope("<message-3>", MessageA2)
-		env4 := NewEnvelope("<message-4>", MessageB2)
-
 		BeforeEach(func() {
 			stream.Append(env1, env2, env3, env4)
 		})

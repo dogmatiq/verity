@@ -28,7 +28,9 @@ var _ = Describe("type stream (standard test suite)", func() {
 
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
-			source := &memory.Stream{}
+			source := &memory.Stream{
+				Types: in.MessageTypes,
+			}
 
 			var err error
 			listener, err = net.Listen("tcp", ":")
@@ -51,8 +53,17 @@ var _ = Describe("type stream (standard test suite)", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
+			stream, err := NewEventStream(
+				ctx,
+				"<app-key>",
+				conn,
+				in.Marshaler,
+				0,
+			)
+			Expect(err).ShouldNot(HaveOccurred())
+
 			return streamtest.Out{
-				Stream: NewEventStream("<app-key>", conn, Marshaler, 0),
+				Stream: stream,
 				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
 					source.Append(envelopes...)
 				},
@@ -76,6 +87,7 @@ var _ = Describe("type stream", func() {
 		cancel   func()
 		listener net.Listener
 		server   *grpc.Server
+		stopped  chan struct{}
 		source   *memory.Stream
 		stream   persistence.Stream
 		types    message.TypeSet
@@ -87,7 +99,11 @@ var _ = Describe("type stream", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		types = message.NewTypeSet(MessageAType)
-		source = &memory.Stream{}
+		source = &memory.Stream{
+			Types: message.TypesOf(
+				env.Message,
+			),
+		}
 		source.Append(env)
 
 		var err error
@@ -103,7 +119,11 @@ var _ = Describe("type stream", func() {
 			},
 		)
 
-		go server.Serve(listener)
+		stopped := make(chan struct{})
+		go func() {
+			defer close(stopped)
+			server.Serve(listener)
+		}()
 
 		conn, err := grpc.Dial(
 			listener.Addr().String(),
@@ -111,7 +131,14 @@ var _ = Describe("type stream", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stream = NewEventStream("<app-key>", conn, Marshaler, 0)
+		stream, err = NewEventStream(
+			ctx,
+			"<app-key>",
+			conn,
+			Marshaler,
+			0,
+		)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -129,6 +156,12 @@ var _ = Describe("type stream", func() {
 	Describe("func Open()", func() {
 		It("returns an error if the making the request fails", func() {
 			server.Stop()
+
+			select {
+			case <-ctx.Done():
+				Expect(ctx.Err()).Should(HaveOccurred())
+			case <-stopped:
+			}
 
 			_, err := stream.Open(ctx, 0, types)
 			Expect(err).Should(HaveOccurred())
