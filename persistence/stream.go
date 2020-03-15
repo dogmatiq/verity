@@ -26,6 +26,9 @@ type Stream interface {
 		offset uint64,
 		types message.TypeCollection,
 	) (StreamCursor, error)
+
+	// MessageTypes returns the message types that may appear on the stream.
+	MessageTypes() message.TypeCollection
 }
 
 // A StreamCursor reads messages from a stream.

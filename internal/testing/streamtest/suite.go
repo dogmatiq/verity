@@ -2,6 +2,7 @@ package streamtest
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -160,6 +161,23 @@ func Declare(
 
 				_, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 				gomega.Expect(err).Should(gomega.HaveOccurred())
+			})
+		})
+
+		ginkgo.Describe("func MessageTypes()", func() {
+			ginkgo.It("returns a collection that includes all of the test types", func() {
+				// This test ensures that all of the test types are supported by
+				// the stream, but does not require that these be the ONLY
+				// supported types.
+				types := out.Stream.MessageTypes()
+
+				in.MessageTypes.Range(func(t message.Type) bool {
+					gomega.Expect(types.Has(t)).To(
+						gomega.BeTrue(),
+						fmt.Sprintf("stream does not support expected message type: %s", t),
+					)
+					return true
+				})
 			})
 		})
 	})
