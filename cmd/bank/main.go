@@ -62,18 +62,21 @@ func main() {
 	}
 
 	var (
-		addr string
-		app  dogma.Application
+		listen   string
+		discover string
+		app      dogma.Application
 	)
 
 	switch os.Args[1] {
 	case "account":
-		addr = accountListenAddress
+		listen = accountListenAddress
+		discover = customerListenAddress
 		app = &account.App{
 			ProjectionDB: db,
 		}
 	case "customer":
-		addr = customerListenAddress
+		listen = customerListenAddress
+		discover = accountListenAddress
 		app = &customer.App{
 			ProjectionDB: db,
 		}
@@ -82,15 +85,30 @@ func main() {
 		os.Exit(1)
 	}
 
+	discoverer := func(ctx context.Context, obs discovery.TargetObserver) error {
+		d := &static.Discoverer{
+			Observer: obs,
+			Targets: []*discovery.Target{
+				{
+					Name: discover,
+					Options: []grpc.DialOption{
+						grpc.WithInsecure(),
+					},
+				},
+			},
+		}
+
+		return d.Run(ctx)
+	}
+
 	e := infix.New(
 		app,
 		infix.WithPersistence(&sql.Provider{
 			DB: db,
 		}),
 		infix.WithNetworking(
-			infix.WithListenAddress(addr),
-			infix.WithDialer(dial),
-			infix.WithDiscoverer(discover),
+			infix.WithListenAddress(listen),
+			infix.WithDiscoverer(discoverer),
 		),
 		infix.WithLogger(logging.DebugLogger),
 	)
@@ -101,27 +119,4 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func discover(ctx context.Context, obs discovery.TargetObserver) error {
-	d := &static.Discoverer{
-		Observer: obs,
-		Targets: []*discovery.Target{
-			{Name: accountListenAddress},
-			{Name: customerListenAddress},
-		},
-	}
-
-	return d.Run(ctx)
-}
-
-func dial(ctx context.Context, t *discovery.Target) (*grpc.ClientConn, error) {
-	options := append(
-		[]grpc.DialOption{
-			grpc.WithInsecure(),
-		},
-		t.Options...,
-	)
-
-	return grpc.DialContext(ctx, t.Name, options...)
 }
