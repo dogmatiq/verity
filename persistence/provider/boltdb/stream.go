@@ -75,18 +75,11 @@ func (s *Stream) Append(
 	tx *bbolt.Tx,
 	envelopes ...*envelope.Envelope,
 ) (_ uint64, err error) {
-	for _, env := range envelopes {
-		t := message.TypeOf(env.Message)
-		if !s.Types.Has(t) {
-			panic("unsupported message type: " + t.String())
-		}
-	}
-
 	defer bboltx.Recover(&err)
 
 	b := bboltx.CreateBucketIfNotExists(tx, s.BucketPath...)
 	next := loadNextOffset(b)
-	next = appendMessages(b, next, envelopes)
+	next = appendMessages(b, next, s.Types, envelopes)
 	storeNextOffset(b, next)
 
 	tx.OnCommit(func() {
@@ -248,11 +241,16 @@ func loadMessage(
 func appendMessages(
 	b *bbolt.Bucket,
 	next uint64,
+	types message.TypeCollection,
 	envelopes []*envelope.Envelope,
 ) uint64 {
 	messages := bboltx.CreateBucketIfNotExists(b, messagesKey)
 
 	for _, env := range envelopes {
+		if !types.HasM(env.Message) {
+			panic("unsupported message type: " + message.TypeOf(env.Message).String())
+		}
+
 		k := marshalOffset(next)
 		v := envelope.MustMarshalBinary(env)
 		bboltx.Put(messages, k, v)
