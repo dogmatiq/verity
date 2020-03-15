@@ -87,7 +87,7 @@ var _ = Describe("type stream", func() {
 		cancel   func()
 		listener net.Listener
 		server   *grpc.Server
-		stopped  chan struct{}
+		conn     *grpc.ClientConn
 		source   *memory.Stream
 		stream   persistence.Stream
 		types    message.TypeSet
@@ -119,13 +119,9 @@ var _ = Describe("type stream", func() {
 			},
 		)
 
-		stopped := make(chan struct{})
-		go func() {
-			defer close(stopped)
-			server.Serve(listener)
-		}()
+		go server.Serve(listener)
 
-		conn, err := grpc.Dial(
+		conn, err = grpc.Dial(
 			listener.Addr().String(),
 			grpc.WithInsecure(),
 		)
@@ -150,18 +146,16 @@ var _ = Describe("type stream", func() {
 			server.Stop()
 		}
 
+		if conn != nil {
+			conn.Close()
+		}
+
 		cancel()
 	})
 
 	Describe("func Open()", func() {
 		It("returns an error if the making the request fails", func() {
-			server.Stop()
-
-			select {
-			case <-ctx.Done():
-				Expect(ctx.Err()).Should(HaveOccurred())
-			case <-stopped:
-			}
+			conn.Close()
 
 			_, err := stream.Open(ctx, 0, types)
 			Expect(err).Should(HaveOccurred())
