@@ -53,17 +53,13 @@ var _ = Describe("type stream (standard test suite)", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			stream, err := NewEventStream(
-				ctx,
-				"<app-key>",
-				conn,
-				in.Marshaler,
-				0,
-			)
-			Expect(err).ShouldNot(HaveOccurred())
-
 			return streamtest.Out{
-				Stream: stream,
+				Stream: NewEventStream(
+					"<app-key>",
+					conn,
+					in.Marshaler,
+					0,
+				),
 				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
 					source.Append(envelopes...)
 				},
@@ -79,29 +75,6 @@ var _ = Describe("type stream (standard test suite)", func() {
 			}
 		},
 	)
-})
-
-var _ = Describe("func NewEventStream()", func() {
-	It("returns an error if the message types can not be queried", func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-
-		conn, err := grpc.Dial(
-			"<nonsense target>",
-			grpc.WithInsecure(),
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-		defer conn.Close()
-
-		_, err = NewEventStream(
-			ctx,
-			"<app-key>",
-			conn,
-			Marshaler,
-			0,
-		)
-		Expect(err).Should(HaveOccurred())
-	})
 })
 
 var _ = Describe("type stream", func() {
@@ -150,14 +123,12 @@ var _ = Describe("type stream", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stream, err = NewEventStream(
-			ctx,
+		stream = NewEventStream(
 			"<app-key>",
 			conn,
 			Marshaler,
 			0,
 		)
-		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -181,6 +152,15 @@ var _ = Describe("type stream", func() {
 			conn.Close()
 
 			_, err := stream.Open(ctx, 0, types)
+			Expect(err).Should(HaveOccurred())
+		})
+	})
+
+	Describe("func MessageTypes()", func() {
+		It("returns an error if the message types can not be queried", func() {
+			conn.Close()
+
+			_, err := stream.MessageTypes(ctx)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

@@ -51,9 +51,12 @@ var _ = Describe("type dataStore", func() {
 			stream, err := dataStore.EventStream(context.Background())
 			Expect(err).ShouldNot(HaveOccurred())
 
+			types, err := stream.MessageTypes(context.Background())
+			Expect(err).ShouldNot(HaveOccurred())
+
 			Expect(
 				message.IsEqualSetT(
-					stream.MessageTypes(),
+					types,
 					message.TypesOf(MessageE{}),
 				),
 			).To(BeTrue())

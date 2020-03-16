@@ -23,40 +23,17 @@ import (
 // count, which is the number of messages to buffer in memory on the before they
 // are requested by a call to Cursor.Next().
 func NewEventStream(
-	ctx context.Context,
 	k string,
 	c *grpc.ClientConn,
 	m marshalkit.Marshaler,
 	n int,
-) (persistence.Stream, error) {
-	es := messagingspec.NewEventStreamClient(c)
-
-	req := &messagingspec.MessageTypesRequest{
-		ApplicationKey: k,
-	}
-
-	res, err := es.MessageTypes(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Build a type-set containing any message types supported by the remote end
-	// that we know how to unmarshal on this end.
-	types := message.TypeSet{}
-	for _, t := range res.GetMessageTypes() {
-		rt, err := m.UnmarshalType(t.PortableName)
-		if err == nil {
-			types.Add(message.TypeFromReflect(rt))
-		}
-	}
-
+) persistence.Stream {
 	return &stream{
 		appKey:    k,
-		client:    es,
-		types:     types,
+		client:    messagingspec.NewEventStreamClient(c),
 		marshaler: m,
 		prefetch:  n,
-	}, nil
+	}
 }
 
 // stream is an implementation of persistence.Stream that consumes messages via
@@ -64,7 +41,6 @@ func NewEventStream(
 type stream struct {
 	appKey    string
 	client    messagingspec.EventStreamClient
-	types     message.TypeCollection
 	marshaler marshalkit.Marshaler
 	prefetch  int
 }
@@ -143,8 +119,27 @@ func (s *stream) Open(
 }
 
 // MessageTypes returns the message types that may appear on the stream.
-func (s *stream) MessageTypes() message.TypeCollection {
-	return s.types
+func (s *stream) MessageTypes(ctx context.Context) (message.TypeCollection, error) {
+	req := &messagingspec.MessageTypesRequest{
+		ApplicationKey: s.appKey,
+	}
+
+	res, err := s.client.MessageTypes(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a type-set containing any message types supported by the remote end
+	// that we know how to unmarshal on this end.
+	types := message.TypeSet{}
+	for _, t := range res.GetMessageTypes() {
+		rt, err := s.marshaler.UnmarshalType(t.PortableName)
+		if err == nil {
+			types.Add(message.TypeFromReflect(rt))
+		}
+	}
+
+	return types, nil
 }
 
 // cursor is an implementation of persistence.StreamCursor that consumes
