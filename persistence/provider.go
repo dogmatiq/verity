@@ -2,9 +2,11 @@ package persistence
 
 import (
 	"context"
+	"sync"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/marshalkit"
+	"go.uber.org/multierr"
 )
 
 // Provider is an interface used by the engine to obtain application-specific
@@ -26,4 +28,60 @@ type DataStore interface {
 
 	// Close closes the data store.
 	Close() error
+}
+
+// DataStoreSet is a collection of data-stores for several applications.
+type DataStoreSet struct {
+	Provider  Provider
+	Marshaler marshalkit.Marshaler
+
+	m      sync.Mutex
+	stores map[string]DataStore
+}
+
+// Get returns the data store for a given application.
+func (s *DataStoreSet) Get(
+	ctx context.Context,
+	cfg configkit.RichApplication,
+) (DataStore, error) {
+	k := cfg.Identity().Key
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if ds, ok := s.stores[k]; ok {
+		return ds, nil
+	}
+
+	ds, err := s.Provider.Open(ctx, cfg, s.Marshaler)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.stores == nil {
+		s.stores = map[string]DataStore{}
+	}
+
+	s.stores[k] = ds
+
+	return ds, nil
+}
+
+// Close closes all datastores in the XXX.
+func (s *DataStoreSet) Close() error {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	stores := s.stores
+	s.stores = nil
+
+	var err error
+	for _, ds := range stores {
+		err = multierr.Append(
+			err,
+			ds.Close(),
+		)
+	}
+
+	return err
 }
