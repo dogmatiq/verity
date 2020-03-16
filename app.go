@@ -43,9 +43,14 @@ func (e *Engine) streamEvents(
 		for _, hcfg := range cfg.RichHandlers() {
 			hcfg := hcfg // capture loop variable
 
+			produced, err := stream.MessageTypes(ctx)
+			if err != nil {
+				panic(err) // TODO
+			}
+
 			types := message.IntersectionT(
 				hcfg.MessageTypes().Consumed,
-				stream.MessageTypes(),
+				produced,
 			)
 			if len(types) == 0 {
 				continue

@@ -122,9 +122,14 @@ func (s *server) MessageTypes(
 		return nil, err
 	}
 
+	types, err := stream.MessageTypes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	res := &messagingspec.MessageTypesResponse{}
 
-	stream.MessageTypes().Range(
+	types.Range(
 		func(t message.Type) bool {
 			res.MessageTypes = append(
 				res.MessageTypes,

@@ -45,8 +45,8 @@ func (s *Stream) Open(
 }
 
 // MessageTypes returns the message types that may appear on the stream.
-func (s *Stream) MessageTypes() message.TypeCollection {
-	return s.Types
+func (s *Stream) MessageTypes(context.Context) (message.TypeCollection, error) {
+	return s.Types, nil
 }
 
 // Append appends messages to the stream.

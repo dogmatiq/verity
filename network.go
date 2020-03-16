@@ -87,23 +87,12 @@ func (e *Engine) discover(ctx context.Context) error {
 			logger,
 			&discovery.ApplicationExecutor{
 				Task: func(ctx context.Context, a *discovery.Application) {
-					stream, err := eventstream.NewEventStream(
-						ctx,
+					stream := eventstream.NewEventStream(
 						a.Identity().Key,
 						a.Client.Connection,
 						e.opts.Marshaler,
 						0, // TODO: make configurable
 					)
-					if err != nil {
-						logging.Log(
-							e.opts.Logger,
-							"unable to stream events from '%s' application: %s (%s)",
-							a.Identity().Name,
-							err,
-							a.Identity().Key,
-						)
-						return
-					}
 
 					e.streamEvents(ctx, a, stream)
 				},

@@ -28,7 +28,7 @@ type Stream interface {
 	) (StreamCursor, error)
 
 	// MessageTypes returns the message types that may appear on the stream.
-	MessageTypes() message.TypeCollection
+	MessageTypes(ctx context.Context) (message.TypeCollection, error)
 }
 
 // A StreamCursor reads messages from a stream.

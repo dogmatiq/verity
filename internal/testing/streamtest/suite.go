@@ -169,7 +169,8 @@ func Declare(
 				// This test ensures that all of the test types are supported by
 				// the stream, but does not require that these be the ONLY
 				// supported types.
-				types := out.Stream.MessageTypes()
+				types, err := out.Stream.MessageTypes(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				in.MessageTypes.Range(func(t message.Type) bool {
 					gomega.Expect(types.Has(t)).To(
