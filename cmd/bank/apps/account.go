@@ -25,7 +25,7 @@ func (a *AccountApp) Configure(c dogma.ApplicationConfigurer) {
 		panic(err)
 	}
 
-	c.Identity("bank.account", "6541a208-d4c2-46c4-a31e-372230efcd68")
+	c.Identity("account", "6541a208-d4c2-46c4-a31e-372230efcd68")
 
 	c.RegisterAggregate(domain.AccountHandler{})
 	c.RegisterProcess(domain.OpenAccountForNewCustomerProcessHandler{})

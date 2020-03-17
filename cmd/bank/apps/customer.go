@@ -25,7 +25,7 @@ func (a *CustomerApp) Configure(c dogma.ApplicationConfigurer) {
 		panic(err)
 	}
 
-	c.Identity("bank.customer", "db385bd2-59e6-400b-a573-cd9f5ac3381b")
+	c.Identity("customer", "db385bd2-59e6-400b-a573-cd9f5ac3381b")
 
 	c.RegisterAggregate(domain.CustomerHandler{})
 	c.RegisterProjection(p)
