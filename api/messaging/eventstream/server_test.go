@@ -29,10 +29,10 @@ var _ = Describe("type server", func() {
 		server   *grpc.Server
 		client   messagingspec.EventStreamClient
 
-		env1 = NewEnvelope("<message-1>", MessageA1)
-		env2 = NewEnvelope("<message-2>", MessageB1)
-		env3 = NewEnvelope("<message-3>", MessageA2)
-		env4 = NewEnvelope("<message-4>", MessageB2)
+		env0 = NewEnvelope("<message-0>", MessageA1)
+		env1 = NewEnvelope("<message-1>", MessageB1)
+		env2 = NewEnvelope("<message-2>", MessageA2)
+		env3 = NewEnvelope("<message-3>", MessageB2)
 	)
 
 	BeforeEach(func() {
@@ -40,10 +40,10 @@ var _ = Describe("type server", func() {
 
 		stream = &memory.Stream{
 			Types: message.TypesOf(
+				env0.Message,
 				env1.Message,
 				env2.Message,
 				env3.Message,
-				env4.Message,
 			),
 		}
 
@@ -85,7 +85,7 @@ var _ = Describe("type server", func() {
 
 	Describe("func Consume()", func() {
 		BeforeEach(func() {
-			stream.Append(env1, env2, env3, env4)
+			stream.Append(env0, env1, env2, env3)
 		})
 
 		It("exposes the messages from the underlying stream", func() {
@@ -102,7 +102,7 @@ var _ = Describe("type server", func() {
 			Expect(m).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: envelope.MustMarshal(env1),
+					Envelope: envelope.MustMarshal(env0),
 				},
 			))
 
@@ -111,7 +111,7 @@ var _ = Describe("type server", func() {
 			Expect(m).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   1,
-					Envelope: envelope.MustMarshal(env2),
+					Envelope: envelope.MustMarshal(env1),
 				},
 			))
 		})
@@ -131,7 +131,7 @@ var _ = Describe("type server", func() {
 			Expect(m).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: envelope.MustMarshal(env3),
+					Envelope: envelope.MustMarshal(env2),
 				},
 			))
 		})
@@ -150,7 +150,7 @@ var _ = Describe("type server", func() {
 			Expect(m).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: envelope.MustMarshal(env1),
+					Envelope: envelope.MustMarshal(env0),
 				},
 			))
 
@@ -159,7 +159,7 @@ var _ = Describe("type server", func() {
 			Expect(m).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: envelope.MustMarshal(env3),
+					Envelope: envelope.MustMarshal(env2),
 				},
 			))
 		})
