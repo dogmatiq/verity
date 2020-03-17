@@ -3,7 +3,9 @@ package infix
 import (
 	"context"
 
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
 	"golang.org/x/sync/errgroup"
 )
@@ -12,6 +14,7 @@ import (
 type Engine struct {
 	opts       *engineOptions
 	dataStores *persistence.DataStoreSet
+	logger     logging.Logger
 }
 
 // New returns a new engine that hosts the given application.
@@ -31,6 +34,10 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 			Provider:  opts.PersistenceProvider,
 			Marshaler: opts.Marshaler,
 		},
+		logger: loggingx.WithPrefix(
+			opts.Logger,
+			"engine: ",
+		),
 	}
 }
 

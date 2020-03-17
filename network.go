@@ -85,7 +85,7 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 
 // discover starts the gRPC server discovery system.
 func (e *Engine) discover(ctx context.Context) error {
-	logger := discoveryLogger{e.opts.Logger}
+	logger := discoveryLogger{e.logger}
 
 	i := &discovery.Inspector{
 		Observer: discovery.NewApplicationObserverSet(
@@ -107,7 +107,7 @@ func (e *Engine) discover(ctx context.Context) error {
 			for _, c := range e.opts.AppConfigs {
 				if c.Identity().ConflictsWith(a.Identity()) {
 					logging.Debug(
-						e.opts.Logger,
+						e.logger,
 						"ignoring conflicting '%s' application at %s (%s) ",
 						a.Identity().Name,
 						a.Client.Target.Name,

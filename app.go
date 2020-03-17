@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -14,10 +15,14 @@ func (e *Engine) runApplication(
 	ctx context.Context,
 	cfg configkit.RichApplication,
 ) error {
-	logging.Log(
+	logger := loggingx.WithPrefix(
 		e.opts.Logger,
-		"hosting '%s' application (%s)",
-		cfg.Identity().Name,
+		cfg.Identity().Name+": ",
+	)
+
+	logging.Log(
+		logger,
+		"application starting, identity key is %s",
 		cfg.Identity().Key,
 	)
 
