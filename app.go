@@ -21,7 +21,11 @@ func (e *Engine) runApplication(
 		cfg.Identity().Key,
 	)
 
-	ds := e.dataStores[cfg.Identity().Key]
+	ds, err := e.dataStores.Get(ctx, cfg)
+	if err != nil {
+		return err
+	}
+
 	stream, err := ds.EventStream(ctx)
 	if err != nil {
 		return err

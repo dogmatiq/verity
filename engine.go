@@ -11,7 +11,7 @@ import (
 // Engine hosts a Dogma application.
 type Engine struct {
 	opts       *engineOptions
-	dataStores map[string]persistence.DataStore
+	dataStores *persistence.DataStoreSet
 }
 
 // New returns a new engine that hosts the given application.
@@ -23,20 +23,23 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 		options = append(options, WithApplication(app))
 	}
 
+	opts := resolveEngineOptions(options...)
+
 	return &Engine{
-		opts: resolveEngineOptions(options...),
+		opts: opts,
+		dataStores: &persistence.DataStoreSet{
+			Provider:  opts.PersistenceProvider,
+			Marshaler: opts.Marshaler,
+		},
 	}
 }
 
 // Run hosts the given application until ctx is canceled or an error occurs.
 func (e *Engine) Run(ctx context.Context) error {
+	defer e.dataStores.Close()
+
 	parent := ctx
 	g, ctx := errgroup.WithContext(ctx)
-
-	if err := e.setupPersistence(ctx); err != nil {
-		return err
-	}
-	defer e.tearDownPersistence()
 
 	if e.opts.Network != nil {
 		g.Go(func() error {

@@ -60,13 +60,18 @@ func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error
 func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) error {
 	streams := map[string]persistence.Stream{}
 
-	for appKey, ds := range e.dataStores {
+	for _, cfg := range e.opts.AppConfigs {
+		ds, err := e.dataStores.Get(ctx, cfg)
+		if err != nil {
+			return err
+		}
+
 		stream, err := ds.EventStream(ctx)
 		if err != nil {
 			return err
 		}
 
-		streams[appKey] = stream
+		streams[cfg.Identity().Key] = stream
 	}
 
 	eventstream.RegisterServer(
