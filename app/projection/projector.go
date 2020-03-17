@@ -55,7 +55,6 @@ type Projector struct {
 // ctx is canceled or no more relevant events will occur.
 func (p *Projector) Run(ctx context.Context) error {
 	p.resource = resource.FromApplicationKey(p.SourceApplicationKey)
-	p.next = make([]byte, 8)
 	p.backoff = backoff.Counter{
 		Strategy: p.BackoffStrategy,
 	}
@@ -173,6 +172,9 @@ func (p *Projector) consumeNext(ctx context.Context, cur persistence.StreamCurso
 		p.backoff.Reset()
 	}
 
+	if p.next == nil {
+		p.next = make([]byte, 8)
+	}
 	resource.MarshalOffsetInto(p.next, m.Offset+1)
 
 	h := p.ProjectionConfig.Handler()
