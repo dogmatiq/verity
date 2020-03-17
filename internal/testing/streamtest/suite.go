@@ -183,7 +183,7 @@ func Declare(
 		})
 	})
 
-	ginkgo.Describe("type Cursor", func() {
+	ginkgo.Describe("type StreamCursor", func() {
 		ginkgo.Describe("func Next()", func() {
 			ginkgo.Context("when the stream is empty", func() {
 				ginkgo.It("blocks", func() {
