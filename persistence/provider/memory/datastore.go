@@ -15,10 +15,22 @@ type dataStore struct {
 
 	once   sync.Once
 	stream *Stream
+	queue  *Queue
 }
 
 // EventStream returns the application's event stream.
 func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
+	ds.init()
+	return ds.stream, nil
+}
+
+// MessageQueue returns the application's queue of command and timeout messages.
+func (ds *dataStore) MessageQueue(ctx context.Context) (persistence.Queue, error) {
+	ds.init()
+	return ds.queue, nil
+}
+
+func (ds *dataStore) init() {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
 			Types: ds.AppConfig.
@@ -26,14 +38,9 @@ func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 				Produced.
 				FilterByRole(message.EventRole),
 		}
+
+		ds.queue = &Queue{}
 	})
-
-	return ds.stream, nil
-}
-
-// MessageQueue returns the application's queue of command and timeout messages.
-func (ds *dataStore) MessageQueue(ctx context.Context) (persistence.Queue, error) {
-	panic("not implemented")
 }
 
 // Close closes the data store.
