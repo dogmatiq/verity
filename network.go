@@ -45,9 +45,10 @@ func (e *Engine) serve(ctx context.Context) error {
 
 // registerConfigServer registers the Config server with the gRPC server.
 func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error {
+	// Convert slice of RichApplication to slice of Application so that we can
+	// pass it to the RegisterServer() function.
 	var configs []configkit.Application
 	for _, cfg := range e.opts.AppConfigs {
-		// convert []RichApplication to []Application
 		configs = append(configs, cfg)
 	}
 
@@ -60,6 +61,7 @@ func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error
 func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) error {
 	streams := map[string]persistence.Stream{}
 
+	// Create a map of application-key to stream for each hosted application.
 	for _, cfg := range e.opts.AppConfigs {
 		ds, err := e.dataStores.Get(ctx, cfg)
 		if err != nil {
@@ -156,7 +158,7 @@ type discoveryLogger struct {
 }
 
 func (l discoveryLogger) TargetAvailable(t *discovery.Target) {
-	logging.Log(
+	logging.Debug(
 		l.Logger,
 		"discovered API server at %s",
 		t.Name,
@@ -164,7 +166,7 @@ func (l discoveryLogger) TargetAvailable(t *discovery.Target) {
 }
 
 func (l discoveryLogger) TargetUnavailable(t *discovery.Target) {
-	logging.Log(
+	logging.Debug(
 		l.Logger,
 		"lost API server at %s",
 		t.Name,
@@ -172,7 +174,7 @@ func (l discoveryLogger) TargetUnavailable(t *discovery.Target) {
 }
 
 func (l discoveryLogger) ClientConnected(c *discovery.Client) {
-	logging.Log(
+	logging.Debug(
 		l.Logger,
 		"connected to API server at %s",
 		c.Target.Name,
@@ -180,7 +182,7 @@ func (l discoveryLogger) ClientConnected(c *discovery.Client) {
 }
 
 func (l discoveryLogger) ClientDisconnected(c *discovery.Client) {
-	logging.Log(
+	logging.Debug(
 		l.Logger,
 		"disconnected from API server at %s",
 		c.Target.Name,
@@ -190,7 +192,7 @@ func (l discoveryLogger) ClientDisconnected(c *discovery.Client) {
 func (l discoveryLogger) ApplicationAvailable(a *discovery.Application) {
 	logging.Log(
 		l.Logger,
-		"found '%s' application at %s (%s)",
+		"found '%s' application at %s, identity key is %s",
 		a.Identity().Name,
 		a.Client.Target.Name,
 		a.Identity().Key,
