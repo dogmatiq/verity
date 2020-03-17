@@ -17,7 +17,7 @@ type dataStore struct {
 	stream *Stream
 }
 
-// EventStream returns the event stream for the given application.
+// EventStream returns the application's event stream.
 func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 	ds.once.Do(func() {
 		ds.stream = &Stream{

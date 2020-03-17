@@ -21,9 +21,9 @@ type Provider interface {
 }
 
 // DataStore is an interface used by the engine to persist and retrieve
-// application state.
+// data for a specific application.
 type DataStore interface {
-	// EventStream returns the event stream for the given application.
+	// EventStream returns the application's event stream.
 	EventStream(ctx context.Context) (Stream, error)
 
 	// Close closes the data store.
