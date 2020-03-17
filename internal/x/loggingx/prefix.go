@@ -1,13 +1,16 @@
 package loggingx
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/dogmatiq/dodeca/logging"
 )
 
 // WithPrefix returns a logger that adds a prefix to log messages.
-func WithPrefix(target logging.Logger, prefix string) logging.Logger {
+func WithPrefix(target logging.Logger, f string, v ...interface{}) logging.Logger {
+	prefix := fmt.Sprintf(f, v...)
+
 	return &prefixer{
 		target,
 		prefix,

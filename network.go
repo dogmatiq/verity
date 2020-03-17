@@ -34,7 +34,7 @@ func (e *Engine) serve(ctx context.Context) error {
 	defer lis.Close()
 
 	logging.Log(
-		e.opts.Logger,
+		e.logger,
 		"listening for API requests on %s",
 		e.opts.Network.ListenAddress,
 	)

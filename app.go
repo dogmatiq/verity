@@ -17,7 +17,8 @@ func (e *Engine) runApplication(
 ) error {
 	logger := loggingx.WithPrefix(
 		e.opts.Logger,
-		cfg.Identity().Name+": ",
+		"%s: ",
+		cfg.Identity().Name,
 	)
 
 	logging.Log(
