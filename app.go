@@ -15,15 +15,10 @@ func (e *Engine) runApplication(
 	ctx context.Context,
 	cfg configkit.RichApplication,
 ) error {
-	logger := loggingx.WithPrefix(
-		e.opts.Logger,
-		"%s: ",
-		cfg.Identity().Name,
-	)
-
 	logging.Log(
-		logger,
-		"application starting, identity key is %s",
+		e.logger,
+		"starting '%s' application, identity key is %s",
+		cfg.Identity().Name,
 		cfg.Identity().Key,
 	)
 

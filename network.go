@@ -101,19 +101,20 @@ func (e *Engine) discover(ctx context.Context) error {
 						0, // TODO: make configurable
 					)
 
-					e.streamEvents(ctx, a, stream)
+					// err will only ever be context-cancelation
+					_ = e.streamEvents(ctx, a, stream)
 				},
 			},
 		),
 		Ignore: func(a *discovery.Application) bool {
-			for _, c := range e.opts.AppConfigs {
-				if c.Identity().ConflictsWith(a.Identity()) {
+			for _, cfg := range e.opts.AppConfigs {
+				if cfg.Identity().ConflictsWith(a.Identity()) {
 					logging.Debug(
 						e.logger,
-						"ignoring conflicting '%s' application at %s (%s) ",
-						a.Identity().Name,
+						"ignoring remote %s application at %s because it conflicts with the local %s application",
+						a.Identity(),
 						a.Client.Target.Name,
-						a.Identity().Key,
+						cfg.Identity(),
 					)
 
 					return true

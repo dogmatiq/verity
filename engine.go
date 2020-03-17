@@ -36,7 +36,7 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 		},
 		logger: loggingx.WithPrefix(
 			opts.Logger,
-			"engine: ",
+			"engine | ",
 		),
 	}
 }
