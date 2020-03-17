@@ -7,7 +7,7 @@ require (
 	github.com/dogmatiq/dodeca v0.2.1
 	github.com/dogmatiq/dogma v0.6.3
 	github.com/dogmatiq/example v0.0.0-20200303005501-6ab2b41a6502
-	github.com/dogmatiq/linger v0.2.0
+	github.com/dogmatiq/linger v0.2.1
 	github.com/dogmatiq/marshalkit v0.2.0
 	github.com/dogmatiq/projectionkit v0.3.2
 	github.com/go-sql-driver/mysql v1.5.0
