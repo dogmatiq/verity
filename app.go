@@ -2,13 +2,13 @@ package infix
 
 import (
 	"context"
-	"sync"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/app/projection"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
+	"golang.org/x/sync/errgroup"
 )
 
 func (e *Engine) runApplication(
@@ -32,67 +32,63 @@ func (e *Engine) runApplication(
 		return err
 	}
 
-	e.streamEvents(ctx, cfg, stream)
-
-	return ctx.Err()
+	return e.streamEvents(ctx, cfg, stream)
 }
 
 func (e *Engine) streamEvents(
 	ctx context.Context,
 	source configkit.Application,
 	stream persistence.Stream,
-) {
-	var g sync.WaitGroup
+) error {
+	g, ctx := errgroup.WithContext(ctx)
 
-	for _, cfg := range e.opts.AppConfigs {
-		for _, hcfg := range cfg.RichHandlers() {
-			hcfg := hcfg // capture loop variable
+	for _, target := range e.opts.AppConfigs {
+		target := target // capture loop variable
 
-			produced, err := stream.MessageTypes(ctx)
-			if err != nil {
-				panic(err) // TODO
-			}
+		for _, cfg := range target.RichHandlers().Projections() {
+			cfg := cfg // capture loop variable
 
-			types := message.IntersectionT(
-				hcfg.MessageTypes().Consumed,
-				produced,
-			)
-			if len(types) == 0 {
-				continue
-			}
-
-			g.Add(1)
-			go func() {
-				defer g.Done()
-
-				e.streamEventsForHandler(
+			g.Go(func() error {
+				return e.runProjector(
 					ctx,
-					stream,
-					types,
+					target,
 					source,
-					hcfg,
+					stream,
+					cfg,
 				)
-			}()
+			})
 		}
 	}
 
-	<-ctx.Done()
-	g.Wait()
+	return g.Wait()
 }
 
-func (e *Engine) streamEventsForHandler(
+func (e *Engine) runProjector(
 	ctx context.Context,
-	stream persistence.Stream,
-	types message.TypeSet,
+	target configkit.Application,
 	source configkit.Application,
-	hcfg configkit.RichHandler,
-) {
-	logging.Log(
-		e.opts.Logger,
-		"sourcing %d event type(s) from the '%s' application for the '%s' %s",
-		len(types),
-		source.Identity().Name,
-		hcfg.Identity().Name,
-		hcfg.HandlerType(),
-	)
+	stream persistence.Stream,
+	cfg configkit.RichProjection,
+) error {
+	prefix := "%s app | %s handler | %s stream | "
+	if source.Identity() == target.Identity() {
+		prefix = "%s app | %s handler | %s stream (self) | "
+	}
+
+	p := &projection.Projector{
+		SourceApplicationKey: source.Identity().Key,
+		Stream:               stream,
+		ProjectionConfig:     cfg,
+		BackoffStrategy:      e.opts.MessageBackoff,
+		DefaultTimeout:       e.opts.MessageTimeout,
+		Logger: loggingx.WithPrefix(
+			e.opts.Logger,
+			prefix,
+			target.Identity().Name,
+			cfg.Identity().Name,
+			source.Identity().Name,
+		),
+	}
+
+	return p.Run(ctx)
 }
