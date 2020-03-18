@@ -170,7 +170,8 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 	}()
 
 	// Finally, if we actually get a context cancelleation error, check if it
-	// was because the cursor was closed, and if so, return a more meaningful.
+	// was because the cursor was closed, and if so, return a more meaningful
+	// error.
 	defer func() {
 		if err == context.Canceled {
 			select {
@@ -212,7 +213,7 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 			return m, nil
 		}
 
-		if err := c.counter.Sleep(ctx, nil); err != nil {
+		if err := c.counter.Sleep(ctx, err); err != nil {
 			return nil, err
 		}
 	}
