@@ -17,8 +17,9 @@ import (
 // DefaultTimeout is the default timeout to use when applying an event.
 const DefaultTimeout = 3 * time.Second
 
-// Projector reads events from a stream and applies them to a projection.
-type Projector struct {
+// StreamConsumer consumes events from a stream to be handled by a projection
+// message handler.
+type StreamConsumer struct {
 	// ApplicationKey is the identity key of the application that produces the
 	// events.
 	ApplicationKey string
@@ -26,21 +27,20 @@ type Projector struct {
 	// Stream is the source application's event stream.
 	Stream persistence.Stream
 
-	// ProjectionConfig is the configuration of the projection that the events
-	// are applied to.
+	// ProjectionConfig is the configuration of the projection that handles the
+	// events.
 	ProjectionConfig configkit.RichProjection
 
-	// DefaultTimeout is the timeout duration to use when hanlding an event if
-	// the handler does not provide a timeout hint. If it is nil, DefaultTimeout
-	// is used.
+	// DefaultTimeout is the maximum time to allow for handling a single event
+	// if the handler does not provide a timeout hint. If it is nil,
+	// DefaultTimeout is used.
 	DefaultTimeout time.Duration
 
-	// BackoffStrategy is the strategy used to restarting the projector after a
-	// failed call to consume, or message handling failure. If it is nil,
-	// backoff.DefaultStrategy is used.
+	// BackoffStrategy is the strategy used to delay restarting the consumer
+	// after a failure. If it is nil, backoff.DefaultStrategy is used.
 	BackoffStrategy backoff.Strategy
 
-	// Logger is the target for log messages from the projector and the handler.
+	// Logger is the target for log messages from the consumer and the handler.
 	// If it is nil, logging.DefaultLogger is used.
 	Logger logging.Logger
 
@@ -51,16 +51,16 @@ type Projector struct {
 	handlerFailed bool
 }
 
-// Run consumes events from the stream and applies them to the projection until
-// ctx is canceled or no more relevant events will occur.
-func (p *Projector) Run(ctx context.Context) error {
-	p.resource = resource.FromApplicationKey(p.ApplicationKey)
-	p.backoff = backoff.Counter{
-		Strategy: p.BackoffStrategy,
+// Run handles events from the stream until ctx is canceled or no more relevant
+// events will occur.
+func (c *StreamConsumer) Run(ctx context.Context) error {
+	c.resource = resource.FromApplicationKey(c.ApplicationKey)
+	c.backoff = backoff.Counter{
+		Strategy: c.BackoffStrategy,
 	}
 
 	for {
-		err := p.consume(ctx)
+		err := c.consume(ctx)
 		if err == nil {
 			return nil
 		}
@@ -70,11 +70,11 @@ func (p *Projector) Run(ctx context.Context) error {
 		}
 
 		logging.LogString(
-			p.Logger,
+			c.Logger,
 			err.Error(),
 		)
 
-		if err := p.backoff.Sleep(ctx, err); err != nil {
+		if err := c.backoff.Sleep(ctx, err); err != nil {
 			return err
 		}
 	}
@@ -85,18 +85,18 @@ func (p *Projector) Run(ctx context.Context) error {
 //
 // It consumes until ctx is canceled, an error occurs, no more relevant events
 // will occur.
-func (p *Projector) consume(ctx context.Context) error {
-	produced, err := p.Stream.MessageTypes(ctx)
+func (c *StreamConsumer) consume(ctx context.Context) error {
+	produced, err := c.Stream.MessageTypes(ctx)
 	if err != nil {
 		return err
 	}
 
-	consumed := p.ProjectionConfig.MessageTypes().Consumed
+	consumed := c.ProjectionConfig.MessageTypes().Consumed
 	relevant := message.IntersectionT(consumed, produced)
 
 	if len(relevant) == 0 {
 		logging.Debug(
-			p.Logger,
+			c.Logger,
 			"stream does not produce any relevant event types",
 		)
 
@@ -105,20 +105,20 @@ func (p *Projector) consume(ctx context.Context) error {
 
 	for t := range relevant {
 		logging.Debug(
-			p.Logger,
+			c.Logger,
 			"consuming '%s' events",
 			t,
 		)
 	}
 
-	cur, err := p.open(ctx, relevant)
+	cur, err := c.open(ctx, relevant)
 	if err != nil {
 		return err
 	}
 	defer cur.Close()
 
 	for {
-		if err := p.consumeNext(ctx, cur); err != nil {
+		if err := c.consumeNext(ctx, cur); err != nil {
 			return err
 		}
 	}
@@ -126,7 +126,7 @@ func (p *Projector) consume(ctx context.Context) error {
 
 // open opens a cursor on the stream based on the offset recorded within the
 // projection.
-func (p *Projector) open(
+func (c *StreamConsumer) open(
 	ctx context.Context,
 	types message.TypeSet,
 ) (persistence.StreamCursor, error) {
@@ -135,29 +135,29 @@ func (p *Projector) open(
 		err    error
 	)
 
-	p.current, err = p.ProjectionConfig.Handler().ResourceVersion(ctx, p.resource)
+	c.current, err = c.ProjectionConfig.Handler().ResourceVersion(ctx, c.resource)
 	if err != nil {
 		return nil, err
 	}
 
-	offset, err = resource.UnmarshalOffset(p.current)
+	offset, err = resource.UnmarshalOffset(c.current)
 	if err != nil {
 		return nil, err
 	}
 
 	logging.Log(
-		p.Logger,
+		c.Logger,
 		"consuming %d event type(s), beginning at offset %d",
 		len(types),
 		offset,
 	)
 
-	return p.Stream.Open(ctx, offset, types)
+	return c.Stream.Open(ctx, offset, types)
 }
 
 // consumeNext waits for the next message on the stream then applies it to the
 // projection.
-func (p *Projector) consumeNext(ctx context.Context, cur persistence.StreamCursor) error {
+func (c *StreamConsumer) consumeNext(ctx context.Context, cur persistence.StreamCursor) error {
 	m, err := cur.Next(ctx)
 	if err != nil {
 		return err
@@ -167,47 +167,47 @@ func (p *Projector) consumeNext(ctx context.Context, cur persistence.StreamCurso
 	// failure was caused by the stream (and not the handler), reset the failure
 	// count now, otherwise only reset it once we manage to actually apply the
 	// event.
-	if !p.handlerFailed {
-		p.handlerFailed = false
-		p.backoff.Reset()
+	if !c.handlerFailed {
+		c.handlerFailed = false
+		c.backoff.Reset()
 	}
 
-	if p.next == nil {
-		p.next = make([]byte, 8)
+	if c.next == nil {
+		c.next = make([]byte, 8)
 	}
-	resource.MarshalOffsetInto(p.next, m.Offset+1)
+	resource.MarshalOffsetInto(c.next, m.Offset+1)
 
-	h := p.ProjectionConfig.Handler()
+	h := c.ProjectionConfig.Handler()
 
 	ctx, cancel := linger.ContextWithTimeout(
 		ctx,
 		h.TimeoutHint(m.Envelope.Message),
-		p.DefaultTimeout,
+		c.DefaultTimeout,
 		DefaultTimeout,
 	)
 	defer cancel()
 
 	ok, err := h.HandleEvent(
 		ctx,
-		p.resource,
-		p.current,
-		p.next,
+		c.resource,
+		c.current,
+		c.next,
 		scope{
 			recordedAt: m.Envelope.CreatedAt,
-			logger:     p.Logger,
+			logger:     c.Logger,
 		},
 		m.Envelope.Message,
 	)
 
 	if ok {
 		// keep swapping between the two buffers to avoid repeat allocations
-		p.current, p.next = p.next, p.current
-		p.backoff.Reset()
+		c.current, c.next = c.next, c.current
+		c.backoff.Reset()
 
 		return nil
 	}
 
-	p.handlerFailed = true
+	c.handlerFailed = true
 
 	if err != nil {
 		return err

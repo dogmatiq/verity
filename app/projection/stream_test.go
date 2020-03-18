@@ -5,8 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dogmatiq/linger/backoff"
-
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
@@ -16,18 +14,19 @@ import (
 	. "github.com/dogmatiq/infix/app/projection"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Projector", func() {
+var _ = Describe("type StreamConsumer", func() {
 	var (
-		ctx     context.Context
-		cancel  func()
-		stream  *memory.Stream
-		handler *ProjectionMessageHandler
-		logger  *logging.BufferedLogger
-		proj    *Projector
+		ctx      context.Context
+		cancel   func()
+		stream   *memory.Stream
+		handler  *ProjectionMessageHandler
+		logger   *logging.BufferedLogger
+		consumer *StreamConsumer
 
 		env0 = NewEnvelope("<message-0>", MessageA1)
 		env1 = NewEnvelope("<message-1>", MessageB1)
@@ -67,7 +66,7 @@ var _ = Describe("type Projector", func() {
 
 		logger = &logging.BufferedLogger{}
 
-		proj = &Projector{
+		consumer = &StreamConsumer{
 			ApplicationKey:   "<source>",
 			Stream:           stream,
 			ProjectionConfig: configkit.FromProjection(handler),
@@ -98,7 +97,7 @@ var _ = Describe("type Projector", func() {
 				return true, nil
 			}
 
-			err := proj.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 			Expect(messages).To(Equal(
 				[]dogma.Message{
@@ -127,12 +126,12 @@ var _ = Describe("type Projector", func() {
 				return true, nil
 			}
 
-			err := proj.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		It("falls back to the projector's default timeout", func() {
-			proj.DefaultTimeout = 500 * time.Millisecond
+		It("falls back to the consumer's default timeout", func() {
+			consumer.DefaultTimeout = 500 * time.Millisecond
 
 			handler.HandleEventFunc = func(
 				ctx context.Context,
@@ -147,7 +146,7 @@ var _ = Describe("type Projector", func() {
 				return true, nil
 			}
 
-			err := proj.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 
@@ -165,7 +164,7 @@ var _ = Describe("type Projector", func() {
 				return true, nil
 			}
 
-			err := proj.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 
@@ -174,11 +173,11 @@ var _ = Describe("type Projector", func() {
 				MessageCType,
 			)
 
-			err := proj.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("restarts the projector when the handler returns an error", func() {
+		It("restarts the consumer when the handler returns an error", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
 				_, _, _ []byte,
@@ -199,14 +198,14 @@ var _ = Describe("type Projector", func() {
 				return false, errors.New("<error>")
 			}
 
-			err := proj.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 
 		It("returns if the context is canceled", func() {
 			done := make(chan error)
 			go func() {
-				done <- proj.Run(ctx)
+				done <- consumer.Run(ctx)
 			}()
 
 			cancel()
@@ -227,7 +226,7 @@ var _ = Describe("type Projector", func() {
 					return true, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			})
 
@@ -243,7 +242,7 @@ var _ = Describe("type Projector", func() {
 					return true, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 
 				Expect(logger.Messages()).To(ContainElement(
@@ -275,7 +274,7 @@ var _ = Describe("type Projector", func() {
 					return true, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			})
 
@@ -300,7 +299,7 @@ var _ = Describe("type Projector", func() {
 					return true, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			})
 
@@ -325,11 +324,11 @@ var _ = Describe("type Projector", func() {
 					return true, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			})
 
-			It("restarts the projector when a conflict occurs", func() {
+			It("restarts the consumer when a conflict occurs", func() {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					_, _, _ []byte,
@@ -357,11 +356,11 @@ var _ = Describe("type Projector", func() {
 					return false, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			})
 
-			It("restarts the projector when the current version is malformed", func() {
+			It("restarts the consumer when the current version is malformed", func() {
 				handler.ResourceVersionFunc = func(
 					context.Context,
 					[]byte,
@@ -382,11 +381,11 @@ var _ = Describe("type Projector", func() {
 					return false, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			})
 
-			It("restarts the projector when the current version can not be read", func() {
+			It("restarts the consumer when the current version can not be read", func() {
 				handler.ResourceVersionFunc = func(
 					context.Context,
 					[]byte,
@@ -407,7 +406,7 @@ var _ = Describe("type Projector", func() {
 					return false, nil
 				}
 
-				err := proj.Run(ctx)
+				err := consumer.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			})
 		})

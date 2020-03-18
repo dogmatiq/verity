@@ -49,7 +49,7 @@ func (e *Engine) streamEvents(
 			cfg := cfg // capture loop variable
 
 			g.Go(func() error {
-				return e.runProjector(
+				return e.streamEventsToProjection(
 					ctx,
 					target,
 					source,
@@ -63,7 +63,7 @@ func (e *Engine) streamEvents(
 	return g.Wait()
 }
 
-func (e *Engine) runProjector(
+func (e *Engine) streamEventsToProjection(
 	ctx context.Context,
 	target configkit.Application,
 	source configkit.Application,
@@ -75,7 +75,7 @@ func (e *Engine) runProjector(
 		prefix = "%s app | %s handler | %s stream (self) | "
 	}
 
-	p := &projection.Projector{
+	c := &projection.StreamConsumer{
 		ApplicationKey:   source.Identity().Key,
 		Stream:           stream,
 		ProjectionConfig: cfg,
@@ -90,5 +90,5 @@ func (e *Engine) runProjector(
 		),
 	}
 
-	return p.Run(ctx)
+	return c.Run(ctx)
 }
