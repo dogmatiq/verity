@@ -9,7 +9,6 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/sql/driver"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
@@ -44,7 +43,7 @@ type Provider struct {
 
 	// Driver is the Infix SQL driver to use with this database.
 	// If it is nil, it is determined automatically for built-in drivers.
-	Driver *driver.Driver
+	Driver *Driver
 
 	// StreamBackoff is the backoff strategy used to determine delays betweens
 	// stream polls that do not produce any results.
@@ -62,7 +61,7 @@ func (p *Provider) Open(
 	d := p.Driver
 	if d == nil {
 		var err error
-		d, err = driver.New(p.DB)
+		d, err = NewDriver(p.DB)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +87,7 @@ type DSNProvider struct {
 
 	// Driver is the Infix SQL driver to use with this database.
 	// If it is nil, it is determined automatically for built-in drivers.
-	Driver *driver.Driver
+	Driver *Driver
 
 	// StreamBackoff is the backoff strategy used to determine delays betweens
 	// stream polls that do not produce any results.
@@ -115,7 +114,7 @@ type DSNProvider struct {
 	m      sync.Mutex
 	refs   int64
 	db     *sql.DB
-	driver *driver.Driver
+	driver *Driver
 }
 
 // Open returns a data-store for a specific application.
@@ -158,7 +157,7 @@ func (p *DSNProvider) open() (err error) {
 
 	p.driver = p.Driver
 	if p.driver == nil {
-		p.driver, err = driver.New(p.db)
+		p.driver, err = NewDriver(p.db)
 		if err != nil {
 			return err
 		}

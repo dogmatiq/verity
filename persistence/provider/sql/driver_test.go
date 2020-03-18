@@ -1,10 +1,10 @@
-package driver_test
+package sql_test
 
 import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	. "github.com/dogmatiq/infix/persistence/provider/sql/driver"
+	. "github.com/dogmatiq/infix/persistence/provider/sql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/mysql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/postgres"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/sqlite"
@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("func New()", func() {
+var _ = Describe("func NewDriver()", func() {
 	DescribeTable(
 		"it returns the expected driver",
 		func(name, dsn string, expected *Driver) {
@@ -24,9 +24,8 @@ var _ = Describe("func New()", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			defer db.Close()
 
-			d, err := New(db)
+			d, err := NewDriver(db)
 			Expect(err).ShouldNot(HaveOccurred())
-
 			Expect(d).To(Equal(expected))
 		},
 		Entry(
@@ -50,7 +49,7 @@ var _ = Describe("func New()", func() {
 	)
 
 	It("returns an error if the driver is unrecognised", func() {
-		_, err := New(sqltest.MockDB())
+		_, err := NewDriver(sqltest.MockDB())
 		Expect(err).Should(HaveOccurred())
 	})
 })

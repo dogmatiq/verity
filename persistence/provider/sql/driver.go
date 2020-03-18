@@ -1,9 +1,10 @@
-package driver
+package sql
 
 import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dogmatiq/infix/persistence/provider/sql/driver"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/mysql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/postgres"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver/sqlite"
@@ -11,11 +12,11 @@ import (
 
 // Driver is used to interface with the underlying SQL database.
 type Driver struct {
-	StreamDriver StreamDriver
+	StreamDriver driver.StreamDriver
 }
 
-// New returns the appropriate driver to use with the given database.
-func New(db *sql.DB) (*Driver, error) {
+// NewDriver returns the appropriate driver to use with the given database.
+func NewDriver(db *sql.DB) (*Driver, error) {
 	if mysql.IsCompatibleWith(db) {
 		return &Driver{
 			mysql.StreamDriver{},

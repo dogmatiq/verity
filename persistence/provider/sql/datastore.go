@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/sql/driver"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 )
@@ -18,7 +17,7 @@ type dataStore struct {
 	appConfig     configkit.RichApplication
 	marshaler     marshalkit.Marshaler
 	db            *sql.DB
-	driver        *driver.Driver
+	driver        *Driver
 	streamBackoff backoff.Strategy
 	closer        func() error
 
