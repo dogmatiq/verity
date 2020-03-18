@@ -17,19 +17,15 @@ type Queue interface {
 // atomically in order to handle a single message.
 type QueueTransaction interface {
 	// Envelope returns the envelope containing the message to be handled
-	Envelope() *envelope.Envelope
+	Envelope(ctx context.Context) (*envelope.Envelope, error)
 
 	// Apply applies the changes from the transaction.
 	Apply(ctx context.Context) error
 
 	// Abort cancels the transaction, returning the message to the queue.
 	//
-	// err is the error that caused rollback, if known. A nil value does not
-	// indicate a success.
-	//
-	// next is the time at which the next attempt to handle the message should
-	// be made.
-	Abort(ctx context.Context, err error, next time.Time) error
+	// next indicates when the message should be retried.
+	Abort(ctx context.Context, next time.Time) error
 
 	// Close closes the transaction.
 	Close() error

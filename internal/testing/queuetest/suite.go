@@ -146,7 +146,9 @@ func Declare(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Close()
 
-						gomega.Expect(tx.Envelope()).To(gomega.Equal(envEmptyScheduledFor))
+						env, err := tx.Envelope(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(env).To(gomega.Equal(envEmptyScheduledFor))
 					})
 
 					ginkgo.It("wakes if the message is scheduled in the past", func() {
@@ -159,7 +161,9 @@ func Declare(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Close()
 
-						gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInThePast))
+						env, err := tx.Envelope(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(env).To(gomega.Equal(envScheduledInThePast))
 					})
 
 					ginkgo.It("wakes if the message reaches its scheduled-for time", func() {
@@ -176,7 +180,9 @@ func Declare(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Close()
 
-						gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInTheFuture))
+						env, err := tx.Envelope(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(env).To(gomega.Equal(envScheduledInTheFuture))
 					})
 
 					ginkgo.It("does not wake if the message is scheduled beyond the context deadline", func() {
@@ -202,7 +208,9 @@ func Declare(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
-					gomega.Expect(tx.Envelope()).To(gomega.Equal(envEmptyScheduledFor))
+					env, err := tx.Envelope(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(env).To(gomega.Equal(envEmptyScheduledFor))
 				})
 
 				ginkgo.It("returns messages that are scheduled in the past", func() {
@@ -212,7 +220,9 @@ func Declare(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
-					gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInThePast))
+					env, err := tx.Envelope(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(env).To(gomega.Equal(envScheduledInThePast))
 				})
 
 				ginkgo.It("blocks until a message reaches its scheduled-for time", func() {
@@ -223,7 +233,9 @@ func Declare(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
-					gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInTheFuture))
+					env, err := tx.Envelope(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(env).To(gomega.Equal(envScheduledInTheFuture))
 				})
 
 				ginkgo.It("does not return messages that are scheduled beyond the context deadline", func() {
@@ -243,7 +255,9 @@ func Declare(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
-					gomega.Expect(tx.Envelope()).To(gomega.Equal(envEmptyScheduledFor))
+					env, err := tx.Envelope(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(env).To(gomega.Equal(envEmptyScheduledFor))
 				})
 			})
 		})

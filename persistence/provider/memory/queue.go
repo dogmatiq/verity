@@ -198,8 +198,8 @@ type transaction struct {
 }
 
 // Envelope returns the envelope containing the message to be handled
-func (t *transaction) Envelope() *envelope.Envelope {
-	return t.message.envelope
+func (t *transaction) Envelope(context.Context) (*envelope.Envelope, error) {
+	return t.message.envelope, nil
 }
 
 // Apply applies the changes from the transaction.
@@ -209,12 +209,8 @@ func (t *transaction) Apply(ctx context.Context) error {
 
 // Abort cancels the transaction, returning the message to the queue.
 //
-// err is the error that caused rollback, if known. A nil value does not
-// indicate a success.
-//
-// next is the time at which the next attempt to handle the message should
-// be made.
-func (t *transaction) Abort(ctx context.Context, err error, next time.Time) error {
+// next indicates when the message should be retried.
+func (t *transaction) Abort(ctx context.Context, next time.Time) error {
 	return errors.New("not implemented")
 }
 
