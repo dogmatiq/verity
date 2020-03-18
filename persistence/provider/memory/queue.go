@@ -49,6 +49,7 @@ func (q *Queue) Enqueue(envelopes ...*envelope.Envelope) {
 
 		select {
 		case q.in <- m:
+			continue // keep to see coverage
 		case <-q.done:
 			panic("queue is closed")
 		}
@@ -64,7 +65,7 @@ func (q *Queue) Close() error {
 	defer q.m.Unlock()
 
 	if q.closed {
-		return nil
+		return errors.New("queue is already closed")
 	}
 
 	if q.done == nil {
@@ -145,7 +146,7 @@ func (q *Queue) run() {
 		case send <- next:
 			heap.Pop(&messages)
 		case <-wait:
-			continue // added for coverage
+			continue // keep to see coverage
 		case <-q.done:
 			return
 		}

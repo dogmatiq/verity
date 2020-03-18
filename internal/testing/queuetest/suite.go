@@ -36,6 +36,12 @@ type Out struct {
 	// TestTimeout is the maximum duration allowed for each test.
 	TestTimeout time.Duration
 
+	// AssumeBlockingDuration specifies how long the tests should wait before
+	// assuming a call to Cursor.Next() is successfully blocking, waiting for a
+	// new message, as opposed to in the process of "checking" if any messages
+	// are already available.
+	AssumeBlockingDuration time.Duration
+
 	// Enqueue is a function that enqueues messages.
 	Enqueue func(context.Context, ...*envelope.Envelope)
 }
@@ -43,6 +49,9 @@ type Out struct {
 const (
 	// DefaultTestTimeout is the default test timeout.
 	DefaultTestTimeout = 3 * time.Second
+
+	// DefaultAssumeBlockingDuration is the default "assumed blocking duration".
+	DefaultAssumeBlockingDuration = 150 * time.Millisecond
 )
 
 // Declare declares generic behavioral tests for a specific queue
@@ -56,6 +65,10 @@ func Declare(
 		cancel func()
 		in     In
 		out    Out
+
+		envEmptyScheduledFor    *envelope.Envelope
+		envScheduledInThePast   *envelope.Envelope
+		envScheduledInTheFuture *envelope.Envelope
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -73,8 +86,31 @@ func Declare(
 
 		out = before(setupCtx, in)
 
+		envEmptyScheduledFor = infixfixtures.NewEnvelope(
+			"<empty-scheduled-for>",
+			dogmafixtures.MessageA1,
+		)
+
+		envScheduledInThePast = infixfixtures.NewEnvelope(
+			"<scheduled-in-the-past>",
+			dogmafixtures.MessageB1,
+			time.Now(),
+			time.Now().Add(-1*time.Hour),
+		)
+
+		envScheduledInTheFuture = infixfixtures.NewEnvelope(
+			"<scheduled-in-the-future>",
+			dogmafixtures.MessageC1,
+			time.Now(),
+			time.Now().Add(1*time.Hour),
+		)
+
 		if out.TestTimeout <= 0 {
 			out.TestTimeout = DefaultTestTimeout
+		}
+
+		if out.AssumeBlockingDuration <= 0 {
+			out.AssumeBlockingDuration = DefaultAssumeBlockingDuration
 		}
 
 		ctx, cancel = context.WithTimeout(context.Background(), out.TestTimeout)
@@ -90,15 +126,125 @@ func Declare(
 
 	ginkgo.Describe("type Queue", func() {
 		ginkgo.Describe("func Get()", func() {
-			ginkgo.It("returns messages that do not have a scheduled-for time", func() {
-				env := infixfixtures.NewEnvelope("<id>", dogmafixtures.MessageA1)
-				out.Enqueue(ctx, env)
+			ginkgo.When("the queue is empty", func() {
+				ginkgo.It("blocks", func() {
+					ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration)
+					defer cancel()
 
-				tx, err := out.Queue.Get(ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer tx.Close()
+					_, err := out.Queue.Get(ctx)
+					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
+				})
 
-				gomega.Expect(tx.Envelope()).To(gomega.Equal(env))
+				ginkgo.When("a message is enqueued", func() {
+					ginkgo.It("wakes if the message does not have a scheduled-for time", func() {
+						go func() {
+							time.Sleep(out.AssumeBlockingDuration)
+							out.Enqueue(ctx, envEmptyScheduledFor)
+						}()
+
+						tx, err := out.Queue.Get(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer tx.Close()
+
+						gomega.Expect(tx.Envelope()).To(gomega.Equal(envEmptyScheduledFor))
+					})
+
+					ginkgo.It("wakes if the message is scheduled in the past", func() {
+						go func() {
+							time.Sleep(out.AssumeBlockingDuration)
+							out.Enqueue(ctx, envScheduledInThePast)
+						}()
+
+						tx, err := out.Queue.Get(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer tx.Close()
+
+						gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInThePast))
+					})
+
+					ginkgo.It("wakes if the message reaches its scheduled-for time", func() {
+						envScheduledInTheFuture.ScheduledFor = time.Now().Add(
+							out.AssumeBlockingDuration * 2,
+						)
+
+						go func() {
+							time.Sleep(out.AssumeBlockingDuration)
+							out.Enqueue(ctx, envScheduledInTheFuture)
+						}()
+
+						tx, err := out.Queue.Get(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer tx.Close()
+
+						gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInTheFuture))
+					})
+
+					ginkgo.It("does not wake if the message is scheduled beyond the context deadline", func() {
+						go func() {
+							time.Sleep(out.AssumeBlockingDuration)
+							out.Enqueue(ctx, envScheduledInTheFuture)
+						}()
+
+						ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration*2)
+						defer cancel()
+
+						_, err := out.Queue.Get(ctx)
+						gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
+					})
+				})
+			})
+
+			ginkgo.When("the queue is not empty", func() {
+				ginkgo.It("returns messages that do not have a scheduled-for time", func() {
+					out.Enqueue(ctx, envEmptyScheduledFor)
+
+					tx, err := out.Queue.Get(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx.Close()
+
+					gomega.Expect(tx.Envelope()).To(gomega.Equal(envEmptyScheduledFor))
+				})
+
+				ginkgo.It("returns messages that are scheduled in the past", func() {
+					out.Enqueue(ctx, envScheduledInThePast)
+
+					tx, err := out.Queue.Get(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx.Close()
+
+					gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInThePast))
+				})
+
+				ginkgo.It("blocks until a message reaches its scheduled-for time", func() {
+					envScheduledInTheFuture.ScheduledFor = time.Now().Add(out.AssumeBlockingDuration)
+					out.Enqueue(ctx, envScheduledInTheFuture)
+
+					tx, err := out.Queue.Get(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx.Close()
+
+					gomega.Expect(tx.Envelope()).To(gomega.Equal(envScheduledInTheFuture))
+				})
+
+				ginkgo.It("does not return messages that are scheduled beyond the context deadline", func() {
+					out.Enqueue(ctx, envScheduledInTheFuture)
+
+					ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration)
+					defer cancel()
+
+					_, err := out.Queue.Get(ctx)
+					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
+				})
+
+				ginkgo.It("returns messages that are ready to be handled first", func() {
+					out.Enqueue(ctx, envScheduledInTheFuture, envEmptyScheduledFor)
+
+					tx, err := out.Queue.Get(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx.Close()
+
+					gomega.Expect(tx.Envelope()).To(gomega.Equal(envEmptyScheduledFor))
+				})
 			})
 		})
 	})
