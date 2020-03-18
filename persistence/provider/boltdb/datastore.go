@@ -42,6 +42,11 @@ func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 	return ds.stream, nil
 }
 
+// MessageQueue returns the application's queue of command and timeout messages.
+func (ds *dataStore) MessageQueue(ctx context.Context) (persistence.Queue, error) {
+	panic("not implemented")
+}
+
 // Close closes the data store.
 func (ds *dataStore) Close() error {
 	if ds.Closer != nil {

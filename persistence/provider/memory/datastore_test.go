@@ -72,4 +72,16 @@ var _ = Describe("type dataStore", func() {
 			Expect(stream1).To(BeIdenticalTo(stream2))
 		})
 	})
+
+	Describe("func MessageQueue()", func() {
+		It("returns the same instance on subsequent calls", func() {
+			queue1, err := dataStore.MessageQueue(context.Background())
+			Expect(err).ShouldNot(HaveOccurred())
+
+			queue2, err := dataStore.MessageQueue(context.Background())
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(queue1).To(BeIdenticalTo(queue2))
+		})
+	})
 })

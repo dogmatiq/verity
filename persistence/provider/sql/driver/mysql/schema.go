@@ -14,6 +14,33 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
+		`CREATE TABLE queue (
+			message_type        VARBINARY(255) NOT NULL,
+			description         VARBINARY(255) NOT NULL,
+			target_app_key      VARBINARY(255) NOT NULL,
+			next_attempt_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			next_action         ENUM("handle", "ack") NOT NULL,
+			failure_count       BIGINT(20) UNSIGNED NOT NULL,
+			message_id          VARBINARY(255) NOT NULL PRIMARY KEY,
+			causation_id        VARBINARY(255) NOT NULL,
+			correlation_id      VARBINARY(255) NOT NULL,
+			source_app_name     VARBINARY(255) NOT NULL,
+			source_app_key      VARBINARY(255) NOT NULL,
+			source_handler_name VARBINARY(255) NOT NULL,
+			source_handler_key  VARBINARY(255) NOT NULL,
+			source_instance_id  VARBINARY(255) NOT NULL,
+			created_at          VARBINARY(255) NOT NULL, -- RFC3339Nano
+			scheduled_for       VARBINARY(255) NOT NULL, -- RFC3339Nano
+			media_type          VARBINARY(255) NOT NULL,
+			data                LONGBLOB NOT NULL,
+
+			INDEX(target_app_key, next_attempt_at)
+		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
 		`CREATE TABLE stream_offset (
 			source_app_key VARBINARY(255) NOT NULL PRIMARY KEY,
 			next_offset    BIGINT NOT NULL
@@ -74,6 +101,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS queue`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_offset`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_filter`)

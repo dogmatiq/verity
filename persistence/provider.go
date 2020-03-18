@@ -26,6 +26,10 @@ type DataStore interface {
 	// EventStream returns the application's event stream.
 	EventStream(ctx context.Context) (Stream, error)
 
+	// MessageQueue returns the application's queue of command and timeout
+	// messages.
+	MessageQueue(ctx context.Context) (Queue, error)
+
 	// Close closes the data store.
 	Close() error
 }
