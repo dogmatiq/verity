@@ -13,10 +13,10 @@ import (
 
 // dataStore is an implementation of persistence.DataStore for BoltDB.
 type dataStore struct {
-	AppConfig configkit.RichApplication
-	Marshaler marshalkit.ValueMarshaler
-	DB        *bbolt.DB
-	Closer    func() error
+	appConfig configkit.RichApplication
+	marshaler marshalkit.ValueMarshaler
+	db        *bbolt.DB
+	closer    func() error
 
 	once   sync.Once
 	stream *Stream
@@ -26,14 +26,14 @@ type dataStore struct {
 func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
-			DB:        ds.DB,
-			Marshaler: ds.Marshaler,
-			Types: ds.AppConfig.
+			DB:        ds.db,
+			Marshaler: ds.marshaler,
+			Types: ds.appConfig.
 				MessageTypes().
 				Produced.
 				FilterByRole(message.EventRole),
 			BucketPath: [][]byte{
-				[]byte(ds.AppConfig.Identity().Key),
+				[]byte(ds.appConfig.Identity().Key),
 				[]byte("eventstream"),
 			},
 		}
@@ -49,8 +49,8 @@ func (ds *dataStore) MessageQueue(ctx context.Context) (persistence.Queue, error
 
 // Close closes the data store.
 func (ds *dataStore) Close() error {
-	if ds.Closer != nil {
-		return ds.Closer()
+	if ds.closer != nil {
+		return ds.closer()
 	}
 
 	return nil

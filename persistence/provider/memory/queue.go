@@ -32,7 +32,7 @@ func (q *Queue) Get(ctx context.Context) (persistence.QueueTransaction, error) {
 		return nil, errors.New("queue is closed")
 	case m := <-q.out:
 		return &transaction{
-			Message: m,
+			message: m,
 		}, nil
 	}
 }
@@ -43,8 +43,8 @@ func (q *Queue) Enqueue(envelopes ...*envelope.Envelope) {
 
 	for _, env := range envelopes {
 		m := &queuedMessage{
-			NextAttemptAt: env.ScheduledFor,
-			Envelope:      env,
+			nextAttemptAt: env.ScheduledFor,
+			envelope:      env,
 		}
 
 		select {
@@ -130,7 +130,7 @@ func (q *Queue) run() {
 
 		if len(messages) != 0 {
 			next = messages[0]
-			delay := time.Until(next.NextAttemptAt)
+			delay := time.Until(next.nextAttemptAt)
 
 			if delay > 0 {
 				timer = time.NewTimer(delay)
@@ -155,10 +155,10 @@ func (q *Queue) run() {
 
 // queuedMessage is a container for a message on a priority queue.
 type queuedMessage struct {
-	NextAttemptAt time.Time
-	FailureCount  uint64
-	Envelope      *envelope.Envelope
-	Index         int
+	nextAttemptAt time.Time
+	failureCount  uint64
+	envelope      *envelope.Envelope
+	index         int
 }
 
 // messageQueue is a priority queue of messages, ordered by the "next attempt"
@@ -170,21 +170,21 @@ func (q messageQueue) Len() int {
 }
 
 func (q messageQueue) Less(i, j int) bool {
-	return q[i].NextAttemptAt.Before(
-		q[j].NextAttemptAt,
+	return q[i].nextAttemptAt.Before(
+		q[j].nextAttemptAt,
 	)
 }
 
 func (q messageQueue) Swap(i, j int) {
 	q[i], q[j] = q[j], q[i]
-	q[i].Index = i
-	q[j].Index = j
+	q[i].index = i
+	q[j].index = j
 }
 
 func (q *messageQueue) Push(x interface{}) {
 	n := len(*q)
 	m := x.(*queuedMessage)
-	m.Index = n
+	m.index = n
 	*q = append(*q, m)
 }
 
@@ -200,12 +200,12 @@ func (q *messageQueue) Pop() interface{} {
 // transaction is an implementation of persistence.QueueTransaction for
 // in-memory persistence.
 type transaction struct {
-	Message *queuedMessage
+	message *queuedMessage
 }
 
 // Envelope returns the envelope containing the message to be handled
 func (t *transaction) Envelope() *envelope.Envelope {
-	return t.Message.Envelope
+	return t.message.envelope
 }
 
 // Apply applies the changes from the transaction.

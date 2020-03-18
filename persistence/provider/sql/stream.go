@@ -140,8 +140,9 @@ type cursor struct {
 	offset   uint64
 	filterID uint64
 	counter  backoff.Counter
-	once     sync.Once
-	closed   chan struct{}
+
+	once   sync.Once
+	closed chan struct{}
 }
 
 // Next returns the next relevant message in the stream.

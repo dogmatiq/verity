@@ -15,12 +15,12 @@ import (
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
 type dataStore struct {
-	AppConfig     configkit.RichApplication
-	Marshaler     marshalkit.Marshaler
-	DB            *sql.DB
-	Driver        *driver.Driver
-	StreamBackoff backoff.Strategy
-	Closer        func() error
+	appConfig     configkit.RichApplication
+	marshaler     marshalkit.Marshaler
+	db            *sql.DB
+	driver        *driver.Driver
+	streamBackoff backoff.Strategy
+	closer        func() error
 
 	once   sync.Once
 	stream *Stream
@@ -30,12 +30,12 @@ type dataStore struct {
 func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
-			ApplicationKey:  ds.AppConfig.Identity().Key,
-			DB:              ds.DB,
-			Driver:          ds.Driver.StreamDriver,
-			Marshaler:       ds.Marshaler,
-			BackoffStrategy: ds.StreamBackoff,
-			Types: ds.AppConfig.
+			ApplicationKey:  ds.appConfig.Identity().Key,
+			DB:              ds.db,
+			Driver:          ds.driver.StreamDriver,
+			Marshaler:       ds.marshaler,
+			BackoffStrategy: ds.streamBackoff,
+			Types: ds.appConfig.
 				MessageTypes().
 				Produced.
 				FilterByRole(message.EventRole),
@@ -52,8 +52,8 @@ func (ds *dataStore) MessageQueue(ctx context.Context) (persistence.Queue, error
 
 // Close closes the data store.
 func (ds *dataStore) Close() error {
-	if ds.Closer != nil {
-		return ds.Closer()
+	if ds.closer != nil {
+		return ds.closer()
 	}
 
 	return nil

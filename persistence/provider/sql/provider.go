@@ -69,11 +69,11 @@ func (p *Provider) Open(
 	}
 
 	return &dataStore{
-		AppConfig:     cfg,
-		Marshaler:     m,
-		DB:            p.DB,
-		Driver:        d,
-		StreamBackoff: p.StreamBackoff,
+		appConfig:     cfg,
+		marshaler:     m,
+		db:            p.DB,
+		driver:        d,
+		streamBackoff: p.StreamBackoff,
 	}, nil
 }
 
@@ -136,12 +136,12 @@ func (p *DSNProvider) Open(
 	p.refs++
 
 	return &dataStore{
-		AppConfig:     cfg,
-		Marshaler:     m,
-		DB:            p.db,
-		Driver:        p.driver,
-		StreamBackoff: p.StreamBackoff,
-		Closer:        p.close,
+		appConfig:     cfg,
+		marshaler:     m,
+		db:            p.db,
+		driver:        p.driver,
+		streamBackoff: p.StreamBackoff,
+		closer:        p.close,
 	}, nil
 }
 

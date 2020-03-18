@@ -101,6 +101,7 @@ type cursor struct {
 	stream *Stream
 	offset uint64
 	types  message.TypeCollection
+
 	once   sync.Once
 	closed chan struct{}
 }

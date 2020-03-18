@@ -23,7 +23,7 @@ func (p *Provider) Open(
 	ds, _ := p.dataStores.LoadOrStore(
 		cfg.Identity().Key,
 		&dataStore{
-			AppConfig: cfg,
+			appConfig: cfg,
 		},
 	)
 

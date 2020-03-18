@@ -11,7 +11,7 @@ import (
 
 // dataStore is an implementation of persistence.DataStore for BoltDB.
 type dataStore struct {
-	AppConfig configkit.RichApplication
+	appConfig configkit.RichApplication
 
 	once   sync.Once
 	stream *Stream
@@ -33,7 +33,7 @@ func (ds *dataStore) MessageQueue(ctx context.Context) (persistence.Queue, error
 func (ds *dataStore) init() {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
-			Types: ds.AppConfig.
+			Types: ds.appConfig.
 				MessageTypes().
 				Produced.
 				FilterByRole(message.EventRole),
