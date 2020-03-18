@@ -213,7 +213,7 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 			return m, nil
 		}
 
-		if err := c.counter.Sleep(ctx, err); err != nil {
+		if err := c.counter.Sleep(ctx, nil); err != nil {
 			return nil, err
 		}
 	}
