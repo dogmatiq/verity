@@ -122,6 +122,35 @@ func (p *Packer) PackChildEvent(
 	)
 }
 
+// PackChildTimeout returns a new timeout envelope containing the given
+// message and configured as a child of cause.
+func (p *Packer) PackChildTimeout(
+	cause *Envelope,
+	m dogma.Message,
+	sf time.Time,
+	handler configkit.Identity,
+	instanceID string,
+) *Envelope {
+	t := message.TypeOf(cause.Message)
+	p.Roles[t].MustBe(message.EventRole, message.TimeoutRole)
+
+	id := p.generateID()
+
+	env := p.new(
+		id,
+		cause.MessageID,
+		cause.CorrelationID,
+		m,
+		message.TimeoutRole,
+		handler,
+		instanceID,
+	)
+
+	env.ScheduledFor = sf
+
+	return env
+}
+
 // new returns a new envelope, it panics if the given message type does not map
 // to the r role.
 func (p *Packer) new(

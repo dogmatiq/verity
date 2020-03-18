@@ -73,7 +73,7 @@ var _ = Describe("type Packer", func() {
 		})
 	})
 
-	Describe("func NewCommand()", func() {
+	Describe("func PackCommand()", func() {
 		It("returns a new envelope", func() {
 			env := packer.PackCommand(MessageC1)
 
@@ -107,7 +107,7 @@ var _ = Describe("type Packer", func() {
 		})
 	})
 
-	Describe("func NewEvent()", func() {
+	Describe("func PackEvent()", func() {
 		It("returns a new envelope", func() {
 			env := packer.PackEvent(MessageE1)
 
@@ -141,7 +141,7 @@ var _ = Describe("type Packer", func() {
 		})
 	})
 
-	Describe("func NewChildCommand()", func() {
+	Describe("func PackChildCommand()", func() {
 		var parent *Envelope
 
 		BeforeEach(func() {
@@ -209,7 +209,7 @@ var _ = Describe("type Packer", func() {
 		})
 	})
 
-	Describe("func NewChildEvent()", func() {
+	Describe("func PackChildEvent()", func() {
 		var parent *Envelope
 
 		BeforeEach(func() {
@@ -270,6 +270,79 @@ var _ = Describe("type Packer", func() {
 				packer.PackChildEvent(
 					parent,
 					MessageC1,
+					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+					"<instance>",
+				)
+			}).To(Panic())
+		})
+	})
+
+	Describe("func PackChildTimeout()", func() {
+		var parent *Envelope
+
+		BeforeEach(func() {
+			parent = &Envelope{
+				MetaData: MetaData{
+					MessageID:     "<parent>",
+					CausationID:   "<parent>",
+					CorrelationID: "<parent>",
+					Source: Source{
+						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+					},
+				},
+				Message: MessageE1,
+				Packet:  MessageE1Packet,
+			}
+		})
+
+		It("returns a new envelope", func() {
+			scheduledFor := time.Now()
+			env := packer.PackChildTimeout(
+				parent,
+				MessageT1,
+				scheduledFor,
+				configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+				"<instance>",
+			)
+
+			Expect(env).To(Equal(
+				&Envelope{
+					MetaData: MetaData{
+						MessageID:     "00000001",
+						CausationID:   "<parent>",
+						CorrelationID: "<parent>",
+						Source: Source{
+							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+							Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							InstanceID:  "<instance>",
+						},
+						CreatedAt:    now,
+						ScheduledFor: scheduledFor,
+					},
+					Message: MessageT1,
+					Packet:  MessageT1Packet,
+				},
+			))
+		})
+
+		It("panics if the message type is not recognized", func() {
+			Expect(func() {
+				packer.PackChildTimeout(
+					parent,
+					MessageA1,
+					time.Now(),
+					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+					"<instance>",
+				)
+			}).To(Panic())
+		})
+
+		It("panics if the message type has a different role", func() {
+			Expect(func() {
+				packer.PackChildTimeout(
+					parent,
+					MessageE1,
+					time.Now(),
 					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
 					"<instance>",
 				)
