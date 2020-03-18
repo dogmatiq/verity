@@ -185,7 +185,7 @@ func Declare(
 
 	ginkgo.Describe("type StreamCursor", func() {
 		ginkgo.Describe("func Next()", func() {
-			ginkgo.Context("when the stream is empty", func() {
+			ginkgo.When("the stream is empty", func() {
 				ginkgo.It("blocks", func() {
 					cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -199,7 +199,7 @@ func Declare(
 				})
 			})
 
-			ginkgo.Context("when the stream is not empty", func() {
+			ginkgo.When("the stream is not empty", func() {
 				ginkgo.BeforeEach(func() {
 					out.Append(
 						ctx,

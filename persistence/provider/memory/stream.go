@@ -105,7 +105,7 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 		case <-c.closed:
 			return nil, persistence.ErrStreamCursorClosed
 		case <-ready:
-			continue // added to see coverage
+			continue // keep to see coverage
 		}
 	}
 }
