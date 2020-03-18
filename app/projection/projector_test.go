@@ -68,11 +68,11 @@ var _ = Describe("type Projector", func() {
 		logger = &logging.BufferedLogger{}
 
 		proj = &Projector{
-			SourceApplicationKey: "<source>",
-			Stream:               stream,
-			ProjectionConfig:     configkit.FromProjection(handler),
-			BackoffStrategy:      backoff.Constant(10 * time.Millisecond),
-			Logger:               logger,
+			ApplicationKey:   "<source>",
+			Stream:           stream,
+			ProjectionConfig: configkit.FromProjection(handler),
+			BackoffStrategy:  backoff.Constant(10 * time.Millisecond),
+			Logger:           logger,
 		}
 	})
 

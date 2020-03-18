@@ -4,9 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/persistence"
-
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/persistence"
 )
 
 // StreamDriver is an interface used by sql.Stream to interface with the

@@ -19,9 +19,9 @@ const DefaultTimeout = 3 * time.Second
 
 // Projector reads events from a stream and applies them to a projection.
 type Projector struct {
-	// SourceApplicationKey is the identity key of the application that produces
-	// the events.
-	SourceApplicationKey string
+	// ApplicationKey is the identity key of the application that produces the
+	// events.
+	ApplicationKey string
 
 	// Stream is the source application's event stream.
 	Stream persistence.Stream
@@ -54,7 +54,7 @@ type Projector struct {
 // Run consumes events from the stream and applies them to the projection until
 // ctx is canceled or no more relevant events will occur.
 func (p *Projector) Run(ctx context.Context) error {
-	p.resource = resource.FromApplicationKey(p.SourceApplicationKey)
+	p.resource = resource.FromApplicationKey(p.ApplicationKey)
 	p.backoff = backoff.Counter{
 		Strategy: p.BackoffStrategy,
 	}

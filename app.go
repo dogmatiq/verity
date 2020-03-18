@@ -76,11 +76,11 @@ func (e *Engine) runProjector(
 	}
 
 	p := &projection.Projector{
-		SourceApplicationKey: source.Identity().Key,
-		Stream:               stream,
-		ProjectionConfig:     cfg,
-		BackoffStrategy:      e.opts.MessageBackoff,
-		DefaultTimeout:       e.opts.MessageTimeout,
+		ApplicationKey:   source.Identity().Key,
+		Stream:           stream,
+		ProjectionConfig: cfg,
+		BackoffStrategy:  e.opts.MessageBackoff,
+		DefaultTimeout:   e.opts.MessageTimeout,
 		Logger: loggingx.WithPrefix(
 			e.opts.Logger,
 			prefix,
