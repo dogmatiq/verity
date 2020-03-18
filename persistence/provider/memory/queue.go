@@ -158,7 +158,6 @@ type queuedMessage struct {
 	nextAttemptAt time.Time
 	failureCount  uint64
 	envelope      *envelope.Envelope
-	index         int
 }
 
 // messageQueue is a priority queue of messages, ordered by the "next attempt"
@@ -177,15 +176,10 @@ func (q messageQueue) Less(i, j int) bool {
 
 func (q messageQueue) Swap(i, j int) {
 	q[i], q[j] = q[j], q[i]
-	q[i].index = i
-	q[j].index = j
 }
 
 func (q *messageQueue) Push(x interface{}) {
-	n := len(*q)
-	m := x.(*queuedMessage)
-	m.index = n
-	*q = append(*q, m)
+	*q = append(*q, x.(*queuedMessage))
 }
 
 func (q *messageQueue) Pop() interface{} {
