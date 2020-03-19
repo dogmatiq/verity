@@ -164,10 +164,12 @@ func (p *Packer) Bind(
 	}
 
 	return &BoundPacker{
-		Packer:        p,
-		Cause:         cause,
-		HandlerConfig: cfg,
-		InstanceID:    instanceID,
+		Packer:      p,
+		Cause:       cause,
+		Handler:     cfg.Identity(),
+		HandlerType: cfg.HandlerType(),
+		Types:       cfg.MessageTypes().Produced,
+		InstanceID:  instanceID,
 	}
 }
 

@@ -365,10 +365,14 @@ var _ = Describe("type Packer", func() {
 
 			Expect(bound).To(Equal(
 				&BoundPacker{
-					Packer:        packer,
-					Cause:         env,
-					HandlerConfig: cfg,
-					InstanceID:    "<instance>",
+					Packer:      packer,
+					Cause:       env,
+					Handler:     configkit.MustNewIdentity("<aggregate-name>", "<aggregate-key>"),
+					HandlerType: configkit.AggregateHandlerType,
+					Types: message.TypeRoles{
+						MessageEType: message.EventRole,
+					},
+					InstanceID: "<instance>",
 				},
 			))
 		})
