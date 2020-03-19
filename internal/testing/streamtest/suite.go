@@ -133,9 +133,9 @@ func Declare(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer cur.Close()
 
-				m, err := cur.Next(ctx)
+				ev, err := cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(m).To(gomega.Equal(message2))
+				gomega.Expect(ev).To(gomega.Equal(message2))
 			})
 
 			ginkgo.It("limits results to the supplied message types", func() {
@@ -147,13 +147,13 @@ func Declare(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer cur.Close()
 
-				m, err := cur.Next(ctx)
+				ev, err := cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(m).To(gomega.Equal(message0))
+				gomega.Expect(ev).To(gomega.Equal(message0))
 
-				m, err = cur.Next(ctx)
+				ev, err = cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(m).To(gomega.Equal(message2))
+				gomega.Expect(ev).To(gomega.Equal(message2))
 			})
 
 			ginkgo.It("returns an error if the context is canceled", func() {
@@ -215,21 +215,21 @@ func Declare(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
-					m, err := cur.Next(ctx)
+					ev, err := cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(message0))
+					gomega.Expect(ev).To(gomega.Equal(message0))
 
-					m, err = cur.Next(ctx)
+					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(message1))
+					gomega.Expect(ev).To(gomega.Equal(message1))
 
-					m, err = cur.Next(ctx)
+					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(message2))
+					gomega.Expect(ev).To(gomega.Equal(message2))
 
-					m, err = cur.Next(ctx)
+					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m).To(gomega.Equal(message3))
+					gomega.Expect(ev).To(gomega.Equal(message3))
 				})
 
 				ginkgo.It("returns an error if the cursor is closed", func() {
@@ -265,9 +265,9 @@ func Declare(
 							out.Append(ctx, env4)
 						}()
 
-						m, err := cur.Next(ctx)
+						ev, err := cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(m).To(gomega.Equal(message4))
+						gomega.Expect(ev).To(gomega.Equal(message4))
 					})
 
 					ginkgo.It("returns an error if the cursor is closed", func() {
@@ -330,9 +330,9 @@ func Declare(
 								defer cur.Close()
 
 								barrier <- struct{}{}
-								m, err := cur.Next(ctx)
+								ev, err := cur.Next(ctx)
 								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-								gomega.Expect(m).To(gomega.Equal(message4))
+								gomega.Expect(ev).To(gomega.Equal(message4))
 
 								return nil
 							}()

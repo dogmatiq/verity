@@ -19,11 +19,8 @@ type Stream interface {
 	// offset is the position of the first event to read. The first event on a
 	// stream is always at offset 0.
 	//
-	// types is the set of message types that should be returned by
-	// Cursor.Next(). Any other message types are ignored.
-	//
-	// If the stream can not contain any of the requested message types, no
-	// cursor is opened and ok is false.
+	// types is the set of event types that should be returned by Cursor.Next().
+	// Any other event types are ignored.
 	Open(
 		ctx context.Context,
 		offset uint64,
@@ -36,6 +33,7 @@ type Stream interface {
 var ErrCursorClosed = errors.New("stream cursor is closed")
 
 // A Cursor reads events from a stream.
+//
 // Cursors are not safe for concurrent use.
 type Cursor interface {
 	// Next returns the next relevant event in the stream.

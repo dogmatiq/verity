@@ -5,8 +5,8 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/sql/internal/streamfilter"
 )
 
@@ -191,15 +191,15 @@ func (StreamDriver) Append(
 	return err
 }
 
-// Get returns the first message at or after a specific offset that matches
-// a specific filter.
+// Get returns the first event at or after a specific offset that matches a
+// specific filter.
 func (StreamDriver) Get(
 	ctx context.Context,
 	db *sql.DB,
 	appKey string,
 	offset uint64,
 	filterID uint64,
-) (_ *persistence.StreamMessage, _ bool, err error) {
+) (_ *eventstream.Event, _ bool, err error) {
 	defer sqlx.Recover(&err)
 
 	row := db.QueryRowContext(
@@ -229,7 +229,7 @@ func (StreamDriver) Get(
 		filterID,
 	)
 
-	m := persistence.StreamMessage{
+	ev := eventstream.Event{
 		Envelope: &envelope.Envelope{},
 	}
 
@@ -237,20 +237,20 @@ func (StreamDriver) Get(
 
 	if sqlx.TryScan(
 		row,
-		&m.Offset,
-		&m.Envelope.MessageID,
-		&m.Envelope.CausationID,
-		&m.Envelope.CorrelationID,
-		&m.Envelope.Source.Application.Name,
-		&m.Envelope.Source.Handler.Name,
-		&m.Envelope.Source.Handler.Key,
-		&m.Envelope.Source.InstanceID,
+		&ev.Offset,
+		&ev.Envelope.MessageID,
+		&ev.Envelope.CausationID,
+		&ev.Envelope.CorrelationID,
+		&ev.Envelope.Source.Application.Name,
+		&ev.Envelope.Source.Handler.Name,
+		&ev.Envelope.Source.Handler.Key,
+		&ev.Envelope.Source.InstanceID,
 		&createdAt,
-		&m.Envelope.Packet.MediaType,
-		&m.Envelope.Packet.Data,
+		&ev.Envelope.Packet.MediaType,
+		&ev.Envelope.Packet.Data,
 	) {
-		m.Envelope.CreatedAt = sqlx.UnmarshalTime(createdAt)
-		return &m, true, nil
+		ev.Envelope.CreatedAt = sqlx.UnmarshalTime(createdAt)
+		return &ev, true, nil
 	}
 
 	return nil, false, nil

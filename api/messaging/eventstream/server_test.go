@@ -8,9 +8,9 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
@@ -55,7 +55,7 @@ var _ = Describe("type server", func() {
 		RegisterServer(
 			server,
 			Marshaler,
-			map[string]persistence.Stream{
+			map[string]eventstream.Stream{
 				"<app-key>": stream,
 			},
 		)
@@ -97,18 +97,18 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			m, err := stream.Recv()
+			ev, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: envelope.MustMarshal(env0),
 				},
 			))
 
-			m, err = stream.Recv()
+			ev, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   1,
 					Envelope: envelope.MustMarshal(env1),
@@ -126,9 +126,9 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			m, err := stream.Recv()
+			ev, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: envelope.MustMarshal(env2),
@@ -145,18 +145,18 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			m, err := stream.Recv()
+			ev, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: envelope.MustMarshal(env0),
 				},
 			))
 
-			m, err = stream.Recv()
+			ev, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: envelope.MustMarshal(env2),

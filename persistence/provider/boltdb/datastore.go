@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"go.etcd.io/bbolt"
@@ -23,7 +24,7 @@ type dataStore struct {
 }
 
 // EventStream returns the application's event stream.
-func (ds *dataStore) EventStream(context.Context) (persistence.Stream, error) {
+func (ds *dataStore) EventStream(context.Context) (eventstream.Stream, error) {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
 			DB:        ds.db,

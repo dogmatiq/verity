@@ -107,9 +107,9 @@ var _ = Context("providers", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			defer cur.Close()
 
-			m, err := cur.Next(ctx)
+			ev, err := cur.Next(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m.Envelope).To(Equal(env))
+			Expect(ev.Envelope).To(Equal(env))
 		},
 		entries...,
 	)
