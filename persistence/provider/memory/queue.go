@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
 )
@@ -22,7 +23,7 @@ type Queue struct {
 }
 
 // Get returns a transaction for a message that is ready to be handled.
-func (q *Queue) Get(ctx context.Context) (persistence.QueueTransaction, error) {
+func (q *Queue) Get(ctx context.Context) (persistence.Transaction, error) {
 	q.init()
 
 	select {
@@ -200,6 +201,35 @@ type transaction struct {
 // Envelope returns the envelope containing the message to be handled
 func (t *transaction) Envelope(context.Context) (*envelope.Envelope, error) {
 	return t.message.envelope, nil
+}
+
+// PersistAggregate updates (or creates) an aggregate instance.
+func (t *transaction) PersistAggregate(
+	ctx context.Context,
+	ref persistence.InstanceRef,
+	r dogma.AggregateRoot,
+) error {
+	return errors.New("not implemented")
+}
+
+// PersistProcess updates (or creates) a process instance.
+func (t *transaction) PersistProcess(
+	ctx context.Context,
+	ref persistence.InstanceRef,
+	r dogma.ProcessRoot,
+) error {
+	return errors.New("not implemented")
+}
+
+// Delete deletes an aggregate or process instance.
+func (t *transaction) Delete(ctx context.Context, ref persistence.InstanceRef) error {
+	return errors.New("not implemented")
+}
+
+// PersistMessage adds a message to the application's message queue and/or
+// event stream as appropriate.
+func (t *transaction) PersistMessage(ctx context.Context, env *envelope.Envelope) error {
+	return errors.New("not implemented")
 }
 
 // Apply applies the changes from the transaction.
