@@ -8,8 +8,8 @@ import (
 	"github.com/dogmatiq/linger/backoff"
 )
 
-// StreamHandler handles events consumed from a stream.
-type StreamHandler interface {
+// StreamEventHandler handles events consumed from a stream.
+type StreamEventHandler interface {
 	// NextOffset returns the next offset to be consumed from the event stream.
 	//
 	// k is the identity key of the source application.
@@ -34,7 +34,7 @@ type StreamConsumer struct {
 	Types message.TypeCollection
 
 	// Handler is the target for the messages from the stream.
-	Handler StreamHandler
+	Handler StreamEventHandler
 
 	// BackoffStrategy is the strategy used to delay restarting the consumer
 	// after a failure. If it is nil, backoff.DefaultStrategy is used.

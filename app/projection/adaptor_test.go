@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ persistence.StreamHandler = (*Adaptor)(nil)
+var _ persistence.StreamEventHandler = (*Adaptor)(nil)
 
 var _ = Describe("type Adaptor", func() {
 	var (

@@ -16,7 +16,7 @@ import (
 const DefaultTimeout = 3 * time.Second
 
 // An Adaptor persents a dogma.ProjectionMessageHandler as a
-// persistence.StreamHandler.
+// persistence.StreamEventHandler.
 type Adaptor struct {
 	// Handler is the projection message handler the events are applied to.
 	Handler dogma.ProjectionMessageHandler
