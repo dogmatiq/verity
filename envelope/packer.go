@@ -146,9 +146,29 @@ func (p *Packer) PackChildTimeout(
 		instanceID,
 	)
 
-	env.ScheduledFor = sf
+	env.ScheduledFor = t
 
 	return env
+}
+
+// Bind returns a packer bound to the given handler.
+func (p *Packer) Bind(
+	cause *Envelope,
+	cfg configkit.RichHandler,
+	instanceID string,
+) *BoundPacker {
+	if instanceID == "" {
+		cfg.HandlerType().MustBe(configkit.IntegrationHandlerType)
+	} else {
+		cfg.HandlerType().MustBe(configkit.AggregateHandlerType, configkit.ProcessHandlerType)
+	}
+
+	return &BoundPacker{
+		Packer:        p,
+		Cause:         cause,
+		HandlerConfig: cfg,
+		InstanceID:    instanceID,
+	}
 }
 
 // new returns a new envelope, it panics if the given message type does not map
