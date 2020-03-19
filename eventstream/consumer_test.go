@@ -1,4 +1,4 @@
-package persistence_test
+package eventstream_test
 
 import (
 	"context"
@@ -9,22 +9,21 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
-	. "github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type StreamConsumer", func() {
+var _ = Describe("type Consumer", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
 		stream   *memory.Stream
 		handler  *mockHandler
-		consumer *StreamConsumer
+		consumer *Consumer
 
 		env0 = NewEnvelope("<message-0>", MessageA1)
 		env1 = NewEnvelope("<message-1>", MessageB1)
@@ -33,9 +32,9 @@ var _ = Describe("type StreamConsumer", func() {
 		env4 = NewEnvelope("<message-4>", MessageA3)
 		env5 = NewEnvelope("<message-5>", MessageB3)
 
-		message0 = &persistence.StreamMessage{Offset: 0, Envelope: env0}
-		message2 = &persistence.StreamMessage{Offset: 2, Envelope: env2}
-		message4 = &persistence.StreamMessage{Offset: 4, Envelope: env4}
+		message0 = &Event{Offset: 0, Envelope: env0}
+		message2 = &Event{Offset: 2, Envelope: env2}
+		message4 = &Event{Offset: 4, Envelope: env4}
 	)
 
 	BeforeEach(func() {
@@ -59,10 +58,9 @@ var _ = Describe("type StreamConsumer", func() {
 
 		handler = &mockHandler{}
 
-		consumer = &StreamConsumer{
-			ApplicationKey: "<source>",
-			Stream:         stream,
-			Types: message.NewTypeSet(
+		consumer = &Consumer{
+			Stream: stream,
+			EventTypes: message.NewTypeSet(
 				MessageAType,
 			),
 			Handler:         handler,
@@ -77,15 +75,15 @@ var _ = Describe("type StreamConsumer", func() {
 
 	Describe("func Run()", func() {
 		It("passes the filtered events to the handler in order", func() {
-			var messages []*StreamMessage
+			var events []*Event
 			handler.HandleEventFunc = func(
 				_ context.Context,
 				_ uint64,
-				m *StreamMessage,
+				ev *Event,
 			) error {
-				messages = append(messages, m)
+				events = append(events, ev)
 
-				if len(messages) == 3 {
+				if len(events) == 3 {
 					cancel()
 				}
 
@@ -94,8 +92,8 @@ var _ = Describe("type StreamConsumer", func() {
 
 			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
-			Expect(messages).To(Equal(
-				[]*StreamMessage{
+			Expect(events).To(Equal(
+				[]*Event{
 					message0,
 					message2,
 					message4,
@@ -116,14 +114,14 @@ var _ = Describe("type StreamConsumer", func() {
 			handler.HandleEventFunc = func(
 				context.Context,
 				uint64,
-				*StreamMessage,
+				*Event,
 			) error {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
-					m *StreamMessage,
+					ev *Event,
 				) error {
-					Expect(m).To(Equal(message0))
+					Expect(ev).To(Equal(message0))
 					cancel()
 					return nil
 				}
@@ -159,9 +157,9 @@ var _ = Describe("type StreamConsumer", func() {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
-					m *StreamMessage,
+					ev *Event,
 				) error {
-					Expect(m).To(Equal(message2))
+					Expect(ev).To(Equal(message2))
 					cancel()
 					return nil
 				}
@@ -181,7 +179,7 @@ var _ = Describe("type StreamConsumer", func() {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					o uint64,
-					_ *StreamMessage,
+					_ *Event,
 				) error {
 					Expect(o).To(BeNumerically("==", 2))
 					cancel()
@@ -196,7 +194,7 @@ var _ = Describe("type StreamConsumer", func() {
 				handler.HandleEventFunc = func(
 					context.Context,
 					uint64,
-					*StreamMessage,
+					*Event,
 				) error {
 					handler.NextOffsetFunc = func(
 						_ context.Context,
@@ -208,9 +206,9 @@ var _ = Describe("type StreamConsumer", func() {
 					handler.HandleEventFunc = func(
 						_ context.Context,
 						_ uint64,
-						m *StreamMessage,
+						ev *Event,
 					) error {
-						Expect(m).To(Equal(message2))
+						Expect(ev).To(Equal(message2))
 						cancel()
 						return nil
 					}
@@ -234,9 +232,9 @@ var _ = Describe("type StreamConsumer", func() {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
-					m *StreamMessage,
+					ev *Event,
 				) error {
-					Expect(m).To(Equal(message0))
+					Expect(ev).To(Equal(message0))
 					cancel()
 
 					return nil
@@ -251,7 +249,7 @@ var _ = Describe("type StreamConsumer", func() {
 
 type mockHandler struct {
 	NextOffsetFunc  func(context.Context, string) (uint64, error)
-	HandleEventFunc func(context.Context, uint64, *StreamMessage) error
+	HandleEventFunc func(context.Context, uint64, *Event) error
 }
 
 func (h *mockHandler) NextOffset(ctx context.Context, k string) (uint64, error) {
@@ -262,9 +260,9 @@ func (h *mockHandler) NextOffset(ctx context.Context, k string) (uint64, error) 
 	return 0, nil
 }
 
-func (h *mockHandler) HandleEvent(ctx context.Context, o uint64, m *StreamMessage) error {
+func (h *mockHandler) HandleEvent(ctx context.Context, o uint64, ev *Event) error {
 	if h.HandleEventFunc != nil {
-		return h.HandleEventFunc(ctx, o, m)
+		return h.HandleEventFunc(ctx, o, ev)
 	}
 
 	return nil

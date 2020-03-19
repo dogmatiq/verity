@@ -10,8 +10,8 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/eventstream"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
@@ -34,7 +34,7 @@ type In struct {
 // "before" from to the test-suite.
 type Out struct {
 	// Stream is the stream to be tested.
-	Stream persistence.Stream
+	Stream eventstream.Stream
 
 	// TestTimeout is the maximum duration allowed for each test.
 	TestTimeout time.Duration
@@ -75,11 +75,11 @@ func Declare(
 		env3 = infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageB2)
 		env4 = infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageC1)
 
-		message0 = &persistence.StreamMessage{Offset: 0, Envelope: env0}
-		message1 = &persistence.StreamMessage{Offset: 1, Envelope: env1}
-		message2 = &persistence.StreamMessage{Offset: 2, Envelope: env2}
-		message3 = &persistence.StreamMessage{Offset: 3, Envelope: env3}
-		message4 = &persistence.StreamMessage{Offset: 4, Envelope: env4}
+		message0 = &eventstream.Event{Offset: 0, Envelope: env0}
+		message1 = &eventstream.Event{Offset: 1, Envelope: env1}
+		message2 = &eventstream.Event{Offset: 2, Envelope: env2}
+		message3 = &eventstream.Event{Offset: 3, Envelope: env3}
+		message4 = &eventstream.Event{Offset: 4, Envelope: env4}
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -239,7 +239,7 @@ func Declare(
 					cur.Close()
 
 					_, err = cur.Next(ctx)
-					gomega.Expect(err).To(gomega.Equal(persistence.ErrStreamCursorClosed))
+					gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
 				})
 
 				ginkgo.It("returns an error if the context is canceled", func() {
@@ -280,7 +280,7 @@ func Declare(
 						}()
 
 						_, err = cur.Next(ctx)
-						gomega.Expect(err).To(gomega.Equal(persistence.ErrStreamCursorClosed))
+						gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
 					})
 
 					ginkgo.It("returns an error if the context is canceled", func() {
@@ -365,7 +365,7 @@ func Declare(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				err = cur.Close()
-				gomega.Expect(err).To(gomega.Equal(persistence.ErrStreamCursorClosed))
+				gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
 			})
 		})
 	})
