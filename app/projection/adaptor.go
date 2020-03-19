@@ -47,7 +47,8 @@ func (a *Adaptor) NextOffset(ctx context.Context, k string) (uint64, error) {
 
 // HandleEvent handles a message consumed from the event stream.
 //
-// o is the offset value returned by NextOffset().
+// o is the offset value returned by NextOffset(). On success, the next call
+// to NextOffset() will return e.Offset + 1.
 func (a *Adaptor) HandleEvent(
 	ctx context.Context,
 	o uint64,
