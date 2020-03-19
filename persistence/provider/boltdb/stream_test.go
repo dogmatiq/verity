@@ -27,14 +27,10 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			db, close = boltdbtest.Open()
 
 			stream := &Stream{
+				AppKey:    in.ApplicationKey,
 				DB:        db,
 				Types:     in.MessageTypes,
 				Marshaler: in.Marshaler,
-				BucketPath: [][]byte{
-					[]byte("path"),
-					[]byte("to"),
-					[]byte("bucket"),
-				},
 			}
 
 			return streamtest.Out{
@@ -75,16 +71,12 @@ var _ = Describe("type Stream", func() {
 			env := NewEnvelope("<id>", MessageA1)
 
 			stream := &Stream{
+				AppKey:    "<app-key>",
 				DB:        db,
 				Marshaler: Marshaler,
 				Types: message.TypesOf(
 					"<not a message type>",
 				),
-				BucketPath: [][]byte{
-					[]byte("path"),
-					[]byte("to"),
-					[]byte("bucket"),
-				},
 			}
 
 			Expect(func() {

@@ -44,6 +44,12 @@ type stream struct {
 	prefetch  int
 }
 
+// ApplicationKey returns the identity key of the application that owns the
+// stream.
+func (s *stream) ApplicationKey() string {
+	return s.appKey
+}
+
 // Open returns a cursor used to read events from this stream.
 //
 // offset is the position of the first event to read. The first event on a

@@ -15,13 +15,17 @@ import (
 )
 
 var (
-	offsetKey = []byte("offset")
-	eventsKey = []byte("events")
+	eventStreamKey = []byte("eventstream")
+	offsetKey      = []byte("offset")
+	eventsKey      = []byte("events")
 )
 
 // Stream is an implementation of eventstream.Stream that stores events in a
 // BoltDB database.
 type Stream struct {
+	// AppKey is the identity key of the application that owns the stream.
+	AppKey string
+
 	// DB is the BoltDB database containing the stream's data.
 	DB *bbolt.DB
 
@@ -31,12 +35,14 @@ type Stream struct {
 	// Marshaler is used to marshal and unmarshal events for storage.
 	Marshaler marshalkit.ValueMarshaler
 
-	// BucketPath is the "path" to a nested bucket with the database that
-	// contains the stream's data.
-	BucketPath [][]byte
-
 	m     sync.Mutex
 	ready chan struct{}
+}
+
+// ApplicationKey returns the identity key of the application that owns the
+// stream.
+func (s *Stream) ApplicationKey() string {
+	return s.AppKey
 }
 
 // Open returns a cursor used to read events from this stream.
@@ -78,7 +84,12 @@ func (s *Stream) Append(
 ) (_ uint64, err error) {
 	defer bboltx.Recover(&err)
 
-	b := bboltx.CreateBucketIfNotExists(tx, s.BucketPath...)
+	b := bboltx.CreateBucketIfNotExists(
+		tx,
+		[]byte(s.AppKey),
+		eventStreamKey,
+	)
+
 	next := loadNextOffset(b)
 	next = appendEvents(b, next, s.Types, envelopes)
 	storeNextOffset(b, next)
@@ -165,7 +176,11 @@ func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	tx := bboltx.BeginRead(c.stream.DB)
 	defer tx.Rollback()
 
-	if b := bboltx.Bucket(tx, c.stream.BucketPath...); b != nil {
+	if b := bboltx.Bucket(
+		tx,
+		[]byte(c.stream.AppKey),
+		eventStreamKey,
+	); b != nil {
 		next := loadNextOffset(b)
 
 		for next > c.offset {

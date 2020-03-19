@@ -37,7 +37,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			stream := &Stream{
-				ApplicationKey:  "<app-key>",
+				AppKey:          in.ApplicationKey,
 				DB:              db,
 				Driver:          sqlite.StreamDriver{},
 				Types:           in.MessageTypes,
@@ -102,9 +102,9 @@ var _ = Describe("type Stream", func() {
 			env := NewEnvelope("<id>", MessageA1)
 
 			stream := &Stream{
-				ApplicationKey: "<app-key>",
-				DB:             db,
-				Driver:         sqlite.StreamDriver{},
+				AppKey: "<app-key>",
+				DB:     db,
+				Driver: sqlite.StreamDriver{},
 				Types: message.NewTypeSet(
 					MessageBType,
 				),

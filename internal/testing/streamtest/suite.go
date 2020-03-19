@@ -22,6 +22,10 @@ import (
 // In is a container for values that are provided to the stream-specific
 // "before" function from the test-suite.
 type In struct {
+	// ApplicationKey is the identity key of the application that owns the
+	// stream.
+	ApplicationKey string
+
 	// MessageTypes is the set of messages that the test suite will use for
 	// testing.
 	MessageTypes message.TypeCollection
@@ -87,6 +91,7 @@ func Declare(
 		defer cancelSetup()
 
 		in = In{
+			env0.Source.Application.Key, // use the application key from the envelope fixtures
 			message.NewTypeSet(
 				configkitfixtures.MessageAType,
 				configkitfixtures.MessageBType,
@@ -117,6 +122,14 @@ func Declare(
 	})
 
 	ginkgo.Describe("type Stream", func() {
+		ginkgo.Describe("func ApplicationKey()", func() {
+			ginkgo.It("returns the expected key", func() {
+				gomega.Expect(
+					out.Stream.ApplicationKey(),
+				).To(gomega.Equal(in.ApplicationKey))
+			})
+		})
+
 		ginkgo.Describe("func Open()", func() {
 			ginkgo.BeforeEach(func() {
 				out.Append(

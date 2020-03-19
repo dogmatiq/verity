@@ -12,12 +12,21 @@ import (
 // Stream is an implementation of eventstream.Stream that stores events
 // in-memory.
 type Stream struct {
+	// AppKey is the identity key of the application that owns the stream.
+	AppKey string
+
 	// Types is the set of supported event types.
 	Types message.TypeCollection
 
 	m         sync.Mutex
 	ready     chan struct{}
 	envelopes []*envelope.Envelope
+}
+
+// ApplicationKey returns the identity key of the application that owns the
+// stream.
+func (s *Stream) ApplicationKey() string {
+	return s.AppKey
 }
 
 // Open returns a cursor used to read events from this stream.

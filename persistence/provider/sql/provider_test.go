@@ -90,11 +90,11 @@ var _ = Context("providers", func() {
 			env := NewEnvelope("<id>", MessageA1)
 
 			writer := &Stream{
-				ApplicationKey: "<app-key>",
-				DB:             db,
-				Types:          message.TypesOf(MessageA1),
-				Driver:         sqlite.StreamDriver{},
-				Marshaler:      Marshaler,
+				AppKey:    "<app-key>",
+				DB:        db,
+				Types:     message.TypesOf(MessageA1),
+				Driver:    sqlite.StreamDriver{},
+				Marshaler: Marshaler,
 			}
 
 			tx := sqlx.Begin(ctx, db)

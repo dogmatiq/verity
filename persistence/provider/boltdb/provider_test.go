@@ -73,13 +73,10 @@ var _ = Context("providers", func() {
 			env := NewEnvelope("<id>", MessageA1)
 
 			writer := &Stream{
+				AppKey:    "<app-key>",
 				DB:        db,
 				Types:     message.TypesOf(MessageA1),
 				Marshaler: Marshaler,
-				BucketPath: [][]byte{
-					[]byte("<app-key>"),
-					[]byte("eventstream"),
-				},
 			}
 
 			err := db.Update(func(tx *bbolt.Tx) error {

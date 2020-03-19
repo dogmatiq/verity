@@ -1,3 +1,3 @@
-// Package streamtest contains a common test suite for persistence.Stream
+// Package streamtest contains a common test suite for eventstream.Stream
 // implementations.
 package streamtest

@@ -30,7 +30,7 @@ type dataStore struct {
 func (ds *dataStore) EventStream(context.Context) (eventstream.Stream, error) {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
-			ApplicationKey:  ds.appConfig.Identity().Key,
+			AppKey:          ds.appConfig.Identity().Key,
 			DB:              ds.db,
 			Driver:          ds.driver.StreamDriver,
 			Marshaler:       ds.marshaler,

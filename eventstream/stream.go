@@ -10,7 +10,11 @@ import (
 
 // A Stream is an ordered sequence of event messages.
 type Stream interface {
-	// MessageTypes returns the complete set of message types that may appear on
+	// ApplicationKey returns the identity key of the application that
+	// owns the stream.
+	ApplicationKey() string
+
+	// MessageTypes returns the complete set of event types that may appear on
 	// the stream.
 	MessageTypes(ctx context.Context) (message.TypeCollection, error)
 

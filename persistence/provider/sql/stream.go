@@ -19,8 +19,8 @@ import (
 // Stream is an implementation of eventstream.Stream that stores events in an
 // SQL database.
 type Stream struct {
-	// ApplicationKey is the identity key of the source application.
-	ApplicationKey string
+	// AppKey is the identity key of the application that owns the stream.
+	AppKey string
 
 	// DB is the SQL database containing the stream's data.
 	DB *sql.DB
@@ -37,6 +37,12 @@ type Stream struct {
 	// BackoffStrategy is the backoff strategy used to determine delays betweens
 	// polls that do not produce any results.
 	BackoffStrategy backoff.Strategy
+}
+
+// ApplicationKey returns the identity key of the application that owns the
+// stream.
+func (s *Stream) ApplicationKey() string {
+	return s.AppKey
 }
 
 // Open returns a cursor used to read events from this stream.
@@ -100,7 +106,7 @@ func (s *Stream) Append(
 	next, err := s.Driver.IncrementOffset(
 		ctx,
 		tx,
-		s.ApplicationKey,
+		s.AppKey,
 		count,
 	)
 	if err != nil {
@@ -190,7 +196,7 @@ func (c *cursor) Next(ctx context.Context) (_ *eventstream.Event, err error) {
 		ev, ok, err := c.stream.Driver.Get(
 			ctx,
 			c.stream.DB,
-			c.stream.ApplicationKey,
+			c.stream.AppKey,
 			c.offset,
 			c.filterID,
 		)
@@ -199,7 +205,7 @@ func (c *cursor) Next(ctx context.Context) (_ *eventstream.Event, err error) {
 		}
 
 		if ok {
-			ev.Envelope.Source.Application.Key = c.stream.ApplicationKey
+			ev.Envelope.Source.Application.Key = c.stream.AppKey
 
 			if ev.Envelope.Message == nil {
 				ev.Envelope.Message, err = marshalkit.UnmarshalMessage(

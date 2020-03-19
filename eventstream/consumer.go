@@ -10,8 +10,6 @@ import (
 
 // Consumer handles events consumed from an event stream.
 type Consumer struct {
-	ApplicationKey string
-
 	// Stream is the event stream to consume.
 	Stream Stream
 
@@ -110,7 +108,7 @@ func (c *Consumer) open(
 	types message.TypeSet,
 ) (Cursor, error) {
 	var err error
-	c.offset, err = c.Handler.NextOffset(ctx, c.ApplicationKey)
+	c.offset, err = c.Handler.NextOffset(ctx, c.Stream.ApplicationKey())
 	if err != nil {
 		return nil, err
 	}

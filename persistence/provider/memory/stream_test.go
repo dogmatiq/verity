@@ -18,7 +18,8 @@ var _ = Describe("type Stream (standard test suite)", func() {
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			stream := &Stream{
-				Types: in.MessageTypes,
+				AppKey: in.ApplicationKey,
+				Types:  in.MessageTypes,
 			}
 
 			return streamtest.Out{

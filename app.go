@@ -84,9 +84,8 @@ func (e *Engine) streamEventsToProjection(
 	)
 
 	c := &eventstream.Consumer{
-		ApplicationKey: source.Identity().Key,
-		Stream:         stream,
-		EventTypes:     cfg.MessageTypes().Consumed,
+		Stream:     stream,
+		EventTypes: cfg.MessageTypes().Consumed,
 		Handler: &projection.Adaptor{
 			Handler:        cfg.Handler(),
 			DefaultTimeout: e.opts.MessageTimeout,
