@@ -5,9 +5,9 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
@@ -20,7 +20,7 @@ import (
 func RegisterServer(
 	s *grpc.Server,
 	m marshalkit.TypeMarshaler,
-	streams map[string]persistence.Stream,
+	streams map[string]eventstream.Stream,
 ) {
 	svr := &server{
 		marshaler: m,
@@ -32,7 +32,7 @@ func RegisterServer(
 
 type server struct {
 	marshaler marshalkit.TypeMarshaler
-	streams   map[string]persistence.Stream
+	streams   map[string]eventstream.Stream
 }
 
 func (s *server) Consume(
@@ -48,14 +48,14 @@ func (s *server) Consume(
 	defer cur.Close()
 
 	for {
-		m, err := cur.Next(ctx)
+		ev, err := cur.Next(ctx)
 		if err != nil {
 			return err
 		}
 
 		res := &messagingspec.ConsumeResponse{
-			Offset:   m.Offset,
-			Envelope: envelope.MustMarshal(m.Envelope),
+			Offset:   ev.Offset,
+			Envelope: envelope.MustMarshal(ev.Envelope),
 		}
 
 		if err := consumer.Send(res); err != nil {
@@ -71,7 +71,7 @@ func (s *server) Consume(
 func (s *server) open(
 	ctx context.Context,
 	req *messagingspec.ConsumeRequest,
-) (persistence.StreamCursor, error) {
+) (eventstream.Cursor, error) {
 	stream, err := s.stream(req.ApplicationKey)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (s *server) open(
 }
 
 // stream returns the stream for the application with the specified key.
-func (s *server) stream(k string) (persistence.Stream, error) {
+func (s *server) stream(k string) (eventstream.Stream, error) {
 	if k == "" {
 		return nil, grpcx.Errorf(
 			codes.InvalidArgument,

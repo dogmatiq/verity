@@ -11,7 +11,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/fixtures" // can't dot-import due to conflicts
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence"
@@ -87,14 +87,14 @@ var _ = Context("providers", func() {
 		"it operates on the expected database",
 		func(get func() persistence.Provider) {
 			// First we create a stream and write a message.
-			env := NewEnvelope("<id>", MessageA1)
+			env := fixtures.NewEnvelope("<id>", MessageA1)
 
 			writer := &Stream{
-				ApplicationKey: "<app-key>",
-				DB:             db,
-				Types:          message.TypesOf(MessageA1),
-				Driver:         sqlite.StreamDriver{},
-				Marshaler:      Marshaler,
+				AppKey:    "<app-key>",
+				DB:        db,
+				Types:     message.TypesOf(MessageA1),
+				Driver:    sqlite.StreamDriver{},
+				Marshaler: Marshaler,
 			}
 
 			tx := sqlx.Begin(ctx, db)
@@ -124,9 +124,9 @@ var _ = Context("providers", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			defer cur.Close()
 
-			m, err := cur.Next(ctx)
+			ev, err := cur.Next(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m.Envelope).To(Equal(env))
+			Expect(ev.Envelope).To(Equal(env))
 		},
 		entries...,
 	)

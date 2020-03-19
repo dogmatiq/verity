@@ -8,49 +8,55 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"go.etcd.io/bbolt"
 )
 
 var (
-	offsetKey   = []byte("offset")
-	messagesKey = []byte("messages")
+	eventStreamKey = []byte("eventstream")
+	offsetKey      = []byte("offset")
+	eventsKey      = []byte("events")
 )
 
-// Stream is an implementation of persistence.Stream that stores messages
-// in a BoltDB database.
+// Stream is an implementation of eventstream.Stream that stores events in a
+// BoltDB database.
 type Stream struct {
+	// AppKey is the identity key of the application that owns the stream.
+	AppKey string
+
 	// DB is the BoltDB database containing the stream's data.
 	DB *bbolt.DB
 
-	// Types is the set of supported message types.
+	// Types is the set of supported event types.
 	Types message.TypeCollection
 
-	// Marshaler is used to marshal and unmarshal messages for storage.
+	// Marshaler is used to marshal and unmarshal events for storage.
 	Marshaler marshalkit.ValueMarshaler
-
-	// BucketPath is the "path" to a nested bucket with the database that
-	// contains the stream's data.
-	BucketPath [][]byte
 
 	m     sync.Mutex
 	ready chan struct{}
 }
 
-// Open returns a cursor used to read messages from this stream.
+// ApplicationKey returns the identity key of the application that owns the
+// stream.
+func (s *Stream) ApplicationKey() string {
+	return s.AppKey
+}
+
+// Open returns a cursor used to read events from this stream.
 //
-// offset is the position of the first message to read. The first message on a
+// offset is the position of the first event to read. The first event on a
 // stream is always at offset 0.
 //
-// types is a set of message types indicating which message types are returned
-// by Cursor.Next().
+// types is the set of event types that should be returned by Cursor.Next().
+// Any other event types are ignored.
 func (s *Stream) Open(
 	ctx context.Context,
 	offset uint64,
 	types message.TypeCollection,
-) (persistence.StreamCursor, error) {
+) (eventstream.Cursor, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
@@ -63,12 +69,13 @@ func (s *Stream) Open(
 	}, nil
 }
 
-// MessageTypes returns the message types that may appear on the stream.
+// MessageTypes returns the complete set of event types that may appear on the
+// stream.
 func (s *Stream) MessageTypes(context.Context) (message.TypeCollection, error) {
 	return s.Types, nil
 }
 
-// Append appends messages to the stream.
+// Append appends events to the stream.
 //
 // It returns the next free offset.
 func (s *Stream) Append(
@@ -77,9 +84,14 @@ func (s *Stream) Append(
 ) (_ uint64, err error) {
 	defer bboltx.Recover(&err)
 
-	b := bboltx.CreateBucketIfNotExists(tx, s.BucketPath...)
+	b := bboltx.CreateBucketIfNotExists(
+		tx,
+		[]byte(s.AppKey),
+		eventStreamKey,
+	)
+
 	next := loadNextOffset(b)
-	next = appendMessages(b, next, s.Types, envelopes)
+	next = appendEvents(b, next, s.Types, envelopes)
 	storeNextOffset(b, next)
 
 	tx.OnCommit(func() {
@@ -95,7 +107,7 @@ func (s *Stream) Append(
 	return next, nil
 }
 
-// cursor is an implementation of persistence.Cursor that reads messages from a
+// cursor is an implementation of eventstream.Cursor that reads events from a
 // BoltDB database.
 type cursor struct {
 	stream *Stream
@@ -106,11 +118,14 @@ type cursor struct {
 	closed chan struct{}
 }
 
-// Next returns the next relevant message in the stream.
+// Next returns the next relevant event in the stream.
 //
-// If the end of the stream is reached it blocks until a relevant message is
+// If the end of the stream is reached it blocks until a relevant event is
 // appended to the stream or ctx is canceled.
-func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err error) {
+//
+// If the stream is closed before or during a call to Next(), it returns
+// ErrCursorClosed.
+func (c *cursor) Next(ctx context.Context) (_ *eventstream.Event, err error) {
 	defer bboltx.Recover(&err)
 
 	for {
@@ -118,7 +133,7 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, persistence.ErrStreamCursorClosed
+			return nil, eventstream.ErrCursorClosed
 		default:
 		}
 
@@ -132,7 +147,7 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, persistence.ErrStreamCursorClosed
+			return nil, eventstream.ErrCursorClosed
 		case <-ready:
 			continue // keep to see coverage
 		}
@@ -141,9 +156,11 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 
 // Close stops the cursor.
 //
-// Any current or future calls to Next() return a non-nil error.
+// It returns ErrCursorClosed if the cursor is already closed.
+//
+// Any current or future calls to Next() return ErrCursorClosed.
 func (c *cursor) Close() error {
-	err := persistence.ErrStreamCursorClosed
+	err := eventstream.ErrCursorClosed
 
 	c.once.Do(func() {
 		err = nil
@@ -153,14 +170,17 @@ func (c *cursor) Close() error {
 	return err
 }
 
-// get returns the next relevant message, or if the end of the stream is
-// reached, it returns a "ready" channel that is closed when a message is
-// appended.
-func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}) {
+// get returns the next relevant event, or if the end of the stream is reached,
+// it returns a "ready" channel that is closed when an event is appended.
+func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	tx := bboltx.BeginRead(c.stream.DB)
 	defer tx.Rollback()
 
-	if b := bboltx.Bucket(tx, c.stream.BucketPath...); b != nil {
+	if b := bboltx.Bucket(
+		tx,
+		[]byte(c.stream.AppKey),
+		eventStreamKey,
+	); b != nil {
 		next := loadNextOffset(b)
 
 		for next > c.offset {
@@ -170,7 +190,7 @@ func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}) {
 			c.offset++
 
 			if c.types.HasM(env.Message) {
-				return &persistence.StreamMessage{
+				return &eventstream.Event{
 					Offset:   offset,
 					Envelope: env,
 				}, nil
@@ -230,7 +250,7 @@ func loadMessage(
 	offset uint64,
 ) *envelope.Envelope {
 	k := marshalOffset(offset)
-	v := b.Bucket(messagesKey).Get(k)
+	v := b.Bucket(eventsKey).Get(k)
 
 	var env envelope.Envelope
 	bboltx.Must(envelope.UnmarshalBinary(m, v, &env))
@@ -238,14 +258,14 @@ func loadMessage(
 	return &env
 }
 
-// appendMessages writes messages to the database.
-func appendMessages(
+// appendEvents writes events to the database.
+func appendEvents(
 	b *bbolt.Bucket,
 	next uint64,
 	types message.TypeCollection,
 	envelopes []*envelope.Envelope,
 ) uint64 {
-	messages := bboltx.CreateBucketIfNotExists(b, messagesKey)
+	events := bboltx.CreateBucketIfNotExists(b, eventsKey)
 
 	for _, env := range envelopes {
 		if !types.HasM(env.Message) {
@@ -254,7 +274,7 @@ func appendMessages(
 
 		k := marshalOffset(next)
 		v := envelope.MustMarshalBinary(env)
-		bboltx.Put(messages, k, v)
+		bboltx.Put(events, k, v)
 		next++
 	}
 

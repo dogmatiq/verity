@@ -6,13 +6,16 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/eventstream"
 )
 
-// Stream is an implementation of persistence.Stream that stores messages
+// Stream is an implementation of eventstream.Stream that stores events
 // in-memory.
 type Stream struct {
-	// Types is the set of supported message types.
+	// AppKey is the identity key of the application that owns the stream.
+	AppKey string
+
+	// Types is the set of supported event types.
 	Types message.TypeCollection
 
 	m         sync.Mutex
@@ -20,18 +23,24 @@ type Stream struct {
 	envelopes []*envelope.Envelope
 }
 
-// Open returns a cursor used to read messages from this stream.
+// ApplicationKey returns the identity key of the application that owns the
+// stream.
+func (s *Stream) ApplicationKey() string {
+	return s.AppKey
+}
+
+// Open returns a cursor used to read events from this stream.
 //
-// offset is the position of the first message to read. The first message on a
+// offset is the position of the first event to read. The first event on a
 // stream is always at offset 0.
 //
-// types is a set of message types indicating which message types are returned
-// by Cursor.Next().
+// types is the set of event types that should be returned by Cursor.Next().
+// Any other event types are ignored.
 func (s *Stream) Open(
 	ctx context.Context,
 	offset uint64,
 	types message.TypeCollection,
-) (persistence.StreamCursor, error) {
+) (eventstream.Cursor, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
@@ -44,12 +53,13 @@ func (s *Stream) Open(
 	}, nil
 }
 
-// MessageTypes returns the message types that may appear on the stream.
+// MessageTypes returns the complete set of event types that may appear on the
+// stream.
 func (s *Stream) MessageTypes(context.Context) (message.TypeCollection, error) {
 	return s.Types, nil
 }
 
-// Append appends messages to the stream.
+// Append appends events to the stream.
 func (s *Stream) Append(envelopes ...*envelope.Envelope) {
 	for _, env := range envelopes {
 		t := message.TypeOf(env.Message)
@@ -69,7 +79,7 @@ func (s *Stream) Append(envelopes ...*envelope.Envelope) {
 	}
 }
 
-// cursor is an implementation of persistence.Cursor that reads messages from an
+// cursor is an implementation of eventstream.Cursor that reads events from an
 // in-memory stream.
 type cursor struct {
 	stream *Stream
@@ -80,31 +90,34 @@ type cursor struct {
 	closed chan struct{}
 }
 
-// Next returns the next relevant message in the stream.
+// Next returns the next relevant event in the stream.
 //
-// If the end of the stream is reached it blocks until a relevant message is
+// If the end of the stream is reached it blocks until a relevant event is
 // appended to the stream or ctx is canceled.
-func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
+//
+// If the stream is closed before or during a call to Next(), it returns
+// ErrCursorClosed.
+func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, persistence.ErrStreamCursorClosed
+			return nil, eventstream.ErrCursorClosed
 		default:
 		}
 
-		m, ready := c.get()
+		ev, ready := c.get()
 
 		if ready == nil {
-			return m, nil
+			return ev, nil
 		}
 
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, persistence.ErrStreamCursorClosed
+			return nil, eventstream.ErrCursorClosed
 		case <-ready:
 			continue // keep to see coverage
 		}
@@ -113,9 +126,11 @@ func (c *cursor) Next(ctx context.Context) (*persistence.StreamMessage, error) {
 
 // Close stops the cursor.
 //
-// Any current or future calls to Next() return a non-nil error.
+// It returns ErrCursorClosed if the cursor is already closed.
+//
+// Any current or future calls to Next() return ErrCursorClosed.
 func (c *cursor) Close() error {
-	err := persistence.ErrStreamCursorClosed
+	err := eventstream.ErrCursorClosed
 
 	c.once.Do(func() {
 		err = nil
@@ -125,10 +140,9 @@ func (c *cursor) Close() error {
 	return err
 }
 
-// get returns the next relevant message, or if the end of the stream is
-// reached, it returns a "ready" channel that is closed when a message is
-// appended.
-func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}) {
+// get returns the next relevant event, or if the end of the stream is reached,
+// it returns a "ready" channel that is closed when an event is appended.
+func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	c.stream.m.Lock()
 	defer c.stream.m.Unlock()
 
@@ -139,7 +153,7 @@ func (c *cursor) get() (*persistence.StreamMessage, <-chan struct{}) {
 		env := c.stream.envelopes[offset]
 
 		if c.types.HasM(env.Message) {
-			return &persistence.StreamMessage{
+			return &eventstream.Event{
 				Offset:   offset,
 				Envelope: env,
 			}, nil

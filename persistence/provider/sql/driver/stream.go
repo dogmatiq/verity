@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/eventstream"
 )
 
 // StreamDriver is an interface used by sql.Stream to interface with the
@@ -46,7 +46,7 @@ type StreamDriver interface {
 		env *envelope.Envelope,
 	) error
 
-	// Get returns the first message at or after a specific offset that matches
+	// Get returns the first event at or after a specific offset that matches
 	// a specific filter.
 	//
 	// The driver may leave the source application key and the dogma.Message
@@ -58,5 +58,5 @@ type StreamDriver interface {
 		appKey string,
 		offset uint64,
 		filterID uint64,
-	) (*persistence.StreamMessage, bool, error)
+	) (*eventstream.Event, bool, error)
 }

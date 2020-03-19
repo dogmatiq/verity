@@ -9,18 +9,18 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence/provider/sql/driver"
 	"github.com/dogmatiq/infix/persistence/provider/sql/internal/streamfilter"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 )
 
-// Stream is an implementation of persistence.Stream that stores messages
-// in an SQL database.
+// Stream is an implementation of eventstream.Stream that stores events in an
+// SQL database.
 type Stream struct {
-	// ApplicationKey is the identity key of the source application.
-	ApplicationKey string
+	// AppKey is the identity key of the application that owns the stream.
+	AppKey string
 
 	// DB is the SQL database containing the stream's data.
 	DB *sql.DB
@@ -28,10 +28,10 @@ type Stream struct {
 	// Driver performs the database-system-specific SQL queries.
 	Driver driver.StreamDriver
 
-	// Types is the set of supported message types.
+	// Types is the set of supported event types.
 	Types message.TypeCollection
 
-	// Marshaler is used to marshal and unmarshal messages for storage.
+	// Marshaler is used to marshal and unmarshal events for storage.
 	Marshaler marshalkit.Marshaler
 
 	// BackoffStrategy is the backoff strategy used to determine delays betweens
@@ -39,18 +39,24 @@ type Stream struct {
 	BackoffStrategy backoff.Strategy
 }
 
-// Open returns a cursor used to read messages from this stream.
+// ApplicationKey returns the identity key of the application that owns the
+// stream.
+func (s *Stream) ApplicationKey() string {
+	return s.AppKey
+}
+
+// Open returns a cursor used to read events from this stream.
 //
-// offset is the position of the first message to read. The first message on a
+// offset is the position of the first event to read. The first event on a
 // stream is always at offset 0.
 //
-// types is a set of message types indicating which message types are returned
-// by Cursor.Next().
+// types is the set of event types that should be returned by Cursor.Next().
+// Any other event types are ignored.
 func (s *Stream) Open(
 	ctx context.Context,
 	offset uint64,
 	types message.TypeCollection,
-) (persistence.StreamCursor, error) {
+) (eventstream.Cursor, error) {
 	hash, names := streamfilter.Hash(s.Marshaler, types)
 
 	filterID, ok, err := s.Driver.FindFilter(ctx, s.DB, hash, names)
@@ -81,12 +87,13 @@ func (s *Stream) Open(
 	}, nil
 }
 
-// MessageTypes returns the message types that may appear on the stream.
+// MessageTypes returns the complete set of event types that may appear on the
+// stream.
 func (s *Stream) MessageTypes(context.Context) (message.TypeCollection, error) {
 	return s.Types, nil
 }
 
-// Append appends messages to the stream.
+// Append appends events to the stream.
 //
 // It returns the next free offset.
 func (s *Stream) Append(
@@ -99,7 +106,7 @@ func (s *Stream) Append(
 	next, err := s.Driver.IncrementOffset(
 		ctx,
 		tx,
-		s.ApplicationKey,
+		s.AppKey,
 		count,
 	)
 	if err != nil {
@@ -133,7 +140,7 @@ func (s *Stream) Append(
 	return next, nil
 }
 
-// cursor is an implementation of persistence.Cursor that reads messages from an
+// cursor is an implementation of eventstream.Cursor that reads messages from an
 // SQL database.
 type cursor struct {
 	stream   *Stream
@@ -145,15 +152,18 @@ type cursor struct {
 	closed chan struct{}
 }
 
-// Next returns the next relevant message in the stream.
+// Next returns the next relevant event in the stream.
 //
-// If the end of the stream is reached it blocks until a relevant message is
+// If the end of the stream is reached it blocks until a relevant event is
 // appended to the stream or ctx is canceled.
-func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err error) {
+//
+// If the stream is closed before or during a call to Next(), it returns
+// ErrCursorClosed.
+func (c *cursor) Next(ctx context.Context) (_ *eventstream.Event, err error) {
 	// Check immediately if the cursor is already closed.
 	select {
 	case <-c.closed:
-		return nil, persistence.ErrStreamCursorClosed
+		return nil, eventstream.ErrCursorClosed
 	default:
 	}
 
@@ -176,17 +186,17 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 		if err == context.Canceled {
 			select {
 			case <-c.closed:
-				err = persistence.ErrStreamCursorClosed
+				err = eventstream.ErrCursorClosed
 			default:
 			}
 		}
 	}()
 
 	for {
-		m, ok, err := c.stream.Driver.Get(
+		ev, ok, err := c.stream.Driver.Get(
 			ctx,
 			c.stream.DB,
-			c.stream.ApplicationKey,
+			c.stream.AppKey,
 			c.offset,
 			c.filterID,
 		)
@@ -195,22 +205,22 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 		}
 
 		if ok {
-			m.Envelope.Source.Application.Key = c.stream.ApplicationKey
+			ev.Envelope.Source.Application.Key = c.stream.AppKey
 
-			if m.Envelope.Message == nil {
-				m.Envelope.Message, err = marshalkit.UnmarshalMessage(
+			if ev.Envelope.Message == nil {
+				ev.Envelope.Message, err = marshalkit.UnmarshalMessage(
 					c.stream.Marshaler,
-					m.Envelope.Packet,
+					ev.Envelope.Packet,
 				)
 				if err != nil {
 					return nil, err
 				}
 			}
 
-			c.offset = m.Offset + 1
+			c.offset = ev.Offset + 1
 			c.counter.Reset()
 
-			return m, nil
+			return ev, nil
 		}
 
 		if err := c.counter.Sleep(ctx, nil); err != nil {
@@ -221,9 +231,11 @@ func (c *cursor) Next(ctx context.Context) (_ *persistence.StreamMessage, err er
 
 // Close stops the cursor.
 //
-// Any current or future calls to Next() return a non-nil error.
+// It returns ErrCursorClosed if the cursor is already closed.
+//
+// Any current or future calls to Next() return ErrCursorClosed.
 func (c *cursor) Close() error {
-	err := persistence.ErrStreamCursorClosed
+	err := eventstream.ErrCursorClosed
 
 	c.once.Do(func() {
 		err = nil

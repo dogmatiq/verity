@@ -9,13 +9,13 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/app/projection"
+	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ persistence.StreamEventHandler = (*Adaptor)(nil)
+var _ eventstream.Handler = (*Adaptor)(nil)
 
 var _ = Describe("type Adaptor", func() {
 	var (
@@ -81,7 +81,7 @@ var _ = Describe("type Adaptor", func() {
 	})
 
 	Describe("func HandleEvent()", func() {
-		It("passes the message to the handler", func() {
+		It("passes the event to the handler", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
 				_, _, _ []byte,
@@ -95,7 +95,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -103,7 +103,7 @@ var _ = Describe("type Adaptor", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("passes the correct resource and versions to the handler for the first message", func() {
+		It("passes the correct resource and versions to the handler for the first event", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
 				r, c, n []byte,
@@ -119,7 +119,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -127,7 +127,7 @@ var _ = Describe("type Adaptor", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("passes the correct resource and versions to the handler for subsequent messages", func() {
+		It("passes the correct resource and versions to the handler for subsequent events", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
 				r, c, n []byte,
@@ -143,7 +143,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				3,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   4,
 					Envelope: env,
 				},
@@ -172,7 +172,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -198,7 +198,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -222,7 +222,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -243,7 +243,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -264,7 +264,7 @@ var _ = Describe("type Adaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&persistence.StreamMessage{
+				&eventstream.Event{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -287,7 +287,7 @@ var _ = Describe("type Adaptor", func() {
 				err := adaptor.HandleEvent(
 					context.Background(),
 					0,
-					&persistence.StreamMessage{
+					&eventstream.Event{
 						Offset:   0,
 						Envelope: env,
 					},
@@ -309,7 +309,7 @@ var _ = Describe("type Adaptor", func() {
 				err := adaptor.HandleEvent(
 					context.Background(),
 					0,
-					&persistence.StreamMessage{
+					&eventstream.Event{
 						Offset:   0,
 						Envelope: env,
 					},

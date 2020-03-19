@@ -1,4 +1,4 @@
-package persistence_test
+package eventstream_test
 
 import (
 	"context"
@@ -9,46 +9,48 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
-	. "github.com/dogmatiq/infix/persistence"
+	. "github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/fixtures" // can't dot-import due to conflict
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type StreamConsumer", func() {
+var _ = Describe("type Consumer", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
-		stream   *memory.Stream
-		handler  *mockHandler
-		consumer *StreamConsumer
+		stream   *fixtures.Stream
+		handler  *fixtures.StreamHandler
+		consumer *Consumer
 
-		env0 = NewEnvelope("<message-0>", MessageA1)
-		env1 = NewEnvelope("<message-1>", MessageB1)
-		env2 = NewEnvelope("<message-2>", MessageA2)
-		env3 = NewEnvelope("<message-3>", MessageB2)
-		env4 = NewEnvelope("<message-4>", MessageA3)
-		env5 = NewEnvelope("<message-5>", MessageB3)
+		env0 = fixtures.NewEnvelope("<message-0>", MessageA1)
+		env1 = fixtures.NewEnvelope("<message-1>", MessageB1)
+		env2 = fixtures.NewEnvelope("<message-2>", MessageA2)
+		env3 = fixtures.NewEnvelope("<message-3>", MessageB2)
+		env4 = fixtures.NewEnvelope("<message-4>", MessageA3)
+		env5 = fixtures.NewEnvelope("<message-5>", MessageB3)
 
-		message0 = &persistence.StreamMessage{Offset: 0, Envelope: env0}
-		message2 = &persistence.StreamMessage{Offset: 2, Envelope: env2}
-		message4 = &persistence.StreamMessage{Offset: 4, Envelope: env4}
+		event0 = &Event{Offset: 0, Envelope: env0}
+		event2 = &Event{Offset: 2, Envelope: env2}
+		event4 = &Event{Offset: 4, Envelope: env4}
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		stream = &memory.Stream{
-			Types: message.NewTypeSet(
-				MessageAType,
-				MessageBType,
-			),
+		stream = &fixtures.Stream{
+			Memory: memory.Stream{
+				AppKey: "<app-key>",
+				Types: message.NewTypeSet(
+					MessageAType,
+					MessageBType,
+				),
+			},
 		}
 
-		stream.Append(
+		stream.Memory.Append(
 			env0,
 			env1,
 			env2,
@@ -57,12 +59,11 @@ var _ = Describe("type StreamConsumer", func() {
 			env5,
 		)
 
-		handler = &mockHandler{}
+		handler = &fixtures.StreamHandler{}
 
-		consumer = &StreamConsumer{
-			ApplicationKey: "<source>",
-			Stream:         stream,
-			Types: message.NewTypeSet(
+		consumer = &Consumer{
+			Stream: stream,
+			EventTypes: message.NewTypeSet(
 				MessageAType,
 			),
 			Handler:         handler,
@@ -77,15 +78,15 @@ var _ = Describe("type StreamConsumer", func() {
 
 	Describe("func Run()", func() {
 		It("passes the filtered events to the handler in order", func() {
-			var messages []*StreamMessage
+			var events []*Event
 			handler.HandleEventFunc = func(
 				_ context.Context,
 				_ uint64,
-				m *StreamMessage,
+				ev *Event,
 			) error {
-				messages = append(messages, m)
+				events = append(events, ev)
 
-				if len(messages) == 3 {
+				if len(events) == 3 {
 					cancel()
 				}
 
@@ -94,17 +95,17 @@ var _ = Describe("type StreamConsumer", func() {
 
 			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
-			Expect(messages).To(Equal(
-				[]*StreamMessage{
-					message0,
-					message2,
-					message4,
+			Expect(events).To(Equal(
+				[]*Event{
+					event0,
+					event2,
+					event4,
 				},
 			))
 		})
 
 		It("returns if the stream does not produce any relevant events", func() {
-			stream.Types = message.NewTypeSet(
+			stream.Memory.Types = message.NewTypeSet(
 				MessageCType,
 			)
 
@@ -112,18 +113,66 @@ var _ = Describe("type StreamConsumer", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("restarts the consumer if opening the stream returns an error", func() {
+			stream.OpenFunc = func(
+				context.Context,
+				uint64,
+				message.TypeCollection,
+			) (Cursor, error) {
+				stream.OpenFunc = nil
+
+				handler.HandleEventFunc = func(
+					_ context.Context,
+					_ uint64,
+					ev *Event,
+				) error {
+					Expect(ev).To(Equal(event0))
+					cancel()
+					return nil
+				}
+
+				return nil, errors.New("<error>")
+			}
+
+			err := consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
+
+		It("restarts the consumer if querying the stream's message types returns an error", func() {
+			stream.MessageTypesFunc = func(
+				context.Context,
+			) (message.TypeCollection, error) {
+				stream.MessageTypesFunc = nil
+
+				handler.HandleEventFunc = func(
+					_ context.Context,
+					_ uint64,
+					ev *Event,
+				) error {
+					Expect(ev).To(Equal(event0))
+					cancel()
+					return nil
+				}
+
+				return nil, errors.New("<error>")
+			}
+
+			err := consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
+
 		It("restarts the consumer when the handler returns an error", func() {
 			handler.HandleEventFunc = func(
 				context.Context,
 				uint64,
-				*StreamMessage,
+				*Event,
 			) error {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
-					m *StreamMessage,
+					ev *Event,
 				) error {
-					Expect(m).To(Equal(message0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 					return nil
 				}
@@ -136,13 +185,27 @@ var _ = Describe("type StreamConsumer", func() {
 		})
 
 		It("returns if the context is canceled", func() {
-			done := make(chan error)
+			cancel()
+			err := consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
+
+		It("returns if the context is canceled while backing off", func() {
+			handler.NextOffsetFunc = func(
+				context.Context,
+				string,
+			) (uint64, error) {
+				return 0, errors.New("<error>")
+			}
+
+			consumer.BackoffStrategy = backoff.Constant(10 * time.Second)
+
 			go func() {
-				done <- consumer.Run(ctx)
+				time.Sleep(100 * time.Millisecond)
+				cancel()
 			}()
 
-			cancel()
-			err := <-done
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 
@@ -152,16 +215,16 @@ var _ = Describe("type StreamConsumer", func() {
 					_ context.Context,
 					k string,
 				) (uint64, error) {
-					Expect(k).To(Equal("<source>"))
+					Expect(k).To(Equal("<app-key>"))
 					return 2, nil
 				}
 
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
-					m *StreamMessage,
+					ev *Event,
 				) error {
-					Expect(m).To(Equal(message2))
+					Expect(ev).To(Equal(event2))
 					cancel()
 					return nil
 				}
@@ -181,7 +244,7 @@ var _ = Describe("type StreamConsumer", func() {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					o uint64,
-					_ *StreamMessage,
+					_ *Event,
 				) error {
 					Expect(o).To(BeNumerically("==", 2))
 					cancel()
@@ -196,7 +259,7 @@ var _ = Describe("type StreamConsumer", func() {
 				handler.HandleEventFunc = func(
 					context.Context,
 					uint64,
-					*StreamMessage,
+					*Event,
 				) error {
 					handler.NextOffsetFunc = func(
 						_ context.Context,
@@ -208,9 +271,9 @@ var _ = Describe("type StreamConsumer", func() {
 					handler.HandleEventFunc = func(
 						_ context.Context,
 						_ uint64,
-						m *StreamMessage,
+						ev *Event,
 					) error {
-						Expect(m).To(Equal(message2))
+						Expect(ev).To(Equal(event2))
 						cancel()
 						return nil
 					}
@@ -234,9 +297,9 @@ var _ = Describe("type StreamConsumer", func() {
 				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
-					m *StreamMessage,
+					ev *Event,
 				) error {
-					Expect(m).To(Equal(message0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 
 					return nil
@@ -248,24 +311,3 @@ var _ = Describe("type StreamConsumer", func() {
 		})
 	})
 })
-
-type mockHandler struct {
-	NextOffsetFunc  func(context.Context, string) (uint64, error)
-	HandleEventFunc func(context.Context, uint64, *StreamMessage) error
-}
-
-func (h *mockHandler) NextOffset(ctx context.Context, k string) (uint64, error) {
-	if h.NextOffsetFunc != nil {
-		return h.NextOffsetFunc(ctx, k)
-	}
-
-	return 0, nil
-}
-
-func (h *mockHandler) HandleEvent(ctx context.Context, o uint64, m *StreamMessage) error {
-	if h.HandleEventFunc != nil {
-		return h.HandleEventFunc(ctx, o, m)
-	}
-
-	return nil
-}

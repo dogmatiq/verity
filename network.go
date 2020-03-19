@@ -10,8 +10,8 @@ import (
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/api/messaging/eventstream"
+	eventstreamiface "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
-	"github.com/dogmatiq/infix/persistence"
 	"google.golang.org/grpc"
 )
 
@@ -59,7 +59,7 @@ func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error
 
 // registerConfigServer registers the EventStream server with the gRPC server.
 func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) error {
-	streams := map[string]persistence.Stream{}
+	streams := map[string]eventstreamiface.Stream{}
 
 	// Create a map of application-key to stream for each hosted application.
 	for _, cfg := range e.opts.AppConfigs {

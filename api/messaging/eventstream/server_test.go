@@ -2,15 +2,16 @@ package eventstream
 
 import (
 	"context"
+	"errors"
 	"net"
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
@@ -24,7 +25,7 @@ var _ = Describe("type server", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
-		stream   *memory.Stream
+		stream   *Stream
 		listener net.Listener
 		server   *grpc.Server
 		client   messagingspec.EventStreamClient
@@ -38,13 +39,15 @@ var _ = Describe("type server", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		stream = &memory.Stream{
-			Types: message.TypesOf(
-				env0.Message,
-				env1.Message,
-				env2.Message,
-				env3.Message,
-			),
+		stream = &Stream{
+			Memory: memory.Stream{
+				Types: message.TypesOf(
+					env0.Message,
+					env1.Message,
+					env2.Message,
+					env3.Message,
+				),
+			},
 		}
 
 		var err error
@@ -55,7 +58,7 @@ var _ = Describe("type server", func() {
 		RegisterServer(
 			server,
 			Marshaler,
-			map[string]persistence.Stream{
+			map[string]eventstream.Stream{
 				"<app-key>": stream,
 			},
 		)
@@ -85,7 +88,7 @@ var _ = Describe("type server", func() {
 
 	Describe("func Consume()", func() {
 		BeforeEach(func() {
-			stream.Append(env0, env1, env2, env3)
+			stream.Memory.Append(env0, env1, env2, env3)
 		})
 
 		It("exposes the messages from the underlying stream", func() {
@@ -97,18 +100,18 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			m, err := stream.Recv()
+			ev, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: envelope.MustMarshal(env0),
 				},
 			))
 
-			m, err = stream.Recv()
+			ev, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   1,
 					Envelope: envelope.MustMarshal(env1),
@@ -126,9 +129,9 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			m, err := stream.Recv()
+			ev, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: envelope.MustMarshal(env2),
@@ -145,18 +148,18 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			m, err := stream.Recv()
+			ev, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: envelope.MustMarshal(env0),
 				},
 			))
 
-			m, err = stream.Recv()
+			ev, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(Equal(
+			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: envelope.MustMarshal(env2),
@@ -265,6 +268,25 @@ var _ = Describe("type server", func() {
 					ApplicationKey: "<unknown>",
 				},
 			))
+		})
+
+		It("returns an error if the underlying stream returns an error", func() {
+			stream.MessageTypesFunc = func(
+				context.Context,
+			) (message.TypeCollection, error) {
+				return nil, errors.New("<error>")
+			}
+
+			req := &messagingspec.MessageTypesRequest{
+				ApplicationKey: "<app-key>",
+			}
+
+			_, err := client.MessageTypes(ctx, req)
+
+			s, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(s.Message()).To(Equal("<error>"))
+			Expect(s.Code()).To(Equal(codes.Unknown))
 		})
 	})
 })

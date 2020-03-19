@@ -8,15 +8,15 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/app/projection/resource"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/linger"
 )
 
 // DefaultTimeout is the default timeout to use when applying an event.
 const DefaultTimeout = 3 * time.Second
 
-// An Adaptor persents a dogma.ProjectionMessageHandler as a
-// persistence.StreamEventHandler.
+// An Adaptor presents a dogma.ProjectionMessageHandler as an
+// eventstream.Handler.
 type Adaptor struct {
 	// Handler is the projection message handler the events are applied to.
 	Handler dogma.ProjectionMessageHandler
@@ -51,11 +51,11 @@ func (a *Adaptor) NextOffset(ctx context.Context, k string) (uint64, error) {
 func (a *Adaptor) HandleEvent(
 	ctx context.Context,
 	o uint64,
-	m *persistence.StreamMessage,
+	ev *eventstream.Event,
 ) error {
 	ctx, cancel := linger.ContextWithTimeout(
 		ctx,
-		a.Handler.TimeoutHint(m.Envelope.Message),
+		a.Handler.TimeoutHint(ev.Envelope.Message),
 		a.DefaultTimeout,
 		DefaultTimeout,
 	)
@@ -63,14 +63,14 @@ func (a *Adaptor) HandleEvent(
 
 	ok, err := a.Handler.HandleEvent(
 		ctx,
-		resource.FromApplicationKey(m.Envelope.Source.Application.Key),
+		resource.FromApplicationKey(ev.Envelope.Source.Application.Key),
 		resource.MarshalOffset(o),
-		resource.MarshalOffset(m.Offset+1),
+		resource.MarshalOffset(ev.Offset+1),
 		scope{
-			recordedAt: m.Envelope.CreatedAt,
+			recordedAt: ev.Envelope.CreatedAt,
 			logger:     a.Logger,
 		},
-		m.Envelope.Message,
+		ev.Envelope.Message,
 	)
 	if err != nil {
 		return err

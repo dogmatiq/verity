@@ -10,9 +10,9 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/api/messaging/eventstream"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/internal/testing/streamtest"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
@@ -40,7 +40,7 @@ var _ = Describe("type stream (standard test suite)", func() {
 			RegisterServer(
 				server,
 				in.Marshaler,
-				map[string]persistence.Stream{
+				map[string]eventstream.Stream{
 					"<app-key>": source,
 				},
 			)
@@ -85,7 +85,7 @@ var _ = Describe("type stream", func() {
 		server   *grpc.Server
 		conn     *grpc.ClientConn
 		source   *memory.Stream
-		stream   persistence.Stream
+		stream   eventstream.Stream
 		types    message.TypeSet
 
 		env = NewEnvelope("<message-1>", MessageA1)
@@ -110,7 +110,7 @@ var _ = Describe("type stream", func() {
 		RegisterServer(
 			server,
 			Marshaler,
-			map[string]persistence.Stream{
+			map[string]eventstream.Stream{
 				"<app-key>": source,
 			},
 		)

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/marshalkit"
 	"go.uber.org/multierr"
 )
@@ -24,7 +25,7 @@ type Provider interface {
 // data for a specific application.
 type DataStore interface {
 	// EventStream returns the application's event stream.
-	EventStream(ctx context.Context) (Stream, error)
+	EventStream(ctx context.Context) (eventstream.Stream, error)
 
 	// MessageQueue returns the application's queue of command and timeout
 	// messages.

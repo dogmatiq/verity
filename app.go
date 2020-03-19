@@ -6,8 +6,8 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/app/projection"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
-	"github.com/dogmatiq/infix/persistence"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -38,7 +38,7 @@ func (e *Engine) runApplication(
 func (e *Engine) streamEvents(
 	ctx context.Context,
 	source configkit.Application,
-	stream persistence.Stream,
+	stream eventstream.Stream,
 ) error {
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -67,7 +67,7 @@ func (e *Engine) streamEventsToProjection(
 	ctx context.Context,
 	target configkit.Application,
 	source configkit.Application,
-	stream persistence.Stream,
+	stream eventstream.Stream,
 	cfg configkit.RichProjection,
 ) error {
 	prefix := "%s app | %s handler | %s stream | "
@@ -83,10 +83,9 @@ func (e *Engine) streamEventsToProjection(
 		source.Identity().Name,
 	)
 
-	c := &persistence.StreamConsumer{
-		ApplicationKey: source.Identity().Key,
-		Stream:         stream,
-		Types:          cfg.MessageTypes().Consumed,
+	c := &eventstream.Consumer{
+		Stream:     stream,
+		EventTypes: cfg.MessageTypes().Consumed,
 		Handler: &projection.Adaptor{
 			Handler:        cfg.Handler(),
 			DefaultTimeout: e.opts.MessageTimeout,

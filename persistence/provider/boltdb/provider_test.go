@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/fixtures" // can't dot-import due to conflicts
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
 	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
@@ -70,16 +70,13 @@ var _ = Context("providers", func() {
 		"it operates on the expected database",
 		func(get func() persistence.Provider) {
 			// First we create a stream and write a message.
-			env := NewEnvelope("<id>", MessageA1)
+			env := fixtures.NewEnvelope("<id>", MessageA1)
 
 			writer := &Stream{
+				AppKey:    "<app-key>",
 				DB:        db,
 				Types:     message.TypesOf(MessageA1),
 				Marshaler: Marshaler,
-				BucketPath: [][]byte{
-					[]byte("<app-key>"),
-					[]byte("eventstream"),
-				},
 			}
 
 			err := db.Update(func(tx *bbolt.Tx) error {
@@ -107,9 +104,9 @@ var _ = Context("providers", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			defer cur.Close()
 
-			m, err := cur.Next(ctx)
+			ev, err := cur.Next(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m.Envelope).To(Equal(env))
+			Expect(ev.Envelope).To(Equal(env))
 		},
 		entries...,
 	)
