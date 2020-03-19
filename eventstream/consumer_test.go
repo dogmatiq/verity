@@ -32,9 +32,9 @@ var _ = Describe("type Consumer", func() {
 		env4 = NewEnvelope("<message-4>", MessageA3)
 		env5 = NewEnvelope("<message-5>", MessageB3)
 
-		message0 = &Event{Offset: 0, Envelope: env0}
-		message2 = &Event{Offset: 2, Envelope: env2}
-		message4 = &Event{Offset: 4, Envelope: env4}
+		event0 = &Event{Offset: 0, Envelope: env0}
+		event2 = &Event{Offset: 2, Envelope: env2}
+		event4 = &Event{Offset: 4, Envelope: env4}
 	)
 
 	BeforeEach(func() {
@@ -95,9 +95,9 @@ var _ = Describe("type Consumer", func() {
 			Expect(err).To(Equal(context.Canceled))
 			Expect(events).To(Equal(
 				[]*Event{
-					message0,
-					message2,
-					message4,
+					event0,
+					event2,
+					event4,
 				},
 			))
 		})
@@ -122,7 +122,7 @@ var _ = Describe("type Consumer", func() {
 					_ uint64,
 					ev *Event,
 				) error {
-					Expect(ev).To(Equal(message0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 					return nil
 				}
@@ -160,7 +160,7 @@ var _ = Describe("type Consumer", func() {
 					_ uint64,
 					ev *Event,
 				) error {
-					Expect(ev).To(Equal(message2))
+					Expect(ev).To(Equal(event2))
 					cancel()
 					return nil
 				}
@@ -209,7 +209,7 @@ var _ = Describe("type Consumer", func() {
 						_ uint64,
 						ev *Event,
 					) error {
-						Expect(ev).To(Equal(message2))
+						Expect(ev).To(Equal(event2))
 						cancel()
 						return nil
 					}
@@ -235,7 +235,7 @@ var _ = Describe("type Consumer", func() {
 					_ uint64,
 					ev *Event,
 				) error {
-					Expect(ev).To(Equal(message0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 
 					return nil

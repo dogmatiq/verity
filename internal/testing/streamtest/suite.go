@@ -79,11 +79,11 @@ func Declare(
 		env3 = infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageB2)
 		env4 = infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageC1)
 
-		message0 = &eventstream.Event{Offset: 0, Envelope: env0}
-		message1 = &eventstream.Event{Offset: 1, Envelope: env1}
-		message2 = &eventstream.Event{Offset: 2, Envelope: env2}
-		message3 = &eventstream.Event{Offset: 3, Envelope: env3}
-		message4 = &eventstream.Event{Offset: 4, Envelope: env4}
+		event0 = &eventstream.Event{Offset: 0, Envelope: env0}
+		event1 = &eventstream.Event{Offset: 1, Envelope: env1}
+		event2 = &eventstream.Event{Offset: 2, Envelope: env2}
+		event3 = &eventstream.Event{Offset: 3, Envelope: env3}
+		event4 = &eventstream.Event{Offset: 4, Envelope: env4}
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -148,7 +148,7 @@ func Declare(
 
 				ev, err := cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(ev).To(gomega.Equal(message2))
+				gomega.Expect(ev).To(gomega.Equal(event2))
 			})
 
 			ginkgo.It("limits results to the supplied message types", func() {
@@ -162,11 +162,11 @@ func Declare(
 
 				ev, err := cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(ev).To(gomega.Equal(message0))
+				gomega.Expect(ev).To(gomega.Equal(event0))
 
 				ev, err = cur.Next(ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(ev).To(gomega.Equal(message2))
+				gomega.Expect(ev).To(gomega.Equal(event2))
 			})
 
 			ginkgo.It("returns an error if the context is canceled", func() {
@@ -230,19 +230,19 @@ func Declare(
 
 					ev, err := cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(message0))
+					gomega.Expect(ev).To(gomega.Equal(event0))
 
 					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(message1))
+					gomega.Expect(ev).To(gomega.Equal(event1))
 
 					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(message2))
+					gomega.Expect(ev).To(gomega.Equal(event2))
 
 					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(message3))
+					gomega.Expect(ev).To(gomega.Equal(event3))
 				})
 
 				ginkgo.It("returns an error if the cursor is closed", func() {
@@ -280,7 +280,7 @@ func Declare(
 
 						ev, err := cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(ev).To(gomega.Equal(message4))
+						gomega.Expect(ev).To(gomega.Equal(event4))
 					})
 
 					ginkgo.It("returns an error if the cursor is closed", func() {
@@ -345,7 +345,7 @@ func Declare(
 								barrier <- struct{}{}
 								ev, err := cur.Next(ctx)
 								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-								gomega.Expect(ev).To(gomega.Equal(message4))
+								gomega.Expect(ev).To(gomega.Equal(event4))
 
 								return nil
 							}()
