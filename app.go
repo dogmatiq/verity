@@ -75,19 +75,25 @@ func (e *Engine) streamEventsToProjection(
 		prefix = "%s app | %s handler | %s stream (self) | "
 	}
 
-	c := &projection.StreamConsumer{
-		ApplicationKey:   source.Identity().Key,
-		Stream:           stream,
-		ProjectionConfig: cfg,
-		BackoffStrategy:  e.opts.MessageBackoff,
-		DefaultTimeout:   e.opts.MessageTimeout,
-		Logger: loggingx.WithPrefix(
-			e.opts.Logger,
-			prefix,
-			target.Identity().Name,
-			cfg.Identity().Name,
-			source.Identity().Name,
-		),
+	logger := loggingx.WithPrefix(
+		e.opts.Logger,
+		prefix,
+		target.Identity().Name,
+		cfg.Identity().Name,
+		source.Identity().Name,
+	)
+
+	c := &persistence.StreamConsumer{
+		ApplicationKey: source.Identity().Key,
+		Stream:         stream,
+		Types:          cfg.MessageTypes().Consumed,
+		Handler: &projection.Adaptor{
+			Handler:        cfg.Handler(),
+			DefaultTimeout: e.opts.MessageTimeout,
+			Logger:         logger,
+		},
+		BackoffStrategy: e.opts.MessageBackoff,
+		Logger:          logger,
 	}
 
 	return c.Run(ctx)
