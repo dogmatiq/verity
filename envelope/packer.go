@@ -74,16 +74,16 @@ func (p *Packer) PackEvent(m dogma.Message) *Envelope {
 	)
 }
 
-// PackChildCommand returns a new command envelope containing the given
-// message and configured as a child of cause.
+// PackChildCommand returns a new command envelope containing the given message
+// and configured as a child of cause.
 func (p *Packer) PackChildCommand(
 	cause *Envelope,
 	m dogma.Message,
 	handler configkit.Identity,
 	instanceID string,
 ) *Envelope {
-	t := message.TypeOf(cause.Message)
-	p.Roles[t].MustBe(message.EventRole, message.TimeoutRole)
+	mt := message.TypeOf(cause.Message)
+	p.Roles[mt].MustBe(message.EventRole, message.TimeoutRole)
 
 	id := p.generateID()
 
@@ -98,16 +98,16 @@ func (p *Packer) PackChildCommand(
 	)
 }
 
-// PackChildEvent returns a new event envelope containing the given message
-// and configured as a child of cause.
+// PackChildEvent returns a new event envelope containing the given message and
+// configured as a child of cause.
 func (p *Packer) PackChildEvent(
 	cause *Envelope,
 	m dogma.Message,
 	handler configkit.Identity,
 	instanceID string,
 ) *Envelope {
-	t := message.TypeOf(cause.Message)
-	p.Roles[t].MustBe(message.CommandRole)
+	mt := message.TypeOf(cause.Message)
+	p.Roles[mt].MustBe(message.CommandRole)
 
 	id := p.generateID()
 
@@ -122,17 +122,17 @@ func (p *Packer) PackChildEvent(
 	)
 }
 
-// PackChildTimeout returns a new timeout envelope containing the given
-// message and configured as a child of cause.
+// PackChildTimeout returns a new timeout envelope containing the given message
+// and configured as a child of cause.
 func (p *Packer) PackChildTimeout(
 	cause *Envelope,
 	m dogma.Message,
-	sf time.Time,
+	t time.Time,
 	handler configkit.Identity,
 	instanceID string,
 ) *Envelope {
-	t := message.TypeOf(cause.Message)
-	p.Roles[t].MustBe(message.EventRole, message.TimeoutRole)
+	mt := message.TypeOf(cause.Message)
+	p.Roles[mt].MustBe(message.EventRole, message.TimeoutRole)
 
 	id := p.generateID()
 
@@ -162,8 +162,8 @@ func (p *Packer) new(
 	handler configkit.Identity,
 	instanceID string,
 ) *Envelope {
-	t := message.TypeOf(m)
-	p.Roles[t].MustBe(r)
+	mt := message.TypeOf(m)
+	p.Roles[mt].MustBe(r)
 
 	return &Envelope{
 		MetaData{
