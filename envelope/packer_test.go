@@ -350,6 +350,84 @@ var _ = Describe("type Packer", func() {
 		})
 	})
 
+	Describe("func Bind()", func() {
+		It("returns a bound packer", func() {
+			cfg := configkit.FromAggregate(&AggregateMessageHandler{
+				ConfigureFunc: func(c dogma.AggregateConfigurer) {
+					c.Identity("<aggregate-name>", "<aggregate-key>")
+					c.ConsumesCommandType(MessageC{})
+					c.ProducesEventType(MessageE{})
+				},
+			})
+
+			env := &Envelope{}
+			bound := packer.Bind(env, cfg, "<instance>")
+
+			Expect(bound).To(Equal(
+				&BoundPacker{
+					Packer:        packer,
+					Cause:         env,
+					HandlerConfig: cfg,
+					InstanceID:    "<instance>",
+				},
+			))
+		})
+		It("panics if the handler is an aggregate and the instance ID is empty", func() {
+			cfg := configkit.FromAggregate(&AggregateMessageHandler{
+				ConfigureFunc: func(c dogma.AggregateConfigurer) {
+					c.Identity("<aggregate-name>", "<aggregate-key>")
+					c.ConsumesCommandType(MessageC{})
+					c.ProducesEventType(MessageE{})
+				},
+			})
+
+			Expect(func() {
+				packer.Bind(&Envelope{}, cfg, "")
+			}).To(Panic())
+		})
+
+		It("panics if the handler is a process and the instance ID is empty", func() {
+			cfg := configkit.FromProcess(&ProcessMessageHandler{
+				ConfigureFunc: func(c dogma.ProcessConfigurer) {
+					c.Identity("<process-name>", "<process-key>")
+					c.ConsumesEventType(MessageE{})
+					c.ProducesCommandType(MessageC{})
+				},
+			})
+
+			Expect(func() {
+				packer.Bind(&Envelope{}, cfg, "")
+			}).To(Panic())
+		})
+
+		It("panics if the handler is an integration and the instance ID is not empty", func() {
+			cfg := configkit.FromIntegration(&IntegrationMessageHandler{
+				ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+					c.Identity("<integration-name>", "<integration-key>")
+					c.ConsumesCommandType(MessageC{})
+					c.ProducesEventType(MessageE{})
+				},
+			})
+
+			Expect(func() {
+				packer.Bind(&Envelope{}, cfg, "<instance>")
+			}).To(Panic())
+		})
+
+		It("panics if the handler is a projection", func() {
+			cfg := configkit.FromProjection(&ProjectionMessageHandler{
+				ConfigureFunc: func(c dogma.ProjectionConfigurer) {
+					c.Identity("<projection-name>", "<projection-key>")
+					c.ConsumesEventType(MessageE{})
+				},
+			})
+
+			Expect(func() {
+				packer.Bind(&Envelope{}, cfg, "")
+			}).To(Panic())
+		})
+	})
+
 	It("generates UUIDs by default", func() {
 		packer.GenerateID = nil
 
