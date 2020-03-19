@@ -34,7 +34,7 @@ var _ = Describe("type Queue (standard test suite)", func() {
 })
 
 var _ = Describe("type Queue", func() {
-	Describe("func Get()", func() {
+	Describe("func Begin()", func() {
 		It("returns an error if the queue closed", func() {
 			queue := &Queue{}
 			queue.Close()
@@ -42,7 +42,7 @@ var _ = Describe("type Queue", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
-			_, err := queue.Get(ctx)
+			_, err := queue.Begin(ctx)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

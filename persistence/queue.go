@@ -10,8 +10,12 @@ import (
 
 // A Queue is a set of messages that are yet to be handled.
 type Queue interface {
-	// Get returns a transaction for a message that is ready to be handled.
-	Get(ctx context.Context) (Transaction, error)
+	// Begin starts a transaction for a message on the application's message
+	// queue that is ready to be handled.
+	//
+	// If no messages are ready to be handled, it blocks until one becomes
+	// ready, ctx is canceled, or an error occurs.
+	Begin(ctx context.Context) (Transaction, error)
 }
 
 // InstanceRef uniquely identifies an aggregate or process instance at a

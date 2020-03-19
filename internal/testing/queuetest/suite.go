@@ -125,13 +125,13 @@ func Declare(
 	})
 
 	ginkgo.Describe("type Queue", func() {
-		ginkgo.Describe("func Get()", func() {
+		ginkgo.Describe("func Begin()", func() {
 			ginkgo.When("the queue is empty", func() {
 				ginkgo.It("blocks", func() {
 					ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration)
 					defer cancel()
 
-					_, err := out.Queue.Get(ctx)
+					_, err := out.Queue.Begin(ctx)
 					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
 				})
 
@@ -142,7 +142,7 @@ func Declare(
 							out.Enqueue(ctx, envEmptyScheduledFor)
 						}()
 
-						tx, err := out.Queue.Get(ctx)
+						tx, err := out.Queue.Begin(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Close()
 
@@ -157,7 +157,7 @@ func Declare(
 							out.Enqueue(ctx, envScheduledInThePast)
 						}()
 
-						tx, err := out.Queue.Get(ctx)
+						tx, err := out.Queue.Begin(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Close()
 
@@ -176,7 +176,7 @@ func Declare(
 							out.Enqueue(ctx, envScheduledInTheFuture)
 						}()
 
-						tx, err := out.Queue.Get(ctx)
+						tx, err := out.Queue.Begin(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Close()
 
@@ -194,7 +194,7 @@ func Declare(
 						ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration*2)
 						defer cancel()
 
-						_, err := out.Queue.Get(ctx)
+						_, err := out.Queue.Begin(ctx)
 						gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
 					})
 				})
@@ -204,7 +204,7 @@ func Declare(
 				ginkgo.It("returns messages that do not have a scheduled-for time", func() {
 					out.Enqueue(ctx, envEmptyScheduledFor)
 
-					tx, err := out.Queue.Get(ctx)
+					tx, err := out.Queue.Begin(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
@@ -216,7 +216,7 @@ func Declare(
 				ginkgo.It("returns messages that are scheduled in the past", func() {
 					out.Enqueue(ctx, envScheduledInThePast)
 
-					tx, err := out.Queue.Get(ctx)
+					tx, err := out.Queue.Begin(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
@@ -229,7 +229,7 @@ func Declare(
 					envScheduledInTheFuture.ScheduledFor = time.Now().Add(out.AssumeBlockingDuration)
 					out.Enqueue(ctx, envScheduledInTheFuture)
 
-					tx, err := out.Queue.Get(ctx)
+					tx, err := out.Queue.Begin(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
@@ -244,14 +244,14 @@ func Declare(
 					ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration)
 					defer cancel()
 
-					_, err := out.Queue.Get(ctx)
+					_, err := out.Queue.Begin(ctx)
 					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
 				})
 
 				ginkgo.It("returns messages that are ready to be handled first", func() {
 					out.Enqueue(ctx, envScheduledInTheFuture, envEmptyScheduledFor)
 
-					tx, err := out.Queue.Get(ctx)
+					tx, err := out.Queue.Begin(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Close()
 
