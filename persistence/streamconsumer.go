@@ -10,18 +10,15 @@ import (
 
 // StreamHandler handles events consumed from a stream.
 type StreamHandler interface {
-	// MessageTypes returns the message types that the handler consumes.
-	MessageTypes() message.TypeCollection
-
 	// NextOffset returns the next offset to be consumed from the event stream.
 	//
 	// k is the identity key of the source application.
 	NextOffset(ctx context.Context, k string) (uint64, error)
 
-	// Handle handles a message consumed from the event stream.
+	// HandleEvent handles a message consumed from the event stream.
 	//
 	// o is the offset value returned by NextOffset().
-	Handle(ctx context.Context, o uint64, m *StreamMessage) error
+	HandleEvent(ctx context.Context, o uint64, m *StreamMessage) error
 }
 
 // StreamConsumer handles events consumed from an application's event stream.
@@ -32,6 +29,9 @@ type StreamConsumer struct {
 
 	// Stream is the application's event stream stream.
 	Stream Stream
+
+	// Types is the set of types that the handler consumes.
+	Types message.TypeCollection
 
 	// Handler is the target for the messages from the stream.
 	Handler StreamHandler
@@ -87,8 +87,7 @@ func (c *StreamConsumer) consume(ctx context.Context) error {
 		return err
 	}
 
-	consumed := c.Handler.MessageTypes()
-	relevant := message.IntersectionT(consumed, produced)
+	relevant := message.IntersectionT(c.Types, produced)
 
 	if len(relevant) == 0 {
 		logging.Debug(
@@ -157,7 +156,7 @@ func (c *StreamConsumer) consumeNext(ctx context.Context, cur StreamCursor) erro
 		c.backoff.Reset()
 	}
 
-	if err := c.Handler.Handle(ctx, c.offset, m); err != nil {
+	if err := c.Handler.HandleEvent(ctx, c.offset, m); err != nil {
 		c.handlerFailed = true
 		return err
 	}

@@ -57,15 +57,14 @@ var _ = Describe("type StreamConsumer", func() {
 			env5,
 		)
 
-		handler = &mockHandler{
+		handler = &mockHandler{}
+
+		consumer = &StreamConsumer{
+			ApplicationKey: "<source>",
+			Stream:         stream,
 			Types: message.NewTypeSet(
 				MessageAType,
 			),
-		}
-
-		consumer = &StreamConsumer{
-			ApplicationKey:  "<source>",
-			Stream:          stream,
 			Handler:         handler,
 			BackoffStrategy: backoff.Constant(10 * time.Millisecond),
 			Logger:          logging.DiscardLogger{},
@@ -79,7 +78,7 @@ var _ = Describe("type StreamConsumer", func() {
 	Describe("func Run()", func() {
 		It("passes the filtered events to the handler in order", func() {
 			var messages []*StreamMessage
-			handler.HandleFunc = func(
+			handler.HandleEventFunc = func(
 				_ context.Context,
 				_ uint64,
 				m *StreamMessage,
@@ -114,12 +113,12 @@ var _ = Describe("type StreamConsumer", func() {
 		})
 
 		It("restarts the consumer when the handler returns an error", func() {
-			handler.HandleFunc = func(
+			handler.HandleEventFunc = func(
 				context.Context,
 				uint64,
 				*StreamMessage,
 			) error {
-				handler.HandleFunc = func(
+				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
 					m *StreamMessage,
@@ -157,7 +156,7 @@ var _ = Describe("type StreamConsumer", func() {
 					return 2, nil
 				}
 
-				handler.HandleFunc = func(
+				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
 					m *StreamMessage,
@@ -179,7 +178,7 @@ var _ = Describe("type StreamConsumer", func() {
 					return 2, nil
 				}
 
-				handler.HandleFunc = func(
+				handler.HandleEventFunc = func(
 					_ context.Context,
 					o uint64,
 					_ *StreamMessage,
@@ -194,7 +193,7 @@ var _ = Describe("type StreamConsumer", func() {
 			})
 
 			It("restarts the consumer when a conflict occurs", func() {
-				handler.HandleFunc = func(
+				handler.HandleEventFunc = func(
 					context.Context,
 					uint64,
 					*StreamMessage,
@@ -206,7 +205,7 @@ var _ = Describe("type StreamConsumer", func() {
 						return 2, nil
 					}
 
-					handler.HandleFunc = func(
+					handler.HandleEventFunc = func(
 						_ context.Context,
 						_ uint64,
 						m *StreamMessage,
@@ -232,7 +231,7 @@ var _ = Describe("type StreamConsumer", func() {
 					return 0, errors.New("<error>")
 				}
 
-				handler.HandleFunc = func(
+				handler.HandleEventFunc = func(
 					_ context.Context,
 					_ uint64,
 					m *StreamMessage,
@@ -251,13 +250,8 @@ var _ = Describe("type StreamConsumer", func() {
 })
 
 type mockHandler struct {
-	Types          message.TypeCollection
-	NextOffsetFunc func(context.Context, string) (uint64, error)
-	HandleFunc     func(context.Context, uint64, *StreamMessage) error
-}
-
-func (h *mockHandler) MessageTypes() message.TypeCollection {
-	return h.Types
+	NextOffsetFunc  func(context.Context, string) (uint64, error)
+	HandleEventFunc func(context.Context, uint64, *StreamMessage) error
 }
 
 func (h *mockHandler) NextOffset(ctx context.Context, k string) (uint64, error) {
@@ -268,9 +262,9 @@ func (h *mockHandler) NextOffset(ctx context.Context, k string) (uint64, error) 
 	return 0, nil
 }
 
-func (h *mockHandler) Handle(ctx context.Context, o uint64, m *StreamMessage) error {
-	if h.HandleFunc != nil {
-		return h.HandleFunc(ctx, o, m)
+func (h *mockHandler) HandleEvent(ctx context.Context, o uint64, m *StreamMessage) error {
+	if h.HandleEventFunc != nil {
+		return h.HandleEventFunc(ctx, o, m)
 	}
 
 	return nil
