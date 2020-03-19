@@ -198,20 +198,19 @@ func (c *StreamConsumer) consumeNext(ctx context.Context, cur persistence.Stream
 		},
 		m.Envelope.Message,
 	)
+	if !ok || err != nil {
+		c.handlerFailed = true
 
-	if ok {
-		// keep swapping between the two buffers to avoid repeat allocations
-		c.current, c.next = c.next, c.current
-		c.backoff.Reset()
+		if err != nil {
+			return err
+		}
 
-		return nil
+		return errors.New("optimistic concurrency conflict")
 	}
 
-	c.handlerFailed = true
+	// keep swapping between the two buffers to avoid repeat allocations
+	c.current, c.next = c.next, c.current
+	c.backoff.Reset()
 
-	if err != nil {
-		return err
-	}
-
-	return errors.New("optimistic concurrency conflict")
+	return nil
 }
