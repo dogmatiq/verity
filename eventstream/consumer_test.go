@@ -41,6 +41,7 @@ var _ = Describe("type Consumer", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		stream = &memory.Stream{
+			AppKey: "<app-key>",
 			Types: message.NewTypeSet(
 				MessageAType,
 				MessageBType,
@@ -150,7 +151,7 @@ var _ = Describe("type Consumer", func() {
 					_ context.Context,
 					k string,
 				) (uint64, error) {
-					Expect(k).To(Equal("<source>"))
+					Expect(k).To(Equal("<app-key>"))
 					return 2, nil
 				}
 
