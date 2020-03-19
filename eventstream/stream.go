@@ -29,7 +29,7 @@ type Stream interface {
 		ctx context.Context,
 		offset uint64,
 		types message.TypeCollection,
-	) (cur Cursor, err error)
+	) (Cursor, error)
 }
 
 // ErrCursorClosed is returned by Cursor.Next() and Close() if the

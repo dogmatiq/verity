@@ -6,7 +6,7 @@ import (
 
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
-	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/fixtures" // can't dot-import due to conflicts
 	"github.com/dogmatiq/infix/internal/testing/queuetest"
 	. "github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
@@ -53,7 +53,7 @@ var _ = Describe("type Queue", func() {
 			queue.Close()
 
 			Expect(func() {
-				env := NewEnvelope("<id>", MessageA1)
+				env := fixtures.NewEnvelope("<id>", MessageA1)
 				queue.Enqueue(env)
 			}).To(Panic())
 		})
