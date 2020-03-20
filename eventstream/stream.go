@@ -78,5 +78,5 @@ type Handler interface {
 	//
 	// o is the offset value returned by NextOffset(). On success, the next call
 	// to NextOffset() will return e.Offset + 1.
-	HandleEvent(ctx context.Context, o uint64, e *Event) error
+	HandleEvent(ctx context.Context, o uint64, ev *Event) error
 }
