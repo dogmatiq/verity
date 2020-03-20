@@ -17,7 +17,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.13.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
-	go.etcd.io/bbolt v1.3.3
+	go.etcd.io/bbolt v1.3.4
 	go.uber.org/multierr v1.5.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db // indirect
