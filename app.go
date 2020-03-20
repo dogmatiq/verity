@@ -17,7 +17,7 @@ func (e *Engine) runApplication(
 ) error {
 	logging.Log(
 		e.logger,
-		"starting '%s' application, identity key is %s",
+		"starting @%s application, identity key is %s",
 		cfg.Identity().Name,
 		cfg.Identity().Key,
 	)
@@ -70,29 +70,31 @@ func (e *Engine) streamEventsToProjection(
 	stream eventstream.Stream,
 	cfg configkit.RichProjection,
 ) error {
-	prefix := "%s app | %s handler | %s stream | "
-	if source.Identity() == target.Identity() {
-		prefix = "%s app | %s handler | %s stream (self) | "
-	}
-
-	logger := loggingx.WithPrefix(
-		e.opts.Logger,
-		prefix,
-		target.Identity().Name,
-		cfg.Identity().Name,
-		source.Identity().Name,
-	)
-
 	c := &eventstream.Consumer{
 		Stream:     stream,
 		EventTypes: cfg.MessageTypes().Consumed,
 		Handler: &projection.Adaptor{
 			Handler:        cfg.Handler(),
 			DefaultTimeout: e.opts.MessageTimeout,
-			Logger:         logger,
 		},
 		BackoffStrategy: e.opts.MessageBackoff,
-		Logger:          logger,
+	}
+
+	if target.Identity() == source.Identity() {
+		c.Logger = loggingx.WithPrefix(
+			e.opts.Logger,
+			"@%s | stream -> %s | ",
+			target.Identity().Name,
+			cfg.Identity().Name,
+		)
+	} else {
+		c.Logger = loggingx.WithPrefix(
+			e.opts.Logger,
+			"@%s | stream@%s -> %s | ",
+			target.Identity().Name,
+			source.Identity().Name,
+			cfg.Identity().Name,
+		)
 	}
 
 	return c.Run(ctx)

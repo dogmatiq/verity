@@ -193,7 +193,7 @@ func (l discoveryLogger) ClientDisconnected(c *discovery.Client) {
 func (l discoveryLogger) ApplicationAvailable(a *discovery.Application) {
 	logging.Log(
 		l.Logger,
-		"found '%s' application at %s, identity key is %s",
+		"found @%s application at %s, identity key is %s",
 		a.Identity().Name,
 		a.Client.Target.Name,
 		a.Identity().Key,
