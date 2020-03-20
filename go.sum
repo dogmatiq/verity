@@ -19,8 +19,8 @@ github.com/dogmatiq/dodeca v0.2.1/go.mod h1:YjUCbfmgl08gQ4QPNA0Dp9f+ge6kImQ7PgVM
 github.com/dogmatiq/dogma v0.6.2/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/dogma v0.6.3 h1:owkM3lOFmLmwaFpYogO46taVuPJU5sF5YApICZr4ljk=
 github.com/dogmatiq/dogma v0.6.3/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
-github.com/dogmatiq/example v0.0.0-20200303005501-6ab2b41a6502 h1:l2v9FE7s9t1OoDLCKQNTMp7Dwwnye2rhtmsST12laLg=
-github.com/dogmatiq/example v0.0.0-20200303005501-6ab2b41a6502/go.mod h1:sGsl9NGDL+JDwQwUg8bBZ8fWDVpWYxMEQsSwfP4O3Sc=
+github.com/dogmatiq/example v0.0.0-20200320000902-082c6729b73b h1:WarB94kAv6tDA2aIY3w9195yOWIOhYfVWAydfVuEZ4o=
+github.com/dogmatiq/example v0.0.0-20200320000902-082c6729b73b/go.mod h1:hfnMxPKY8DlU1Davr9lQvzFhfad7xeZj+bj8rkdPakQ=
 github.com/dogmatiq/graphkit v0.4.0/go.mod h1:ZTMym1P/z6anjOPWlZm6t5WxkGOig3CiX3gn8s1g5yM=
 github.com/dogmatiq/iago v0.4.0 h1:57nZqVT34IZxtCZEW/RFif7DNUEjMXgevfr/Mmd0N8I=
 github.com/dogmatiq/iago v0.4.0/go.mod h1:fishMWBtzYcjgis6d873VTv9kFm/wHYLOzOyO9ECBDc=
