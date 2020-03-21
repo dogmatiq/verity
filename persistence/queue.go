@@ -2,6 +2,8 @@ package persistence
 
 import (
 	"context"
+
+	"github.com/dogmatiq/infix/envelope"
 )
 
 // A Queue is a set of messages that are yet to be handled.
@@ -11,5 +13,5 @@ type Queue interface {
 	//
 	// If no messages are ready to be handled, it blocks until one becomes
 	// ready, ctx is canceled, or an error occurs.
-	Begin(ctx context.Context) (Transaction, error)
+	Begin(ctx context.Context) (Transaction, *envelope.Envelope, error)
 }

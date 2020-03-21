@@ -42,7 +42,7 @@ var _ = Describe("type Queue", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
-			_, err := queue.Begin(ctx)
+			_, _, err := queue.Begin(ctx)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

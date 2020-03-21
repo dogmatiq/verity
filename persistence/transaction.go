@@ -2,44 +2,45 @@ package persistence
 
 import (
 	"context"
-	"time"
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 )
 
-// InstanceRef uniquely identifies an aggregate or process instance at a
-// specific revision.
-type InstanceRef struct {
-	HandlerKey string
-	InstanceID string
-	Revision   uint64
-}
-
 // Transaction exposes persistence operations that can be performed atomically
 // in order to handle a single message.
 type Transaction interface {
+	// LoadAggregate loads an aggregate instance.
+	LoadAggregate(ctx context.Context, hk, id string) (dogma.AggregateRoot, uint64, error)
+
 	// PersistAggregate updates (or creates) an aggregate instance.
-	PersistAggregate(ctx context.Context, ref InstanceRef, r dogma.AggregateRoot) error
+	PersistAggregate(ctx context.Context, hk, id string, rev uint64, r dogma.AggregateRoot) error
 
-	// PersistProcess updates (or creates) a process instance.
-	PersistProcess(ctx context.Context, ref InstanceRef, r dogma.ProcessRoot) error
+	// DeleteAggregate deletes an aggregate instance.
+	DeleteAggregate(ctx context.Context, hk, id string, rev uint64) error
 
-	// Delete deletes an aggregate or process instance.
-	Delete(ctx context.Context, ref InstanceRef) error
+	// LoadProcess loads a process instance.
+	LoadProcess(ctx context.Context, hk, id string) (dogma.ProcessRoot, uint64, error)
 
-	// PersistMessage adds a message to the application's message queue and/or
-	// event stream as appropriate.
-	PersistMessage(ctx context.Context, env *envelope.Envelope) error
+	// SaveProcess updates (or creates) a process instance.
+	SaveProcess(ctx context.Context, hk, id string, rev uint64, r dogma.ProcessRoot) error
 
-	// Apply applies the changes from the transaction.
-	Apply(ctx context.Context) error
+	// DeleteProcess deletes a process instance.
+	DeleteProcess(ctx context.Context, hk, id string, rev uint64) error
 
-	// Abort cancels the transaction, returning the message to the queue.
-	//
-	// next indicates when the message should be retried.
-	Abort(ctx context.Context, next time.Time) error
+	// Enqueue adds a message to the application's message queue.
+	Enqueue(ctx context.Context, env *envelope.Envelope) error
 
-	// Close closes the transaction.
+	// Append adds a message to the application's event stream.
+	Append(ctx context.Context, env *envelope.Envelope) error
+
+	// Commit applies the changes from the transaction.
+	Commit(ctx context.Context) error
+
+	// Rollback cancels the transaction due to an error.
+	Rollback(ctx context.Context, err error) error
+
+	// Close closes the transaction. It must be called regardless of whether the
+	// transactions is committed or rolled-back.
 	Close() error
 }

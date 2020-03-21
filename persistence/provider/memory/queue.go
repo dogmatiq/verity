@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
 )
@@ -27,18 +26,16 @@ type Queue struct {
 //
 // If no messages are ready to be handled, it blocks until one becomes
 // ready, ctx is canceled, or an error occurs.
-func (q *Queue) Begin(ctx context.Context) (persistence.Transaction, error) {
+func (q *Queue) Begin(ctx context.Context) (persistence.Transaction, *envelope.Envelope, error) {
 	q.init()
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, nil, ctx.Err()
 	case <-q.done:
-		return nil, errors.New("queue is closed")
+		return nil, nil, errors.New("queue is closed")
 	case m := <-q.out:
-		return &transaction{
-			message: m,
-		}, nil
+		return &transaction{}, m.env, nil
 	}
 }
 
@@ -48,8 +45,8 @@ func (q *Queue) Enqueue(envelopes ...*envelope.Envelope) {
 
 	for _, env := range envelopes {
 		m := &queuedMessage{
-			nextAttemptAt: env.ScheduledFor,
-			envelope:      env,
+			next: env.ScheduledFor,
+			env:  env,
 		}
 
 		select {
@@ -135,7 +132,7 @@ func (q *Queue) run() {
 
 		if len(messages) != 0 {
 			next = messages[0]
-			delay := time.Until(next.nextAttemptAt)
+			delay := time.Until(next.next)
 
 			if delay > 0 {
 				timer = time.NewTimer(delay)
@@ -160,9 +157,9 @@ func (q *Queue) run() {
 
 // queuedMessage is a container for a message on a priority queue.
 type queuedMessage struct {
-	nextAttemptAt time.Time
-	failureCount  uint64
-	envelope      *envelope.Envelope
+	next     time.Time
+	failures uint64
+	env      *envelope.Envelope
 }
 
 // messageQueue is a priority queue of messages, ordered by the "next attempt"
@@ -174,8 +171,8 @@ func (q messageQueue) Len() int {
 }
 
 func (q messageQueue) Less(i, j int) bool {
-	return q[i].nextAttemptAt.Before(
-		q[j].nextAttemptAt,
+	return q[i].next.Before(
+		q[j].next,
 	)
 }
 
@@ -194,61 +191,4 @@ func (q *messageQueue) Pop() interface{} {
 	*q = (*q)[:n-1]
 
 	return m
-}
-
-// transaction is an implementation of persistence.QueueTransaction for
-// in-memory persistence.
-type transaction struct {
-	message *queuedMessage
-}
-
-// Envelope returns the envelope containing the message to be handled
-func (t *transaction) Envelope(context.Context) (*envelope.Envelope, error) {
-	return t.message.envelope, nil
-}
-
-// PersistAggregate updates (or creates) an aggregate instance.
-func (t *transaction) PersistAggregate(
-	ctx context.Context,
-	ref persistence.InstanceRef,
-	r dogma.AggregateRoot,
-) error {
-	return errors.New("not implemented")
-}
-
-// PersistProcess updates (or creates) a process instance.
-func (t *transaction) PersistProcess(
-	ctx context.Context,
-	ref persistence.InstanceRef,
-	r dogma.ProcessRoot,
-) error {
-	return errors.New("not implemented")
-}
-
-// Delete deletes an aggregate or process instance.
-func (t *transaction) Delete(ctx context.Context, ref persistence.InstanceRef) error {
-	return errors.New("not implemented")
-}
-
-// PersistMessage adds a message to the application's message queue and/or
-// event stream as appropriate.
-func (t *transaction) PersistMessage(ctx context.Context, env *envelope.Envelope) error {
-	return errors.New("not implemented")
-}
-
-// Apply applies the changes from the transaction.
-func (t *transaction) Apply(ctx context.Context) error {
-	return errors.New("not implemented")
-}
-
-// Abort cancels the transaction, returning the message to the queue.
-//
-// next indicates when the message should be retried.
-func (t *transaction) Abort(ctx context.Context, next time.Time) error {
-	return errors.New("not implemented")
-}
-
-// Close closes the transaction.
-func (t *transaction) Close() error {
-	return errors.New("not implemented")
 }
