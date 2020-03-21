@@ -18,7 +18,7 @@ const DefaultTimeout = 3 * time.Second
 // An Adaptor presents a dogma.ProjectionMessageHandler as an
 // eventstream.Handler.
 type Adaptor struct {
-	// Handler is the projection message handler the events are applied to.
+	// Handler is the projection message handler that handles the events.
 	Handler dogma.ProjectionMessageHandler
 
 	// DefaultTimeout is the maximum time to allow for handling a single event
@@ -26,7 +26,7 @@ type Adaptor struct {
 	// DefaultTimeout is used.
 	DefaultTimeout time.Duration
 
-	// Logger is the target for log messages the handler.
+	// Logger is the target for log messages produced within the handler.
 	// If it is nil, logging.DefaultLogger is used.
 	Logger logging.Logger
 }

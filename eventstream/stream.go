@@ -76,7 +76,7 @@ type Handler interface {
 
 	// HandleEvent handles an event obtained from the event stream.
 	//
-	// o is the offset value returned by NextOffset(). On success, the next call
-	// to NextOffset() will return e.Offset + 1.
+	// o must be the offset that would be returned by NextOffset(). On success,
+	// the next call to NextOffset() will return e.Offset + 1.
 	HandleEvent(ctx context.Context, o uint64, ev *Event) error
 }
