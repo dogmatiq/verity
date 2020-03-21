@@ -8,8 +8,8 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/app/projection/resource"
 	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/projection/resource"
 	"github.com/dogmatiq/linger"
 )
 
