@@ -15,20 +15,20 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ eventstream.Handler = (*Adaptor)(nil)
+var _ eventstream.Handler = (*StreamAdaptor)(nil)
 
-var _ = Describe("type Adaptor", func() {
+var _ = Describe("type StreamAdaptor", func() {
 	var (
 		handler *ProjectionMessageHandler
 		logger  *logging.BufferedLogger
-		adaptor *Adaptor
+		adaptor *StreamAdaptor
 		env     = NewEnvelope("<id>", MessageA1)
 	)
 
 	BeforeEach(func() {
 		handler = &ProjectionMessageHandler{}
 		logger = &logging.BufferedLogger{}
-		adaptor = &Adaptor{
+		adaptor = &StreamAdaptor{
 			Handler: handler,
 			Logger:  logger,
 		}

@@ -15,9 +15,9 @@ import (
 // DefaultTimeout is the default timeout to use when applying an event.
 const DefaultTimeout = 3 * time.Second
 
-// An Adaptor presents a dogma.ProjectionMessageHandler as an
+// StreamAdaptor presents a dogma.ProjectionMessageHandler as an
 // eventstream.Handler.
-type Adaptor struct {
+type StreamAdaptor struct {
 	// Handler is the projection message handler that handles the events.
 	Handler dogma.ProjectionMessageHandler
 
@@ -34,7 +34,10 @@ type Adaptor struct {
 // NextOffset returns the next offset to be consumed from the event stream.
 //
 // k is the identity key of the source application.
-func (a *Adaptor) NextOffset(ctx context.Context, k string) (uint64, error) {
+func (a *StreamAdaptor) NextOffset(
+	ctx context.Context,
+	k string,
+) (uint64, error) {
 	res := resource.FromApplicationKey(k)
 
 	buf, err := a.Handler.ResourceVersion(ctx, res)
@@ -47,9 +50,9 @@ func (a *Adaptor) NextOffset(ctx context.Context, k string) (uint64, error) {
 
 // HandleEvent handles a message consumed from the event stream.
 //
-// o is the offset value returned by NextOffset(). On success, the next call
-// to NextOffset() will return e.Offset + 1.
-func (a *Adaptor) HandleEvent(
+// o must be the offset that would be returned by NextOffset(). On success,
+// the next call to NextOffset() will return e.Offset + 1.
+func (a *StreamAdaptor) HandleEvent(
 	ctx context.Context,
 	o uint64,
 	ev *eventstream.Event,
