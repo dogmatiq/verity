@@ -49,6 +49,12 @@ func (ds *dataStore) MessageQueue() persistence.Queue {
 	panic("not implemented")
 }
 
+// OffsetRepository returns the repository that stores the "progress" of
+// message handlers through the event streams they consume.
+func (ds *dataStore) OffsetRepository() persistence.OffsetRepository {
+	panic("not implemented")
+}
+
 // Close closes the data store.
 func (ds *dataStore) Close() error {
 	if ds.closer != nil {

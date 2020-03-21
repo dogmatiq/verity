@@ -31,6 +31,10 @@ type DataStore interface {
 	// messages.
 	MessageQueue() Queue
 
+	// OffsetRepository returns the repository that stores the "progress" of
+	// message handlers through the event streams they consume.
+	OffsetRepository() OffsetRepository
+
 	// Close closes the data store.
 	Close() error
 }

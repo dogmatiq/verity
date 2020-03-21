@@ -30,6 +30,12 @@ func (ds *dataStore) MessageQueue() persistence.Queue {
 	return ds.queue
 }
 
+// OffsetRepository returns the repository that stores the "progress" of
+// message handlers through the event streams they consume.
+func (ds *dataStore) OffsetRepository() persistence.OffsetRepository {
+	panic("not implemented")
+}
+
 func (ds *dataStore) init() {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
