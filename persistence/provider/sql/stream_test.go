@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
@@ -37,7 +38,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			stream := &Stream{
-				AppKey:          in.ApplicationKey,
+				App:             in.Application,
 				DB:              db,
 				Driver:          sqlite.StreamDriver{},
 				Types:           in.MessageTypes,
@@ -102,7 +103,7 @@ var _ = Describe("type Stream", func() {
 			env := fixtures.NewEnvelope("<id>", MessageA1)
 
 			stream := &Stream{
-				AppKey: "<app-key>",
+				App:    configkit.MustNewIdentity("<app-name>", "<app-key>"),
 				DB:     db,
 				Driver: sqlite.StreamDriver{},
 				Types: message.NewTypeSet(

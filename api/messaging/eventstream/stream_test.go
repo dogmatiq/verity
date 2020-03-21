@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
@@ -55,7 +56,7 @@ var _ = Describe("type stream (standard test suite)", func() {
 
 			return streamtest.Out{
 				Stream: NewEventStream(
-					"<app-key>",
+					in.Application,
 					conn,
 					in.Marshaler,
 					0,
@@ -124,7 +125,7 @@ var _ = Describe("type stream", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		stream = NewEventStream(
-			"<app-key>",
+			configkit.MustNewIdentity("<app-name>", "<app-key>"),
 			conn,
 			Marshaler,
 			0,

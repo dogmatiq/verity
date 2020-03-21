@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
@@ -12,8 +13,8 @@ import (
 // Stream is an implementation of eventstream.Stream that stores events
 // in-memory.
 type Stream struct {
-	// AppKey is the identity key of the application that owns the stream.
-	AppKey string
+	// App is the identity of the application that owns the stream.
+	App configkit.Identity
 
 	// Types is the set of supported event types.
 	Types message.TypeCollection
@@ -23,10 +24,9 @@ type Stream struct {
 	envelopes []*envelope.Envelope
 }
 
-// ApplicationKey returns the identity key of the application that owns the
-// stream.
-func (s *Stream) ApplicationKey() string {
-	return s.AppKey
+// Application returns the identity of the application that owns the stream.
+func (s *Stream) Application() configkit.Identity {
+	return s.App
 }
 
 // Open returns a cursor used to read events from this stream.

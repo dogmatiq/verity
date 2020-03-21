@@ -90,7 +90,7 @@ func (e *Engine) discover(ctx context.Context) error {
 			&discovery.ApplicationExecutor{
 				Task: func(ctx context.Context, a *discovery.Application) {
 					stream := eventstream.NewEventStream(
-						a.Identity().Key,
+						a.Identity(),
 						a.Client.Connection,
 						e.opts.Marshaler,
 						0, // TODO: make configurable

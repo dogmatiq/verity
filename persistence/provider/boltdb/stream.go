@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
@@ -23,8 +24,8 @@ var (
 // Stream is an implementation of eventstream.Stream that stores events in a
 // BoltDB database.
 type Stream struct {
-	// AppKey is the identity key of the application that owns the stream.
-	AppKey string
+	// App is the identity of the application that owns the stream.
+	App configkit.Identity
 
 	// DB is the BoltDB database containing the stream's data.
 	DB *bbolt.DB
@@ -39,10 +40,9 @@ type Stream struct {
 	ready chan struct{}
 }
 
-// ApplicationKey returns the identity key of the application that owns the
-// stream.
-func (s *Stream) ApplicationKey() string {
-	return s.AppKey
+// Application returns the identity of the application that owns the stream.
+func (s *Stream) Application() configkit.Identity {
+	return s.App
 }
 
 // Open returns a cursor used to read events from this stream.
@@ -86,7 +86,7 @@ func (s *Stream) Append(
 
 	b := bboltx.CreateBucketIfNotExists(
 		tx,
-		[]byte(s.AppKey),
+		[]byte(s.App.Key),
 		eventStreamKey,
 	)
 
@@ -178,7 +178,7 @@ func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 
 	if b := bboltx.Bucket(
 		tx,
-		[]byte(c.stream.AppKey),
+		[]byte(c.stream.App.Key),
 		eventStreamKey,
 	); b != nil {
 		next := loadNextOffset(b)

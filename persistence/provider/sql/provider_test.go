@@ -70,7 +70,7 @@ var _ = Context("providers", func() {
 
 		cfg = configkit.FromApplication(&Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-				c.Identity("<app>", "<app-key>")
+				c.Identity("<app-name>", "<app-key>")
 			},
 		})
 	})
@@ -90,7 +90,7 @@ var _ = Context("providers", func() {
 			env := fixtures.NewEnvelope("<id>", MessageA1)
 
 			writer := &Stream{
-				AppKey:    "<app-key>",
+				App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
 				DB:        db,
 				Types:     message.TypesOf(MessageA1),
 				Driver:    sqlite.StreamDriver{},

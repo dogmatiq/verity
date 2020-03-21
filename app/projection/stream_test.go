@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
@@ -36,7 +37,10 @@ var _ = Describe("type StreamAdaptor", func() {
 
 	Describe("func NextOffset()", func() {
 		It("returns zero when the projection resource does not exist", func() {
-			offset, err := adaptor.NextOffset(context.Background(), "<app-key>")
+			offset, err := adaptor.NextOffset(
+				context.Background(),
+				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(offset).To(BeNumerically("==", 0))
 		})
@@ -50,7 +54,10 @@ var _ = Describe("type StreamAdaptor", func() {
 				return []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}, nil
 			}
 
-			offset, err := adaptor.NextOffset(context.Background(), "<app-key>")
+			offset, err := adaptor.NextOffset(
+				context.Background(),
+				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(offset).To(BeNumerically("==", 3))
 		})
@@ -63,7 +70,10 @@ var _ = Describe("type StreamAdaptor", func() {
 				return nil, errors.New("<error>")
 			}
 
-			_, err := adaptor.NextOffset(context.Background(), "<app-key>")
+			_, err := adaptor.NextOffset(
+				context.Background(),
+				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -75,7 +85,10 @@ var _ = Describe("type StreamAdaptor", func() {
 				return []byte{00}, nil
 			}
 
-			_, err := adaptor.NextOffset(context.Background(), "<app-key>")
+			_, err := adaptor.NextOffset(
+				context.Background(),
+				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			)
 			Expect(err).To(MatchError("version is 1 byte(s), expected 0 or 8"))
 		})
 	})

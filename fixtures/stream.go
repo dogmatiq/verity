@@ -3,6 +3,7 @@ package fixtures
 import (
 	"context"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
@@ -14,22 +15,21 @@ import (
 type Stream struct {
 	Memory memory.Stream
 
-	ApplicationKeyFunc func() string
-	MessageTypesFunc   func(context.Context) (message.TypeCollection, error)
-	OpenFunc           func(ctx context.Context, offset uint64, types message.TypeCollection) (eventstream.Cursor, error)
+	ApplicationFunc  func() configkit.Identity
+	MessageTypesFunc func(context.Context) (message.TypeCollection, error)
+	OpenFunc         func(ctx context.Context, offset uint64, types message.TypeCollection) (eventstream.Cursor, error)
 }
 
-// ApplicationKey returns the identity key of the application that owns the
-// stream.
+// Application returns the identity of the application that owns the stream.
 //
-// If s.ApplicationKeyFunc is non-nil, it returns s.ApplicatinKeyFunc(),
-// otherwise it dispatches to s.Memory.
-func (s *Stream) ApplicationKey() string {
-	if s.ApplicationKeyFunc != nil {
-		return s.ApplicationKeyFunc()
+// If s.ApplicationFunc is non-nil, it returns s.ApplicationFunc(), otherwise it
+// dispatches to s.Memory.
+func (s *Stream) Application() configkit.Identity {
+	if s.ApplicationFunc != nil {
+		return s.ApplicationFunc()
 	}
 
-	return s.Memory.ApplicationKey()
+	return s.Memory.Application()
 }
 
 // MessageTypes returns the complete set of event types that may appear on the
@@ -63,18 +63,18 @@ func (s *Stream) Open(
 
 // StreamHandler is a mock of the eventstream.Handler interface.
 type StreamHandler struct {
-	NextOffsetFunc  func(context.Context, string) (uint64, error)
+	NextOffsetFunc  func(context.Context, configkit.Identity) (uint64, error)
 	HandleEventFunc func(context.Context, uint64, *eventstream.Event) error
 }
 
 // NextOffset returns the offset of the next event to be consumed from a
 // specific application's event stream.
 //
-// If h.NextOffsetFunc is non-nil, it returns h.NextOffsetFunc(ctx, k),
+// If h.NextOffsetFunc is non-nil, it returns h.NextOffsetFunc(ctx, id),
 // otherwise it returns (0, nil).
-func (h *StreamHandler) NextOffset(ctx context.Context, k string) (uint64, error) {
+func (h *StreamHandler) NextOffset(ctx context.Context, id configkit.Identity) (uint64, error) {
 	if h.NextOffsetFunc != nil {
-		return h.NextOffsetFunc(ctx, k)
+		return h.NextOffsetFunc(ctx, id)
 	}
 
 	return 0, nil

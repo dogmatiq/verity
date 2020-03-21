@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
@@ -42,7 +43,7 @@ var _ = Describe("type Consumer", func() {
 
 		stream = &fixtures.Stream{
 			Memory: memory.Stream{
-				AppKey: "<app-key>",
+				App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 				Types: message.NewTypeSet(
 					MessageAType,
 					MessageBType,
@@ -193,7 +194,7 @@ var _ = Describe("type Consumer", func() {
 		It("returns if the context is canceled while backing off", func() {
 			handler.NextOffsetFunc = func(
 				context.Context,
-				string,
+				configkit.Identity,
 			) (uint64, error) {
 				return 0, errors.New("<error>")
 			}
@@ -213,9 +214,11 @@ var _ = Describe("type Consumer", func() {
 			It("starts consuming from the next offset", func() {
 				handler.NextOffsetFunc = func(
 					_ context.Context,
-					k string,
+					id configkit.Identity,
 				) (uint64, error) {
-					Expect(k).To(Equal("<app-key>"))
+					Expect(id).To(Equal(
+						configkit.MustNewIdentity("<app-name>", "<app-key>"),
+					))
 					return 2, nil
 				}
 
@@ -235,8 +238,8 @@ var _ = Describe("type Consumer", func() {
 
 			It("passes the correct offset to the handler", func() {
 				handler.NextOffsetFunc = func(
-					_ context.Context,
-					k string,
+					context.Context,
+					configkit.Identity,
 				) (uint64, error) {
 					return 2, nil
 				}
@@ -262,8 +265,8 @@ var _ = Describe("type Consumer", func() {
 					*Event,
 				) error {
 					handler.NextOffsetFunc = func(
-						_ context.Context,
-						k string,
+						context.Context,
+						configkit.Identity,
 					) (uint64, error) {
 						return 2, nil
 					}
@@ -288,7 +291,7 @@ var _ = Describe("type Consumer", func() {
 			It("restarts the consumer when the current offset can not be read", func() {
 				handler.NextOffsetFunc = func(
 					context.Context,
-					string,
+					configkit.Identity,
 				) (uint64, error) {
 					handler.NextOffsetFunc = nil
 					return 0, errors.New("<error>")

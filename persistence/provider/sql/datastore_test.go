@@ -38,10 +38,10 @@ var _ = Describe("type dataStore", func() {
 
 		cfg := configkit.FromApplication(&Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-				c.Identity("<app>", "<app-key>")
+				c.Identity("<app-name>", "<app-key>")
 				c.RegisterAggregate(&AggregateMessageHandler{
 					ConfigureFunc: func(c dogma.AggregateConfigurer) {
-						c.Identity("<agg>", "<agg-key>")
+						c.Identity("<agg-name>", "<agg-key>")
 						c.ConsumesCommandType(MessageC{})
 						c.ProducesEventType(MessageE{})
 					},

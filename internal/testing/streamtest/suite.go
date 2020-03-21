@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	configkitfixtures "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -22,9 +23,8 @@ import (
 // In is a container for values that are provided to the stream-specific
 // "before" function from the test-suite.
 type In struct {
-	// ApplicationKey is the identity key of the application that owns the
-	// stream.
-	ApplicationKey string
+	// Application is the identity of the application that owns the stream.
+	Application configkit.Identity
 
 	// MessageTypes is the set of messages that the test suite will use for
 	// testing.
@@ -91,7 +91,7 @@ func Declare(
 		defer cancelSetup()
 
 		in = In{
-			env0.Source.Application.Key, // use the application key from the envelope fixtures
+			env0.Source.Application, // use the application identity from the envelope fixtures
 			message.NewTypeSet(
 				configkitfixtures.MessageAType,
 				configkitfixtures.MessageBType,
@@ -122,11 +122,11 @@ func Declare(
 	})
 
 	ginkgo.Describe("type Stream", func() {
-		ginkgo.Describe("func ApplicationKey()", func() {
-			ginkgo.It("returns the expected key", func() {
+		ginkgo.Describe("func Application()", func() {
+			ginkgo.It("returns the expected identity", func() {
 				gomega.Expect(
-					out.Stream.ApplicationKey(),
-				).To(gomega.Equal(in.ApplicationKey))
+					out.Stream.Application(),
+				).To(gomega.Equal(in.Application))
 			})
 		})
 

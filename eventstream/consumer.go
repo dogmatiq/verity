@@ -108,7 +108,7 @@ func (c *Consumer) open(
 	types message.TypeSet,
 ) (Cursor, error) {
 	var err error
-	c.offset, err = c.Handler.NextOffset(ctx, c.Stream.ApplicationKey())
+	c.offset, err = c.Handler.NextOffset(ctx, c.Stream.Application())
 	if err != nil {
 		return nil, err
 	}
