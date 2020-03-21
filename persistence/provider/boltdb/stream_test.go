@@ -3,6 +3,7 @@ package boltdb_test
 import (
 	"context"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
@@ -27,7 +28,7 @@ var _ = Describe("type Stream (standard test suite)", func() {
 			db, close = boltdbtest.Open()
 
 			stream := &Stream{
-				AppKey:    in.ApplicationKey,
+				App:       in.Application,
 				DB:        db,
 				Types:     in.MessageTypes,
 				Marshaler: in.Marshaler,
@@ -71,7 +72,7 @@ var _ = Describe("type Stream", func() {
 			env := fixtures.NewEnvelope("<id>", MessageA1)
 
 			stream := &Stream{
-				AppKey:    "<app-key>",
+				App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
 				DB:        db,
 				Marshaler: Marshaler,
 				Types: message.TypesOf(

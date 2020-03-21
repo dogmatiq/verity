@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
@@ -15,20 +16,20 @@ import (
 // NewEventStream returns a stream that consumes events from a specific source
 // application.
 //
-// k is the identity key of the application to consume from. c a connection to
+// id is the identity of the application to consume from. c a connection to
 // a server that both implements the EventStream service, and hosts the
 // specified application.
 //
 // m is the marshaler used to marshal and unmarshal events. n the "pre-fetch"
 // count, which is the number of events to buffer in memory on the client side.
 func NewEventStream(
-	k string,
+	id configkit.Identity,
 	c *grpc.ClientConn,
 	m marshalkit.Marshaler,
 	n int,
 ) eventstream.Stream {
 	return &stream{
-		appKey:    k,
+		app:       id,
 		client:    messagingspec.NewEventStreamClient(c),
 		marshaler: m,
 		prefetch:  n,
@@ -38,16 +39,15 @@ func NewEventStream(
 // stream is an implementation of eventstream.Stream that consumes messages via
 // the EventStream gRPC API.
 type stream struct {
-	appKey    string
+	app       configkit.Identity
 	client    messagingspec.EventStreamClient
 	marshaler marshalkit.Marshaler
 	prefetch  int
 }
 
-// ApplicationKey returns the identity key of the application that owns the
-// stream.
-func (s *stream) ApplicationKey() string {
-	return s.appKey
+// Application returns the identity of the application that owns the stream.
+func (s *stream) Application() configkit.Identity {
+	return s.app
 }
 
 // Open returns a cursor used to read events from this stream.
@@ -85,7 +85,7 @@ func (s *stream) Open(
 	}()
 
 	req := &messagingspec.ConsumeRequest{
-		ApplicationKey: s.appKey,
+		ApplicationKey: s.app.Key,
 		Offset:         offset,
 		Types:          marshalMessageTypes(s.marshaler, types),
 	}
@@ -127,7 +127,7 @@ func (s *stream) Open(
 // the stream.
 func (s *stream) MessageTypes(ctx context.Context) (message.TypeCollection, error) {
 	req := &messagingspec.MessageTypesRequest{
-		ApplicationKey: s.appKey,
+		ApplicationKey: s.app.Key,
 	}
 
 	res, err := s.client.MessageTypes(ctx, req)

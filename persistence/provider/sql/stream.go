@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
@@ -19,8 +20,8 @@ import (
 // Stream is an implementation of eventstream.Stream that stores events in an
 // SQL database.
 type Stream struct {
-	// AppKey is the identity key of the application that owns the stream.
-	AppKey string
+	// App is the identity of the application that owns the stream.
+	App configkit.Identity
 
 	// DB is the SQL database containing the stream's data.
 	DB *sql.DB
@@ -39,10 +40,9 @@ type Stream struct {
 	BackoffStrategy backoff.Strategy
 }
 
-// ApplicationKey returns the identity key of the application that owns the
-// stream.
-func (s *Stream) ApplicationKey() string {
-	return s.AppKey
+// Application returns the identity of the application that owns the stream.
+func (s *Stream) Application() configkit.Identity {
+	return s.App
 }
 
 // Open returns a cursor used to read events from this stream.
@@ -106,7 +106,7 @@ func (s *Stream) Append(
 	next, err := s.Driver.IncrementOffset(
 		ctx,
 		tx,
-		s.AppKey,
+		s.App.Key,
 		count,
 	)
 	if err != nil {
@@ -196,7 +196,7 @@ func (c *cursor) Next(ctx context.Context) (_ *eventstream.Event, err error) {
 		ev, ok, err := c.stream.Driver.Get(
 			ctx,
 			c.stream.DB,
-			c.stream.AppKey,
+			c.stream.App.Key,
 			c.offset,
 			c.filterID,
 		)
@@ -205,7 +205,7 @@ func (c *cursor) Next(ctx context.Context) (_ *eventstream.Event, err error) {
 		}
 
 		if ok {
-			ev.Envelope.Source.Application.Key = c.stream.AppKey
+			ev.Envelope.Source.Application = c.stream.App
 
 			if ev.Envelope.Message == nil {
 				ev.Envelope.Message, err = marshalkit.UnmarshalMessage(

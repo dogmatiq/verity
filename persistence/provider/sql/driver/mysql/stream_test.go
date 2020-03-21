@@ -30,7 +30,7 @@ var _ = Describe("type StreamDriver (standard test suite)", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			stream := &infixsql.Stream{
-				AppKey:          "<app-key>",
+				App:             in.Application,
 				DB:              db,
 				Driver:          StreamDriver{},
 				Types:           in.MessageTypes,

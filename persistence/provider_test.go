@@ -32,7 +32,7 @@ var _ = Describe("type DataStoreSet", func() {
 
 		cfg = configkit.FromApplication(&Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-				c.Identity("<app>", "<app-key>")
+				c.Identity("<app-name>", "<app-key>")
 			},
 		})
 	})

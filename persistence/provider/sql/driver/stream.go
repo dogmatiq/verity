@@ -46,11 +46,11 @@ type StreamDriver interface {
 		env *envelope.Envelope,
 	) error
 
-	// Get returns the first event at or after a specific offset that matches
-	// a specific filter.
+	// Get returns the first event at or after a specific offset that matches a
+	// specific filter.
 	//
-	// The driver may leave the source application key and the dogma.Message
-	// fields of the envelope empty, as they are populated by the sql.cursor
+	// The driver may leave the source application and the dogma.Message fields
+	// of the envelope empty, as they are populated by the sql.cursor
 	// implementation.
 	Get(
 		ctx context.Context,

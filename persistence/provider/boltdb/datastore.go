@@ -26,7 +26,7 @@ type dataStore struct {
 func (ds *dataStore) EventStream() eventstream.Stream {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
-			AppKey:    ds.appConfig.Identity().Key,
+			App:       ds.appConfig.Identity(),
 			DB:        ds.db,
 			Marshaler: ds.marshaler,
 			Types: ds.appConfig.

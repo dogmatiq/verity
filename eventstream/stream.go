@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 )
 
 // A Stream is an ordered sequence of event messages.
 type Stream interface {
-	// ApplicationKey returns the identity key of the application that
-	// owns the stream.
-	ApplicationKey() string
+	// Application returns the identity of the application that owns the stream.
+	Application() configkit.Identity
 
 	// MessageTypes returns the complete set of event types that may appear on
 	// the stream.
@@ -71,8 +71,8 @@ type Handler interface {
 	// NextOffset returns the offset of the next event to be consumed from a
 	// specific application's event stream.
 	//
-	// k is the identity key of the source application.
-	NextOffset(ctx context.Context, k string) (uint64, error)
+	// id is the identity of the source application.
+	NextOffset(ctx context.Context, id configkit.Identity) (uint64, error)
 
 	// HandleEvent handles an event obtained from the event stream.
 	//

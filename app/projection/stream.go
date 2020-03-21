@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/app/projection/resource"
@@ -33,12 +34,12 @@ type StreamAdaptor struct {
 
 // NextOffset returns the next offset to be consumed from the event stream.
 //
-// k is the identity key of the source application.
+// id is the identity of the source application.
 func (a *StreamAdaptor) NextOffset(
 	ctx context.Context,
-	k string,
+	id configkit.Identity,
 ) (uint64, error) {
-	res := resource.FromApplicationKey(k)
+	res := resource.FromApplicationKey(id.Key)
 
 	buf, err := a.Handler.ResourceVersion(ctx, res)
 	if err != nil {
