@@ -1,7 +1,7 @@
 package resource_test
 
 import (
-	. "github.com/dogmatiq/infix/app/projection/resource"
+	. "github.com/dogmatiq/infix/projection/resource"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
