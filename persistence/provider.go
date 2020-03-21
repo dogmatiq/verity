@@ -25,11 +25,11 @@ type Provider interface {
 // data for a specific application.
 type DataStore interface {
 	// EventStream returns the application's event stream.
-	EventStream(ctx context.Context) (eventstream.Stream, error)
+	EventStream() eventstream.Stream
 
 	// MessageQueue returns the application's queue of command and timeout
 	// messages.
-	MessageQueue(ctx context.Context) (Queue, error)
+	MessageQueue() Queue
 
 	// Close closes the data store.
 	Close() error

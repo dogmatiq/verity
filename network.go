@@ -68,12 +68,7 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 			return err
 		}
 
-		stream, err := ds.EventStream(ctx)
-		if err != nil {
-			return err
-		}
-
-		streams[cfg.Identity().Key] = stream
+		streams[cfg.Identity().Key] = ds.EventStream()
 	}
 
 	eventstream.RegisterServer(

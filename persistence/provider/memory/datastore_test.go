@@ -48,8 +48,7 @@ var _ = Describe("type dataStore", func() {
 
 	Describe("func EventStream()", func() {
 		It("configures the stream with the expected message types", func() {
-			stream, err := dataStore.EventStream(context.Background())
-			Expect(err).ShouldNot(HaveOccurred())
+			stream := dataStore.EventStream()
 
 			types, err := stream.MessageTypes(context.Background())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -63,11 +62,8 @@ var _ = Describe("type dataStore", func() {
 		})
 
 		It("returns the same instance on subsequent calls", func() {
-			stream1, err := dataStore.EventStream(context.Background())
-			Expect(err).ShouldNot(HaveOccurred())
-
-			stream2, err := dataStore.EventStream(context.Background())
-			Expect(err).ShouldNot(HaveOccurred())
+			stream1 := dataStore.EventStream()
+			stream2 := dataStore.EventStream()
 
 			Expect(stream1).To(BeIdenticalTo(stream2))
 		})
@@ -75,11 +71,8 @@ var _ = Describe("type dataStore", func() {
 
 	Describe("func MessageQueue()", func() {
 		It("returns the same instance on subsequent calls", func() {
-			queue1, err := dataStore.MessageQueue(context.Background())
-			Expect(err).ShouldNot(HaveOccurred())
-
-			queue2, err := dataStore.MessageQueue(context.Background())
-			Expect(err).ShouldNot(HaveOccurred())
+			queue1 := dataStore.MessageQueue()
+			queue2 := dataStore.MessageQueue()
 
 			Expect(queue1).To(BeIdenticalTo(queue2))
 		})

@@ -72,8 +72,7 @@ var _ = Describe("type dataStore", func() {
 
 	Describe("func EventStream()", func() {
 		It("configures the stream with the expected message types", func() {
-			stream, err := dataStore.EventStream(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
+			stream := dataStore.EventStream()
 
 			types, err := stream.MessageTypes(ctx)
 			Expect(err).ShouldNot(HaveOccurred())

@@ -117,8 +117,7 @@ var _ = Context("providers", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			defer store.Close()
 
-			reader, err := store.EventStream(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
+			reader := store.EventStream()
 
 			cur, err := reader.Open(ctx, 0, message.TypesOf(MessageA1))
 			Expect(err).ShouldNot(HaveOccurred())

@@ -27,12 +27,11 @@ func (e *Engine) runApplication(
 		return err
 	}
 
-	stream, err := ds.EventStream(ctx)
-	if err != nil {
-		return err
-	}
-
-	return e.streamEvents(ctx, cfg, stream)
+	return e.streamEvents(
+		ctx,
+		cfg,
+		ds.EventStream(),
+	)
 }
 
 func (e *Engine) streamEvents(

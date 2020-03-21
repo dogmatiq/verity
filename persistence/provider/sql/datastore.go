@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"context"
 	"database/sql"
 	"sync"
 
@@ -27,7 +26,7 @@ type dataStore struct {
 }
 
 // EventStream returns the application's event stream.
-func (ds *dataStore) EventStream(context.Context) (eventstream.Stream, error) {
+func (ds *dataStore) EventStream() eventstream.Stream {
 	ds.once.Do(func() {
 		ds.stream = &Stream{
 			AppKey:          ds.appConfig.Identity().Key,
@@ -42,11 +41,11 @@ func (ds *dataStore) EventStream(context.Context) (eventstream.Stream, error) {
 		}
 	})
 
-	return ds.stream, nil
+	return ds.stream
 }
 
 // MessageQueue returns the application's queue of command and timeout messages.
-func (ds *dataStore) MessageQueue(ctx context.Context) (persistence.Queue, error) {
+func (ds *dataStore) MessageQueue() persistence.Queue {
 	panic("not implemented")
 }
 
