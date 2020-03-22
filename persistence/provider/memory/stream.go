@@ -11,7 +11,7 @@ import (
 )
 
 // Stream is an implementation of eventstream.Stream that stores events
-// in-memory.
+// in memory.
 type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity

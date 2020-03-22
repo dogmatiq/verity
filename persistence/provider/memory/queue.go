@@ -12,7 +12,7 @@ import (
 )
 
 // Queue is an implementation of persistence.Queue that stores messages
-// in-memory.
+// in memory.
 type Queue struct {
 	m      sync.Mutex
 	closed bool
