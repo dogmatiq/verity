@@ -62,7 +62,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(offset).To(BeNumerically("==", 3))
 		})
 
-		It("returns an error if the the resource version can not be read", func() {
+		It("returns an error if the resource version can not be read", func() {
 			handler.ResourceVersionFunc = func(
 				_ context.Context,
 				res []byte,

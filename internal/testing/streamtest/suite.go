@@ -29,7 +29,7 @@ type In struct {
 	// MessageTypes is the set of messages that the test suite will use.
 	MessageTypes message.TypeCollection
 
-	// Marshaler marshals and unmarshals the the test message types.
+	// Marshaler marshals and unmarshals the test message types.
 	Marshaler marshalkit.Marshaler
 }
 

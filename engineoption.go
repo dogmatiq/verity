@@ -114,7 +114,7 @@ func WithMessageBackoff(s backoff.Strategy) EngineOption {
 // NewDefaultMarshaler returns the default marshaler to use for the given
 // applications.
 //
-// It is used if the the WithMarshaler() option is omitted.
+// It is used if the WithMarshaler() option is omitted.
 func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshaler {
 	var types []reflect.Type
 	for _, cfg := range configs {
