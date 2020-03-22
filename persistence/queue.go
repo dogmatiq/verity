@@ -14,4 +14,7 @@ type Queue interface {
 	// If no messages are ready to be handled, it blocks until one becomes
 	// ready, ctx is canceled, or an error occurs.
 	Begin(ctx context.Context) (Transaction, *envelope.Envelope, error)
+
+	// Enqueue adds a message to the queue.
+	Enqueue(ctx context.Context, env *envelope.Envelope) error
 }
