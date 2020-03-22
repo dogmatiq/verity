@@ -19,10 +19,8 @@ import (
 // In is a container for values that are provided to the provider-specific
 // "before" function.
 type In struct {
-	// MessageTypes is the set of messages that the test suite will use.
-	MessageTypes message.TypeCollection
-
-	// Marshaler marshals and unmarshals the the test message types.
+	// Marshaler marshals and unmarshals the test message types, aggregate roots
+	// and process roots.
 	Marshaler marshalkit.Marshaler
 }
 
@@ -63,18 +61,6 @@ func Declare(
 		out    Out
 
 		app1, app2 configkit.RichApplication
-
-		// env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
-		// env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
-		// env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA2)
-		// env3 = infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageB2)
-		// env4 = infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageC1)
-
-		// event0 = &eventstream.Event{Offset: 0, Envelope: env0}
-		// event1 = &eventstream.Event{Offset: 1, Envelope: env1}
-		// event2 = &eventstream.Event{Offset: 2, Envelope: env2}
-		// event3 = &eventstream.Event{Offset: 3, Envelope: env3}
-		// event4 = &eventstream.Event{Offset: 4, Envelope: env4}
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -82,12 +68,7 @@ func Declare(
 		defer cancelSetup()
 
 		in = In{
-			message.NewTypeSet(
-				configkitfixtures.MessageAType,
-				configkitfixtures.MessageBType,
-				configkitfixtures.MessageCType,
-			),
-			marshalkitfixtures.Marshaler,
+			Marshaler: marshalkitfixtures.Marshaler,
 		}
 
 		out = before(setupCtx, in)
@@ -103,6 +84,18 @@ func Declare(
 		app1 = configkit.FromApplication(&dogmafixtures.Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 				c.Identity("<app1-name>", "<app1-key>")
+
+				c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
+					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+						c.Identity("<int-name>", "<int-key>")
+
+						c.ConsumesCommandType(dogmafixtures.MessageC{})
+
+						c.ProducesEventType(dogmafixtures.MessageE{})
+						c.ProducesEventType(dogmafixtures.MessageF{})
+						c.ProducesEventType(dogmafixtures.MessageG{})
+					},
+				})
 			},
 		})
 
@@ -169,16 +162,34 @@ func Declare(
 				s := dataStore.EventStream()
 				gomega.Expect(s).ToNot(gomega.BeNil())
 			})
+
+			ginkgo.It("returns a stream that advertises the correct types", func() {
+				s := dataStore.EventStream()
+
+				types, err := s.MessageTypes(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+				gomega.Expect(
+					message.IsEqualSetT(
+						types,
+						message.NewTypeSet(
+							configkitfixtures.MessageEType,
+							configkitfixtures.MessageFType,
+							configkitfixtures.MessageGType,
+						),
+					),
+				).To(gomega.BeTrue())
+			})
 		})
 
-		ginkgo.XDescribe("func MessageQueue()", func() {
+		ginkgo.Describe("func MessageQueue()", func() {
 			ginkgo.It("returns a non-nil message queue", func() {
 				q := dataStore.MessageQueue()
 				gomega.Expect(q).ToNot(gomega.BeNil())
 			})
 		})
 
-		ginkgo.XDescribe("func OffsetRepository()", func() {
+		ginkgo.Describe("func OffsetRepository()", func() {
 			ginkgo.It("returns a non-nil offset repository", func() {
 				r := dataStore.OffsetRepository()
 				gomega.Expect(r).ToNot(gomega.BeNil())

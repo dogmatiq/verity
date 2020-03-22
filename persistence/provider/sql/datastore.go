@@ -2,7 +2,6 @@ package sql
 
 import (
 	"database/sql"
-	"sync"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
@@ -14,45 +13,52 @@ import (
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
 type dataStore struct {
-	appConfig     configkit.RichApplication
-	marshaler     marshalkit.Marshaler
-	db            *sql.DB
-	driver        *Driver
-	streamBackoff backoff.Strategy
-	closer        func() error
+	stream  *Stream
+	queue   *Queue
+	offsets *OffsetRepository
+	closer  func() error
+}
 
-	once   sync.Once
-	stream *Stream
+func newDataStore(
+	cfg configkit.RichApplication,
+	m marshalkit.Marshaler,
+	db *sql.DB,
+	d *Driver,
+	b backoff.Strategy,
+	c func() error,
+) *dataStore {
+	return &dataStore{
+		stream: &Stream{
+			App:             cfg.Identity(),
+			DB:              db,
+			Driver:          d.StreamDriver,
+			Marshaler:       m,
+			BackoffStrategy: b,
+			Types: cfg.
+				MessageTypes().
+				Produced.
+				FilterByRole(message.EventRole),
+		},
+		queue:   &Queue{},
+		offsets: &OffsetRepository{},
+		closer:  c,
+	}
 }
 
 // EventStream returns the application's event stream.
 func (ds *dataStore) EventStream() eventstream.Stream {
-	ds.once.Do(func() {
-		ds.stream = &Stream{
-			App:             ds.appConfig.Identity(),
-			DB:              ds.db,
-			Driver:          ds.driver.StreamDriver,
-			Marshaler:       ds.marshaler,
-			BackoffStrategy: ds.streamBackoff,
-			Types: ds.appConfig.
-				MessageTypes().
-				Produced.
-				FilterByRole(message.EventRole),
-		}
-	})
-
 	return ds.stream
 }
 
 // MessageQueue returns the application's queue of command and timeout messages.
 func (ds *dataStore) MessageQueue() persistence.Queue {
-	panic("not implemented")
+	return ds.queue
 }
 
 // OffsetRepository returns the repository that stores the "progress" of
 // message handlers through the event streams they consume.
 func (ds *dataStore) OffsetRepository() persistence.OffsetRepository {
-	panic("not implemented")
+	return ds.offsets
 }
 
 // Close closes the data store.

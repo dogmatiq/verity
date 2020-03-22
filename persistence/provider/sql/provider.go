@@ -67,13 +67,14 @@ func (p *Provider) Open(
 		}
 	}
 
-	return &dataStore{
-		appConfig:     cfg,
-		marshaler:     m,
-		db:            p.DB,
-		driver:        d,
-		streamBackoff: p.StreamBackoff,
-	}, nil
+	return newDataStore(
+		cfg,
+		m,
+		p.DB,
+		d,
+		p.StreamBackoff,
+		nil,
+	), nil
 }
 
 // DSNProvider is an implementation of provider.Provider for SQL that opens a
@@ -134,14 +135,14 @@ func (p *DSNProvider) Open(
 
 	p.refs++
 
-	return &dataStore{
-		appConfig:     cfg,
-		marshaler:     m,
-		db:            p.db,
-		driver:        p.driver,
-		streamBackoff: p.StreamBackoff,
-		closer:        p.close,
-	}, nil
+	return newDataStore(
+		cfg,
+		m,
+		p.db,
+		p.driver,
+		p.StreamBackoff,
+		p.close,
+	), nil
 }
 
 func (p *DSNProvider) open() (err error) {

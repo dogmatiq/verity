@@ -11,8 +11,8 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// Queue is an implementation of persistence.Queue that stores messages
-// in memory.
+// Queue is an implementation of persistence.Queue that stores messages in
+// memory.
 type Queue struct {
 	m      sync.Mutex
 	closed bool
@@ -39,22 +39,22 @@ func (q *Queue) Begin(ctx context.Context) (persistence.Transaction, *envelope.E
 	}
 }
 
-// Enqueue adds messages to the queue.
-func (q *Queue) Enqueue(envelopes ...*envelope.Envelope) {
+// Enqueue adds a message to the queue.
+func (q *Queue) Enqueue(ctx context.Context, env *envelope.Envelope) error {
 	q.init()
 
-	for _, env := range envelopes {
-		m := &queuedMessage{
-			next: env.ScheduledFor,
-			env:  env,
-		}
+	m := &queuedMessage{
+		next: env.ScheduledFor,
+		env:  env,
+	}
 
-		select {
-		case q.in <- m:
-			continue // keep to see coverage
-		case <-q.done:
-			panic("queue is closed")
-		}
+	select {
+	case q.in <- m:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-q.done:
+		return errors.New("queue is closed")
 	}
 }
 

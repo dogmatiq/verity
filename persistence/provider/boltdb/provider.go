@@ -25,11 +25,7 @@ func (p *Provider) Open(
 	cfg configkit.RichApplication,
 	m marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
-	return &dataStore{
-		appConfig: cfg,
-		marshaler: m,
-		db:        p.DB,
-	}, nil
+	return newDataStore(cfg, m, p.DB, nil), nil
 }
 
 // FileProvider is an implementation of provider.Provider for BoltDB that opens
@@ -70,12 +66,7 @@ func (p *FileProvider) Open(
 
 	p.refs++
 
-	return &dataStore{
-		appConfig: cfg,
-		marshaler: m,
-		db:        p.db,
-		closer:    p.close,
-	}, nil
+	return newDataStore(cfg, m, p.db, p.close), nil
 }
 
 func (p *FileProvider) close() error {

@@ -11,7 +11,8 @@ import (
 
 // Provider is an in-memory implementation of provider.Provider.
 type Provider struct {
-	dataStores sync.Map
+	m          sync.Mutex
+	dataStores map[string]*dataStore
 }
 
 // Open returns a data-store for a specific application.
@@ -20,12 +21,19 @@ func (p *Provider) Open(
 	cfg configkit.RichApplication,
 	_ marshalkit.Marshaler,
 ) (persistence.DataStore, error) {
-	ds, _ := p.dataStores.LoadOrStore(
-		cfg.Identity().Key,
-		&dataStore{
-			appConfig: cfg,
-		},
-	)
+	k := cfg.Identity().Key
 
-	return ds.(persistence.DataStore), nil
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.dataStores == nil {
+		p.dataStores = map[string]*dataStore{}
+	} else if ds, ok := p.dataStores[k]; ok {
+		return ds, nil
+	}
+
+	ds := newDataStore(cfg)
+	p.dataStores[k] = ds
+
+	return ds, nil
 }
