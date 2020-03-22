@@ -17,7 +17,7 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-var _ = Describe("type Stream (standard test suite)", func() {
+var _ = Describe("type Stream", func() {
 	var (
 		db    *bbolt.DB
 		close func()

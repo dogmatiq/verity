@@ -21,23 +21,22 @@ import (
 )
 
 // In is a container for values that are provided to the stream-specific
-// "before" function from the test-suite.
+// "before" function.
 type In struct {
 	// Application is the identity of the application that owns the stream.
 	Application configkit.Identity
 
-	// MessageTypes is the set of messages that the test suite will use for
-	// testing.
+	// MessageTypes is the set of messages that the test suite will use.
 	MessageTypes message.TypeCollection
 
-	// Marshaler a marshaler that supports the test message types.
+	// Marshaler marshals and unmarshals the the test message types.
 	Marshaler marshalkit.Marshaler
 }
 
 // Out is a container for values that are provided by the stream-specific
-// "before" from to the test-suite.
+// "before" function.
 type Out struct {
-	// Stream is the stream to be tested.
+	// Stream is the stream under test.
 	Stream eventstream.Stream
 
 	// TestTimeout is the maximum duration allowed for each test.
@@ -121,7 +120,7 @@ func Declare(
 		cancel()
 	})
 
-	ginkgo.Describe("type Stream", func() {
+	ginkgo.Describe("type Stream (interface)", func() {
 		ginkgo.Describe("func Application()", func() {
 			ginkgo.It("returns the expected identity", func() {
 				gomega.Expect(
@@ -196,7 +195,7 @@ func Declare(
 		})
 	})
 
-	ginkgo.Describe("type StreamCursor", func() {
+	ginkgo.Describe("type StreamCursor (interface)", func() {
 		ginkgo.Describe("func Next()", func() {
 			ginkgo.When("the stream is empty", func() {
 				ginkgo.It("blocks", func() {

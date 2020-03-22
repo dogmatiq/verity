@@ -1,9 +1,10 @@
+// +build cgo
+
 package sqlite_test
 
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"time"
 
 	"github.com/dogmatiq/infix/envelope"
@@ -17,7 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type StreamDriver (standard test suite)", func() {
+var _ = Describe("type StreamDriver", func() {
 	var db *sql.DB
 
 	streamtest.Declare(
@@ -25,9 +26,6 @@ var _ = Describe("type StreamDriver (standard test suite)", func() {
 			db = sqltest.Open("sqlite3")
 
 			err := DropSchema(ctx, db)
-			if err != nil && strings.Contains(err.Error(), "CGO_ENABLED") {
-				Skip(err.Error())
-			}
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = CreateSchema(ctx, db)

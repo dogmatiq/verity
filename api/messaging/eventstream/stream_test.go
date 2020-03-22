@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var _ = Describe("type stream (standard test suite)", func() {
+var _ = Describe("type stream", func() {
 	var (
 		listener net.Listener
 		server   *grpc.Server

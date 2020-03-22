@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type StreamDriver (standard test suite)", func() {
+var _ = Describe("type StreamDriver", func() {
 	var db *sql.DB
 
 	streamtest.Declare(

@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Stream (standard test suite)", func() {
+var _ = Describe("type Stream", func() {
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			stream := &Stream{
