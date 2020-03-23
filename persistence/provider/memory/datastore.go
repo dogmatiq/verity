@@ -19,6 +19,7 @@ func newDataStore(
 ) *dataStore {
 	return &dataStore{
 		stream: &Stream{
+			App: cfg.Identity(),
 			Types: cfg.
 				MessageTypes().
 				Produced.
