@@ -88,152 +88,70 @@ func Declare(
 		event4 = &eventstream.Event{Offset: 4, Envelope: env4}
 	)
 
-	// ginkgo.Context("standard test suite", func() {
-	ginkgo.BeforeEach(func() {
-		setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancelSetup()
+	ginkgo.Context("standard test suite", func() {
+		ginkgo.BeforeEach(func() {
+			setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelSetup()
 
-		cfg := configkit.FromApplication(&dogmafixtures.Application{
-			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-				// use the application identity from the envelope fixtures
-				id := env0.Source.Application
-				c.Identity(id.Name, id.Key)
+			cfg := configkit.FromApplication(&dogmafixtures.Application{
+				ConfigureFunc: func(c dogma.ApplicationConfigurer) {
+					// use the application identity from the envelope fixtures
+					id := env0.Source.Application
+					c.Identity(id.Name, id.Key)
 
-				c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
-					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
-						// use the handler identity from the envelope fixtures
-						id := env0.Source.Handler
-						c.Identity(id.Name, id.Key)
+					c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
+						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+							// use the handler identity from the envelope fixtures
+							id := env0.Source.Handler
+							c.Identity(id.Name, id.Key)
 
-						c.ConsumesCommandType(dogmafixtures.MessageX{})
+							c.ConsumesCommandType(dogmafixtures.MessageX{})
 
-						c.ProducesEventType(dogmafixtures.MessageA{})
-						c.ProducesEventType(dogmafixtures.MessageB{})
-						c.ProducesEventType(dogmafixtures.MessageC{})
-					},
-				})
-			},
+							c.ProducesEventType(dogmafixtures.MessageA{})
+							c.ProducesEventType(dogmafixtures.MessageB{})
+							c.ProducesEventType(dogmafixtures.MessageC{})
+						},
+					})
+				},
+			})
+
+			in = In{
+				cfg,
+				cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
+				marshalkitfixtures.Marshaler,
+			}
+
+			out = before(setupCtx, in)
+
+			if out.TestTimeout <= 0 {
+				out.TestTimeout = DefaultTestTimeout
+			}
+
+			if out.AssumeBlockingDuration <= 0 {
+				out.AssumeBlockingDuration = DefaultAssumeBlockingDuration
+			}
+
+			ctx, cancel = context.WithTimeout(context.Background(), out.TestTimeout)
 		})
 
-		in = In{
-			cfg,
-			cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
-			marshalkitfixtures.Marshaler,
-		}
+		ginkgo.AfterEach(func() {
+			if after != nil {
+				after()
+			}
 
-		out = before(setupCtx, in)
-
-		if out.TestTimeout <= 0 {
-			out.TestTimeout = DefaultTestTimeout
-		}
-
-		if out.AssumeBlockingDuration <= 0 {
-			out.AssumeBlockingDuration = DefaultAssumeBlockingDuration
-		}
-
-		ctx, cancel = context.WithTimeout(context.Background(), out.TestTimeout)
-	})
-
-	ginkgo.AfterEach(func() {
-		if after != nil {
-			after()
-		}
-
-		cancel()
-	})
-
-	ginkgo.Describe("type Stream (interface)", func() {
-		ginkgo.Describe("func Application()", func() {
-			ginkgo.It("returns the expected identity", func() {
-				gomega.Expect(
-					out.Stream.Application(),
-				).To(gomega.Equal(in.Application.Identity()))
-			})
+			cancel()
 		})
 
-		ginkgo.Describe("func Open()", func() {
-			ginkgo.BeforeEach(func() {
-				out.Append(
-					ctx,
-					env0,
-					env1,
-					env2,
-					env3,
-				)
-			})
-
-			ginkgo.It("honours the initial offset", func() {
-				cur, err := out.Stream.Open(ctx, 2, in.MessageTypes)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer cur.Close()
-
-				ev, err := cur.Next(ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(ev).To(gomega.Equal(event2))
-			})
-
-			ginkgo.It("limits results to the supplied message types", func() {
-				types := message.NewTypeSet(
-					configkitfixtures.MessageAType,
-				)
-
-				cur, err := out.Stream.Open(ctx, 0, types)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer cur.Close()
-
-				ev, err := cur.Next(ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(ev).To(gomega.Equal(event0))
-
-				ev, err = cur.Next(ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(ev).To(gomega.Equal(event2))
-			})
-
-			ginkgo.It("returns an error if the context is canceled", func() {
-				cancel()
-
-				_, err := out.Stream.Open(ctx, 0, in.MessageTypes)
-				gomega.Expect(err).Should(gomega.HaveOccurred())
-			})
-		})
-
-		ginkgo.Describe("func MessageTypes()", func() {
-			ginkgo.It("returns a collection that includes all of the test types", func() {
-				// This test ensures that all of the test types are supported by
-				// the stream, but does not require that these be the ONLY
-				// supported types.
-				types, err := out.Stream.MessageTypes(ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-				in.MessageTypes.Range(func(t message.Type) bool {
-					gomega.Expect(types.Has(t)).To(
-						gomega.BeTrue(),
-						fmt.Sprintf("stream does not support expected message type: %s", t),
-					)
-					return true
-				})
-			})
-		})
-	})
-
-	ginkgo.Describe("type StreamCursor (interface)", func() {
-		ginkgo.Describe("func Next()", func() {
-			ginkgo.When("the stream is empty", func() {
-				ginkgo.It("blocks", func() {
-					cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer cur.Close()
-
-					ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration)
-					defer cancel()
-
-					_, err = cur.Next(ctx)
-					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
+		ginkgo.Describe("type Stream (interface)", func() {
+			ginkgo.Describe("func Application()", func() {
+				ginkgo.It("returns the expected identity", func() {
+					gomega.Expect(
+						out.Stream.Application(),
+					).To(gomega.Equal(in.Application.Identity()))
 				})
 			})
 
-			ginkgo.When("the stream is not empty", func() {
+			ginkgo.Describe("func Open()", func() {
 				ginkgo.BeforeEach(func() {
 					out.Append(
 						ctx,
@@ -244,8 +162,22 @@ func Declare(
 					)
 				})
 
-				ginkgo.It("returns the messages in order", func() {
-					cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
+				ginkgo.It("honours the initial offset", func() {
+					cur, err := out.Stream.Open(ctx, 2, in.MessageTypes)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer cur.Close()
+
+					ev, err := cur.Next(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(ev).To(gomega.Equal(event2))
+				})
+
+				ginkgo.It("limits results to the supplied message types", func() {
+					types := message.NewTypeSet(
+						configkitfixtures.MessageAType,
+					)
+
+					cur, err := out.Stream.Open(ctx, 0, types)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
@@ -255,63 +187,90 @@ func Declare(
 
 					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(event1))
-
-					ev, err = cur.Next(ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(ev).To(gomega.Equal(event2))
-
-					ev, err = cur.Next(ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(event3))
-				})
-
-				ginkgo.It("returns an error if the cursor is closed", func() {
-					cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-					cur.Close()
-
-					_, err = cur.Next(ctx)
-					gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
 				})
 
 				ginkgo.It("returns an error if the context is canceled", func() {
-					cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer cur.Close()
-
 					cancel()
 
-					_, err = cur.Next(ctx)
+					_, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 					gomega.Expect(err).Should(gomega.HaveOccurred())
 				})
+			})
 
-				ginkgo.When("waiting for a new message", func() {
-					ginkgo.It("wakes if a message is appended", func() {
-						// Open a cursor after the offset of the existing messages.
-						cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+			ginkgo.Describe("func MessageTypes()", func() {
+				ginkgo.It("returns a collection that includes all of the test types", func() {
+					// This test ensures that all of the test types are supported by
+					// the stream, but does not require that these be the ONLY
+					// supported types.
+					types, err := out.Stream.MessageTypes(ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					in.MessageTypes.Range(func(t message.Type) bool {
+						gomega.Expect(types.Has(t)).To(
+							gomega.BeTrue(),
+							fmt.Sprintf("stream does not support expected message type: %s", t),
+						)
+						return true
+					})
+				})
+			})
+		})
+
+		ginkgo.Describe("type StreamCursor (interface)", func() {
+			ginkgo.Describe("func Next()", func() {
+				ginkgo.When("the stream is empty", func() {
+					ginkgo.It("blocks", func() {
+						cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
-						go func() {
-							time.Sleep(out.AssumeBlockingDuration)
-							out.Append(ctx, env4)
-						}()
+						ctx, cancel := context.WithTimeout(ctx, out.AssumeBlockingDuration)
+						defer cancel()
+
+						_, err = cur.Next(ctx)
+						gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
+					})
+				})
+
+				ginkgo.When("the stream is not empty", func() {
+					ginkgo.BeforeEach(func() {
+						out.Append(
+							ctx,
+							env0,
+							env1,
+							env2,
+							env3,
+						)
+					})
+
+					ginkgo.It("returns the messages in order", func() {
+						cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer cur.Close()
 
 						ev, err := cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(ev).To(gomega.Equal(event4))
+						gomega.Expect(ev).To(gomega.Equal(event0))
+
+						ev, err = cur.Next(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(ev).To(gomega.Equal(event1))
+
+						ev, err = cur.Next(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(ev).To(gomega.Equal(event2))
+
+						ev, err = cur.Next(ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(ev).To(gomega.Equal(event3))
 					})
 
 					ginkgo.It("returns an error if the cursor is closed", func() {
-						cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+						cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						go func() {
-							time.Sleep(out.AssumeBlockingDuration)
-							cur.Close()
-						}()
+						cur.Close()
 
 						_, err = cur.Next(ctx)
 						gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
@@ -322,86 +281,127 @@ func Declare(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
-						go func() {
-							time.Sleep(out.AssumeBlockingDuration)
-							cancel()
-						}()
+						cancel()
 
 						_, err = cur.Next(ctx)
 						gomega.Expect(err).Should(gomega.HaveOccurred())
 					})
 
-					ginkgo.It("does not compete with other waiting cursors", func() {
-						// This test ensures that when there are multiple
-						// cursors awaiting a new message they are all woken
-						// when a message is appended.
+					ginkgo.When("waiting for a new message", func() {
+						ginkgo.It("wakes if a message is appended", func() {
+							// Open a cursor after the offset of the existing messages.
+							cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							defer cur.Close()
 
-						const cursors = 3
-
-						// barrier is used to delay the append until all of the
-						// cursors have started blocking.
-						barrier := make(chan struct{}, cursors)
-
-						var g sync.WaitGroup
-						defer g.Wait()
-
-						g.Add(cursors)
-
-						// start the cursors
-						for i := 0; i < cursors; i++ {
-							go func() error {
-								linger.SleepX(
-									ctx,
-									linger.FullJitter,
-									out.AssumeBlockingDuration,
-								)
-
-								defer g.Done()
-								defer ginkgo.GinkgoRecover()
-
-								cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
-								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-								defer cur.Close()
-
-								barrier <- struct{}{}
-								ev, err := cur.Next(ctx)
-								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-								gomega.Expect(ev).To(gomega.Equal(event4))
-
-								return nil
+							go func() {
+								time.Sleep(out.AssumeBlockingDuration)
+								out.Append(ctx, env4)
 							}()
-						}
 
-						// wait for the cursors to signal they are about to block
-						for i := 0; i < cursors; i++ {
-							select {
-							case <-barrier:
-							case <-ctx.Done():
-								gomega.Expect(ctx.Err()).ShouldNot(gomega.HaveOccurred())
+							ev, err := cur.Next(ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							gomega.Expect(ev).To(gomega.Equal(event4))
+						})
+
+						ginkgo.It("returns an error if the cursor is closed", func() {
+							cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							go func() {
+								time.Sleep(out.AssumeBlockingDuration)
+								cur.Close()
+							}()
+
+							_, err = cur.Next(ctx)
+							gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
+						})
+
+						ginkgo.It("returns an error if the context is canceled", func() {
+							cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							defer cur.Close()
+
+							go func() {
+								time.Sleep(out.AssumeBlockingDuration)
+								cancel()
+							}()
+
+							_, err = cur.Next(ctx)
+							gomega.Expect(err).Should(gomega.HaveOccurred())
+						})
+
+						ginkgo.It("does not compete with other waiting cursors", func() {
+							// This test ensures that when there are multiple
+							// cursors awaiting a new message they are all woken
+							// when a message is appended.
+
+							const cursors = 3
+
+							// barrier is used to delay the append until all of the
+							// cursors have started blocking.
+							barrier := make(chan struct{}, cursors)
+
+							var g sync.WaitGroup
+							defer g.Wait()
+
+							g.Add(cursors)
+
+							// start the cursors
+							for i := 0; i < cursors; i++ {
+								go func() error {
+									linger.SleepX(
+										ctx,
+										linger.FullJitter,
+										out.AssumeBlockingDuration,
+									)
+
+									defer g.Done()
+									defer ginkgo.GinkgoRecover()
+
+									cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+									defer cur.Close()
+
+									barrier <- struct{}{}
+									ev, err := cur.Next(ctx)
+									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+									gomega.Expect(ev).To(gomega.Equal(event4))
+
+									return nil
+								}()
 							}
-						}
 
-						time.Sleep(out.AssumeBlockingDuration)
+							// wait for the cursors to signal they are about to block
+							for i := 0; i < cursors; i++ {
+								select {
+								case <-barrier:
+								case <-ctx.Done():
+									gomega.Expect(ctx.Err()).ShouldNot(gomega.HaveOccurred())
+								}
+							}
 
-						// wake the consumers
-						out.Append(ctx, env4)
+							time.Sleep(out.AssumeBlockingDuration)
+
+							// wake the consumers
+							out.Append(ctx, env4)
+						})
 					})
 				})
 			})
-		})
 
-		ginkgo.Describe("func Close()", func() {
-			ginkgo.It("returns an error if the cursor is already closed", func() {
-				cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			ginkgo.Describe("func Close()", func() {
+				ginkgo.It("returns an error if the cursor is already closed", func() {
+					cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-				err = cur.Close()
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					err = cur.Close()
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-				err = cur.Close()
-				gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
+					err = cur.Close()
+					gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
+				})
 			})
 		})
 	})
-	// })
 }
