@@ -17,8 +17,8 @@ type OffsetRepository interface {
 	// handler.
 	NextOffset(ctx context.Context, a, h configkit.Identity) (uint64, error)
 
-	// Begin starts a transaction for a message obtained from an application's
-	// event stream.
+	// Begin starts a transaction for handling a message obtained from an
+	// application's event stream.
 	//
 	// h is the identity of the handler that will handle the message. o must be
 	// the "next offset" that is currently persisted in the repository.
