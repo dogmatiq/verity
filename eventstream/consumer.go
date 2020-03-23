@@ -27,7 +27,7 @@ type Consumer struct {
 	// If it is nil, logging.DefaultLogger is used.
 	Logger logging.Logger
 
-	offset        uint64
+	offset        Offset
 	backoff       backoff.Counter
 	handlerFailed bool
 }

@@ -9,6 +9,9 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 )
 
+// Offset is the position of an event on a stream.
+type Offset uint64
+
 // A Stream is an ordered sequence of event messages.
 type Stream interface {
 	// Application returns the identity of the application that owns the stream.
@@ -27,7 +30,7 @@ type Stream interface {
 	// Any other event types are ignored.
 	Open(
 		ctx context.Context,
-		offset uint64,
+		offset Offset,
 		types message.TypeCollection,
 	) (Cursor, error)
 }
@@ -60,7 +63,7 @@ type Cursor interface {
 // Event is a container for an event consumed from an event stream..
 type Event struct {
 	// Offset is the offset of the message on the stream.
-	Offset uint64
+	Offset Offset
 
 	// Envelope contains the message and its meta-data.
 	Envelope *envelope.Envelope
@@ -72,11 +75,11 @@ type Handler interface {
 	// specific application's event stream.
 	//
 	// id is the identity of the source application.
-	NextOffset(ctx context.Context, id configkit.Identity) (uint64, error)
+	NextOffset(ctx context.Context, id configkit.Identity) (Offset, error)
 
 	// HandleEvent handles an event obtained from the event stream.
 	//
 	// o must be the offset that would be returned by NextOffset(). On success,
 	// the next call to NextOffset() will return e.Offset + 1.
-	HandleEvent(ctx context.Context, o uint64, ev *Event) error
+	HandleEvent(ctx context.Context, o Offset, ev *Event) error
 }

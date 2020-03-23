@@ -38,7 +38,7 @@ func (s *Stream) Application() configkit.Identity {
 // Any other event types are ignored.
 func (s *Stream) Open(
 	ctx context.Context,
-	offset uint64,
+	offset eventstream.Offset,
 	types message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	if ctx.Err() != nil {
@@ -83,7 +83,7 @@ func (s *Stream) Append(envelopes ...*envelope.Envelope) {
 // in-memory stream.
 type cursor struct {
 	stream *Stream
-	offset uint64
+	offset eventstream.Offset
 	types  message.TypeCollection
 
 	once   sync.Once
@@ -146,7 +146,7 @@ func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	c.stream.m.Lock()
 	defer c.stream.m.Unlock()
 
-	for uint64(len(c.stream.envelopes)) > c.offset {
+	for eventstream.Offset(len(c.stream.envelopes)) > c.offset {
 		offset := c.offset
 		c.offset++
 

@@ -107,8 +107,8 @@ func (StreamDriver) IncrementOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	appKey string,
-	count uint64,
-) (_ uint64, err error) {
+	count eventstream.Offset,
+) (_ eventstream.Offset, err error) {
 	defer sqlx.Recover(&err)
 
 	sqlx.Exec(
@@ -133,14 +133,14 @@ func (StreamDriver) IncrementOffset(
 		appKey,
 	)
 
-	return next, nil
+	return eventstream.Offset(next), nil
 }
 
 // Append appends a single message to an application's stream.
 func (StreamDriver) Append(
 	ctx context.Context,
 	tx *sql.Tx,
-	offset uint64,
+	offset eventstream.Offset,
 	typename string,
 	description string,
 	env *envelope.Envelope,
@@ -187,7 +187,7 @@ func (StreamDriver) Get(
 	ctx context.Context,
 	db *sql.DB,
 	appKey string,
-	offset uint64,
+	offset eventstream.Offset,
 	filterID uint64,
 ) (_ *eventstream.Event, _ bool, err error) {
 	defer sqlx.Recover(&err)

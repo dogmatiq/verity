@@ -54,7 +54,7 @@ func (s *Stream) Application() configkit.Identity {
 // Any other event types are ignored.
 func (s *Stream) Open(
 	ctx context.Context,
-	offset uint64,
+	offset eventstream.Offset,
 	types message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	if ctx.Err() != nil {
@@ -81,7 +81,7 @@ func (s *Stream) MessageTypes(context.Context) (message.TypeCollection, error) {
 func (s *Stream) Append(
 	tx *bbolt.Tx,
 	envelopes ...*envelope.Envelope,
-) (_ uint64, err error) {
+) (_ eventstream.Offset, err error) {
 	defer bboltx.Recover(&err)
 
 	b := bboltx.CreateBucketIfNotExists(
@@ -111,7 +111,7 @@ func (s *Stream) Append(
 // BoltDB database.
 type cursor struct {
 	stream *Stream
-	offset uint64
+	offset eventstream.Offset
 	types  message.TypeCollection
 
 	once   sync.Once
@@ -209,21 +209,23 @@ func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 }
 
 // marshalOffset marshals a stream offset to its binary representation.
-func marshalOffset(offset uint64) []byte {
+func marshalOffset(offset eventstream.Offset) []byte {
 	data := make([]byte, 8)
-	binary.BigEndian.PutUint64(data, offset)
+	binary.BigEndian.PutUint64(data, uint64(offset))
 	return data
 }
 
 // unmarshalOffset unmarshals a stream offset from its binary representation.
-func unmarshalOffset(data []byte) uint64 {
+func unmarshalOffset(data []byte) eventstream.Offset {
 	n := len(data)
 
 	switch n {
 	case 0:
 		return 0
 	case 8:
-		return binary.BigEndian.Uint64(data)
+		return eventstream.Offset(
+			binary.BigEndian.Uint64(data),
+		)
 	default:
 		panic(bboltx.PanicSentinel{
 			Cause: fmt.Errorf("offset data is corrupt, expected 8 bytes, got %d", n),
@@ -232,13 +234,13 @@ func unmarshalOffset(data []byte) uint64 {
 }
 
 // loadNextOffset returns the next free offset.
-func loadNextOffset(b *bbolt.Bucket) uint64 {
+func loadNextOffset(b *bbolt.Bucket) eventstream.Offset {
 	data := b.Get(offsetKey)
 	return unmarshalOffset(data)
 }
 
 // storeNextOffset updates the next free offset.
-func storeNextOffset(b *bbolt.Bucket, next uint64) {
+func storeNextOffset(b *bbolt.Bucket, next eventstream.Offset) {
 	data := marshalOffset(next)
 	bboltx.Put(b, offsetKey, data)
 }
@@ -247,7 +249,7 @@ func storeNextOffset(b *bbolt.Bucket, next uint64) {
 func loadMessage(
 	m marshalkit.ValueMarshaler,
 	b *bbolt.Bucket,
-	offset uint64,
+	offset eventstream.Offset,
 ) *envelope.Envelope {
 	k := marshalOffset(offset)
 	v := b.Bucket(eventsKey).Get(k)
@@ -261,10 +263,10 @@ func loadMessage(
 // appendEvents writes events to the database.
 func appendEvents(
 	b *bbolt.Bucket,
-	next uint64,
+	next eventstream.Offset,
 	types message.TypeCollection,
 	envelopes []*envelope.Envelope,
-) uint64 {
+) eventstream.Offset {
 	events := bboltx.CreateBucketIfNotExists(b, eventsKey)
 
 	for _, env := range envelopes {

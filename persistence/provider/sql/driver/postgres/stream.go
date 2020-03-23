@@ -114,8 +114,8 @@ func (StreamDriver) IncrementOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	appKey string,
-	count uint64,
-) (uint64, error) {
+	count eventstream.Offset,
+) (eventstream.Offset, error) {
 	row := tx.QueryRowContext(
 		ctx,
 		`INSERT INTO infix.stream_offset AS o (
@@ -130,7 +130,7 @@ func (StreamDriver) IncrementOffset(
 		count,
 	)
 
-	var next uint64
+	var next eventstream.Offset
 	err := row.Scan(&next)
 	return next, err
 }
@@ -139,7 +139,7 @@ func (StreamDriver) IncrementOffset(
 func (StreamDriver) Append(
 	ctx context.Context,
 	tx *sql.Tx,
-	offset uint64,
+	offset eventstream.Offset,
 	typename string,
 	description string,
 	env *envelope.Envelope,
@@ -189,7 +189,7 @@ func (StreamDriver) Get(
 	ctx context.Context,
 	db *sql.DB,
 	appKey string,
-	offset uint64,
+	offset eventstream.Offset,
 	filterID uint64,
 ) (_ *eventstream.Event, _ bool, err error) {
 	defer sqlx.Recover(&err)

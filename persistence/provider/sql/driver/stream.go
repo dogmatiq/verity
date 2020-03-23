@@ -33,14 +33,14 @@ type StreamDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		appKey string,
-		count uint64,
-	) (uint64, error)
+		count eventstream.Offset,
+	) (eventstream.Offset, error)
 
 	// Append appends a single message to an application's stream.
 	Append(
 		ctx context.Context,
 		tx *sql.Tx,
-		offset uint64,
+		offset eventstream.Offset,
 		typename string,
 		description string,
 		env *envelope.Envelope,
@@ -56,7 +56,7 @@ type StreamDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		appKey string,
-		offset uint64,
+		offset eventstream.Offset,
 		filterID uint64,
 	) (*eventstream.Event, bool, error)
 }

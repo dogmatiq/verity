@@ -54,7 +54,7 @@ func (s *server) Consume(
 		}
 
 		res := &messagingspec.ConsumeResponse{
-			Offset:   ev.Offset,
+			Offset:   uint64(ev.Offset),
 			Envelope: envelope.MustMarshal(ev.Envelope),
 		}
 
@@ -84,7 +84,7 @@ func (s *server) open(
 
 	return stream.Open(
 		ctx,
-		req.Offset,
+		eventstream.Offset(req.Offset),
 		types,
 	)
 }

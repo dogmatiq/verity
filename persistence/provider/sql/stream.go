@@ -54,7 +54,7 @@ func (s *Stream) Application() configkit.Identity {
 // Any other event types are ignored.
 func (s *Stream) Open(
 	ctx context.Context,
-	offset uint64,
+	offset eventstream.Offset,
 	types message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	hash, names := streamfilter.Hash(s.Marshaler, types)
@@ -100,8 +100,8 @@ func (s *Stream) Append(
 	ctx context.Context,
 	tx *sql.Tx,
 	envelopes ...*envelope.Envelope,
-) (uint64, error) {
-	count := uint64(len(envelopes))
+) (eventstream.Offset, error) {
+	count := eventstream.Offset(len(envelopes))
 
 	next, err := s.Driver.IncrementOffset(
 		ctx,
@@ -144,7 +144,7 @@ func (s *Stream) Append(
 // SQL database.
 type cursor struct {
 	stream   *Stream
-	offset   uint64
+	offset   eventstream.Offset
 	filterID uint64
 	counter  backoff.Counter
 

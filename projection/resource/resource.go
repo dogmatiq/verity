@@ -3,6 +3,8 @@ package resource
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/dogmatiq/infix/eventstream"
 )
 
 // FromApplicationKey returns the resource to use for the given application with
@@ -15,7 +17,7 @@ func FromApplicationKey(k string) []byte {
 //
 // o is the next offset to be read from the stream, not the last offset
 // that was applied to the projection.
-func MarshalOffset(o uint64) []byte {
+func MarshalOffset(o eventstream.Offset) []byte {
 	return MarshalOffsetInto(make([]byte, 8), o)
 }
 
@@ -26,12 +28,12 @@ func MarshalOffset(o uint64) []byte {
 //
 // o is the next offset to be read from the stream, not the last offset that was
 // applied to the projection.
-func MarshalOffsetInto(buf []byte, o uint64) []byte {
+func MarshalOffsetInto(buf []byte, o eventstream.Offset) []byte {
 	if o == 0 {
 		return buf[:0]
 	}
 
-	binary.BigEndian.PutUint64(buf, o-1)
+	binary.BigEndian.PutUint64(buf, uint64(o)-1)
 
 	return buf[:8]
 }
@@ -40,12 +42,14 @@ func MarshalOffsetInto(buf []byte, o uint64) []byte {
 //
 // It returns the next offset to be read from the stream, not the last offset
 // that was applied to the projection.
-func UnmarshalOffset(v []byte) (uint64, error) {
+func UnmarshalOffset(v []byte) (eventstream.Offset, error) {
 	switch len(v) {
 	case 0:
 		return 0, nil
 	case 8:
-		return binary.BigEndian.Uint64(v) + 1, nil
+		return eventstream.Offset(
+			binary.BigEndian.Uint64(v) + 1,
+		), nil
 	default:
 		return 0, fmt.Errorf(
 			"version is %d byte(s), expected 0 or 8",

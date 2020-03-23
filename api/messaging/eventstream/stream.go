@@ -59,7 +59,7 @@ func (s *stream) Application() configkit.Identity {
 // Any other event types are ignored.
 func (s *stream) Open(
 	ctx context.Context,
-	offset uint64,
+	offset eventstream.Offset,
 	types message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	// consumeCtx lives for the lifetime of the stream returned by the gRPC
@@ -86,7 +86,7 @@ func (s *stream) Open(
 
 	req := &messagingspec.ConsumeRequest{
 		ApplicationKey: s.app.Key,
-		Offset:         offset,
+		Offset:         uint64(offset),
 		Types:          marshalMessageTypes(s.marshaler, types),
 	}
 
@@ -233,7 +233,7 @@ func (c *cursor) recv() error {
 	}
 
 	ev := &eventstream.Event{
-		Offset:   res.Offset,
+		Offset:   eventstream.Offset(res.Offset),
 		Envelope: &envelope.Envelope{},
 	}
 
