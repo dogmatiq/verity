@@ -32,9 +32,6 @@ type In struct {
 	// produce.
 	MessageTypes message.TypeCollection
 
-	// Packer is an envelope packer for the test application.
-	Packer *envelope.Packer
-
 	// Marshaler marshals and unmarshals the test message types.
 	Marshaler marshalkit.Marshaler
 }
@@ -91,6 +88,7 @@ func Declare(
 		event4 = &eventstream.Event{Offset: 4, Envelope: env4}
 	)
 
+	// ginkgo.Context("standard test suite", func() {
 	ginkgo.BeforeEach(func() {
 		setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancelSetup()
@@ -117,14 +115,10 @@ func Declare(
 			},
 		})
 
-		m := marshalkitfixtures.Marshaler
-		p := envelope.NewPackerForApplication(cfg, m)
-
 		in = In{
 			cfg,
 			cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
-			p,
-			m,
+			marshalkitfixtures.Marshaler,
 		}
 
 		out = before(setupCtx, in)
@@ -409,4 +403,5 @@ func Declare(
 			})
 		})
 	})
+	// })
 }
