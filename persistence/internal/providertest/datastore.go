@@ -78,18 +78,18 @@ func declareDataStoreTests(
 			})
 		})
 
-		ginkgo.Describe("func MessageQueue()", func() {
-			ginkgo.It("returns a non-nil message queue", func() {
-				q := dataStore.MessageQueue()
-				gomega.Expect(q).ToNot(gomega.BeNil())
-			})
-		})
+		// ginkgo.Describe("func MessageQueue()", func() {
+		// 	ginkgo.It("returns a non-nil message queue", func() {
+		// 		q := dataStore.MessageQueue()
+		// 		gomega.Expect(q).ToNot(gomega.BeNil())
+		// 	})
+		// })
 
-		ginkgo.Describe("func OffsetRepository()", func() {
-			ginkgo.It("returns a non-nil offset repository", func() {
-				r := dataStore.OffsetRepository()
-				gomega.Expect(r).ToNot(gomega.BeNil())
-			})
-		})
+		// ginkgo.Describe("func OffsetRepository()", func() {
+		// 	ginkgo.It("returns a non-nil offset repository", func() {
+		// 		r := dataStore.OffsetRepository()
+		// 		gomega.Expect(r).ToNot(gomega.BeNil())
+		// 	})
+		// })
 	})
 }

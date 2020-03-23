@@ -27,14 +27,6 @@ type DataStore interface {
 	// EventStream returns the application's event stream.
 	EventStream() eventstream.Stream
 
-	// MessageQueue returns the application's queue of command and timeout
-	// messages.
-	MessageQueue() Queue
-
-	// OffsetRepository returns the repository that stores the "progress" of
-	// message handlers through the event streams they consume.
-	OffsetRepository() OffsetRepository
-
 	// Close closes the data store.
 	Close() error
 }

@@ -88,7 +88,7 @@ func Declare(
 		declareProviderTests(&ctx, &in, &out)
 		declareDataStoreTests(&ctx, &in, &out)
 		// declareEventStreamTests(&ctx, &in, &out)
-		declareMessageQueueTests(&ctx, &in, &out)
-		declareOffsetRepositoryTests(&ctx, &in, &out)
+		// declareMessageQueueTests(&ctx, &in, &out)
+		// declareOffsetRepositoryTests(&ctx, &in, &out)
 	})
 }
