@@ -38,7 +38,7 @@ var _ = Describe("type Stream", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			stream := &Stream{
-				App:             in.Application,
+				App:             in.Application.Identity(),
 				DB:              db,
 				Driver:          sqlite.StreamDriver{},
 				Types:           in.MessageTypes,

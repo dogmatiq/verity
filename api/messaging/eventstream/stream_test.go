@@ -30,6 +30,7 @@ var _ = Describe("type stream", func() {
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			source := &memory.Stream{
+				App:   in.Application.Identity(),
 				Types: in.MessageTypes,
 			}
 
@@ -56,7 +57,7 @@ var _ = Describe("type stream", func() {
 
 			return streamtest.Out{
 				Stream: NewEventStream(
-					in.Application,
+					in.Application.Identity(),
 					conn,
 					in.Marshaler,
 					0,

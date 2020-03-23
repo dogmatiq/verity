@@ -28,7 +28,7 @@ var _ = Describe("type Stream", func() {
 			db, close = boltdbtest.Open()
 
 			stream := &Stream{
-				App:       in.Application,
+				App:       in.Application.Identity(),
 				DB:        db,
 				Types:     in.MessageTypes,
 				Marshaler: in.Marshaler,

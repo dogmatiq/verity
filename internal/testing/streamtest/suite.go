@@ -9,6 +9,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	configkitfixtures "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/dogma"
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
@@ -23,11 +24,16 @@ import (
 // In is a container for values that are provided to the stream-specific
 // "before" function.
 type In struct {
-	// Application is the identity of the application that owns the stream.
-	Application configkit.Identity
+	// Application is a test application that is configured to record the events
+	// used within the test suite.
+	Application configkit.RichApplication
 
-	// MessageTypes is the set of messages that the test suite will use.
+	// MessageTypes is the set of event types that the test application can
+	// produce.
 	MessageTypes message.TypeCollection
+
+	// Packer is an envelope packer for the test application.
+	Packer *envelope.Packer
 
 	// Marshaler marshals and unmarshals the test message types.
 	Marshaler marshalkit.Marshaler
@@ -89,14 +95,36 @@ func Declare(
 		setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancelSetup()
 
+		cfg := configkit.FromApplication(&dogmafixtures.Application{
+			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
+				// use the application identity from the envelope fixtures
+				id := env0.Source.Application
+				c.Identity(id.Name, id.Key)
+
+				c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
+					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+						// use the handler identity from the envelope fixtures
+						id := env0.Source.Handler
+						c.Identity(id.Name, id.Key)
+
+						c.ConsumesCommandType(dogmafixtures.MessageX{})
+
+						c.ProducesEventType(dogmafixtures.MessageA{})
+						c.ProducesEventType(dogmafixtures.MessageB{})
+						c.ProducesEventType(dogmafixtures.MessageC{})
+					},
+				})
+			},
+		})
+
+		m := marshalkitfixtures.Marshaler
+		p := envelope.NewPackerForApplication(cfg, m)
+
 		in = In{
-			env0.Source.Application, // use the application identity from the envelope fixtures
-			message.NewTypeSet(
-				configkitfixtures.MessageAType,
-				configkitfixtures.MessageBType,
-				configkitfixtures.MessageCType,
-			),
-			marshalkitfixtures.Marshaler,
+			cfg,
+			cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
+			p,
+			m,
 		}
 
 		out = before(setupCtx, in)
@@ -125,7 +153,7 @@ func Declare(
 			ginkgo.It("returns the expected identity", func() {
 				gomega.Expect(
 					out.Stream.Application(),
-				).To(gomega.Equal(in.Application))
+				).To(gomega.Equal(in.Application.Identity()))
 			})
 		})
 

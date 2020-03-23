@@ -18,7 +18,7 @@ var _ = Describe("type Stream", func() {
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			stream := &Stream{
-				App:   in.Application,
+				App:   in.Application.Identity(),
 				Types: in.MessageTypes,
 			}
 
