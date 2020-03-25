@@ -15,17 +15,50 @@ func Marshal(in *Envelope) (*envelopespec.Envelope, error) {
 		return nil, err
 	}
 
+	_, n, err := in.Packet.ParseMediaType()
+	if err != nil {
+		return nil, err
+	}
+
 	return &envelopespec.Envelope{
-		MetaData:  md,
-		MediaType: in.Packet.MediaType,
-		Data:      in.Packet.Data,
+		MetaData:     md,
+		PortableName: n,
+		MediaType:    in.Packet.MediaType,
+		Data:         in.Packet.Data,
 	}, nil
+}
+
+// MarshalMany marshals multiple message envelopes to their protobuf
+// representations.
+func MarshalMany(in []*Envelope) ([]*envelopespec.Envelope, error) {
+	out := make([]*envelopespec.Envelope, len(in))
+
+	var err error
+	for i, env := range in {
+		out[i], err = Marshal(env)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return out, nil
 }
 
 // MustMarshal marshals a message envelope to its protobuf representation, or
 // panics if it is unable to do so.
 func MustMarshal(in *Envelope) *envelopespec.Envelope {
 	out, err := Marshal(in)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+// MustMarshalMany marshals multiple messages envelope to their protobuf
+// representations, or panics if it is unable to do so.
+func MustMarshalMany(in []*Envelope) []*envelopespec.Envelope {
+	out, err := MarshalMany(in)
 	if err != nil {
 		panic(err)
 	}

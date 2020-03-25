@@ -30,8 +30,8 @@ github.com/dogmatiq/linger v0.2.0 h1:WwpFy+0kwL0DNVFPx9tUuWxl2yZIALE5oFsjy8aWnKM
 github.com/dogmatiq/linger v0.2.0/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
 github.com/dogmatiq/linger v0.2.1 h1:ecVwiFlTcQuQ7ygQXH5bUPkWNve8n5BmVnCYMGMQ3zc=
 github.com/dogmatiq/linger v0.2.1/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
-github.com/dogmatiq/marshalkit v0.2.1 h1:sclTJmAPc6iqslbwqxBY+bQ6BocUlvASDgf/oBXnmPo=
-github.com/dogmatiq/marshalkit v0.2.1/go.mod h1:zFdNKBNkPjYZ0pFoPBuZ/s/fOpkeFlUl/c3mBYlUQZ0=
+github.com/dogmatiq/marshalkit v0.2.2 h1:FpF0bRTwq10fOt9Ab1qTr5KUR+OuYxj3YhvX1Aswi1k=
+github.com/dogmatiq/marshalkit v0.2.2/go.mod h1:zFdNKBNkPjYZ0pFoPBuZ/s/fOpkeFlUl/c3mBYlUQZ0=
 github.com/dogmatiq/projectionkit v0.3.2 h1:yqsJLfy/iKuVsr2MdQ3GyOxMP4pLyFsqo5FmkwKapok=
 github.com/dogmatiq/projectionkit v0.3.2/go.mod h1:u6o4Ww0pyZSegpbwRXO8IR5aNPn2OhTRsmBiPfd5xho=
 github.com/dogmatiq/testkit v0.4.0 h1:be7NBSoI5C2V8jq//sqVe6H3QfkJq4oYNEi+CdReW14=
