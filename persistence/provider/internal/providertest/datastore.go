@@ -28,6 +28,23 @@ func declareDataStoreTests(
 			}
 		})
 
+		ginkgo.Describe("func EventStoreRepository()", func() {
+			ginkgo.It("returns a non-nil repository", func() {
+				r := dataStore.EventStoreRepository()
+				gomega.Expect(r).NotTo(gomega.BeNil())
+			})
+		})
+
+		ginkgo.Describe("func Begin()", func() {
+			ginkgo.It("returns a non-nil transaction", func() {
+				tx, err := dataStore.Begin(*ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(tx).NotTo(gomega.BeNil())
+
+				tx.Rollback()
+			})
+		})
+
 		ginkgo.Describe("func Close()", func() {
 			ginkgo.It("returns an error if the data-store is already closed", func() {
 				err := dataStore.Close()

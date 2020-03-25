@@ -23,7 +23,7 @@ func (ds *dataStore) EventStoreRepository() eventstore.Repository {
 
 // Begin starts a new transaction.
 func (ds *dataStore) Begin(ctx context.Context) (persistence.Transaction, error) {
-	return &transaction{ds}, nil
+	return &transaction{ds: ds}, nil
 }
 
 // Close closes the data store.
