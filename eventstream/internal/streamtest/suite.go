@@ -59,7 +59,7 @@ const (
 	DefaultTestTimeout = 3 * time.Second
 
 	// DefaultAssumeBlockingDuration is the default "assumed blocking duration".
-	DefaultAssumeBlockingDuration = 150 * time.Millisecond
+	DefaultAssumeBlockingDuration = 10 * time.Millisecond
 )
 
 // Declare declares generic behavioral tests for a specific stream
@@ -280,6 +280,10 @@ func Declare(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						cur.Close()
+
+						// Implementations that use signalling channels may take
+						// a short while to respond to closed channels, etc.
+						time.Sleep(out.AssumeBlockingDuration)
 
 						_, err = cur.Next(ctx)
 						gomega.Expect(err).To(gomega.Equal(eventstream.ErrCursorClosed))
