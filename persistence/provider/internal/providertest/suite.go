@@ -26,20 +26,11 @@ type Out struct {
 
 	// TestTimeout is the maximum duration allowed for each test.
 	TestTimeout time.Duration
-
-	// AssumeBlockingDuration specifies how long the tests should wait before
-	// assuming a call to Queue.Begin() or Cursor.Next() is successfully
-	// blocking, waiting for a new message, as opposed to in the process of
-	// "checking" if any messages are already available.
-	AssumeBlockingDuration time.Duration
 }
 
 const (
 	// DefaultTestTimeout is the default test timeout.
 	DefaultTestTimeout = 3 * time.Second
-
-	// DefaultAssumeBlockingDuration is the default "assumed blocking duration".
-	DefaultAssumeBlockingDuration = 150 * time.Millisecond
 )
 
 // Declare declares generic behavioral tests for a specific persistence provider
@@ -68,10 +59,6 @@ func Declare(
 
 			if out.TestTimeout <= 0 {
 				out.TestTimeout = DefaultTestTimeout
-			}
-
-			if out.AssumeBlockingDuration <= 0 {
-				out.AssumeBlockingDuration = DefaultAssumeBlockingDuration
 			}
 
 			ctx, cancel = context.WithTimeout(context.Background(), out.TestTimeout)
