@@ -21,6 +21,7 @@ type Query struct {
 	NotBefore Offset
 
 	// Types is the set of event types to include in the results.
+	// If it is nil, all event types are included.
 	Types message.TypeCollection
 
 	// AggregateHandlerKey, if non-empty, limits the results to those events

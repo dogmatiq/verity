@@ -14,7 +14,7 @@ func declareEventStoreTests(
 	in *In,
 	out *Out,
 ) {
-	ginkgo.Describe("type eventstore.Repository and ResultSet (interface)", func() {
+	ginkgo.Describe("package eventstore (interfaces)", func() {
 		var (
 			dataStore  persistence.DataStore
 			repository eventstore.Repository
@@ -35,7 +35,7 @@ func declareEventStoreTests(
 		})
 
 		ginkgo.Describe("func Query()", func() {
-			ginkgo.It("returns an empty result set when given an empty query", func() {
+			ginkgo.It("returns an empty result set the store is empty", func() {
 				res, err := repository.QueryEvents(*ctx, eventstore.Query{})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer res.Close()
