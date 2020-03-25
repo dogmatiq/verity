@@ -15,5 +15,5 @@ type Transaction interface {
 	SaveEvents(
 		ctx context.Context,
 		envelopes ...*envelope.Envelope,
-	) (Offset, error)
+	) error
 }

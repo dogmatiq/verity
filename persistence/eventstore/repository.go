@@ -9,10 +9,7 @@ import (
 // Repository is an interface for reading persisted event messages.
 type Repository interface {
 	// QueryEvents queries events in the repository.
-	//
-	// types is the set of event types that should be returned by Cursor.Next().
-	// Any other event types are ignored.
-	QueryEvents(ctx context.Context, q Query) (ResultSet, error)
+	QueryEvents(ctx context.Context, q Query) (Result, error)
 }
 
 // Query defines criteria for matching events in the store.
@@ -33,14 +30,14 @@ type Query struct {
 	AggregateInstanceID string
 }
 
-// ResultSet is the result of a query to the event store.
-type ResultSet interface {
-	// Next advances to the next event in the result set.
+// Result is the result of a query to the event store.
+type Result interface {
+	// Next advances to the next event in the result.
 	//
-	// It returns false if the end of the result set is reached.
+	// It returns false if the are no more events in the result.
 	Next() bool
 
-	// Next returns current event in the result set.
+	// Next returns current event in the result.
 	Get(ctx context.Context) (*Event, error)
 
 	// Close closes the cursor.
