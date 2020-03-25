@@ -15,7 +15,7 @@ type dataStore struct {
 	db *database
 }
 
-// EventStoreRepsotiory returns the application's event store repository.
+// EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
 	return &eventStoreRepository{ds}
 }

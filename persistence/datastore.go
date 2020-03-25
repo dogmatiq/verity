@@ -16,7 +16,7 @@ var ErrDataStoreClosed = errors.New("data store is closed")
 // DataStore is an interface used by the engine to persist and retrieve
 // data for a specific application.
 type DataStore interface {
-	// EventStoreRepsotiory returns the application's event store repository.
+	// EventStoreRepository returns the application's event store repository.
 	EventStoreRepository() eventstore.Repository
 
 	// Begin starts a new transaction.
