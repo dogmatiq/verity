@@ -22,6 +22,13 @@ func (ds *dataStore) EventStoreRepository() eventstore.Repository {
 
 // Begin starts a new transaction.
 func (ds *dataStore) Begin(ctx context.Context) (persistence.Transaction, error) {
+	ds.m.Lock()
+	defer ds.m.Unlock()
+
+	if ds.db == nil {
+		return nil, persistence.ErrDataStoreClosed
+	}
+
 	return &transaction{ds: ds}, nil
 }
 

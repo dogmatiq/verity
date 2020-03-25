@@ -54,6 +54,17 @@ func declareDataStoreTests(
 				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreClosed))
 			})
 
+			ginkgo.It("prevents transactions from being started", func() {
+				err := dataStore.Close()
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+				tx, err := dataStore.Begin(*ctx)
+				if tx != nil {
+					tx.Rollback()
+				}
+				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreClosed))
+			})
+
 			ginkgo.It("prevents transactions from being committed", func() {
 				tx, err := dataStore.Begin(*ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
