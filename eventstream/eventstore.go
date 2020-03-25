@@ -9,6 +9,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -58,6 +59,10 @@ func (s *EventStoreStream) Open(
 ) (Cursor, error) {
 	if f.Len() == 0 {
 		panic("at least one event type must be specified")
+	}
+
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
 
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
@@ -149,10 +154,6 @@ func (c *eventStoreCursor) consume(ctx context.Context) {
 			c.close(err)
 			return
 		}
-
-		// TODO: use a signaling channel to wake the consumer when an event is
-		// saved to the store.
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -195,5 +196,7 @@ func (c *eventStoreCursor) execQuery(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	// TODO: use a signaling channel to wake the consumer when an event is
+	// saved to the store.
+	return linger.Sleep(ctx, 100*time.Millisecond)
 }

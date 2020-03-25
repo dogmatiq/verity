@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = XDescribe("type EventStoreStream", func() {
+var _ = Describe("type EventStoreStream", func() {
 	var dataStore persistence.DataStore
 
 	streamtest.Declare(
@@ -27,6 +27,7 @@ var _ = XDescribe("type EventStoreStream", func() {
 				App:        in.Application.Identity(),
 				Types:      in.EventTypes,
 				Repository: dataStore.EventStoreRepository(),
+				Marshaler:  in.Marshaler,
 			}
 
 			return streamtest.Out{
@@ -36,9 +37,8 @@ var _ = XDescribe("type EventStoreStream", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer tx.Rollback()
 
-					// TODO:
-					// _, err = tx.SaveEvents(ctx, envelopes...)
-					// Expect(err).ShouldNot(HaveOccurred())
+					err = tx.SaveEvents(ctx, envelopes...)
+					Expect(err).ShouldNot(HaveOccurred())
 
 					err = tx.Commit(ctx)
 					Expect(err).ShouldNot(HaveOccurred())

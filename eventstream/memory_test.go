@@ -34,7 +34,7 @@ var _ = Describe("type MemoryStream", func() {
 	)
 })
 
-var _ = Describe("type Stream", func() {
+var _ = Describe("type MemoryStream", func() {
 	Describe("func Append()", func() {
 		It("panics if the message type is not supported", func() {
 			env := NewEnvelope("<id>", MessageA1)
