@@ -4,36 +4,41 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/marshalkit"
 )
 
-// Provider is an in-memory implementation of provider.Provider.
+// Provider is an implementation of persistence.Provider that stores application
+// data in memory.
 type Provider struct {
-	m          sync.Mutex
-	dataStores map[string]*dataStore
+	m    sync.Mutex
+	data map[string]*data
 }
 
 // Open returns a data-store for a specific application.
-func (p *Provider) Open(
-	ctx context.Context,
-	cfg configkit.RichApplication,
-	_ marshalkit.Marshaler,
-) (persistence.DataStore, error) {
-	k := cfg.Identity().Key
-
+//
+// k is the identity key of the application.
+//
+// Data stores are opened for exclusive use. If another engine instance has
+// already opened this application's data-store, ErrDataStoreLocked is
+// returned.
+func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, error) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	if p.dataStores == nil {
-		p.dataStores = map[string]*dataStore{}
-	} else if ds, ok := p.dataStores[k]; ok {
-		return ds, nil
+	d, ok := p.data[k]
+
+	if !ok {
+		if p.data == nil {
+			p.data = map[string]*data{}
+		}
+
+		d = &data{}
+		p.data[k] = d
 	}
 
-	ds := newDataStore(cfg)
-	p.dataStores[k] = ds
+	if d.TryLock() {
+		return &dataStore{data: d}, nil
+	}
 
-	return ds, nil
+	return nil, persistence.ErrDataStoreLocked
 }

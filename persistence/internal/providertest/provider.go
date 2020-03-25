@@ -3,9 +3,7 @@ package providertest
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/dogma"
-	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
@@ -16,39 +14,36 @@ func declareProviderTests(
 	out *Out,
 ) {
 	ginkgo.Describe("type Provider (interface)", func() {
-		app1 := configkit.FromApplication(&dogmafixtures.Application{
-			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-				c.Identity("<app1-name>", "<app1-key>")
-			},
-		})
-
-		app2 := configkit.FromApplication(&dogmafixtures.Application{
-			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-				c.Identity("<app2-name>", "<app2-key>")
-			},
-		})
-
 		ginkgo.Describe("func Open()", func() {
-			ginkgo.It("allows repeat calls for the same application", func() {
-				ds1, err := out.Provider.Open(*ctx, app1, in.Marshaler)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer ds1.Close()
-
-				ds2, err := out.Provider.Open(*ctx, app1, in.Marshaler)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer ds2.Close()
-			})
-
 			ginkgo.It("returns different instances for different applications", func() {
-				ds1, err := out.Provider.Open(*ctx, app1, in.Marshaler)
+				ds1, err := out.Provider.Open(*ctx, "<app-key-1>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer ds1.Close()
 
-				ds2, err := out.Provider.Open(*ctx, app2, in.Marshaler)
+				ds2, err := out.Provider.Open(*ctx, "<app-key-2>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer ds2.Close()
 
 				gomega.Expect(ds1).ToNot(gomega.BeIdenticalTo(ds2))
+			})
+
+			ginkgo.It("returns an error if the application's data-store is already open", func() {
+				ds, err := out.Provider.Open(*ctx, "<app-key>")
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer ds.Close()
+
+				_, err = out.Provider.Open(*ctx, "<app-key>")
+				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreLocked))
+			})
+
+			ginkgo.It("allows re-opening a closed data-store", func() {
+				ds, err := out.Provider.Open(*ctx, "<app-key>")
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				ds.Close()
+
+				ds, err = out.Provider.Open(*ctx, "<app-key>")
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				ds.Close()
 			})
 		})
 	})
