@@ -189,6 +189,13 @@ func Declare(
 					gomega.Expect(ev).To(gomega.Equal(event2))
 				})
 
+				ginkgo.It("panics if no event types are specified", func() {
+					gomega.Expect(func() {
+						types := message.NewTypeSet()
+						out.Stream.Open(ctx, 0, types)
+					}).To(gomega.Panic())
+				})
+
 				ginkgo.It("returns an error if the context is canceled", func() {
 					cancel()
 

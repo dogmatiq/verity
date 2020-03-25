@@ -56,6 +56,10 @@ func (s *EventStoreStream) Open(
 	o Offset,
 	f message.TypeCollection,
 ) (Cursor, error) {
+	if f.Len() == 0 {
+		panic("at least one message type must be specified")
+	}
+
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
 	c := &eventStoreCursor{

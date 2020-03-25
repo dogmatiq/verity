@@ -71,6 +71,10 @@ func (s *NetworkStream) Open(
 	o Offset,
 	f message.TypeCollection,
 ) (Cursor, error) {
+	if f.Len() == 0 {
+		panic("at least one message type must be specified")
+	}
+
 	// consumeCtx lives for the lifetime of the stream returned by the gRPC
 	// Consume() operation. This is how we cancel the gRPC stream, as it has no
 	// Close() method.
