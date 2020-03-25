@@ -65,7 +65,10 @@ var _ = Describe("type DataStoreSet", func() {
 				return nil, errors.New("<error>")
 			}
 
-			_, err := set.Get(ctx, "<app-key>")
+			ds, err := set.Get(ctx, "<app-key>")
+			if ds != nil {
+				ds.Close()
+			}
 			Expect(err).To(MatchError("<error>"))
 		})
 	})

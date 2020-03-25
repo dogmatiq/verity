@@ -199,7 +199,10 @@ func Declare(
 				ginkgo.It("returns an error if the context is canceled", func() {
 					cancel()
 
-					_, err := out.Stream.Open(ctx, 0, in.EventTypes)
+					cur, err := out.Stream.Open(ctx, 0, in.EventTypes)
+					if cur != nil {
+						cur.Close()
+					}
 					gomega.Expect(err).Should(gomega.HaveOccurred())
 				})
 			})

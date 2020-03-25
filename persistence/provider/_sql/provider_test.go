@@ -53,7 +53,7 @@ var _ = Describe("type Provider", func() {
 		It("returns an error if the driver can not be deduced", func() {
 			provider.DB = sqltest.MockDB()
 
-			_, err := provider.Open(
+			ds, err := provider.Open(
 				context.Background(),
 				configkit.FromApplication(&Application{
 					ConfigureFunc: func(c dogma.ApplicationConfigurer) {
@@ -62,6 +62,9 @@ var _ = Describe("type Provider", func() {
 				}),
 				Marshaler,
 			)
+			if ds != nil {
+				ds.Close()
+			}
 			Expect(err).To(MatchError("can not deduce the appropriate SQL driver for *sqltest.MockDriver"))
 		})
 	})
@@ -108,7 +111,7 @@ var _ = Describe("type DSNProvider", func() {
 			provider.DriverName = "<nonsense-driver>"
 			provider.DSN = "<nonsense-dsn>"
 
-			_, err := provider.Open(
+			ds, err := provider.Open(
 				context.Background(),
 				configkit.FromApplication(&Application{
 					ConfigureFunc: func(c dogma.ApplicationConfigurer) {
@@ -117,13 +120,16 @@ var _ = Describe("type DSNProvider", func() {
 				}),
 				Marshaler,
 			)
+			if ds != nil {
+				ds.Close()
+			}
 			Expect(err).Should(HaveOccurred())
 		})
 
 		It("returns an error if the driver can not be deduced", func() {
 			provider.DriverName = sqltest.MockDriverName()
 
-			_, err := provider.Open(
+			ds, err := provider.Open(
 				context.Background(),
 				configkit.FromApplication(&Application{
 					ConfigureFunc: func(c dogma.ApplicationConfigurer) {
@@ -132,6 +138,9 @@ var _ = Describe("type DSNProvider", func() {
 				}),
 				Marshaler,
 			)
+			if ds != nil {
+				ds.Close()
+			}
 			Expect(err).To(MatchError("can not deduce the appropriate SQL driver for *sqltest.MockDriver"))
 		})
 	})

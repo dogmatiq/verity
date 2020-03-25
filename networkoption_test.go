@@ -82,7 +82,10 @@ var _ = Describe("func WithDialer()", func() {
 			WithDialer(dialer),
 		)
 
-		_, err := opts.Dialer(context.Background(), nil)
+		conn, err := opts.Dialer(context.Background(), nil)
+		if conn != nil {
+			conn.Close()
+		}
 		Expect(err).To(MatchError("<error>"))
 	})
 

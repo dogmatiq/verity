@@ -28,11 +28,14 @@ func declareProviderTests(
 			})
 
 			ginkgo.It("returns an error if the application's data-store is already open", func() {
-				ds, err := out.Provider.Open(*ctx, "<app-key>")
+				ds1, err := out.Provider.Open(*ctx, "<app-key>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer ds.Close()
+				defer ds1.Close()
 
-				_, err = out.Provider.Open(*ctx, "<app-key>")
+				ds2, err := out.Provider.Open(*ctx, "<app-key>")
+				if ds2 != nil {
+					ds2.Close()
+				}
 				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreLocked))
 			})
 

@@ -150,7 +150,10 @@ var _ = Describe("type NetworkStream", func() {
 		It("returns an error if the making the request fails", func() {
 			conn.Close()
 
-			_, err := stream.Open(ctx, 0, types)
+			cur, err := stream.Open(ctx, 0, types)
+			if cur != nil {
+				cur.Close()
+			}
 			Expect(err).Should(HaveOccurred())
 		})
 	})
