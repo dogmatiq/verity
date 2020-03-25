@@ -38,39 +38,59 @@ func declareTransactionTests(
 			}
 		})
 
-		ginkgo.Describe("func Commit()", func() {
-			ginkgo.It("returns an error if the transaction has already been committed", func() {
+		ginkgo.When("the transaction has been committed", func() {
+			ginkgo.BeforeEach(func() {
 				err := transaction.Commit(*ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-				err = transaction.Commit(*ctx)
-				gomega.Expect(err).Should(gomega.HaveOccurred())
 			})
 
-			ginkgo.It("returns an error if the transaction has been rolled-back", func() {
-				err := transaction.Rollback()
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			ginkgo.Describe("func SaveEvents()", func() {
+				ginkgo.It("returns an error", func() {
+					_, err := transaction.SaveEvents(*ctx)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
 
-				err = transaction.Commit(*ctx)
-				gomega.Expect(err).Should(gomega.HaveOccurred())
+			ginkgo.Describe("func Commit()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.Commit(*ctx)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
+
+			ginkgo.Describe("func Rollback()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.Commit(*ctx)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
 			})
 		})
 
-		ginkgo.Describe("func Rollback()", func() {
-			ginkgo.It("returns an error if the transaction has already been rolled-back", func() {
+		ginkgo.When("the transaction has been rolled-back", func() {
+			ginkgo.BeforeEach(func() {
 				err := transaction.Rollback()
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-				err = transaction.Rollback()
-				gomega.Expect(err).Should(gomega.HaveOccurred())
 			})
 
-			ginkgo.It("returns an error if the transaction has been committed", func() {
-				err := transaction.Commit(*ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			ginkgo.Describe("func SaveEvents()", func() {
+				ginkgo.It("returns an error", func() {
+					_, err := transaction.SaveEvents(*ctx)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
 
-				err = transaction.Rollback()
-				gomega.Expect(err).Should(gomega.HaveOccurred())
+			ginkgo.Describe("func Commit()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.Commit(*ctx)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
+
+			ginkgo.Describe("func Rollback()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.Commit(*ctx)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
 			})
 		})
 	})

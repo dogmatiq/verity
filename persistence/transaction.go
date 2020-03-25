@@ -3,6 +3,8 @@ package persistence
 import (
 	"context"
 	"errors"
+
+	"github.com/dogmatiq/infix/persistence/eventstore"
 )
 
 // ErrTransactionClosed is returned by all methods on Transaction once the
@@ -11,10 +13,7 @@ var ErrTransactionClosed = errors.New("transaction already committed or rolled-b
 
 // Transaction exposes persistence operations that can be performed atomically.
 type Transaction interface {
-	// AggregateTransaction
-	// ProcessTransaction
-	// QueueTransaction
-	// eventstore.Transaction
+	eventstore.Transaction
 
 	// Commit applies the changes from the transaction.
 	Commit(ctx context.Context) error

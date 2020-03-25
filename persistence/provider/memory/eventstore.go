@@ -24,5 +24,25 @@ func (r *eventStoreRepository) QueryEvents(
 		return nil, err
 	}
 
+	return &eventStoreResultSet{}, nil
+}
+
+type eventStoreResultSet struct {
+}
+
+// Next advances to the next event in the result set.
+//
+// It returns false if the end of the result set is reached.
+func (r *eventStoreResultSet) Next() bool {
+	return false
+}
+
+// Next returns current event in the result set.
+func (r *eventStoreResultSet) Get(ctx context.Context) (*eventstore.Event, error) {
 	return nil, errors.New("not implemented")
+}
+
+// Close closes the cursor.
+func (r *eventStoreResultSet) Close() error {
+	return nil
 }
