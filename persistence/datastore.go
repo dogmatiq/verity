@@ -25,7 +25,7 @@ type DataStore interface {
 	// Close closes the data store.
 	//
 	// Closing a data-store prevents any writes to the data-store. Specifically,
-	// Transaction.Commit()  will return ErrDataStoreClosed if the transaction's
+	// Transaction.Commit() will return ErrDataStoreClosed if the transaction's
 	// underlying data-store has been closed.
 	//
 	// The behavior of any other persistence operation on a closed data-store is
