@@ -1,7 +1,7 @@
 syntax = "proto3";
 package dogma.messaging.v1;
 
-option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messagingspec";
+option go_package = "github.com/dogmatiq/infix/draftspecs/messagingspec";
 
 message MessageTypesRequest{
   // ApplicationKey is the identity key of the application to query.

@@ -5,10 +5,10 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/internal/draftspecs/envelopespec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

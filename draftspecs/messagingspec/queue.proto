@@ -1,10 +1,10 @@
 syntax = "proto3";
 package dogma.messaging.v1;
 
-option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messagingspec";
+option go_package = "github.com/dogmatiq/infix/draftspecs/messagingspec";
 
-import "internal/draftspecs/envelopespec/envelope.proto";
-import "internal/draftspecs/messagingspec/messagetypes.proto";
+import "draftspecs/envelopespec/envelope.proto";
+import "draftspecs/messagingspec/messagetypes.proto";
 
 // CommandQueue is a service for sending command messages between Dogma
 // applications hosted on different engines.

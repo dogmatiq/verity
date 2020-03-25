@@ -1,10 +1,10 @@
 syntax = "proto3";
 package dogma.messaging.v1;
 
-option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messagingspec";
+option go_package = "github.com/dogmatiq/infix/draftspecs/messagingspec";
 
-import "internal/draftspecs/envelopespec/envelope.proto";
-import "internal/draftspecs/messagingspec/messagetypes.proto";
+import "draftspecs/envelopespec/envelope.proto";
+import "draftspecs/messagingspec/messagetypes.proto";
 
 // EventStream is a service for consuming ordered streams of event messages, as
 // might be used in an event-sourcing system.
@@ -24,13 +24,13 @@ service EventStream {
   // UnrecognizedMessage value for each unrecognized message type.
   rpc Consume(ConsumeRequest) returns (stream ConsumeResponse);
 
-  // MessageTypes queries the messages types that the server supports for a
-  // specific application.
+  // EventTypes queries the event types that the server supports for a specific
+  // application.
   //
   // If the server does not host the application specified in the request, it
   // MUST return a NOT_FOUND error with an attached UnrecognizedApplication
   // value.
-  rpc MessageTypes(MessageTypesRequest) returns (MessageTypesResponse);
+  rpc EventTypes(MessageTypesRequest) returns (MessageTypesResponse);
 }
 
 message ConsumeRequest{

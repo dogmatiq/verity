@@ -1,7 +1,7 @@
 syntax = "proto3";
 package dogma.messaging.v1;
 
-option go_package = "github.com/dogmatiq/infix/internal/draftspecs/messagingspec";
+option go_package = "github.com/dogmatiq/infix/draftspecs/messagingspec";
 
 // UnrecognizedApplication is an error-details value for INVALID_ARGUMENT
 // errors that occurred because a specific application key was not recognised by

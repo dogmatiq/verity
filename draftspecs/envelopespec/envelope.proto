@@ -1,7 +1,7 @@
 syntax = "proto3";
 package dogma.envelope.v1;
 
-option go_package = "github.com/dogmatiq/infix/internal/draftspecs/envelopespec";
+option go_package = "github.com/dogmatiq/infix/draftspecs/envelopespec";
 
 // Identity is a protocol buffers representation of the configkit.Identity type.
 message Identity {
