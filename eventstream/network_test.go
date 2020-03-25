@@ -9,19 +9,18 @@ import (
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/api/messaging/eventstream"
+	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/eventstream"
+	. "github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/internal/testing/streamtest"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 )
 
-var _ = Describe("type stream", func() {
+var _ = Describe("type NetworkStream", func() {
 	var (
 		listener net.Listener
 		server   *grpc.Server
@@ -29,9 +28,9 @@ var _ = Describe("type stream", func() {
 
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
-			source := &memory.Stream{
+			source := &MemoryStream{
 				App:   in.Application.Identity(),
-				Types: in.MessageTypes,
+				Types: in.EventTypes,
 			}
 
 			var err error
@@ -42,7 +41,7 @@ var _ = Describe("type stream", func() {
 			RegisterServer(
 				server,
 				in.Marshaler,
-				map[string]eventstream.Stream{
+				map[string]Stream{
 					"<app-key>": source,
 				},
 			)
@@ -56,12 +55,11 @@ var _ = Describe("type stream", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return streamtest.Out{
-				Stream: NewEventStream(
-					in.Application.Identity(),
-					conn,
-					in.Marshaler,
-					0,
-				),
+				Stream: &NetworkStream{
+					App:       in.Application.Identity(),
+					Client:    messagingspec.NewEventStreamClient(conn),
+					Marshaler: in.Marshaler,
+				},
 				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
 					source.Append(envelopes...)
 				},
@@ -79,15 +77,15 @@ var _ = Describe("type stream", func() {
 	)
 })
 
-var _ = Describe("type stream", func() {
+var _ = Describe("type NetworkStream", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
 		listener net.Listener
 		server   *grpc.Server
 		conn     *grpc.ClientConn
-		source   *memory.Stream
-		stream   eventstream.Stream
+		source   *MemoryStream
+		stream   *NetworkStream
 		types    message.TypeSet
 
 		env = NewEnvelope("<message-1>", MessageA1)
@@ -97,7 +95,7 @@ var _ = Describe("type stream", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		types = message.NewTypeSet(MessageAType)
-		source = &memory.Stream{
+		source = &MemoryStream{
 			Types: message.TypesOf(
 				env.Message,
 			),
@@ -112,7 +110,7 @@ var _ = Describe("type stream", func() {
 		RegisterServer(
 			server,
 			Marshaler,
-			map[string]eventstream.Stream{
+			map[string]Stream{
 				"<app-key>": source,
 			},
 		)
@@ -125,12 +123,11 @@ var _ = Describe("type stream", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stream = NewEventStream(
-			configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			conn,
-			Marshaler,
-			0,
-		)
+		stream = &NetworkStream{
+			App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			Client:    messagingspec.NewEventStreamClient(conn),
+			Marshaler: Marshaler,
+		}
 	})
 
 	AfterEach(func() {
@@ -158,11 +155,11 @@ var _ = Describe("type stream", func() {
 		})
 	})
 
-	Describe("func MessageTypes()", func() {
+	Describe("func Eventypes()", func() {
 		It("returns an error if the message types can not be queried", func() {
 			conn.Close()
 
-			_, err := stream.MessageTypes(ctx)
+			_, err := stream.EventTypes(ctx)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

@@ -14,9 +14,9 @@ import (
 type EventStream struct {
 	Memory eventstream.MemoryStream
 
-	ApplicationFunc  func() configkit.Identity
-	MessageTypesFunc func(context.Context) (message.TypeCollection, error)
-	OpenFunc         func(context.Context, eventstream.Offset, message.TypeCollection) (eventstream.Cursor, error)
+	ApplicationFunc func() configkit.Identity
+	EventTypesFunc  func(context.Context) (message.TypeCollection, error)
+	OpenFunc        func(context.Context, eventstream.Offset, message.TypeCollection) (eventstream.Cursor, error)
 }
 
 // Application returns the identity of the application that owns the stream.
@@ -36,8 +36,8 @@ func (s *EventStream) Application() configkit.Identity {
 // If s.EventTypesFunc is non-nil, it returns s.EventTypesFunc(ctx), otherwise
 // it dispatches to s.Memory.
 func (s *EventStream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
-	if s.MessageTypesFunc != nil {
-		return s.MessageTypesFunc(ctx)
+	if s.EventTypesFunc != nil {
+		return s.EventTypesFunc(ctx)
 	}
 
 	return s.Memory.EventTypes(ctx)

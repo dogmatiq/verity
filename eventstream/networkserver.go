@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
@@ -17,10 +16,11 @@ import (
 // RegisterServer registers an event stream server for the given streams.
 //
 // streams is a map of application key to the stream of that application.
+// TODO: refactor to operate directly on an eventstore repository.
 func RegisterServer(
 	s *grpc.Server,
 	m marshalkit.TypeMarshaler,
-	streams map[string]eventstream.Stream,
+	streams map[string]Stream,
 ) {
 	svr := &server{
 		marshaler: m,
@@ -30,9 +30,10 @@ func RegisterServer(
 	messagingspec.RegisterEventStreamServer(s, svr)
 }
 
+// server is an implementation of the dogma.messaging.v1 EventStream service.
 type server struct {
 	marshaler marshalkit.TypeMarshaler
-	streams   map[string]eventstream.Stream
+	streams   map[string]Stream
 }
 
 func (s *server) Consume(
@@ -71,7 +72,7 @@ func (s *server) Consume(
 func (s *server) open(
 	ctx context.Context,
 	req *messagingspec.ConsumeRequest,
-) (eventstream.Cursor, error) {
+) (Cursor, error) {
 	stream, err := s.stream(req.ApplicationKey)
 	if err != nil {
 		return nil, err
@@ -84,36 +85,12 @@ func (s *server) open(
 
 	return stream.Open(
 		ctx,
-		eventstream.Offset(req.Offset),
+		Offset(req.Offset),
 		types,
 	)
 }
 
-// stream returns the stream for the application with the specified key.
-func (s *server) stream(k string) (eventstream.Stream, error) {
-	if k == "" {
-		return nil, grpcx.Errorf(
-			codes.InvalidArgument,
-			nil,
-			"application key must not be empty",
-		)
-	}
-
-	if stream, ok := s.streams[k]; ok {
-		return stream, nil
-	}
-
-	return nil, grpcx.Errorf(
-		codes.NotFound,
-		[]proto.Message{
-			&messagingspec.UnrecognizedApplication{ApplicationKey: k},
-		},
-		"unrecognized application: %s",
-		k,
-	)
-}
-
-func (s *server) MessageTypes(
+func (s *server) EventTypes(
 	ctx context.Context,
 	req *messagingspec.MessageTypesRequest,
 ) (*messagingspec.MessageTypesResponse, error) {
@@ -122,7 +99,7 @@ func (s *server) MessageTypes(
 		return nil, err
 	}
 
-	types, err := stream.MessageTypes(ctx)
+	types, err := stream.EventTypes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +122,30 @@ func (s *server) MessageTypes(
 	)
 
 	return res, nil
+}
+
+// stream returns the stream for the application with the specified key.
+func (s *server) stream(k string) (Stream, error) {
+	if k == "" {
+		return nil, grpcx.Errorf(
+			codes.InvalidArgument,
+			nil,
+			"application key must not be empty",
+		)
+	}
+
+	if stream, ok := s.streams[k]; ok {
+		return stream, nil
+	}
+
+	return nil, grpcx.Errorf(
+		codes.NotFound,
+		[]proto.Message{
+			&messagingspec.UnrecognizedApplication{ApplicationKey: k},
+		},
+		"unrecognized application: %s",
+		k,
+	)
 }
 
 // unmarshalMessageTypes unmarshals a collection of message types from their

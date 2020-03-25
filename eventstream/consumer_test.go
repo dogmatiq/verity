@@ -140,10 +140,10 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("restarts the consumer if querying the stream's message types returns an error", func() {
-			stream.MessageTypesFunc = func(
+			stream.EventTypesFunc = func(
 				context.Context,
 			) (message.TypeCollection, error) {
-				stream.MessageTypesFunc = nil
+				stream.EventTypesFunc = nil
 
 				handler.HandleEventFunc = func(
 					_ context.Context,

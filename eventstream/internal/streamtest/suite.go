@@ -28,9 +28,8 @@ type In struct {
 	// used within the test suite.
 	Application configkit.RichApplication
 
-	// MessageTypes is the set of event types that the test application can
-	// produce.
-	MessageTypes message.TypeCollection
+	// EventTypes is the set of event types that the test application produces.
+	EventTypes message.TypeCollection
 
 	// Marshaler marshals and unmarshals the test message types.
 	Marshaler marshalkit.Marshaler
@@ -163,7 +162,7 @@ func Declare(
 				})
 
 				ginkgo.It("honours the initial offset", func() {
-					cur, err := out.Stream.Open(ctx, 2, in.MessageTypes)
+					cur, err := out.Stream.Open(ctx, 2, in.EventTypes)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
@@ -193,7 +192,7 @@ func Declare(
 				ginkgo.It("returns an error if the context is canceled", func() {
 					cancel()
 
-					_, err := out.Stream.Open(ctx, 0, in.MessageTypes)
+					_, err := out.Stream.Open(ctx, 0, in.EventTypes)
 					gomega.Expect(err).Should(gomega.HaveOccurred())
 				})
 			})
@@ -206,7 +205,7 @@ func Declare(
 					types, err := out.Stream.EventTypes(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					in.MessageTypes.Range(func(t message.Type) bool {
+					in.EventTypes.Range(func(t message.Type) bool {
 						gomega.Expect(types.Has(t)).To(
 							gomega.BeTrue(),
 							fmt.Sprintf("stream does not support expected message type: %s", t),
@@ -221,7 +220,7 @@ func Declare(
 			ginkgo.Describe("func Next()", func() {
 				ginkgo.When("the stream is empty", func() {
 					ginkgo.It("blocks", func() {
-						cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
+						cur, err := out.Stream.Open(ctx, 0, in.EventTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
@@ -245,7 +244,7 @@ func Declare(
 					})
 
 					ginkgo.It("returns the messages in order", func() {
-						cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
+						cur, err := out.Stream.Open(ctx, 0, in.EventTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
@@ -267,7 +266,7 @@ func Declare(
 					})
 
 					ginkgo.It("returns an error if the cursor is closed", func() {
-						cur, err := out.Stream.Open(ctx, 0, in.MessageTypes)
+						cur, err := out.Stream.Open(ctx, 0, in.EventTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						cur.Close()
@@ -277,7 +276,7 @@ func Declare(
 					})
 
 					ginkgo.It("returns an error if the context is canceled", func() {
-						cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+						cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
@@ -290,7 +289,7 @@ func Declare(
 					ginkgo.When("waiting for a new message", func() {
 						ginkgo.It("wakes if a message is appended", func() {
 							// Open a cursor after the offset of the existing messages.
-							cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+							cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 							defer cur.Close()
 
@@ -305,7 +304,7 @@ func Declare(
 						})
 
 						ginkgo.It("returns an error if the cursor is closed", func() {
-							cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+							cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 							go func() {
@@ -318,7 +317,7 @@ func Declare(
 						})
 
 						ginkgo.It("returns an error if the context is canceled", func() {
-							cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+							cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 							defer cur.Close()
 
@@ -359,7 +358,7 @@ func Declare(
 									defer g.Done()
 									defer ginkgo.GinkgoRecover()
 
-									cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+									cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
 									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 									defer cur.Close()
 
@@ -392,7 +391,7 @@ func Declare(
 
 			ginkgo.Describe("func Close()", func() {
 				ginkgo.It("returns an error if the cursor is already closed", func() {
-					cur, err := out.Stream.Open(ctx, 4, in.MessageTypes)
+					cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					err = cur.Close()

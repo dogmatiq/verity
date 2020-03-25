@@ -6,62 +6,71 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
 	"github.com/dogmatiq/marshalkit"
-	"google.golang.org/grpc"
 )
 
-// NewEventStream returns a stream that consumes events from a specific source
-// application.
-//
-// id is the identity of the application to consume from. c a connection to
-// a server that both implements the EventStream service, and hosts the
-// specified application.
-//
-// m is the marshaler used to marshal and unmarshal events. n the "pre-fetch"
-// count, which is the number of events to buffer in memory on the client side.
-func NewEventStream(
-	id configkit.Identity,
-	c *grpc.ClientConn,
-	m marshalkit.Marshaler,
-	n int,
-) eventstream.Stream {
-	return &stream{
-		app:       id,
-		client:    messagingspec.NewEventStreamClient(c),
-		marshaler: m,
-		prefetch:  n,
-	}
-}
+// NetworkStream is an implementation of Stream that consumes messages via
+// the dogma.messaging.v1 EventStream gRPC API.
+type NetworkStream struct {
+	// App is the identity of the application that owns the stream.
+	App configkit.Identity
 
-// stream is an implementation of eventstream.Stream that consumes messages via
-// the EventStream gRPC API.
-type stream struct {
-	app       configkit.Identity
-	client    messagingspec.EventStreamClient
-	marshaler marshalkit.Marshaler
-	prefetch  int
+	// Client is the gRPC client used to querying the event stream server.
+	Client messagingspec.EventStreamClient
+
+	// Marshaler is used to marshal and unmarshal messages and message types.
+	Marshaler marshalkit.Marshaler
+
+	// PreFetch specifies how many messages to pre-load into memory.
+	PreFetch int
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *stream) Application() configkit.Identity {
-	return s.app
+func (s *NetworkStream) Application() configkit.Identity {
+	return s.App
 }
 
-// Open returns a cursor used to read events from this stream.
+// EventTypes returns the set of event types that may appear on the stream.
+func (s *NetworkStream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
+	req := &messagingspec.MessageTypesRequest{
+		ApplicationKey: s.App.Key,
+	}
+
+	res, err := s.Client.EventTypes(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a type-set containing any message types supported both by the
+	// server and the client.
+	types := message.TypeSet{}
+	for _, t := range res.GetMessageTypes() {
+		rt, err := s.Marshaler.UnmarshalType(t.PortableName)
+		if err == nil {
+			types.Add(message.TypeFromReflect(rt))
+		}
+	}
+
+	return types, nil
+}
+
+// Open returns a cursor that reads events from the stream.
 //
-// offset is the position of the first event to read. The first event on a
-// stream is always at offset 0.
+// o is the offset of the first event to read. The first event on a stream
+// is always at offset 0.
 //
-// types is the set of event types that should be returned by Cursor.Next().
-// Any other event types are ignored.
-func (s *stream) Open(
+// f is the set of "filter" event types to be returned by Cursor.Next(). Any
+// other event types are ignored.
+//
+// It returns an error if any of the event types in f are not supported, as
+// indicated by EventTypes().
+func (s *NetworkStream) Open(
 	ctx context.Context,
-	offset eventstream.Offset,
-	types message.TypeCollection,
-) (eventstream.Cursor, error) {
+	o Offset,
+	f message.TypeCollection,
+) (Cursor, error) {
 	// consumeCtx lives for the lifetime of the stream returned by the gRPC
 	// Consume() operation. This is how we cancel the gRPC stream, as it has no
 	// Close() method.
@@ -85,12 +94,12 @@ func (s *stream) Open(
 	}()
 
 	req := &messagingspec.ConsumeRequest{
-		ApplicationKey: s.app.Key,
-		Offset:         uint64(offset),
-		Types:          marshalMessageTypes(s.marshaler, types),
+		ApplicationKey: s.App.Key,
+		Offset:         uint64(o),
+		Types:          marshalMessageTypes(s.Marshaler, f),
 	}
 
-	stream, err := s.client.Consume(consumeCtx, req)
+	stream, err := s.Client.Consume(consumeCtx, req)
 
 	select {
 	case <-ctx.Done():
@@ -110,11 +119,11 @@ func (s *stream) Open(
 
 		// If no error occured, we hand ownership of cancelConsume() over to the
 		// cursor to be called when the cursor is closed by the user.
-		c := &cursor{
+		c := &networkCursor{
 			stream:    stream,
-			marshaler: s.marshaler,
+			marshaler: s.Marshaler,
 			cancel:    cancelConsume,
-			events:    make(chan *eventstream.Event, s.prefetch),
+			events:    make(chan *Event, s.PreFetch),
 		}
 
 		go c.consume()
@@ -123,50 +132,24 @@ func (s *stream) Open(
 	}
 }
 
-// MessageTypes returns the complete set of event types that may appear on
-// the stream.
-func (s *stream) MessageTypes(ctx context.Context) (message.TypeCollection, error) {
-	req := &messagingspec.MessageTypesRequest{
-		ApplicationKey: s.app.Key,
-	}
-
-	res, err := s.client.MessageTypes(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Build a type-set containing any message types supported by the remote end
-	// that we know how to unmarshal on this end.
-	types := message.TypeSet{}
-	for _, t := range res.GetMessageTypes() {
-		rt, err := s.marshaler.UnmarshalType(t.PortableName)
-		if err == nil {
-			types.Add(message.TypeFromReflect(rt))
-		}
-	}
-
-	return types, nil
-}
-
-// cursor is an implementation of eventstream.Cursor that consumes events via
-// the EventStream gRPC API.
-type cursor struct {
+// networkCursor is a Cursor that reads events from a NetworkStream.
+type networkCursor struct {
 	stream    messagingspec.EventStream_ConsumeClient
 	marshaler marshalkit.ValueMarshaler
 	once      sync.Once
 	cancel    context.CancelFunc
-	events    chan *eventstream.Event
+	events    chan *Event
 	err       error
 }
 
-// Next returns the next relevant event in the stream.
+// Next returns the next event in the stream that matches the filter.
 //
 // If the end of the stream is reached it blocks until a relevant event is
 // appended to the stream or ctx is canceled.
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
+func (c *networkCursor) Next(ctx context.Context) (*Event, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -184,9 +167,9 @@ func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 // It returns ErrCursorClosed if the cursor is already closed.
 //
 // Any current or future calls to Next() return ErrCursorClosed.
-func (c *cursor) Close() error {
-	if !c.close(eventstream.ErrCursorClosed) {
-		return eventstream.ErrCursorClosed
+func (c *networkCursor) Close() error {
+	if !c.close(ErrCursorClosed) {
+		return ErrCursorClosed
 	}
 
 	return nil
@@ -197,7 +180,7 @@ func (c *cursor) Close() error {
 //
 // It exits when the context associated with c.stream is canceled or some other
 // error occurs while reading from the stream.
-func (c *cursor) consume() {
+func (c *networkCursor) consume() {
 	defer close(c.events)
 
 	for {
@@ -211,7 +194,7 @@ func (c *cursor) consume() {
 }
 
 // close closes the cursor. It returns false if the cursor was already closed.
-func (c *cursor) close(cause error) bool {
+func (c *networkCursor) close(cause error) bool {
 	ok := false
 
 	c.once.Do(func() {
@@ -225,15 +208,15 @@ func (c *cursor) close(cause error) bool {
 
 // recv waits for the next event from the stream, unmarshals it and sends it
 // over the c.events channel.
-func (c *cursor) recv() error {
+func (c *networkCursor) recv() error {
 	// We can't pass ctx to Recv(), but the stream is already bound to a context.
 	res, err := c.stream.Recv()
 	if err != nil {
 		return err
 	}
 
-	ev := &eventstream.Event{
-		Offset:   eventstream.Offset(res.Offset),
+	ev := &Event{
+		Offset:   Offset(res.Offset),
 		Envelope: &envelope.Envelope{},
 	}
 

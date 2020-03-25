@@ -1,4 +1,4 @@
-package eventstream
+package eventstream_test
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
+	. "github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/internal/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,7 +25,7 @@ var _ = Describe("type server", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
-		stream   *Stream
+		stream   *EventStream
 		listener net.Listener
 		server   *grpc.Server
 		client   messagingspec.EventStreamClient
@@ -39,8 +39,8 @@ var _ = Describe("type server", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		stream = &Stream{
-			Memory: memory.Stream{
+		stream = &EventStream{
+			Memory: MemoryStream{
 				Types: message.TypesOf(
 					env0.Message,
 					env1.Message,
@@ -240,11 +240,11 @@ var _ = Describe("type server", func() {
 		})
 	})
 
-	Describe("func MessageTypes()", func() {
+	Describe("func EventTypes()", func() {
 		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
 			req := &messagingspec.MessageTypesRequest{}
 
-			_, err := client.MessageTypes(ctx, req)
+			_, err := client.EventTypes(ctx, req)
 
 			s, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
@@ -257,7 +257,7 @@ var _ = Describe("type server", func() {
 				ApplicationKey: "<unknown>",
 			}
 
-			_, err := client.MessageTypes(ctx, req)
+			_, err := client.EventTypes(ctx, req)
 
 			s, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
@@ -271,7 +271,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("returns an error if the underlying stream returns an error", func() {
-			stream.MessageTypesFunc = func(
+			stream.EventTypesFunc = func(
 				context.Context,
 			) (message.TypeCollection, error) {
 				return nil, errors.New("<error>")
@@ -281,7 +281,7 @@ var _ = Describe("type server", func() {
 				ApplicationKey: "<app-key>",
 			}
 
-			_, err := client.MessageTypes(ctx, req)
+			_, err := client.EventTypes(ctx, req)
 
 			s, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())

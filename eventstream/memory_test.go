@@ -20,7 +20,7 @@ var _ = Describe("type MemoryStream", func() {
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
 			stream := &MemoryStream{
 				App:   in.Application.Identity(),
-				Types: in.MessageTypes,
+				Types: in.EventTypes,
 			}
 
 			return streamtest.Out{
