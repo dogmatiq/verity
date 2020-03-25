@@ -26,7 +26,7 @@ type EventStoreStream struct {
 	Repository eventstore.Repository
 
 	// Marshaler is used to unmarshal messages.
-	Marshaler marshalkit.ValueMarshaler
+	Marshaler marshalkit.Marshaler
 
 	// PreFetch specifies how many messages to pre-load into memory.
 	PreFetch int
@@ -65,17 +65,30 @@ func (s *EventStoreStream) Open(
 		return nil, ctx.Err()
 	}
 
+	q := eventstore.Query{
+		Begin:         eventstore.Offset(o),
+		PortableNames: make(map[string]struct{}, f.Len()),
+	}
+
+	f.Range(func(mt message.Type) bool {
+		n := marshalkit.MustMarshalType(
+			s.Marshaler,
+			mt.ReflectType(),
+		)
+
+		q.PortableNames[n] = struct{}{}
+
+		return true
+	})
+
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
 	c := &eventStoreCursor{
 		repository: s.Repository,
-		query: eventstore.Query{
-			Begin: eventstore.Offset(o),
-			Types: f,
-		},
-		marshaler: s.Marshaler,
-		cancel:    cancelConsume,
-		events:    make(chan *Event, s.PreFetch),
+		query:      q,
+		marshaler:  s.Marshaler,
+		cancel:     cancelConsume,
+		events:     make(chan *Event, s.PreFetch),
 	}
 
 	go c.consume(consumeCtx)
@@ -173,11 +186,16 @@ func (c *eventStoreCursor) execQuery(ctx context.Context) error {
 		}
 
 		ev := &Event{
-			Offset: Offset(pev.Offset),
-			Envelope: &envelope.Envelope{
-				MetaData: pev.MetaData,
-				Packet:   pev.Packet,
-			},
+			Offset:   Offset(pev.Offset),
+			Envelope: &envelope.Envelope{},
+		}
+
+		if err := envelope.Unmarshal(
+			c.marshaler,
+			pev.Envelope,
+			ev.Envelope,
+		); err != nil {
+			return err
 		}
 
 		ev.Envelope.Message, err = marshalkit.UnmarshalMessage(

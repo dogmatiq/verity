@@ -3,8 +3,8 @@ package providertest
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit/message"
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/eventstore"
@@ -23,19 +23,17 @@ func declareEventStoreTests(
 			dataStore  persistence.DataStore
 			repository eventstore.Repository
 
-			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
-			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
+			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
+			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1)
 
 			event0 = &eventstore.Event{
 				Offset:   0,
-				MetaData: env0.MetaData,
-				Packet:   env0.Packet,
+				Envelope: env0,
 			}
 
 			event1 = &eventstore.Event{
 				Offset:   1,
-				MetaData: env1.MetaData,
-				Packet:   env1.Packet,
+				Envelope: env1,
 			}
 		)
 
@@ -74,7 +72,13 @@ func declareEventStoreTests(
 
 						ginkgo.By("saving some events")
 
-						err = tx.SaveEvents(*ctx, env0, env1)
+						err = tx.SaveEvents(
+							*ctx,
+							[]*envelopespec.Envelope{
+								env0,
+								env1,
+							},
+						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						ginkgo.By("committing the transaction")
@@ -133,7 +137,12 @@ func declareEventStoreTests(
 
 					ginkgo.By("saving some events")
 
-					err = tx.SaveEvents(*ctx, env0, env1)
+					err = tx.SaveEvents(
+						*ctx,
+						[]*envelopespec.Envelope{
+							env0, env1,
+						},
+					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					ginkgo.By("committing the transaction")
@@ -144,16 +153,6 @@ func declareEventStoreTests(
 					ginkgo.By("iterating through the result")
 
 					gomega.Expect(res.Next()).To(gomega.BeFalse())
-				})
-
-				ginkgo.It("panics if the query types are non-nil, but empty", func() {
-					q := eventstore.Query{
-						Types: message.NewTypeSet(),
-					}
-
-					gomega.Expect(func() {
-						repository.QueryEvents(*ctx, q)
-					}).To(gomega.Panic())
 				})
 			})
 		})

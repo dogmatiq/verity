@@ -3,7 +3,7 @@ package eventstore
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 )
 
 // Transaction defines the primitive persistence operations for manipulating the
@@ -14,6 +14,6 @@ type Transaction interface {
 	// It returns the next unused on the stream.
 	SaveEvents(
 		ctx context.Context,
-		envelopes ...*envelope.Envelope,
+		envelopes []*envelopespec.Envelope,
 	) error
 }

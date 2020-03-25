@@ -18,10 +18,6 @@ func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
 	q eventstore.Query,
 ) (eventstore.Result, error) {
-	if q.Types != nil && q.Types.Len() == 0 {
-		panic("q.Types must be nil or otherwise contain at least one event type")
-	}
-
 	db, err := r.ds.database()
 	if err != nil {
 		return nil, err
@@ -59,14 +55,21 @@ func (r *eventStoreResult) Next() bool {
 	defer r.db.m.RUnlock()
 
 	if !r.done {
+		filtered := len(r.query.PortableNames) > 0
+
 		for r.query.Begin < r.query.End {
 			ev := r.db.events[int(r.query.Begin)]
 			r.query.Begin++
 
-			if r.query.Types == nil || r.query.Types.Has(ev.Type) {
-				r.event = &ev.Event
-				return true
+			if filtered {
+				if _, ok := r.query.PortableNames[ev.Envelope.PortableName]; !ok {
+					continue
+				}
 			}
+
+			r.event = &ev
+
+			return true
 		}
 	}
 

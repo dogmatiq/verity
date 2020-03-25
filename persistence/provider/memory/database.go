@@ -4,7 +4,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/persistence/eventstore"
 )
 
@@ -13,13 +12,7 @@ type database struct {
 	open uint32 // atomic
 
 	m      sync.RWMutex
-	events []*event
-}
-
-// event is an event "persisted" in the database.
-type event struct {
-	Type  message.Type
-	Event eventstore.Event
+	events []eventstore.Event
 }
 
 func (db *database) TryOpen() bool {

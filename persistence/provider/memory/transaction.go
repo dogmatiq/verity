@@ -4,8 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/eventstore"
 )
@@ -15,7 +14,7 @@ import (
 type transaction struct {
 	m      sync.Mutex
 	ds     *dataStore
-	events []*envelope.Envelope
+	events []*envelopespec.Envelope
 }
 
 // SaveEvents persists events in the application's event store.
@@ -23,7 +22,7 @@ type transaction struct {
 // It returns the next unused on the stream.
 func (t *transaction) SaveEvents(
 	ctx context.Context,
-	envelopes ...*envelope.Envelope,
+	envelopes []*envelopespec.Envelope,
 ) error {
 	if err := t.lock(); err != nil {
 		return err
@@ -58,13 +57,9 @@ func (t *transaction) Commit(ctx context.Context) error {
 		for _, env := range t.events {
 			db.events = append(
 				db.events,
-				&event{
-					Type: message.TypeOf(env.Message),
-					Event: eventstore.Event{
-						Offset:   next,
-						MetaData: env.MetaData,
-						Packet:   env.Packet,
-					},
+				eventstore.Event{
+					Offset:   next,
+					Envelope: env,
 				},
 			)
 

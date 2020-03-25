@@ -2,8 +2,6 @@ package eventstore
 
 import (
 	"context"
-
-	"github.com/dogmatiq/configkit/message"
 )
 
 // Repository is an interface for reading persisted event messages.
@@ -22,9 +20,11 @@ type Query struct {
 	// include in the results. If it is 0, the number of stored events is used.
 	End Offset
 
-	// Types is the set of event types to include in the results.
-	// If it is nil, all event types are included.
-	Types message.TypeCollection
+	// PortableNames is the set of event types to include in the results,
+	// specified using the "portable type name".
+	//
+	// If it is empty, all event types are included.
+	PortableNames map[string]struct{}
 
 	// AggregateHandlerKey, if non-empty, limits the results to those events
 	// produced by the aggregate message handler identified by this key.

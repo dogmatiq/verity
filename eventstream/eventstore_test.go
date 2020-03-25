@@ -37,7 +37,10 @@ var _ = Describe("type EventStoreStream", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer tx.Rollback()
 
-					err = tx.SaveEvents(ctx, envelopes...)
+					err = tx.SaveEvents(
+						ctx,
+						envelope.MustMarshalMany(envelopes),
+					)
 					Expect(err).ShouldNot(HaveOccurred())
 
 					err = tx.Commit(ctx)
