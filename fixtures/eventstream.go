@@ -6,14 +6,13 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
 )
 
-// Stream is a mock of the eventstream.Stream interface.
+// EventStream is a mock of the eventstream.Stream interface.
 //
 // It is based on a memory stream.
-type Stream struct {
-	Memory memory.Stream
+type EventStream struct {
+	Memory eventstream.MemoryStream
 
 	ApplicationFunc  func() configkit.Identity
 	MessageTypesFunc func(context.Context) (message.TypeCollection, error)
@@ -24,7 +23,7 @@ type Stream struct {
 //
 // If s.ApplicationFunc is non-nil, it returns s.ApplicationFunc(), otherwise it
 // dispatches to s.Memory.
-func (s *Stream) Application() configkit.Identity {
+func (s *EventStream) Application() configkit.Identity {
 	if s.ApplicationFunc != nil {
 		return s.ApplicationFunc()
 	}
@@ -32,24 +31,23 @@ func (s *Stream) Application() configkit.Identity {
 	return s.Memory.Application()
 }
 
-// MessageTypes returns the complete set of event types that may appear on the
-// stream.
+// EventTypes returns the set of event types that may appear on the stream.
 //
-// If s.MessageTypesFunc is non-nil, it returns s.MessageTypesFunc(ctx),
-// otherwise it dispatches to s.Memory.
-func (s *Stream) MessageTypes(ctx context.Context) (message.TypeCollection, error) {
+// If s.EventTypesFunc is non-nil, it returns s.EventTypesFunc(ctx), otherwise
+// it dispatches to s.Memory.
+func (s *EventStream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
 	if s.MessageTypesFunc != nil {
 		return s.MessageTypesFunc(ctx)
 	}
 
-	return s.Memory.MessageTypes(ctx)
+	return s.Memory.EventTypes(ctx)
 }
 
-// Open returns a cursor used to read events from this stream.
+// Open returns a cursor that reads events from the stream.
 //
 // If s.OpenFunc is non-nil, it returns s.OpenFunc(ctx, offset, types),
 // otherwise it dispatches to s.Memory.
-func (s *Stream) Open(
+func (s *EventStream) Open(
 	ctx context.Context,
 	offset eventstream.Offset,
 	types message.TypeCollection,
@@ -61,8 +59,8 @@ func (s *Stream) Open(
 	return s.Memory.Open(ctx, offset, types)
 }
 
-// StreamHandler is a mock of the eventstream.Handler interface.
-type StreamHandler struct {
+// EventStreamHandler is a mock of the eventstream.Handler interface.
+type EventStreamHandler struct {
 	NextOffsetFunc  func(context.Context, configkit.Identity) (eventstream.Offset, error)
 	HandleEventFunc func(context.Context, eventstream.Offset, *eventstream.Event) error
 }
@@ -72,7 +70,7 @@ type StreamHandler struct {
 //
 // If h.NextOffsetFunc is non-nil, it returns h.NextOffsetFunc(ctx, id),
 // otherwise it returns (0, nil).
-func (h *StreamHandler) NextOffset(
+func (h *EventStreamHandler) NextOffset(
 	ctx context.Context,
 	id configkit.Identity,
 ) (eventstream.Offset, error) {
@@ -87,7 +85,7 @@ func (h *StreamHandler) NextOffset(
 //
 // If h.HandleEventFunc is non-nil, it returns h.HandleEventFunc(ctx, o, ev),
 // otherwise it returns nil.
-func (h *StreamHandler) HandleEvent(
+func (h *EventStreamHandler) HandleEvent(
 	ctx context.Context,
 	o eventstream.Offset,
 	ev *eventstream.Event,

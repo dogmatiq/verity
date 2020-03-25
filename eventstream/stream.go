@@ -6,33 +6,27 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/envelope"
 )
-
-// Offset is the position of an event on a stream.
-type Offset uint64
 
 // A Stream is an ordered sequence of event messages.
 type Stream interface {
 	// Application returns the identity of the application that owns the stream.
 	Application() configkit.Identity
 
-	// MessageTypes returns the complete set of event types that may appear on
-	// the stream.
-	MessageTypes(ctx context.Context) (message.TypeCollection, error)
+	// EventTypes returns the set of event types that may appear on the stream.
+	EventTypes(ctx context.Context) (message.TypeCollection, error)
 
-	// Open returns a cursor used to read events from this stream.
+	// Open returns a cursor that reads events from the stream.
 	//
-	// offset is the position of the first event to read. The first event on a
-	// stream is always at offset 0.
+	// o is the offset of the first event to read. The first event on a stream
+	// is always at offset 0.
 	//
-	// types is the set of event types that should be returned by Cursor.Next().
-	// Any other event types are ignored.
-	Open(
-		ctx context.Context,
-		offset Offset,
-		types message.TypeCollection,
-	) (Cursor, error)
+	// f is the set of "filter" event types to be returned by Cursor.Next(). Any
+	// other event types are ignored.
+	//
+	// It returns an error if any of the event types in f are not supported, as
+	// indicated by EventTypes().
+	Open(ctx context.Context, o Offset, f message.TypeCollection) (Cursor, error)
 }
 
 // ErrCursorClosed is returned by Cursor.Next() and Close() if the
@@ -43,7 +37,7 @@ var ErrCursorClosed = errors.New("stream cursor is closed")
 //
 // Cursors are not safe for concurrent use.
 type Cursor interface {
-	// Next returns the next relevant event in the stream.
+	// Next returns the next event in the stream that matches the filter.
 	//
 	// If the end of the stream is reached it blocks until a relevant event is
 	// appended to the stream or ctx is canceled.
@@ -52,34 +46,9 @@ type Cursor interface {
 	// ErrCursorClosed.
 	Next(ctx context.Context) (*Event, error)
 
-	// Close stops the cursor.
+	// Close discards the cursor.
 	//
 	// It returns ErrCursorClosed if the cursor is already closed.
-	//
 	// Any current or future calls to Next() return ErrCursorClosed.
 	Close() error
-}
-
-// Event is a container for an event consumed from an event stream..
-type Event struct {
-	// Offset is the offset of the message on the stream.
-	Offset Offset
-
-	// Envelope contains the message and its meta-data.
-	Envelope *envelope.Envelope
-}
-
-// Handler handles events consumed from a stream.
-type Handler interface {
-	// NextOffset returns the offset of the next event to be consumed from a
-	// specific application's event stream.
-	//
-	// id is the identity of the source application.
-	NextOffset(ctx context.Context, id configkit.Identity) (Offset, error)
-
-	// HandleEvent handles an event obtained from the event stream.
-	//
-	// o must be the offset that would be returned by NextOffset(). On success,
-	// the next call to NextOffset() will return e.Offset + 1.
-	HandleEvent(ctx context.Context, o Offset, ev *Event) error
 }

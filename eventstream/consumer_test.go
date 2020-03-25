@@ -12,8 +12,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/fixtures" // can't dot-import due to conflict
-	"github.com/dogmatiq/infix/persistence/provider/memory"
+	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,16 +22,16 @@ var _ = Describe("type Consumer", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
-		stream   *fixtures.Stream
-		handler  *fixtures.StreamHandler
+		stream   *EventStream
+		handler  *EventStreamHandler
 		consumer *Consumer
 
-		env0 = fixtures.NewEnvelope("<message-0>", MessageA1)
-		env1 = fixtures.NewEnvelope("<message-1>", MessageB1)
-		env2 = fixtures.NewEnvelope("<message-2>", MessageA2)
-		env3 = fixtures.NewEnvelope("<message-3>", MessageB2)
-		env4 = fixtures.NewEnvelope("<message-4>", MessageA3)
-		env5 = fixtures.NewEnvelope("<message-5>", MessageB3)
+		env0 = NewEnvelope("<message-0>", MessageA1)
+		env1 = NewEnvelope("<message-1>", MessageB1)
+		env2 = NewEnvelope("<message-2>", MessageA2)
+		env3 = NewEnvelope("<message-3>", MessageB2)
+		env4 = NewEnvelope("<message-4>", MessageA3)
+		env5 = NewEnvelope("<message-5>", MessageB3)
 
 		event0 = &Event{Offset: 0, Envelope: env0}
 		event2 = &Event{Offset: 2, Envelope: env2}
@@ -42,8 +41,8 @@ var _ = Describe("type Consumer", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		stream = &fixtures.Stream{
-			Memory: memory.Stream{
+		stream = &EventStream{
+			Memory: MemoryStream{
 				App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 				Types: message.NewTypeSet(
 					MessageAType,
@@ -61,7 +60,7 @@ var _ = Describe("type Consumer", func() {
 			env5,
 		)
 
-		handler = &fixtures.StreamHandler{}
+		handler = &EventStreamHandler{}
 
 		consumer = &Consumer{
 			Stream: stream,

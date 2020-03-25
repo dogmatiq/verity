@@ -198,12 +198,12 @@ func Declare(
 				})
 			})
 
-			ginkgo.Describe("func MessageTypes()", func() {
+			ginkgo.Describe("func EventTypes()", func() {
 				ginkgo.It("returns a collection that includes all of the test types", func() {
 					// This test ensures that all of the test types are supported by
 					// the stream, but does not require that these be the ONLY
 					// supported types.
-					types, err := out.Stream.MessageTypes(ctx)
+					types, err := out.Stream.EventTypes(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					in.MessageTypes.Range(func(t message.Type) bool {
