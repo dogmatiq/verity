@@ -19,8 +19,7 @@ type Provider struct {
 // k is the identity key of the application.
 //
 // Data stores are opened for exclusive use. If another engine instance has
-// already opened this application's data-store, ErrDataStoreLocked is
-// returned.
+// already opened this application's data-store, ErrDataStoreLocked is returned.
 func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, error) {
 	p.m.Lock()
 	defer p.m.Unlock()

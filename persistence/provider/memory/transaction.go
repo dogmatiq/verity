@@ -72,7 +72,7 @@ func (t *transaction) Commit(ctx context.Context) error {
 		}
 	}
 
-	t.ds = nil
+	t.close()
 
 	return nil
 }
@@ -86,8 +86,7 @@ func (t *transaction) Rollback() error {
 		return persistence.ErrTransactionClosed
 	}
 
-	t.events = nil
-	t.ds = nil
+	t.close()
 
 	return nil
 }
@@ -105,4 +104,9 @@ func (t *transaction) lock() error {
 
 func (t *transaction) unlock() {
 	t.m.Unlock()
+}
+
+func (t *transaction) close() {
+	t.events = nil
+	t.ds = nil
 }
