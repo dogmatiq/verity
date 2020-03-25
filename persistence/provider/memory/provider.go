@@ -10,8 +10,8 @@ import (
 // Provider is an implementation of persistence.Provider that stores application
 // data in memory.
 type Provider struct {
-	m    sync.Mutex
-	data map[string]*data
+	m         sync.Mutex
+	databases map[string]*database
 }
 
 // Open returns a data-store for a specific application.
@@ -25,19 +25,19 @@ func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, e
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	d, ok := p.data[k]
-
-	if !ok {
-		if p.data == nil {
-			p.data = map[string]*data{}
-		}
-
-		d = &data{}
-		p.data[k] = d
+	if p.databases == nil {
+		p.databases = map[string]*database{}
 	}
 
-	if d.TryLock() {
-		return &dataStore{data: d}, nil
+	db, ok := p.databases[k]
+
+	if !ok {
+		db = &database{}
+		p.databases[k] = db
+	}
+
+	if db.TryOpen() {
+		return &dataStore{db: db}, nil
 	}
 
 	return nil, persistence.ErrDataStoreLocked
