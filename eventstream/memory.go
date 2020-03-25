@@ -48,7 +48,7 @@ func (s *MemoryStream) Open(
 	f message.TypeCollection,
 ) (Cursor, error) {
 	if f.Len() == 0 {
-		panic("at least one message type must be specified")
+		panic("at least one event type must be specified")
 	}
 
 	if ctx.Err() != nil {

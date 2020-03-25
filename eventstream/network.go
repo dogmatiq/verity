@@ -72,7 +72,7 @@ func (s *NetworkStream) Open(
 	f message.TypeCollection,
 ) (Cursor, error) {
 	if f.Len() == 0 {
-		panic("at least one message type must be specified")
+		panic("at least one event type must be specified")
 	}
 
 	// consumeCtx lives for the lifetime of the stream returned by the gRPC
