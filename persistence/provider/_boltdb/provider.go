@@ -5,10 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/marshalkit"
 	"go.etcd.io/bbolt"
 )
 
@@ -17,15 +15,29 @@ import (
 type Provider struct {
 	// DB is the BoltDB database to use.
 	DB *bbolt.DB
+
+	open sync.Map
 }
 
 // Open returns a data-store for a specific application.
-func (p *Provider) Open(
-	ctx context.Context,
-	cfg configkit.RichApplication,
-	m marshalkit.Marshaler,
-) (persistence.DataStore, error) {
-	return newDataStore(cfg, m, p.DB, nil), nil
+//
+// k is the identity key of the application.
+//
+// Data stores are opened for exclusive use. If another engine instance has
+// already opened this application's data-store, ErrDataStoreLocked is returned.
+func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, error) {
+	if _, locked := p.open.LoadOrStore(k, nil); locked {
+		return nil, persistence.ErrDataStoreLocked
+	}
+
+	return newDataStore(
+		p.DB,
+		k,
+		func() error {
+			p.open.Delete(k)
+			return nil
+		},
+	), nil
 }
 
 // FileProvider is an implementation of provider.Provider for BoltDB that opens
@@ -43,20 +55,21 @@ type FileProvider struct {
 	Options *bbolt.Options
 
 	m    sync.Mutex
-	refs int64
 	db   *bbolt.DB
+	open map[string]struct{}
 }
 
 // Open returns a data-store for a specific application.
-func (p *FileProvider) Open(
-	ctx context.Context,
-	cfg configkit.RichApplication,
-	m marshalkit.Marshaler,
-) (persistence.DataStore, error) {
+//
+// k is the identity key of the application.
+//
+// Data stores are opened for exclusive use. If another engine instance has
+// already opened this application's data-store, ErrDataStoreLocked is returned.
+func (p *FileProvider) Open(ctx context.Context, k string) (persistence.DataStore, error) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	if p.refs == 0 {
+	if len(p.open) == 0 {
 		var err error
 		p.db, err = bboltx.Open(ctx, p.Path, p.Mode, p.Options)
 		if err != nil {
@@ -64,20 +77,35 @@ func (p *FileProvider) Open(
 		}
 	}
 
-	p.refs++
+	if p.open == nil {
+		p.open = map[string]struct{}{}
+	} else if _, ok := p.open[k]; ok {
+		return nil, persistence.ErrDataStoreLocked
+	}
 
-	return newDataStore(cfg, m, p.db, p.close), nil
+	p.open[k] = struct{}{}
+
+	return newDataStore(
+		p.db,
+		k,
+		func() error {
+			return p.close(k)
+		},
+	), nil
 }
 
-func (p *FileProvider) close() error {
+func (p *FileProvider) close(k string) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	p.refs--
+	delete(p.open, k)
 
-	if p.refs == 0 {
-		return p.db.Close()
+	if len(p.open) > 0 {
+		return nil
 	}
 
-	return nil
+	db := p.db
+	p.db = nil
+
+	return db.Close()
 }

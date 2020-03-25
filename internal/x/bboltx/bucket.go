@@ -1,6 +1,10 @@
 package bboltx
 
-import "go.etcd.io/bbolt"
+import (
+	"errors"
+
+	"go.etcd.io/bbolt"
+)
 
 // CreateBucketIfNotExists creates nested buckets with names given by the elements of path.
 func CreateBucketIfNotExists(p BucketParent, path ...[]byte) *bbolt.Bucket {
@@ -23,10 +27,8 @@ func CreateBucketIfNotExists(p BucketParent, path ...[]byte) *bbolt.Bucket {
 	return b
 }
 
-// Bucket gets nested buckets with names given by the elements of path.
-//
-// It returns nil if any of the nested buckets does not exist.
-func Bucket(p BucketParent, path ...[]byte) (b *bbolt.Bucket) {
+// TryBucket gets nested buckets with names given by the elements of path.
+func TryBucket(p BucketParent, path ...[]byte) (b *bbolt.Bucket, ok bool) {
 	if len(path) == 0 {
 		panic("at least one path element must be provided")
 	}
@@ -34,13 +36,25 @@ func Bucket(p BucketParent, path ...[]byte) (b *bbolt.Bucket) {
 	for _, n := range path {
 		b = p.Bucket(n)
 		if b == nil {
-			return nil
+			return nil, false
 		}
 
 		p = b
 	}
 
-	return b
+	return b, true
+}
+
+// Bucket gets nested buckets with names given by the elements of path.
+//
+// It panics if any of the nested buckets does not exist.
+func Bucket(p BucketParent, path ...[]byte) *bbolt.Bucket {
+	if b, ok := TryBucket(p, path...); ok {
+		return b
+	}
+
+	err := errors.New("bucket does not exist")
+	panic(PanicSentinel{err})
 }
 
 // Put writes a value to a bucket.

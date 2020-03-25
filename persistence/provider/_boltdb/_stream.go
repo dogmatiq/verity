@@ -2,8 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"encoding/binary"
-	"fmt"
 	"sync"
 
 	"github.com/dogmatiq/configkit"
@@ -176,11 +174,11 @@ func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	tx := bboltx.BeginRead(c.stream.DB)
 	defer tx.Rollback()
 
-	if b := bboltx.Bucket(
+	if b, ok := bboltx.TryBucket(
 		tx,
 		[]byte(c.stream.App.Key),
 		eventStreamKey,
-	); b != nil {
+	); ok {
 		next := loadNextOffset(b)
 
 		for next > c.offset {
@@ -206,79 +204,4 @@ func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	}
 
 	return nil, c.stream.ready
-}
-
-// marshalOffset marshals a stream offset to its binary representation.
-func marshalOffset(offset eventstream.Offset) []byte {
-	data := make([]byte, 8)
-	binary.BigEndian.PutUint64(data, uint64(offset))
-	return data
-}
-
-// unmarshalOffset unmarshals a stream offset from its binary representation.
-func unmarshalOffset(data []byte) eventstream.Offset {
-	n := len(data)
-
-	switch n {
-	case 0:
-		return 0
-	case 8:
-		return eventstream.Offset(
-			binary.BigEndian.Uint64(data),
-		)
-	default:
-		panic(bboltx.PanicSentinel{
-			Cause: fmt.Errorf("offset data is corrupt, expected 8 bytes, got %d", n),
-		})
-	}
-}
-
-// loadNextOffset returns the next free offset.
-func loadNextOffset(b *bbolt.Bucket) eventstream.Offset {
-	data := b.Get(offsetKey)
-	return unmarshalOffset(data)
-}
-
-// storeNextOffset updates the next free offset.
-func storeNextOffset(b *bbolt.Bucket, next eventstream.Offset) {
-	data := marshalOffset(next)
-	bboltx.Put(b, offsetKey, data)
-}
-
-// loadMessage loads a message at a specific offset.
-func loadMessage(
-	m marshalkit.ValueMarshaler,
-	b *bbolt.Bucket,
-	offset eventstream.Offset,
-) *envelope.Envelope {
-	k := marshalOffset(offset)
-	v := b.Bucket(eventsKey).Get(k)
-
-	var env envelope.Envelope
-	bboltx.Must(envelope.UnmarshalBinary(m, v, &env))
-
-	return &env
-}
-
-// appendEvents writes events to the database.
-func appendEvents(
-	b *bbolt.Bucket,
-	next eventstream.Offset,
-	types message.TypeCollection,
-	envelopes []*envelope.Envelope,
-) eventstream.Offset {
-	events := bboltx.CreateBucketIfNotExists(b, eventsKey)
-
-	for _, env := range envelopes {
-		if !types.HasM(env.Message) {
-			panic("unsupported message type: " + message.TypeOf(env.Message).String())
-		}
-
-		k := marshalOffset(next)
-		v := envelope.MustMarshalBinary(env)
-		bboltx.Put(events, k, v)
-		next++
-	}
-
-	return next
 }

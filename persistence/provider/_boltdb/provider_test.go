@@ -4,13 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures" // can't dot-import due to conflicts
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
-	"github.com/dogmatiq/infix/persistence/internal/providertest"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
-	. "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"go.etcd.io/bbolt"
@@ -27,7 +23,9 @@ var _ = Describe("type Provider", func() {
 			db, close = boltdbtest.Open()
 
 			return providertest.Out{
-				Provider: &Provider{db},
+				Provider: &Provider{
+					DB: db,
+				},
 			}
 		},
 		func() {
@@ -65,26 +63,25 @@ var _ = Describe("type FileProvider", func() {
 			}
 		},
 	)
+})
 
+var _ = Describe("type FileProvider", func() {
 	Describe("func Open()", func() {
 		It("returns an error if the DB can not be opened", func() {
+			db, close := boltdbtest.Open()
+			defer close()
+
+			provider := &FileProvider{
+				Path: db.Path(), // use the same file as the (open) DB.
+			}
+
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 			defer cancel()
 
-			// Open the database file first so that the file is locked.
-			db, err := bbolt.Open(provider.Path, 0600, nil)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer db.Close()
-
-			_, err = provider.Open(
-				ctx,
-				configkit.FromApplication(&Application{
-					ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-						c.Identity("<app-name>", "<app-key>")
-					},
-				}),
-				Marshaler,
-			)
+			ds, err := provider.Open(ctx, "<app-key>")
+			if ds != nil {
+				ds.Close()
+			}
 			Expect(err).To(Equal(context.DeadlineExceeded))
 		})
 	})
