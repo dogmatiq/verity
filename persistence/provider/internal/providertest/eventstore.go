@@ -118,6 +118,34 @@ func declareEventStoreTests(
 					),
 				)
 
+				ginkgo.It("does not include any events that are saved after the query is performed", func() {
+					ginkgo.By("querying the events")
+
+					res, err := repository.QueryEvents(*ctx, eventstore.Query{})
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer res.Close()
+
+					ginkgo.By("starting a transaction")
+
+					tx, err := dataStore.Begin(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx.Rollback()
+
+					ginkgo.By("saving some events")
+
+					err = tx.SaveEvents(*ctx, env0, env1)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					ginkgo.By("committing the transaction")
+
+					err = tx.Commit(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					ginkgo.By("iterating through the result")
+
+					gomega.Expect(res.Next()).To(gomega.BeFalse())
+				})
+
 				ginkgo.It("panics if the query types are non-nil, but empty", func() {
 					q := eventstore.Query{
 						Types: message.NewTypeSet(),

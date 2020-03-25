@@ -14,8 +14,12 @@ type Repository interface {
 
 // Query defines criteria for matching events in the store.
 type Query struct {
-	// NotBefore specifies the lowest offset to include in the results.
-	NotBefore Offset
+	// MinOffset specifies the lowest offset to include in the results.
+	MinOffset Offset
+
+	// MaxOffset specifies the largest offset to include in the results.
+	// If it is nil, there is no maximum.
+	MaxOffset *Offset
 
 	// Types is the set of event types to include in the results.
 	// If it is nil, all event types are included.
