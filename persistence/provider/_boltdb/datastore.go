@@ -1,16 +1,17 @@
-package sql
+package boltdb
 
 import (
-	"database/sql"
+	"context"
+	"errors"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/linger/backoff"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
+	"go.etcd.io/bbolt"
 )
 
-// dataStore is an implementation of persistence.DataStore for SQL databases.
+// dataStore is an implementation of persistence.DataStore for BoltDB.
 type dataStore struct {
 	stream *Stream
 	closer func() error
@@ -19,18 +20,14 @@ type dataStore struct {
 func newDataStore(
 	cfg configkit.RichApplication,
 	m marshalkit.Marshaler,
-	db *sql.DB,
-	d *Driver,
-	b backoff.Strategy,
+	db *bbolt.DB,
 	c func() error,
 ) *dataStore {
 	return &dataStore{
 		stream: &Stream{
-			App:             cfg.Identity(),
-			DB:              db,
-			Driver:          d.StreamDriver,
-			Marshaler:       m,
-			BackoffStrategy: b,
+			App:       cfg.Identity(),
+			DB:        db,
+			Marshaler: m,
 			Types: cfg.
 				MessageTypes().
 				Produced.
@@ -40,9 +37,14 @@ func newDataStore(
 	}
 }
 
-// EventStream returns the application's event stream.
-func (ds *dataStore) EventStream() eventstream.Stream {
-	return ds.stream
+// EventRepository returns the application's event repository.
+func (ds *dataStore) EventRepository() persistence.EventRepository {
+	panic("not implemented")
+}
+
+// Begin starts a new transaction.
+func (ds *dataStore) Begin(ctx context.Context) (persistence.Transaction, error) {
+	return nil, errors.New("not implemented")
 }
 
 // Close closes the data store.

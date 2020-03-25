@@ -15,9 +15,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix"
 	"github.com/dogmatiq/infix/cmd/bank/apps"
-	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
-	"github.com/dogmatiq/infix/persistence/provider/sql/driver/postgres"
+	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"google.golang.org/grpc"
 )
 
@@ -58,12 +56,12 @@ func run(ctx context.Context) error {
 	}
 	appName := os.Args[1]
 
-	db := sqltest.Open("postgres")
-	defer db.Close()
+	// db := sqltest.Open("postgres")
+	// defer db.Close()
 
-	if err := postgres.CreateSchema(ctx, db); err != nil {
-		fmt.Println(err)
-	}
+	// if err := postgres.CreateSchema(ctx, db); err != nil {
+	// 	fmt.Println(err)
+	// }
 
 	app, err := newApp(db, appName)
 	if err != nil {
@@ -86,9 +84,10 @@ func run(ctx context.Context) error {
 	e := infix.New(
 		app,
 		infix.WithPersistence(
-			&infixsql.Provider{
-				DB: db,
-			},
+			&memory.Provider{},
+			// &infixsql.Provider{
+			// 	DB: db,
+			// },
 		),
 		infix.WithNetworking(
 			infix.WithListenAddress(listen),
