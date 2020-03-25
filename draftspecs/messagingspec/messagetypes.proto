@@ -14,7 +14,7 @@ message MessageTypesResponse{
 }
 
 message MessageType {
-  // PortableName is the unique name used to identity messages of this type.
+  // PortableName is the unique name used to identify messages of this type.
   string portable_name = 1;
 
   // ConfigName is the name used to identify this message type in the

@@ -101,7 +101,7 @@ func (m *MessageTypesResponse) GetMessageTypes() []*MessageType {
 }
 
 type MessageType struct {
-	// PortableName is the unique name used to identity messages of this type.
+	// PortableName is the unique name used to identify messages of this type.
 	PortableName string `protobuf:"bytes,1,opt,name=portable_name,json=portableName,proto3" json:"portable_name,omitempty"`
 	// ConfigName is the name used to identify this message type in the
 	// dogma.config.v1 API.
