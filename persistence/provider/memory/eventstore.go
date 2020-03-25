@@ -30,10 +30,10 @@ func (r *eventStoreRepository) QueryEvents(
 	db.m.RLock()
 	defer db.m.RUnlock()
 
-	last := eventstore.Offset(len(db.events) - 1)
+	end := eventstore.Offset(len(db.events))
 
-	if q.MaxOffset == nil || *q.MaxOffset > last {
-		q.MaxOffset = &last
+	if q.End == 0 || end < q.End {
+		q.End = end
 	}
 
 	return &eventStoreResult{
@@ -59,10 +59,9 @@ func (r *eventStoreResult) Next() bool {
 	defer r.db.m.RUnlock()
 
 	if !r.done {
-		for r.query.MinOffset <= *r.query.MaxOffset {
-			i := int(r.query.MinOffset)
-			ev := r.db.events[i]
-			r.query.MinOffset++
+		for r.query.Begin < r.query.End {
+			ev := r.db.events[int(r.query.Begin)]
+			r.query.Begin++
 
 			if r.query.Types == nil || r.query.Types.Has(ev.Type) {
 				r.event = &ev.Event

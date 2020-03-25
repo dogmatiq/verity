@@ -70,8 +70,8 @@ func (s *EventStoreStream) Open(
 	c := &eventStoreCursor{
 		repository: s.Repository,
 		query: eventstore.Query{
-			MinOffset: eventstore.Offset(o),
-			Types:     f,
+			Begin: eventstore.Offset(o),
+			Types: f,
 		},
 		marshaler: s.Marshaler,
 		cancel:    cancelConsume,

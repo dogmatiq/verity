@@ -14,12 +14,13 @@ type Repository interface {
 
 // Query defines criteria for matching events in the store.
 type Query struct {
-	// MinOffset specifies the lowest offset to include in the results.
-	MinOffset Offset
+	// Begin specifies the (inclusive) lower-bound of the offset range to
+	// include in the results.
+	Begin Offset
 
-	// MaxOffset specifies the largest offset to include in the results.
-	// If it is nil, there is no maximum.
-	MaxOffset *Offset
+	// End specifies the (exclusive) upper-bound of the offset range to to
+	// include in the results. If it is 0, the number of stored events is used.
+	End Offset
 
 	// Types is the set of event types to include in the results.
 	// If it is nil, all event types are included.
