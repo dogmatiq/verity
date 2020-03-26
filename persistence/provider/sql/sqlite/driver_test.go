@@ -7,6 +7,7 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
 	. "github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
@@ -14,12 +15,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Provider", func() {
+var _ = Describe("type Driver", func() {
 	var db *sql.DB
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db = sqltest.Open("sqlite3")
+			db := sqltest.Open("sqlite3")
 
 			err := DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -28,9 +29,12 @@ var _ = Describe("type Provider", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return providertest.Out{
-				Provider: &infixsql.Provider{
-					DB: db,
+				NewProvider: func() (persistence.Provider, func()) {
+					return &infixsql.Provider{
+						DB: db,
+					}, nil
 				},
+				IsShared: true,
 			}
 		},
 		func() {

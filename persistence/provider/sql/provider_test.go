@@ -7,6 +7,7 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
 	. "github.com/dogmatiq/infix/persistence/provider/sql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
@@ -19,7 +20,7 @@ var _ = Describe("type Provider", func() {
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db = sqltest.Open("sqlite3")
+			db := sqltest.Open("sqlite3")
 
 			err := sqlite.DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -28,9 +29,12 @@ var _ = Describe("type Provider", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return providertest.Out{
-				Provider: &Provider{
-					DB: db,
+				NewProvider: func() (persistence.Provider, func()) {
+					return &Provider{
+						DB: db,
+					}, nil
 				},
+				IsShared: true,
 			}
 		},
 		func() {
@@ -48,6 +52,8 @@ var _ = Describe("type DSNProvider", func() {
 		func(ctx context.Context, in providertest.In) providertest.Out {
 			dsn := sqltest.DSN("sqlite3")
 
+			// This SQLite DB is held open for the lifetime of the test to
+			// keep the schema in memory.
 			var err error
 			db, err = sql.Open("sqlite3", dsn)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -59,10 +65,13 @@ var _ = Describe("type DSNProvider", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return providertest.Out{
-				Provider: &DSNProvider{
-					DriverName: "sqlite3",
-					DSN:        dsn,
+				NewProvider: func() (persistence.Provider, func()) {
+					return &DSNProvider{
+						DriverName: "sqlite3",
+						DSN:        dsn,
+					}, nil
 				},
+				IsShared: true,
 			}
 		},
 		func() {
@@ -71,9 +80,7 @@ var _ = Describe("type DSNProvider", func() {
 			}
 		},
 	)
-})
 
-var _ = Describe("type DSNProvider", func() {
 	Describe("func Open()", func() {
 		It("returns an error if the DB can not be opened", func() {
 			provider := &DSNProvider{

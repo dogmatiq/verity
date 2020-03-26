@@ -21,6 +21,8 @@ func declareEventStoreTests(
 ) {
 	ginkgo.Context("package eventstore", func() {
 		var (
+			provider   persistence.Provider
+			close      func()
 			dataStore  persistence.DataStore
 			repository eventstore.Repository
 
@@ -45,8 +47,10 @@ func declareEventStoreTests(
 		)
 
 		ginkgo.BeforeEach(func() {
+			provider, close = out.NewProvider()
+
 			var err error
-			dataStore, err = out.Provider.Open(*ctx, "<app-key>")
+			dataStore, err = provider.Open(*ctx, "<app-key>")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			repository = dataStore.EventStoreRepository()
@@ -55,6 +59,10 @@ func declareEventStoreTests(
 		ginkgo.AfterEach(func() {
 			if dataStore != nil {
 				dataStore.Close()
+			}
+
+			if close != nil {
+				close()
 			}
 		})
 

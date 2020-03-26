@@ -5,65 +5,49 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
+	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
 	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.etcd.io/bbolt"
 )
 
 var _ = Describe("type Provider", func() {
-	var (
-		db    *bbolt.DB
-		close func()
-	)
-
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db, close = boltdbtest.Open()
-
 			return providertest.Out{
-				Provider: &Provider{
-					DB: db,
+				NewProvider: func() (persistence.Provider, func()) {
+					db, close := boltdbtest.Open()
+
+					return &Provider{
+						DB: db,
+					}, close
 				},
 			}
 		},
-		func() {
-			if close != nil {
-				close()
-			}
-		},
+		nil,
 	)
 })
 
 var _ = Describe("type FileProvider", func() {
-	var (
-		db    *bbolt.DB
-		close func()
-	)
-
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db, close = boltdbtest.Open()
-
-			path := db.Path() // capture the temp path of the DB.
-			db.Close()        // close the original DB so that the file is not locked.
-
 			return providertest.Out{
-				Provider: &FileProvider{
-					Path: path,
+				NewProvider: func() (persistence.Provider, func()) {
+					db, close := boltdbtest.Open()
+
+					path := db.Path() // capture the temp path of the DB.
+					db.Close()        // close the original DB so that the file is not locked.
+
+					return &FileProvider{
+						Path: path,
+					}, close
 				},
 			}
 		},
-		func() {
-			if close != nil {
-				close()
-			}
-		},
+		nil,
 	)
-})
 
-var _ = Describe("type FileProvider", func() {
 	Describe("func Open()", func() {
 		It("returns an error if the DB can not be opened", func() {
 			db, close := boltdbtest.Open()

@@ -14,13 +14,28 @@ func declareProviderTests(
 	out *Out,
 ) {
 	ginkgo.Describe("type Provider (interface)", func() {
+		var (
+			provider persistence.Provider
+			close    func()
+		)
+
+		ginkgo.BeforeEach(func() {
+			provider, close = out.NewProvider()
+		})
+
+		ginkgo.AfterEach(func() {
+			if close != nil {
+				close()
+			}
+		})
+
 		ginkgo.Describe("func Open()", func() {
 			ginkgo.It("returns different instances for different applications", func() {
-				ds1, err := out.Provider.Open(*ctx, "<app-key-1>")
+				ds1, err := provider.Open(*ctx, "<app-key-1>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer ds1.Close()
 
-				ds2, err := out.Provider.Open(*ctx, "<app-key-2>")
+				ds2, err := provider.Open(*ctx, "<app-key-2>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer ds2.Close()
 
@@ -28,11 +43,11 @@ func declareProviderTests(
 			})
 
 			ginkgo.It("returns an error if the application's data-store is already open", func() {
-				ds1, err := out.Provider.Open(*ctx, "<app-key>")
+				ds1, err := provider.Open(*ctx, "<app-key>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer ds1.Close()
 
-				ds2, err := out.Provider.Open(*ctx, "<app-key>")
+				ds2, err := provider.Open(*ctx, "<app-key>")
 				if ds2 != nil {
 					ds2.Close()
 				}
@@ -40,11 +55,11 @@ func declareProviderTests(
 			})
 
 			ginkgo.It("allows re-opening a closed data-store", func() {
-				ds, err := out.Provider.Open(*ctx, "<app-key>")
+				ds, err := provider.Open(*ctx, "<app-key>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				ds.Close()
 
-				ds, err = out.Provider.Open(*ctx, "<app-key>")
+				ds, err = provider.Open(*ctx, "<app-key>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				ds.Close()
 			})

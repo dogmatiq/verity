@@ -15,17 +15,27 @@ func declareDataStoreTests(
 	out *Out,
 ) {
 	ginkgo.Describe("type DataStore (interface)", func() {
-		var dataStore persistence.DataStore
+		var (
+			provider  persistence.Provider
+			close     func()
+			dataStore persistence.DataStore
+		)
 
 		ginkgo.BeforeEach(func() {
+			provider, close = out.NewProvider()
+
 			var err error
-			dataStore, err = out.Provider.Open(*ctx, "<app-key>")
+			dataStore, err = provider.Open(*ctx, "<app-key>")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 
 		ginkgo.AfterEach(func() {
 			if dataStore != nil {
 				dataStore.Close()
+			}
+
+			if close != nil {
+				close()
 			}
 		})
 

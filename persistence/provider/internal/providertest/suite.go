@@ -21,8 +21,12 @@ type In struct {
 // Out is a container for values that are provided by the provider-specific
 // "before" function.
 type Out struct {
-	// Provider is the persistence provider under test.
-	Provider persistence.Provider
+	// NewProvider is a function that creates a new provider.
+	NewProvider func() (p persistence.Provider, close func())
+
+	// IsShared returns true if multiple instances of the same provider access
+	// the same data.
+	IsShared bool
 
 	// TestTimeout is the maximum duration allowed for each test.
 	TestTimeout time.Duration
