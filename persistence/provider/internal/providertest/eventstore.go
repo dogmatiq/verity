@@ -26,6 +26,7 @@ func declareEventStoreTests(
 
 			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1)
+			env2 = infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1)
 
 			event0 = &eventstore.Event{
 				Offset:   0,
@@ -36,6 +37,11 @@ func declareEventStoreTests(
 				Offset:   1,
 				Envelope: env1,
 			}
+
+			// event2 = &eventstore.Event{
+			// 	Offset:   2,
+			// 	Envelope: env2,
+			// }
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -50,6 +56,35 @@ func declareEventStoreTests(
 			if dataStore != nil {
 				dataStore.Close()
 			}
+		})
+
+		ginkgo.Describe("type Transaction (interface)", func() {
+			ginkgo.Describe("func SaveEvents()", func() {
+				ginkgo.It("returns the offset of the next event", func() {
+					tx, err := dataStore.Begin(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx.Rollback()
+
+					o, err := tx.SaveEvents(
+						*ctx,
+						[]*envelopespec.Envelope{
+							env0,
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(o).To(gomega.BeNumerically("==", 1))
+
+					o, err = tx.SaveEvents(
+						*ctx,
+						[]*envelopespec.Envelope{
+							env1,
+							env2,
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(o).To(gomega.BeNumerically("==", 3))
+				})
+			})
 		})
 
 		ginkgo.Describe("type Repository (interface)", func() {
@@ -133,7 +168,7 @@ func declareEventStoreTests(
 					),
 				)
 
-				ginkgo.It("does not include any events that are saved after the query is performed", func() {
+				ginkgo.It("does not return an error if events exist beyond the end offset", func() {
 					ginkgo.By("querying the events")
 
 					res, err := repository.QueryEvents(*ctx, eventstore.Query{})
@@ -163,9 +198,11 @@ func declareEventStoreTests(
 
 					ginkgo.By("iterating through the result")
 
-					_, ok, err := res.Next(*ctx)
+					// The implementation may or may not expose these newly
+					// appended events to the caller. We simply want to ensure
+					// that no error occurs.
+					_, _, err = res.Next(*ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ok).To(gomega.BeFalse())
 				})
 			})
 		})
