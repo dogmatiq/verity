@@ -2,6 +2,7 @@ package providertest
 
 import (
 	"context"
+	"time"
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/onsi/ginkgo"
@@ -65,16 +66,31 @@ func declareDataStoreTests(
 				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreClosed))
 			})
 
-			ginkgo.It("prevents transactions from being committed", func() {
-				tx, err := dataStore.Begin(*ctx)
+			ginkgo.It("blocks until all in-flight transactions are closed", func() {
+				tx1, err := dataStore.Begin(*ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer tx.Rollback()
+				defer tx1.Rollback()
+
+				tx2, err := dataStore.Begin(*ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer tx2.Rollback()
+
+				done := make(chan struct{})
+				go func() {
+					defer close(done)
+					time.Sleep(50 * time.Millisecond)
+					tx1.Commit(*ctx)
+					tx2.Rollback()
+				}()
 
 				err = dataStore.Close()
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-				err = tx.Commit(*ctx)
-				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreClosed))
+				select {
+				case <-done:
+				default:
+					ginkgo.Fail("Close() returned before the in-flight transactions were closed")
+				}
 			})
 		})
 	})

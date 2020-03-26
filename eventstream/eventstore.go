@@ -179,10 +179,14 @@ func (c *eventStoreCursor) execQuery(ctx context.Context) error {
 	}
 	defer res.Close()
 
-	for res.Next() {
-		pev, err := res.Get(ctx)
+	for {
+		pev, ok, err := res.Next(ctx)
 		if err != nil {
 			return err
+		}
+
+		if !ok {
+			break
 		}
 
 		ev := &Event{

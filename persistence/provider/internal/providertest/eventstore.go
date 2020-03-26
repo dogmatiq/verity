@@ -59,7 +59,9 @@ func declareEventStoreTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer res.Close()
 
-					gomega.Expect(res.Next()).To(gomega.BeFalse())
+					_, ok, err := res.Next(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(ok).To(gomega.BeFalse())
 				})
 
 				table.DescribeTable(
@@ -73,7 +75,7 @@ func declareEventStoreTests(
 
 						ginkgo.By("saving some events")
 
-						err = tx.SaveEvents(
+						_, err = tx.SaveEvents(
 							*ctx,
 							[]*envelopespec.Envelope{
 								env0,
@@ -98,14 +100,17 @@ func declareEventStoreTests(
 						count := len(expected)
 						index := 0
 
-						for res.Next() {
+						for {
+							ev, ok, err := res.Next(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							if !ok {
+								break
+							}
+
 							gomega.Expect(index).To(
 								gomega.BeNumerically("<", count),
 								"too many events included in the result",
 							)
-
-							ev, err := res.Get(*ctx)
-							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 							x := expected[index]
 							gomega.Expect(ev.Offset).To(gomega.Equal(x.Offset))
@@ -143,7 +148,7 @@ func declareEventStoreTests(
 
 					ginkgo.By("saving some events")
 
-					err = tx.SaveEvents(
+					_, err = tx.SaveEvents(
 						*ctx,
 						[]*envelopespec.Envelope{
 							env0, env1,
@@ -158,7 +163,9 @@ func declareEventStoreTests(
 
 					ginkgo.By("iterating through the result")
 
-					gomega.Expect(res.Next()).To(gomega.BeFalse())
+					_, ok, err := res.Next(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(ok).To(gomega.BeFalse())
 				})
 			})
 		})

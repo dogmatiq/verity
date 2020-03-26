@@ -36,14 +36,13 @@ type Query struct {
 }
 
 // Result is the result of a query to the event store.
+//
+// Results are not safe for concurrent use.
 type Result interface {
-	// Next advances to the next event in the result.
+	// Next returns the next event in the result.
 	//
 	// It returns false if the are no more events in the result.
-	Next() bool
-
-	// Next returns current event in the result.
-	Get(ctx context.Context) (*Event, error)
+	Next(ctx context.Context) (*Event, bool, error)
 
 	// Close closes the cursor.
 	Close() error
