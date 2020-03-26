@@ -28,10 +28,13 @@ type DataStore interface {
 	// started. Specifically, it causes Begin() to return ErrDataStoreClosed.
 	//
 	// The behavior of any other read or write operation on a closed data-store
-	// is undefined.
+	// is implementation-defined.
 	//
-	// If there are any transactions in progress, Close() blocks until they are
-	// committed or rolled back.
+	// It is generally expected that all transactions have ended by the time the
+	// data-store is closed.
+	//
+	// Close() may block until any in-flight transactions are ended, or may
+	// prevent any such transactions from being committed.
 	Close() error
 }
 

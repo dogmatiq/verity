@@ -21,6 +21,7 @@ type dataStore struct {
 	release func(string) error
 }
 
+// newDataStore returns a new data-store.
 func newDataStore(
 	db *database,
 	k string,

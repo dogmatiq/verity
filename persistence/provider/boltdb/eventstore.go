@@ -19,7 +19,7 @@ var (
 )
 
 // eventStoreRepository is an implementation of eventstore.Repository that
-// stores events in memory.
+// stores events in a BoltDB database.
 type eventStoreRepository struct {
 	db     *database
 	appKey []byte
@@ -37,7 +37,11 @@ func (r *eventStoreRepository) QueryEvents(
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
-			if store, ok := bboltx.TryBucket(tx, r.appKey, eventStoreBucketKey); ok {
+			if store, ok := bboltx.TryBucket(
+				tx,
+				r.appKey,
+				eventStoreBucketKey,
+			); ok {
 				end = loadNextOffset(store)
 			}
 		},
@@ -54,7 +58,7 @@ func (r *eventStoreRepository) QueryEvents(
 	}, nil
 }
 
-// eventStoreResult is an implementation of eventstore.Result for the in-memory
+// eventStoreResult is an implementation of eventstore.Result for the BoltDB
 // event store.
 type eventStoreResult struct {
 	db     *database

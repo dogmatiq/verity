@@ -66,7 +66,7 @@ func declareDataStoreTests(
 				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreClosed))
 			})
 
-			ginkgo.It("blocks until all in-flight transactions are closed", func() {
+			ginkgo.It("blocks until transactions end or causes them to fail", func() {
 				tx1, err := dataStore.Begin(*ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer tx1.Rollback()
@@ -75,21 +75,35 @@ func declareDataStoreTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer tx2.Rollback()
 
-				done := make(chan struct{})
+				errors := make(chan error, 2)
+
 				go func() {
-					defer close(done)
 					time.Sleep(50 * time.Millisecond)
-					tx1.Commit(*ctx)
-					tx2.Rollback()
+					errors <- tx1.Commit(*ctx)
+					errors <- tx2.Rollback()
 				}()
 
 				err = dataStore.Close()
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				select {
-				case <-done:
+				case err := <-errors:
+					// It appears that Close() blocks until the transactions are
+					// committed or rolled back.
+					//
+					// If the implementation blocks, we assume the intent is to
+					// allow thetransactions to finish successfully.
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					err = <-errors
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
 				default:
-					ginkgo.Fail("Close() returned before the in-flight transactions were closed")
+					// If there are no errors yet, it's appers that Close() does
+					// not block, and hence we would expect errors to occur when
+					// the transactions are ended.
+					gomega.Expect(<-errors).To(gomega.Equal(persistence.ErrDataStoreClosed))
+					gomega.Expect(<-errors).To(gomega.Equal(persistence.ErrDataStoreClosed))
 				}
 			})
 		})
