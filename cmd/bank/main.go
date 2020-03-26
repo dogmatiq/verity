@@ -57,8 +57,8 @@ func run(ctx context.Context) error {
 	}
 	appName := os.Args[1]
 
-	db := sqltest.Open("postgres")
-	defer db.Close()
+	db, _, close := sqltest.Open("postgres")
+	defer close()
 
 	// TODO: return to using SQL
 	// if err := postgres.CreateSchema(ctx, db); err != nil {

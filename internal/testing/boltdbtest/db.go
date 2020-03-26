@@ -13,7 +13,7 @@ import (
 // The returned function must be used to close the database, instead of
 // DB.Close().
 func Open() (*bbolt.DB, func()) {
-	filename, remove := TempFile()
+	filename, remove := tempFile()
 
 	db, err := bbolt.Open(filename, 0600, nil)
 	if err != nil {
@@ -26,11 +26,11 @@ func Open() (*bbolt.DB, func()) {
 	}
 }
 
-// TempFile returns the name of a temporary file to be used for a BoltDB
+// tempFile returns the name of a temporary file to be used for a BoltDB
 // database.
 //
 // It returns a function that deletes the temporary file.
-func TempFile() (string, func()) {
+func tempFile() (string, func()) {
 	f, err := ioutil.TempFile("", "*.boltdb")
 	if err != nil {
 		panic(err)
