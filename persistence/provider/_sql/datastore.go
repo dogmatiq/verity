@@ -14,8 +14,8 @@ import (
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
 type dataStore struct {
-	stream *Stream
-	closer func() error
+	stream  *Stream
+	onClose func() error
 }
 
 func newDataStore(
@@ -38,7 +38,7 @@ func newDataStore(
 				Produced.
 				FilterByRole(message.EventRole),
 		},
-		closer: c,
+		onClose: c,
 	}
 }
 
@@ -54,8 +54,8 @@ func (ds *dataStore) Begin(ctx context.Context) (persistence.Transaction, error)
 
 // Close closes the data store.
 func (ds *dataStore) Close() error {
-	if ds.closer != nil {
-		return ds.closer()
+	if ds.onClose != nil {
+		return ds.onClose()
 	}
 
 	return nil

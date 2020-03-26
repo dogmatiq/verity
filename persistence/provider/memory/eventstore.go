@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 
 	"github.com/dogmatiq/infix/persistence/eventstore"
 )
@@ -10,7 +9,7 @@ import (
 // eventStoreRepository is an implementation of eventstore.Repository that
 // stores events in memory.
 type eventStoreRepository struct {
-	ds *dataStore
+	db *database
 }
 
 // QueryEvents queries events in the repository.
@@ -18,15 +17,12 @@ func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
 	q eventstore.Query,
 ) (eventstore.Result, error) {
-	db, err := r.ds.database()
-	if err != nil {
+	if err := r.db.RLock(ctx); err != nil {
 		return nil, err
 	}
+	defer r.db.RUnlock()
 
-	db.m.RLock()
-	defer db.m.RUnlock()
-
-	end := eventstore.Offset(len(db.events))
+	end := eventstore.Offset(len(r.db.events))
 
 	if q.End == 0 || end < q.End {
 		q.End = end
@@ -34,7 +30,7 @@ func (r *eventStoreRepository) QueryEvents(
 
 	return &eventStoreResult{
 		query: q,
-		db:    db,
+		db:    r.db,
 	}, nil
 }
 
@@ -43,59 +39,52 @@ func (r *eventStoreRepository) QueryEvents(
 type eventStoreResult struct {
 	query eventstore.Query
 	db    *database
-	event *eventstore.Event
-	done  bool
 }
 
-// Next advances to the next event in the result.
+// Next returns the next event in the result.
 //
 // It returns false if the are no more events in the result.
-func (r *eventStoreResult) Next() bool {
-	r.db.m.RLock()
-	defer r.db.m.RUnlock()
+func (r *eventStoreResult) Next(ctx context.Context) (*eventstore.Event, bool, error) {
+	// Bail early without acquiring the lock if we're already at the end.
+	if r.query.Begin >= r.query.End {
+		return nil, false, nil
+	}
 
-	if !r.done {
-		filtered := len(r.query.PortableNames) > 0
+	// Lock the database for reads.
+	if err := r.db.RLock(ctx); err != nil {
+		return nil, false, err
+	}
+	defer r.db.RUnlock()
 
-		for r.query.Begin < r.query.End {
-			ev := r.db.events[int(r.query.Begin)]
-			r.query.Begin++
+	filtered := len(r.query.PortableNames) > 0
 
-			if filtered {
-				if _, ok := r.query.PortableNames[ev.Envelope.PortableName]; !ok {
-					continue
-				}
-			}
-
-			r.event = &ev
-
-			return true
+	// Loop through the events in the store as per the query range.
+	for r.query.Begin < r.query.End {
+		// Bail if we're taking too long.
+		if ctx.Err() != nil {
+			return nil, false, ctx.Err()
 		}
+
+		ev := r.db.events[int(r.query.Begin)]
+		r.query.Begin++
+
+		// Skip over anything that doesn't match the type filter.
+		if filtered {
+			if _, ok := r.query.PortableNames[ev.Envelope.PortableName]; !ok {
+				continue
+			}
+		}
+
+		// We found a match.
+		return &ev, true, nil
 	}
 
-	r.Close()
-
-	return false
-}
-
-// Next returns current event in the result.
-func (r *eventStoreResult) Get(ctx context.Context) (*eventstore.Event, error) {
-	if r.done {
-		return nil, errors.New("no more results")
-	}
-
-	if r.event == nil {
-		panic("Next() must be called before calling Get()")
-	}
-
-	return r.event, nil
+	// We've reached the end, there are no more events.
+	return nil, false, nil
 }
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	r.db = nil
-	r.event = nil
-	r.done = true
-
+	r.query.Begin = r.query.End
 	return nil
 }

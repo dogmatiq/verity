@@ -2,90 +2,103 @@ package boltdb
 
 import (
 	"context"
-	"sync"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/eventstore"
 	"go.etcd.io/bbolt"
 )
 
 // transaction is an implementation of persistence.Transaction for BoltDB
 // data stores.
 type transaction struct {
-	m      sync.Mutex
-	tx     *bbolt.Tx
-	bucket *bbolt.Bucket
-	remove func()
+	db      *database
+	appKey  []byte
+	actual  *bbolt.Tx
+	release func()
 }
 
 // SaveEvents persists events in the application's event store.
+//
+// It returns the next free offset in the store.
 func (t *transaction) SaveEvents(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
-) (err error) {
+) (_ eventstore.Offset, err error) {
 	defer bboltx.Recover(&err)
 
-	b := bboltx.CreateBucketIfNotExists(t.bucket, eventStoreBucketKey)
+	t.begin(ctx)
 
-	o := loadNextOffset(b)
-	o = saveEvents(b, o, envelopes)
-	storeNextOffset(b, o)
+	store := bboltx.CreateBucketIfNotExists(
+		t.actual,
+		t.appKey,
+		eventStoreBucketKey,
+	)
 
-	return nil
+	events := bboltx.CreateBucketIfNotExists(
+		store,
+		eventsBucketKey,
+	)
+
+	o := loadNextOffset(store)
+	o = saveEvents(events, o, envelopes)
+	storeNextOffset(store, o)
+
+	return o, nil
 }
 
 // Commit applies the changes from the transaction.
-func (t *transaction) Commit(ctx context.Context) error {
-	t.m.Lock()
-	defer t.m.Unlock()
+func (t *transaction) Commit(ctx context.Context) (err error) {
+	defer bboltx.Recover(&err)
 
-	if t.tx == nil {
-		return persistence.ErrDataStoreClosed
+	if t.actual != nil {
+		err = t.actual.Commit()
 	}
 
-	err := t.tx.Commit()
-
-	t.remove()
-
-	if err == bbolt.ErrTxClosed {
-		err = persistence.ErrTransactionClosed
-	}
+	t.end()
 
 	return err
 }
 
 // Rollback aborts the transaction.
-func (t *transaction) Rollback() error {
-	t.m.Lock()
-	defer t.m.Unlock()
+func (t *transaction) Rollback() (err error) {
+	defer bboltx.Recover(&err)
 
-	if t.tx == nil {
-		return persistence.ErrDataStoreClosed
+	if t.actual != nil {
+		err = t.actual.Rollback()
 	}
 
-	err := t.tx.Rollback()
-
-	t.remove()
-
-	if err == bbolt.ErrTxClosed {
-		err = persistence.ErrTransactionClosed
-	}
+	t.end()
 
 	return err
 }
 
-// forceClose is called when the transaction's data-store is closed.
-func (t *transaction) forceClose() error {
-	t.m.Lock()
-	defer t.m.Unlock()
-
-	if t.tx == nil {
-		return nil
+// begin starts the actual BoltDB transaction.
+func (t *transaction) begin(ctx context.Context) {
+	if t.release == nil {
+		bboltx.Must(persistence.ErrTransactionClosed)
 	}
 
-	tx := t.tx
-	t.tx = nil
+	if t.actual == nil {
+		t.actual = t.db.Begin(ctx)
+	}
+}
 
-	return tx.Rollback()
+// end releases the database lock, if held, and notifies the data-store that the
+// transaction has ended.
+func (t *transaction) end() {
+	if t.release == nil {
+		bboltx.Must(persistence.ErrTransactionClosed)
+	}
+
+	if t.actual != nil {
+		t.db.End()
+		t.actual = nil
+	}
+
+	fn := t.release
+	t.release = nil
+
+	fn()
 }

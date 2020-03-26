@@ -11,13 +11,25 @@ import (
 // dataStore is an implementation of persistence.DataStore for the in-memory
 // persistence provider.
 type dataStore struct {
-	m  sync.RWMutex
 	db *database
+
+	m      sync.RWMutex
+	txns   int
+	closed bool
+	done   chan struct{}
+}
+
+// newDataStore returns a new data-store.
+func newDataStore(db *database) *dataStore {
+	return &dataStore{
+		db:   db,
+		done: make(chan struct{}),
+	}
 }
 
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return &eventStoreRepository{ds}
+	return &eventStoreRepository{ds.db}
 }
 
 // Begin starts a new transaction.
@@ -25,45 +37,69 @@ func (ds *dataStore) Begin(ctx context.Context) (persistence.Transaction, error)
 	ds.m.Lock()
 	defer ds.m.Unlock()
 
-	if ds.db == nil {
+	if ds.closed {
 		return nil, persistence.ErrDataStoreClosed
 	}
 
-	return &transaction{ds: ds}, nil
+	ds.txns++
+
+	return &transaction{
+		db:      ds.db,
+		release: ds.releaseTx,
+	}, nil
 }
 
 // Close closes the data store.
 //
-// Closing a data-store prevents any writes to the data-store. Specifically,
-// Transaction.Commit() will return ErrDataStoreClosed if the transaction's
-// underlying data-store has been closed.
+// Closing a data-store immediately prevents new transactions from being
+// started. Specifically, it causes Begin() to return ErrDataStoreClosed.
 //
-// The behavior of any other persistence operation on a closed data-store is
-// undefined.
+// The behavior of any other read or write operation on a closed data-store
+// is undefined.
+//
+// If there are any transactions in progress, Close() blocks until they are
+// committed or rolled back.
 func (ds *dataStore) Close() error {
-	ds.m.Lock()
-	defer ds.m.Unlock()
-
-	if ds.db == nil {
-		return persistence.ErrDataStoreClosed
+	if err := ds.close(); err != nil {
+		return err
 	}
 
-	ds.db.Close()
-	ds.db = nil
+	<-ds.done
 
 	return nil
 }
 
-// db returns the application's database.
-//
-// It returns an error if the data-store is closed.
-func (ds *dataStore) database() (*database, error) {
-	ds.m.RLock()
-	defer ds.m.RUnlock()
+// close marks the data-store as closed, and closes the done channel if there
+// are no pending transactions.
+func (ds *dataStore) close() error {
+	ds.m.Lock()
+	defer ds.m.Unlock()
 
-	if ds.db == nil {
-		return nil, persistence.ErrDataStoreClosed
+	if ds.closed {
+		return persistence.ErrDataStoreClosed
 	}
 
-	return ds.db, nil
+	ds.closed = true
+	ds.checkIfDone()
+
+	return nil
+}
+
+// releaseTx decrements the transaction count and checks if the data-store is
+// done.
+func (ds *dataStore) releaseTx() {
+	ds.m.Lock()
+	defer ds.m.Unlock()
+
+	ds.txns--
+	ds.checkIfDone()
+}
+
+// checkIfDone closes the database and the done channel if the data-store is
+// closed and there are no remaining transactions.
+func (ds *dataStore) checkIfDone() {
+	if ds.closed && ds.txns == 0 {
+		ds.db.Close()
+		close(ds.done)
+	}
 }

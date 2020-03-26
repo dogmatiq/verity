@@ -3,7 +3,6 @@ package boltdb
 import (
 	"context"
 	"encoding/binary"
-	"errors"
 	"fmt"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -15,14 +14,14 @@ import (
 
 var (
 	eventStoreBucketKey = []byte("eventstore")
+	eventsBucketKey     = []byte("events")
 	offsetKey           = []byte("offset")
-	eventsKey           = []byte("events")
 )
 
 // eventStoreRepository is an implementation of eventstore.Repository that
 // stores events in memory.
 type eventStoreRepository struct {
-	db     *bbolt.DB
+	db     *database
 	appKey []byte
 }
 
@@ -33,74 +32,94 @@ func (r *eventStoreRepository) QueryEvents(
 ) (_ eventstore.Result, err error) {
 	defer bboltx.Recover(&err)
 
-	tx := bboltx.BeginRead(r.db)
-	defer tx.Rollback()
-
 	var end eventstore.Offset
-	if b, ok := bboltx.TryBucket(tx, r.appKey, eventStoreBucketKey); ok {
-		end = loadNextOffset(b)
-	}
+
+	r.db.View(
+		ctx,
+		func(tx *bbolt.Tx) {
+			if store, ok := bboltx.TryBucket(tx, r.appKey, eventStoreBucketKey); ok {
+				end = loadNextOffset(store)
+			}
+		},
+	)
 
 	if q.End == 0 || end < q.End {
 		q.End = end
 	}
 
 	return &eventStoreResult{
-		query:  q,
 		db:     r.db,
 		appKey: r.appKey,
+		query:  q,
 	}, nil
 }
 
 // eventStoreResult is an implementation of eventstore.Result for the in-memory
 // event store.
 type eventStoreResult struct {
-	query   eventstore.Query
-	started bool
-	db      *bbolt.DB
-	appKey  []byte
+	db     *database
+	appKey []byte
+	query  eventstore.Query
 }
 
-// Next advances to the next event in the result.
+// Next returns the next event in the result.
 //
 // It returns false if the are no more events in the result.
-func (r *eventStoreResult) Next() bool {
-	if r.query.Begin < r.query.End {
-		r.started = true
-		r.query.Begin++
-
-		return true
-	}
-
-	return false
-}
-
-// Next returns current event in the result.
-func (r *eventStoreResult) Get(ctx context.Context) (_ *eventstore.Event, err error) {
+func (r *eventStoreResult) Next(
+	ctx context.Context,
+) (ev *eventstore.Event, ok bool, err error) {
 	defer bboltx.Recover(&err)
 
-	if !r.started {
-		panic("Next() must be called before calling Get()")
+	// Bail early without acquiring the lock if we're already at the end.
+	if r.query.Begin >= r.query.End {
+		return nil, false, nil
 	}
 
-	if r.query.Begin > r.query.End {
-		return nil, errors.New("no more results")
-	}
+	filtered := len(r.query.PortableNames) > 0
 
-	tx := bboltx.BeginRead(r.db)
-	defer tx.Rollback()
+	// Execute a read-only transaction.
+	r.db.View(
+		ctx,
+		func(tx *bbolt.Tx) {
+			events := bboltx.Bucket(
+				tx,
+				r.appKey,
+				eventStoreBucketKey,
+				eventsBucketKey,
+			)
 
-	return loadEvent(
-		bboltx.Bucket(tx, r.appKey, eventStoreBucketKey),
-		r.query.Begin-1,
-	), nil
+			// Loop through the events in the store as per the query range.
+			for r.query.Begin < r.query.End {
+				// Bail if we're taking too long.
+				bboltx.Must(ctx.Err())
+
+				ev = loadEvent(events, r.query.Begin)
+				r.query.Begin++
+
+				// Skip over anything that doesn't match the type filter.
+				//
+				// TODO: improve filtering performance by using an "index
+				// bucket" to search by portable type name, aggregate instance,
+				// etc.
+				if filtered {
+					if _, ok := r.query.PortableNames[ev.Envelope.PortableName]; !ok {
+						continue
+					}
+				}
+
+				// We found a match.
+				ok = true
+				return
+			}
+		},
+	)
+
+	return ev, ok, nil
 }
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
 	r.query.Begin = r.query.End
-	r.db = nil
-
 	return nil
 }
 
@@ -144,7 +163,7 @@ func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
 // loadEvent loads an event at a specific offset.
 func loadEvent(b *bbolt.Bucket, o eventstore.Offset) *eventstore.Event {
 	k := marshalOffset(o)
-	v := b.Bucket(eventsKey).Get(k)
+	v := b.Get(k)
 
 	var env envelopespec.Envelope
 	bboltx.Must(proto.Unmarshal(v, &env))
@@ -161,14 +180,12 @@ func saveEvents(
 	o eventstore.Offset,
 	envelopes []*envelopespec.Envelope,
 ) eventstore.Offset {
-	events := bboltx.CreateBucketIfNotExists(b, eventsKey)
-
 	for _, env := range envelopes {
 		k := marshalOffset(o)
 		v, err := proto.Marshal(env)
 		bboltx.Must(err)
 
-		bboltx.Put(events, k, v)
+		bboltx.Put(b, k, v)
 		o++
 	}
 

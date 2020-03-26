@@ -31,12 +31,12 @@ func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, e
 	db, ok := p.databases[k]
 
 	if !ok {
-		db = &database{}
+		db = newDatabase()
 		p.databases[k] = db
 	}
 
 	if db.TryOpen() {
-		return &dataStore{db: db}, nil
+		return newDataStore(db), nil
 	}
 
 	return nil, persistence.ErrDataStoreLocked
