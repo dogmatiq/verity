@@ -72,9 +72,7 @@ func (ds *dataStore) Close() error {
 	r := ds.release
 	ds.release = nil
 
-	r(ds.appKey)
-
-	return nil
+	return r(ds.appKey)
 }
 
 // checkOpen returns an error if the data-store is closed.
