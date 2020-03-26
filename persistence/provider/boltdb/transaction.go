@@ -3,10 +3,8 @@ package boltdb
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/eventstore"
 	"go.etcd.io/bbolt"
 )
 
@@ -18,41 +16,10 @@ type transaction struct {
 	actual *bbolt.Tx
 }
 
-// SaveEvents persists events in the application's event store.
-//
-// It returns the next free offset in the store.
-func (t *transaction) SaveEvents(
-	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
-) (_ eventstore.Offset, err error) {
-	defer bboltx.Recover(&err)
-
-	if err := t.lock(ctx); err != nil {
-		return 0, err
-	}
-
-	store := bboltx.CreateBucketIfNotExists(
-		t.actual,
-		t.appKey,
-		eventStoreBucketKey,
-	)
-
-	events := bboltx.CreateBucketIfNotExists(
-		store,
-		eventsBucketKey,
-	)
-
-	o := loadNextOffset(store)
-	o = saveEvents(events, o, envelopes)
-	storeNextOffset(store, o)
-
-	return o, nil
-}
-
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(ctx context.Context) (err error) {
 	defer bboltx.Recover(&err)
-	defer t.unlock()
+	defer t.end()
 
 	if t.ds == nil {
 		return persistence.ErrTransactionClosed
@@ -72,7 +39,7 @@ func (t *transaction) Commit(ctx context.Context) (err error) {
 // Rollback aborts the transaction.
 func (t *transaction) Rollback() (err error) {
 	defer bboltx.Recover(&err)
-	defer t.unlock()
+	defer t.end()
 
 	if t.ds == nil {
 		return persistence.ErrTransactionClosed
@@ -89,9 +56,9 @@ func (t *transaction) Rollback() (err error) {
 	return nil
 }
 
-// lock acquires a write-lock on the database and begins an actual BoltDB
+// begin acquires a write-lock on the database and begins an actual BoltDB
 // transaction.
-func (t *transaction) lock(ctx context.Context) error {
+func (t *transaction) begin(ctx context.Context) error {
 	if t.ds.db == nil {
 		return persistence.ErrTransactionClosed
 	}
@@ -107,9 +74,9 @@ func (t *transaction) lock(ctx context.Context) error {
 	return nil
 }
 
-// unlock releases the database lock if it has been acquired, and marks the
-// transaction as ended.
-func (t *transaction) unlock() {
+// end rolls-back the actual transaction, releases the database lock, and marks
+// the transaction as ended.
+func (t *transaction) end() {
 	if t.actual != nil {
 		t.actual.Rollback()
 		t.ds.db.End()

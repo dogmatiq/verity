@@ -3,8 +3,30 @@ package memory
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/eventstore"
 )
+
+// SaveEvents persists events in the application's event store.
+//
+// It returns the next free offset in the store.
+func (t *transaction) SaveEvents(
+	ctx context.Context,
+	envelopes []*envelopespec.Envelope,
+) (eventstore.Offset, error) {
+	if err := t.begin(ctx); err != nil {
+		return 0, err
+	}
+
+	t.uncommitted.events = append(
+		t.uncommitted.events,
+		envelopes...,
+	)
+
+	return eventstore.Offset(
+		len(t.ds.db.events) + len(t.uncommitted.events),
+	), nil
+}
 
 // eventStoreRepository is an implementation of eventstore.Repository that
 // stores events in memory.

@@ -12,11 +12,36 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-var (
-	eventStoreBucketKey = []byte("eventstore")
-	eventsBucketKey     = []byte("events")
-	offsetKey           = []byte("offset")
-)
+// SaveEvents persists events in the application's event store.
+//
+// It returns the next free offset in the store.
+func (t *transaction) SaveEvents(
+	ctx context.Context,
+	envelopes []*envelopespec.Envelope,
+) (_ eventstore.Offset, err error) {
+	defer bboltx.Recover(&err)
+
+	if err := t.begin(ctx); err != nil {
+		return 0, err
+	}
+
+	store := bboltx.CreateBucketIfNotExists(
+		t.actual,
+		t.appKey,
+		eventStoreBucketKey,
+	)
+
+	events := bboltx.CreateBucketIfNotExists(
+		store,
+		eventsBucketKey,
+	)
+
+	o := loadNextOffset(store)
+	o = saveEvents(events, o, envelopes)
+	storeNextOffset(store, o)
+
+	return o, nil
+}
 
 // eventStoreRepository is an implementation of eventstore.Repository that
 // stores events in a BoltDB database.
@@ -126,6 +151,12 @@ func (r *eventStoreResult) Close() error {
 	r.query.Begin = r.query.End
 	return nil
 }
+
+var (
+	eventStoreBucketKey = []byte("eventstore")
+	eventsBucketKey     = []byte("events")
+	offsetKey           = []byte("offset")
+)
 
 // marshalOffset marshals a stream offset to its binary representation.
 func marshalOffset(offset eventstore.Offset) []byte {

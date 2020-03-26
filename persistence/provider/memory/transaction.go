@@ -19,30 +19,9 @@ type transaction struct {
 	}
 }
 
-// SaveEvents persists events in the application's event store.
-//
-// It returns the next free offset in the store.
-func (t *transaction) SaveEvents(
-	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
-) (eventstore.Offset, error) {
-	if err := t.lock(ctx); err != nil {
-		return 0, err
-	}
-
-	t.uncommitted.events = append(
-		t.uncommitted.events,
-		envelopes...,
-	)
-
-	return eventstore.Offset(
-		len(t.ds.db.events) + len(t.uncommitted.events),
-	), nil
-}
-
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(ctx context.Context) error {
-	defer t.unlock()
+	defer t.end()
 
 	if t.ds == nil {
 		return persistence.ErrTransactionClosed
@@ -77,7 +56,7 @@ func (t *transaction) Commit(ctx context.Context) error {
 
 // Rollback aborts the transaction.
 func (t *transaction) Rollback() error {
-	defer t.unlock()
+	defer t.end()
 
 	if t.ds == nil {
 		return persistence.ErrTransactionClosed
@@ -86,8 +65,8 @@ func (t *transaction) Rollback() error {
 	return t.ds.checkOpen()
 }
 
-// lock acquires a write-lock on the database.
-func (t *transaction) lock(ctx context.Context) error {
+// begin acquires a write-lock on the database.
+func (t *transaction) begin(ctx context.Context) error {
 	if t.ds == nil {
 		return persistence.ErrTransactionClosed
 	}
@@ -109,9 +88,8 @@ func (t *transaction) lock(ctx context.Context) error {
 	return nil
 }
 
-// unlock releases the database lock if it has been acquired, and marks the
-// transaction as ended.
-func (t *transaction) unlock() {
+// end releases the database lock and marks the transaction as ended.
+func (t *transaction) end() {
 	if t.hasLock {
 		t.ds.db.Unlock()
 		t.hasLock = false
