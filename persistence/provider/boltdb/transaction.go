@@ -3,7 +3,6 @@ package boltdb
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"go.etcd.io/bbolt"
 )
@@ -17,8 +16,7 @@ type transaction struct {
 }
 
 // Commit applies the changes from the transaction.
-func (t *transaction) Commit(ctx context.Context) (err error) {
-	defer bboltx.Recover(&err)
+func (t *transaction) Commit(ctx context.Context) error {
 	defer t.end()
 
 	if t.ds == nil {
@@ -30,7 +28,7 @@ func (t *transaction) Commit(ctx context.Context) (err error) {
 	}
 
 	if t.actual != nil {
-		bboltx.Commit(t.actual)
+		return t.actual.Commit()
 	}
 
 	return nil
@@ -38,7 +36,6 @@ func (t *transaction) Commit(ctx context.Context) (err error) {
 
 // Rollback aborts the transaction.
 func (t *transaction) Rollback() (err error) {
-	defer bboltx.Recover(&err)
 	defer t.end()
 
 	if t.ds == nil {
