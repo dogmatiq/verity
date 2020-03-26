@@ -18,8 +18,6 @@ type transaction struct {
 }
 
 // SaveEvents persists events in the application's event store.
-//
-// It returns the next unused on the stream.
 func (t *transaction) SaveEvents(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,

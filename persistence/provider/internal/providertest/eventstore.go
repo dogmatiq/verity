@@ -8,6 +8,7 @@ import (
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/golang/protobuf/proto"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -105,7 +106,12 @@ func declareEventStoreTests(
 
 							ev, err := res.Get(*ctx)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-							gomega.Expect(ev).To(gomega.Equal(expected[index]))
+
+							x := expected[index]
+							gomega.Expect(ev.Offset).To(gomega.Equal(x.Offset))
+							if !proto.Equal(ev.Envelope, x.Envelope) {
+								gomega.Expect(ev.Envelope).To(gomega.Equal(x.Envelope))
+							}
 
 							index++
 						}

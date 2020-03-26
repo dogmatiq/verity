@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"go.etcd.io/bbolt"
@@ -20,18 +20,16 @@ type transaction struct {
 }
 
 // SaveEvents persists events in the application's event store.
-//
-// It returns the next unused on the stream.
 func (t *transaction) SaveEvents(
 	ctx context.Context,
-	envelopes ...*envelope.Envelope,
+	envelopes []*envelopespec.Envelope,
 ) (err error) {
 	defer bboltx.Recover(&err)
 
 	b := bboltx.CreateBucketIfNotExists(t.bucket, eventStoreBucketKey)
 
 	o := loadNextOffset(b)
-	o = appendEvents(b, o, envelopes)
+	o = saveEvents(b, o, envelopes)
 	storeNextOffset(b, o)
 
 	return nil

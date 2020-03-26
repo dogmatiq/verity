@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/eventstore"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
 
@@ -33,10 +33,6 @@ func (r *eventStoreRepository) QueryEvents(
 ) (_ eventstore.Result, err error) {
 	defer bboltx.Recover(&err)
 
-	if q.Types != nil && q.Types.Len() == 0 {
-		panic("q.Types must be nil or otherwise contain at least one event type")
-	}
-
 	tx := bboltx.BeginRead(r.db)
 	defer tx.Rollback()
 
@@ -59,11 +55,10 @@ func (r *eventStoreRepository) QueryEvents(
 // eventStoreResult is an implementation of eventstore.Result for the in-memory
 // event store.
 type eventStoreResult struct {
-	query  eventstore.Query
-	db     *bbolt.DB
-	appKey []byte
-	// event  *eventstore.Event
-	// done   bool
+	query   eventstore.Query
+	started bool
+	db      *bbolt.DB
+	appKey  []byte
 }
 
 // Next advances to the next event in the result.
@@ -71,7 +66,9 @@ type eventStoreResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventStoreResult) Next() bool {
 	if r.query.Begin < r.query.End {
+		r.started = true
 		r.query.Begin++
+
 		return true
 	}
 
@@ -82,6 +79,10 @@ func (r *eventStoreResult) Next() bool {
 func (r *eventStoreResult) Get(ctx context.Context) (_ *eventstore.Event, err error) {
 	defer bboltx.Recover(&err)
 
+	if !r.started {
+		panic("Next() must be called before calling Get()")
+	}
+
 	if r.query.Begin > r.query.End {
 		return nil, errors.New("no more results")
 	}
@@ -89,27 +90,16 @@ func (r *eventStoreResult) Get(ctx context.Context) (_ *eventstore.Event, err er
 	tx := bboltx.BeginRead(r.db)
 	defer tx.Rollback()
 
-	b := bboltx.XBucket(tx, r.appKey, eventStoreBucketKey)
-
-	o := r.query.Begin - 1
-
-	return nil, errors.New("not implemented")
-	// if r.done {
-	// 	return nil, errors.New("no more results")
-	// }
-
-	// if r.event == nil {
-	// 	panic("Next() must be called before calling Get()")
-	// }
-
-	// return r.event, nil
+	return loadEvent(
+		bboltx.Bucket(tx, r.appKey, eventStoreBucketKey),
+		r.query.Begin-1,
+	), nil
 }
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	// r.db = nil
-	// r.event = nil
-	// r.done = true
+	r.query.Begin = r.query.End
+	r.db = nil
 
 	return nil
 }
@@ -152,34 +142,35 @@ func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
 }
 
 // loadEvent loads an event at a specific offset.
-func loadEvent(
-	m marshalkit.ValueMarshaler,
-	b *bbolt.Bucket,
-	offset eventstore.Offset,
-) *eventstore.Event {
-	k := marshalOffset(offset)
+func loadEvent(b *bbolt.Bucket, o eventstore.Offset) *eventstore.Event {
+	k := marshalOffset(o)
 	v := b.Bucket(eventsKey).Get(k)
 
-	var env envelope.Envelope
-	bboltx.Must(envelope.UnmarshalBinary(m, v, &env))
+	var env envelopespec.Envelope
+	bboltx.Must(proto.Unmarshal(v, &env))
 
-	return &env
+	return &eventstore.Event{
+		Offset:   o,
+		Envelope: &env,
+	}
 }
 
-// appendEvents writes events to the database.
-func appendEvents(
+// saveEvents writes events to the database.
+func saveEvents(
 	b *bbolt.Bucket,
-	next eventstore.Offset,
-	envelopes []*envelope.Envelope,
+	o eventstore.Offset,
+	envelopes []*envelopespec.Envelope,
 ) eventstore.Offset {
 	events := bboltx.CreateBucketIfNotExists(b, eventsKey)
 
 	for _, env := range envelopes {
-		k := marshalOffset(next)
-		v := envelope.MustMarshalBinary(env)
+		k := marshalOffset(o)
+		v, err := proto.Marshal(env)
+		bboltx.Must(err)
+
 		bboltx.Put(events, k, v)
-		next++
+		o++
 	}
 
-	return next
+	return o
 }
