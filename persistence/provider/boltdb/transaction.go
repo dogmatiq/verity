@@ -13,10 +13,9 @@ import (
 // transaction is an implementation of persistence.Transaction for BoltDB
 // data stores.
 type transaction struct {
-	db      *database
-	appKey  []byte
-	actual  *bbolt.Tx
-	release func()
+	ds     *dataStore
+	appKey []byte
+	actual *bbolt.Tx
 }
 
 // SaveEvents persists events in the application's event store.
@@ -28,7 +27,9 @@ func (t *transaction) SaveEvents(
 ) (_ eventstore.Offset, err error) {
 	defer bboltx.Recover(&err)
 
-	t.begin(ctx)
+	if err := t.lock(ctx); err != nil {
+		return 0, err
+	}
 
 	store := bboltx.CreateBucketIfNotExists(
 		t.actual,
@@ -51,54 +52,69 @@ func (t *transaction) SaveEvents(
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(ctx context.Context) (err error) {
 	defer bboltx.Recover(&err)
+	defer t.unlock()
 
-	if t.actual != nil {
-		err = t.actual.Commit()
+	if t.ds == nil {
+		return persistence.ErrTransactionClosed
 	}
 
-	t.end()
+	if err := t.ds.checkOpen(); err != nil {
+		return err
+	}
 
-	return err
+	if t.actual != nil {
+		bboltx.Commit(t.actual)
+	}
+
+	return nil
 }
 
 // Rollback aborts the transaction.
 func (t *transaction) Rollback() (err error) {
 	defer bboltx.Recover(&err)
+	defer t.unlock()
 
-	if t.actual != nil {
-		err = t.actual.Rollback()
+	if t.ds == nil {
+		return persistence.ErrTransactionClosed
 	}
 
-	t.end()
+	if err := t.ds.checkOpen(); err != nil {
+		return err
+	}
 
-	return err
+	if t.actual != nil {
+		return t.actual.Rollback()
+	}
+
+	return nil
 }
 
-// begin starts the actual BoltDB transaction.
-func (t *transaction) begin(ctx context.Context) {
-	if t.release == nil {
-		bboltx.Must(persistence.ErrTransactionClosed)
+// lock acquires a write-lock on the database and begins an actual BoltDB
+// transaction.
+func (t *transaction) lock(ctx context.Context) error {
+	if t.ds.db == nil {
+		return persistence.ErrTransactionClosed
+	}
+
+	if err := t.ds.checkOpen(); err != nil {
+		return err
 	}
 
 	if t.actual == nil {
-		t.actual = t.db.Begin(ctx)
+		t.actual = t.ds.db.Begin(ctx)
 	}
+
+	return nil
 }
 
-// end releases the database lock, if held, and notifies the data-store that the
-// transaction has ended.
-func (t *transaction) end() {
-	if t.release == nil {
-		bboltx.Must(persistence.ErrTransactionClosed)
-	}
-
+// unlock releases the database lock if it has been acquired, and marks the
+// transaction as ended.
+func (t *transaction) unlock() {
 	if t.actual != nil {
-		t.db.End()
+		t.actual.Rollback()
+		t.ds.db.End()
 		t.actual = nil
 	}
 
-	fn := t.release
-	t.release = nil
-
-	fn()
+	t.ds = nil
 }
