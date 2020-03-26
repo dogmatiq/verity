@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/eventstore"
 )
 
@@ -50,8 +49,6 @@ func (t *transaction) SaveEvents(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
 ) (_ eventstore.Offset, err error) {
-	defer sqlx.Recover(&err)
-
 	if err := t.begin(ctx); err != nil {
 		return 0, err
 	}

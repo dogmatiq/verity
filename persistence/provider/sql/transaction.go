@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -54,11 +53,13 @@ func (t *transaction) Rollback() error {
 }
 
 func (t *transaction) begin(ctx context.Context) error {
+	var err error
+
 	if t.actual == nil {
-		t.actual = sqlx.Begin(ctx, t.ds.db)
+		t.actual, err = t.ds.db.BeginTx(ctx, nil)
 	}
 
-	return nil
+	return err
 }
 
 // end rolls-back the actual transaction and marks the transaction as ended.
