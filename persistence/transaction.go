@@ -12,6 +12,8 @@ import (
 var ErrTransactionClosed = errors.New("transaction already committed or rolled-back")
 
 // Transaction exposes persistence operations that can be performed atomically.
+//
+// Transactions are not safe for concurrent use.
 type Transaction interface {
 	eventstore.Transaction
 

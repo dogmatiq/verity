@@ -24,15 +24,14 @@ type DataStore interface {
 
 	// Close closes the data store.
 	//
-	// TODO: change this to behave the same as BoltDB, don't allow closing while
-	// there are open transactions.
+	// Closing a data-store immediately prevents new transactions from being
+	// started. Specifically, it causes Begin() to return ErrDataStoreClosed.
 	//
-	// Closing a data-store prevents any writes to the data-store. Specifically,
-	// DataStore.Begin() and Transaction.Commit() will return ErrDataStoreClosed
-	// if the transaction's underlying data-store has been closed.
+	// The behavior of any other read or write operation on a closed data-store
+	// is undefined.
 	//
-	// The behavior of any other persistence operation on a closed data-store is
-	// undefined.
+	// If there are any transactions in progress, Close() blocks until they are
+	// committed or rolled back.
 	Close() error
 }
 
