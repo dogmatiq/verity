@@ -13,9 +13,9 @@ import (
 // The transaction type acquires a lock on the database before starting the
 // underlying BoltDB transaction.
 type database struct {
-	m       syncx.RWMutex
-	_actual *bbolt.DB
-	close   func(*bbolt.DB) error
+	m      syncx.RWMutex
+	actual *bbolt.DB
+	close  func(*bbolt.DB) error
 }
 
 // newDatabase returns a new empty database.
@@ -24,8 +24,8 @@ func newDatabase(
 	c func(*bbolt.DB) error,
 ) *database {
 	return &database{
-		_actual: db,
-		close:   c,
+		actual: db,
+		close:  c,
 	}
 }
 
@@ -34,7 +34,7 @@ func (db *database) Begin(ctx context.Context) *bbolt.Tx {
 	err := db.m.Lock(ctx)
 	bboltx.Must(err)
 
-	tx, err := db._actual.Begin(true)
+	tx, err := db.actual.Begin(true)
 	if err != nil {
 		db.m.Unlock()
 		bboltx.Must(err)
@@ -58,7 +58,7 @@ func (db *database) View(
 	defer db.m.RUnlock()
 
 	bboltx.Must(
-		db._actual.View(
+		db.actual.View(
 			func(tx *bbolt.Tx) (err error) {
 				defer bboltx.Recover(&err)
 				fn(tx)
@@ -70,5 +70,5 @@ func (db *database) View(
 
 // Close closes the database.
 func (db *database) Close() error {
-	return db.close(db._actual)
+	return db.close(db.actual)
 }
