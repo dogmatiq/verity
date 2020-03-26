@@ -3,18 +3,16 @@ package memory
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/persistence"
-
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/eventstore"
 )
 
 // transaction is an implementation of persistence.Transaction for in-memory
 // data stores.
 type transaction struct {
-	db      *database
-	begun   bool
-	release func()
+	ds      *dataStore
+	hasLock bool
 
 	uncommitted struct {
 		events []*envelopespec.Envelope
@@ -28,7 +26,7 @@ func (t *transaction) SaveEvents(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
 ) (eventstore.Offset, error) {
-	if err := t.begin(ctx); err != nil {
+	if err := t.lock(ctx); err != nil {
 		return 0, err
 	}
 
@@ -38,73 +36,86 @@ func (t *transaction) SaveEvents(
 	)
 
 	return eventstore.Offset(
-		len(t.db.events) + len(t.uncommitted.events),
+		len(t.ds.db.events) + len(t.uncommitted.events),
 	), nil
 }
 
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(ctx context.Context) error {
-	if t.begun {
-		next := eventstore.Offset(
-			len(t.db.events),
-		)
+	defer t.unlock()
 
-		for _, env := range t.uncommitted.events {
-			t.db.events = append(
-				t.db.events,
-				eventstore.Event{
-					Offset:   next,
-					Envelope: env,
-				},
-			)
-
-			next++
-		}
+	if t.ds == nil {
+		return persistence.ErrTransactionClosed
 	}
 
-	return t.end()
+	if err := t.ds.checkOpen(); err != nil {
+		return err
+	}
+
+	if !t.hasLock {
+		return nil
+	}
+
+	next := eventstore.Offset(
+		len(t.ds.db.events),
+	)
+
+	for _, env := range t.uncommitted.events {
+		t.ds.db.events = append(
+			t.ds.db.events,
+			eventstore.Event{
+				Offset:   next,
+				Envelope: env,
+			},
+		)
+
+		next++
+	}
+
+	return nil
 }
 
 // Rollback aborts the transaction.
 func (t *transaction) Rollback() error {
-	return t.end()
-}
+	defer t.unlock()
 
-// begin starts the transaction by acquiring a write-lock on the database.
-func (t *transaction) begin(ctx context.Context) error {
-	if t.release == nil {
+	if t.ds == nil {
 		return persistence.ErrTransactionClosed
 	}
 
-	if t.begun {
-		return nil
+	return t.ds.checkOpen()
+}
+
+// lock acquires a write-lock on the database.
+func (t *transaction) lock(ctx context.Context) error {
+	if t.ds == nil {
+		return persistence.ErrTransactionClosed
 	}
 
-	if err := t.db.Lock(ctx); err != nil {
+	if err := t.ds.checkOpen(); err != nil {
 		return err
 	}
 
-	t.begun = true
+	if t.hasLock {
+		return nil
+	}
+
+	if err := t.ds.db.Lock(ctx); err != nil {
+		return err
+	}
+
+	t.hasLock = true
 
 	return nil
 }
 
-// end releases the database lock, if held, and notifies the data-store that the
-// transaction has ended.
-func (t *transaction) end() error {
-	if t.release == nil {
-		return persistence.ErrTransactionClosed
+// unlock releases the database lock if it has been acquired, and marks the
+// transaction as ended.
+func (t *transaction) unlock() {
+	if t.hasLock {
+		t.ds.db.Unlock()
+		t.hasLock = false
 	}
 
-	if t.begun {
-		t.db.Unlock()
-		t.begun = false
-	}
-
-	fn := t.release
-	t.release = nil
-
-	fn()
-
-	return nil
+	t.ds = nil
 }
