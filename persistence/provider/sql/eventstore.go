@@ -116,6 +116,10 @@ type eventStoreResult struct {
 func (r *eventStoreResult) Next(
 	ctx context.Context,
 ) (*eventstore.Event, bool, error) {
+	if ctx.Err() != nil {
+		return nil, false, ctx.Err()
+	}
+
 	if r.rows.Next() {
 		ev, err := r.driver.ScanEvent(r.rows)
 		return ev, true, err
