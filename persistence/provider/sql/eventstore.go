@@ -9,6 +9,40 @@ import (
 	"github.com/dogmatiq/infix/persistence/eventstore"
 )
 
+// eventStoreDriver is the subset of the Driver interfaces that is concerned
+// with the eventstore.
+type eventStoreDriver interface {
+	// UpdateNextOffset increments the eventstore offset by n and returns the
+	// new value.
+	UpdateNextOffset(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak string,
+		n eventstore.Offset,
+	) (eventstore.Offset, error)
+
+	// InsertEvents saves events to the eventstore, starting at a specific
+	// offset.
+	InsertEvents(
+		ctx context.Context,
+		tx *sql.Tx,
+		o eventstore.Offset,
+		envelopes []*envelopespec.Envelope,
+	) error
+
+	// SelectEvents selects events from the eventstore that match the given
+	// query.
+	SelectEvents(
+		ctx context.Context,
+		db *sql.DB,
+		ak string,
+		q eventstore.Query,
+	) (*sql.Rows, error)
+
+	// ScanEvent scans the next event from a row-set returned by SelectEvents().
+	ScanEvent(rows *sql.Rows) (*eventstore.Event, error)
+}
+
 // SaveEvents persists events in the application's event store.
 //
 // It returns the next free offset in the store.

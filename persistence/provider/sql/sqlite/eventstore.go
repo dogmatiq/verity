@@ -14,7 +14,7 @@ import (
 func (driver) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
-	appKey string,
+	ak string,
 	n eventstore.Offset,
 ) (_ eventstore.Offset, err error) {
 	defer sqlx.Recover(&err)
@@ -29,7 +29,7 @@ func (driver) UpdateNextOffset(
 			$1, $2
 		) ON CONFLICT (source_app_key) DO UPDATE SET
 			next_offset = o.next_offset + excluded.next_offset`,
-		appKey,
+		ak,
 		n,
 	)
 
@@ -40,7 +40,7 @@ func (driver) UpdateNextOffset(
 			next_offset
 		FROM event_offset
 		WHERE source_app_key = $1`,
-		appKey,
+		ak,
 	)
 
 	return eventstore.Offset(next), nil
@@ -101,7 +101,7 @@ func (driver) InsertEvents(
 func (driver) SelectEvents(
 	ctx context.Context,
 	db *sql.DB,
-	appKey string,
+	ak string,
 	q eventstore.Query,
 ) (*sql.Rows, error) {
 	return db.QueryContext(
@@ -125,7 +125,7 @@ func (driver) SelectEvents(
 		AND e.offset >= $2
 		AND ($3 == 0 OR e.offset < $3)
 		ORDER BY e.offset`,
-		appKey,
+		ak,
 		q.Begin,
 		q.End,
 	)
