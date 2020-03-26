@@ -7,14 +7,14 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	"github.com/dogmatiq/infix/persistence/internal/providertest"
+	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
-	. "github.com/dogmatiq/infix/persistence/provider/sql/driver/sqlite"
+	. "github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Context("SQLite driver", func() {
+var _ = Describe("type Provider", func() {
 	var db *sql.DB
 
 	providertest.Declare(

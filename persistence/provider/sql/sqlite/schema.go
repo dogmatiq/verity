@@ -17,7 +17,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE stream_offset (
+		`CREATE TABLE event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
 			next_offset    BIGINT NOT NULL
 		) WITHOUT ROWID`,
@@ -26,10 +26,8 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE stream (
-	 		stream_offset       BIGINT NOT NULL,
-	 		message_type        TEXT NOT NULL,
-	 		description         TEXT NOT NULL,
+		`CREATE TABLE event (
+	 		offset              BIGINT NOT NULL,
 	 		message_id          TEXT NOT NULL,
 	 		causation_id        TEXT NOT NULL,
 	 		correlation_id      TEXT NOT NULL,
@@ -39,27 +37,30 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	 		source_handler_key  TEXT NOT NULL,
 	 		source_instance_id  TEXT NOT NULL,
 	 		created_at          TEXT NOT NULL, -- RFC3339Nano
+	 		portable_name       TEXT NOT NULL,
 	 		media_type          TEXT NOT NULL,
 			data                BINARY NOT NULL,
 
-			PRIMARY KEY (source_app_key, stream_offset)
+			PRIMARY KEY (source_app_key, offset)
 	 	) WITHOUT ROWID`,
 	)
 
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX cursor_filter ON stream (
+		`CREATE INDEX eventstore_query ON event (
 			source_app_key,
-			message_type,
-			stream_offset
+			portable_name,
+			offset,
+			source_handler_key,
+			source_instance_id
 		)`,
 	)
 
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE stream_filter (
+		`CREATE TABLE event_filter (
 			hash    TEXT NOT NULL,
 			used_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
@@ -68,7 +69,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX hash ON stream_filter (
+		`CREATE INDEX hash ON event_filter (
 			hash
 		)`,
 	)
@@ -76,11 +77,11 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE stream_filter_type (
-			filter_id    BIGINT NOT NULL,
-			message_type TEXT NOT NULL,
+		`CREATE TABLE event_filter_type (
+			filter_id     BIGINT NOT NULL,
+			portable_name TEXT NOT NULL,
 
-			PRIMARY KEY (filter_id, message_type)
+			PRIMARY KEY (filter_id, portable_name)
 		) WITHOUT ROWID`,
 	)
 
@@ -91,10 +92,10 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_offset`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_filter`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_filter_type`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_type`)
 
 	return nil
 }

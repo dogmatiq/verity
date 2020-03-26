@@ -38,23 +38,21 @@ var _ = Describe("type Provider", func() {
 
 var _ = Describe("type FileProvider", func() {
 	var (
-		db       *bbolt.DB
-		close    func()
-		provider *FileProvider
+		db    *bbolt.DB
+		close func()
 	)
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
 			db, close = boltdbtest.Open()
 
-			provider = &FileProvider{
-				Path: db.Path(), // capture the temp path of the DB.
-			}
-
-			db.Close() // close the original DB so that the file is not locked.
+			path := db.Path() // capture the temp path of the DB.
+			db.Close()        // close the original DB so that the file is not locked.
 
 			return providertest.Out{
-				Provider: provider,
+				Provider: &FileProvider{
+					Path: path,
+				},
 			}
 		},
 		func() {
