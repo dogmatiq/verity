@@ -16,11 +16,14 @@ import (
 )
 
 var _ = Describe("type Driver", func() {
-	var db *sql.DB
+	var (
+		db    *sql.DB
+		close func()
+	)
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db := sqltest.Open("sqlite3")
+			db, _, close = sqltest.Open("sqlite3")
 
 			err := DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -38,8 +41,8 @@ var _ = Describe("type Driver", func() {
 			}
 		},
 		func() {
-			if db != nil {
-				db.Close()
+			if close != nil {
+				close()
 			}
 		},
 	)

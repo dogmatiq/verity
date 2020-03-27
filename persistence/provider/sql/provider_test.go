@@ -16,11 +16,14 @@ import (
 )
 
 var _ = Describe("type Provider", func() {
-	var db *sql.DB
+	var (
+		db    *sql.DB
+		close func()
+	)
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db := sqltest.Open("sqlite3")
+			db, _, close = sqltest.Open("sqlite3")
 
 			err := sqlite.DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -38,19 +41,23 @@ var _ = Describe("type Provider", func() {
 			}
 		},
 		func() {
-			if db != nil {
-				db.Close()
+			if close != nil {
+				close()
 			}
 		},
 	)
 })
 
 var _ = Describe("type DSNProvider", func() {
-	var db *sql.DB
+	var (
+		dsn   string
+		db    *sql.DB
+		close func()
+	)
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			dsn := sqltest.DSN("sqlite3")
+			db, dsn, close = sqltest.Open("sqlite3")
 
 			// This SQLite DB is held open for the lifetime of the test to
 			// keep the schema in memory.
@@ -75,8 +82,8 @@ var _ = Describe("type DSNProvider", func() {
 			}
 		},
 		func() {
-			if db != nil {
-				db.Close()
+			if close != nil {
+				close()
 			}
 		},
 	)
