@@ -143,8 +143,8 @@ type provider struct {
 	m      sync.Mutex
 	db     *sql.DB
 	driver Driver
+	refs   int
 	close  func(db *sql.DB) error
-	apps   map[string]func() error
 }
 
 // open returns a data-store for a specific application.
@@ -177,47 +177,39 @@ func (p *provider) open(
 		p.close = close
 	}
 
-	if p.apps == nil {
-		p.apps = map[string]func() error{}
-	} else if _, ok := p.apps[k]; ok {
-		return nil, persistence.ErrDataStoreLocked
-	}
-
 	release, err := p.driver.LockApplication(ctx, p.db, k)
 	if err != nil {
 		return nil, err
 	}
 
-	p.apps[k] = release
+	p.refs++
 
 	return newDataStore(
 		p.db,
 		p.driver,
 		k,
-		p.release,
+		func() error {
+			return multierr.Append(
+				release(),
+				p.release(),
+			)
+		},
 	), nil
 }
 
-// release marks a previously-opened data-store as closed, releasing the lock on
-// that application.
-func (p *provider) release(k string) error {
+// release releases a reference to the database.
+func (p *provider) release() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
-	release := p.apps[k]
-	delete(p.apps, k)
+	p.refs--
 
-	err := release()
-
-	if len(p.apps) > 0 {
-		return err
+	if p.refs > 0 {
+		return nil
 	}
 
 	db := p.db
 	p.db = nil
 
-	return multierr.Append(
-		err,
-		p.close(db),
-	)
+	return p.close(db)
 }

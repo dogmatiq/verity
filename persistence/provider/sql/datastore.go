@@ -16,7 +16,7 @@ type dataStore struct {
 	appKey string
 
 	m       sync.RWMutex
-	release func(string) error
+	release func() error
 }
 
 // newDataStore returns a new data-store.
@@ -24,7 +24,7 @@ func newDataStore(
 	db *sql.DB,
 	d Driver,
 	k string,
-	r func(string) error,
+	r func() error,
 ) *dataStore {
 	return &dataStore{
 		db:      db,
@@ -72,7 +72,7 @@ func (ds *dataStore) Close() error {
 	r := ds.release
 	ds.release = nil
 
-	return r(ds.appKey)
+	return r()
 }
 
 // checkOpen returns an error if the data-store is closed.
