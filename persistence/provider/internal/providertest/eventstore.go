@@ -2,6 +2,7 @@ package providertest
 
 import (
 	"context"
+	"fmt"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -108,7 +109,7 @@ func declareEventStoreTests(
 				})
 
 				table.DescribeTable(
-					"it includes all of the events that match the query criteria",
+					"it returns a result containing the events that match the query criteria",
 					func(q eventstore.Query, expected ...*eventstore.Event) {
 						ginkgo.By("starting a transaction")
 
@@ -134,7 +135,7 @@ func declareEventStoreTests(
 
 						ginkgo.By("querying the events")
 
-						res, err := repository.QueryEvents(*ctx, eventstore.Query{})
+						res, err := repository.QueryEvents(*ctx, q)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer res.Close()
 
@@ -156,7 +157,12 @@ func declareEventStoreTests(
 							)
 
 							x := expected[index]
-							gomega.Expect(ev.Offset).To(gomega.Equal(x.Offset))
+
+							gomega.Expect(ev.Offset).To(
+								gomega.Equal(x.Offset),
+								fmt.Sprintf("event at index #%d in result has the wrong offset", index),
+							)
+
 							if !proto.Equal(ev.Envelope, x.Envelope) {
 								gomega.Expect(ev.Envelope).To(gomega.Equal(x.Envelope))
 							}
@@ -170,9 +176,14 @@ func declareEventStoreTests(
 						)
 					},
 					table.Entry(
-						"the default query includes all events",
+						"it includes all events by default",
 						eventstore.Query{},
 						event0, event1,
+					),
+					table.Entry(
+						"it honours the begin offset",
+						eventstore.Query{Begin: 1},
+						event1,
 					),
 				)
 
