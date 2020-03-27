@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
@@ -55,27 +56,6 @@ func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
 	q eventstore.Query,
 ) (_ eventstore.Result, err error) {
-	defer bboltx.Recover(&err)
-
-	var end eventstore.Offset
-
-	r.db.View(
-		ctx,
-		func(tx *bbolt.Tx) {
-			if store, ok := bboltx.TryBucket(
-				tx,
-				r.appKey,
-				eventStoreBucketKey,
-			); ok {
-				end = loadNextOffset(store)
-			}
-		},
-	)
-
-	if q.End == 0 || end < q.End {
-		q.End = end
-	}
-
 	return &eventStoreResult{
 		db:     r.db,
 		appKey: r.appKey,
@@ -96,34 +76,38 @@ type eventStoreResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventStoreResult) Next(
 	ctx context.Context,
-) (ev *eventstore.Event, ok bool, err error) {
+) (_ *eventstore.Event, _ bool, err error) {
 	defer bboltx.Recover(&err)
 
-	// Bail early without acquiring the lock if we're already at the end.
-	if r.query.Begin >= r.query.End {
-		return nil, false, nil
-	}
-
 	filtered := len(r.query.PortableNames) > 0
+	var match *eventstore.Event
 
 	// Execute a read-only transaction.
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
-			events := bboltx.Bucket(
+			events, ok := bboltx.TryBucket(
 				tx,
 				r.appKey,
 				eventStoreBucketKey,
 				eventsBucketKey,
 			)
+			if !ok {
+				return
+			}
 
 			// Loop through the events in the store as per the query range.
-			for r.query.Begin < r.query.End {
+			for {
 				// Bail if we're taking too long.
 				bboltx.Must(ctx.Err())
 
-				ev = loadEvent(events, r.query.Begin)
-				r.query.Begin++
+				ev, ok := loadEvent(events, r.query.MinOffset)
+				if !ok {
+					// There are no more events in the store.
+					return
+				}
+
+				r.query.MinOffset++
 
 				// Skip over anything that doesn't match the type filter.
 				//
@@ -136,19 +120,18 @@ func (r *eventStoreResult) Next(
 					}
 				}
 
-				// We found a match.
-				ok = true
+				match = ev
 				return
 			}
 		},
 	)
 
-	return ev, ok, nil
+	return match, match != nil, nil
 }
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	r.query.Begin = r.query.End
+	r.query.MinOffset = math.MaxUint64
 	return nil
 }
 
@@ -196,9 +179,13 @@ func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
 }
 
 // loadEvent loads an event at a specific offset.
-func loadEvent(b *bbolt.Bucket, o eventstore.Offset) *eventstore.Event {
+func loadEvent(b *bbolt.Bucket, o eventstore.Offset) (*eventstore.Event, bool) {
 	k := marshalOffset(o)
 	v := b.Get(k)
+
+	if v == nil {
+		return nil, false
+	}
 
 	var env envelopespec.Envelope
 	bboltx.Must(proto.Unmarshal(v, &env))
@@ -206,7 +193,7 @@ func loadEvent(b *bbolt.Bucket, o eventstore.Offset) *eventstore.Event {
 	return &eventstore.Event{
 		Offset:   o,
 		Envelope: &env,
-	}
+	}, true
 }
 
 // saveEvents writes events to the database.

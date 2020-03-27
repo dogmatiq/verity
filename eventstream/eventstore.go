@@ -66,7 +66,7 @@ func (s *EventStoreStream) Open(
 	}
 
 	q := eventstore.Query{
-		Begin:         eventstore.Offset(o),
+		MinOffset:     eventstore.Offset(o),
 		PortableNames: make(map[string]struct{}, f.Len()),
 	}
 

@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"database/sql"
-	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/eventstore"
@@ -36,7 +35,7 @@ type eventStoreDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
-		begin, end eventstore.Offset,
+		min eventstore.Offset,
 	) (*sql.Rows, error)
 
 	// ScanEvent scans the next event from a row-set returned by SelectEvents().
@@ -96,18 +95,11 @@ func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
 	q eventstore.Query,
 ) (eventstore.Result, error) {
-	if q.End == 0 {
-		// The maximum offset is the largest value of a SIGNED 64-bit integer,
-		// as this is the highest value supported by the native sql package.
-		q.End = eventstore.Offset(math.MaxInt64)
-	}
-
 	rows, err := r.driver.SelectEvents(
 		ctx,
 		r.db,
 		r.appKey,
-		q.Begin,
-		q.End,
+		q.MinOffset,
 	)
 	if err != nil {
 		return nil, err

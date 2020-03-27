@@ -12,13 +12,9 @@ type Repository interface {
 
 // Query defines criteria for matching events in the store.
 type Query struct {
-	// Begin specifies the (inclusive) lower-bound of the offset range to
+	// MinOffset specifies the (inclusive) lower-bound of the offset range to
 	// include in the results.
-	Begin Offset
-
-	// End specifies the (exclusive) upper-bound of the offset range to to
-	// include in the results. If it is 0, the number of stored events is used.
-	End Offset
+	MinOffset Offset
 
 	// PortableNames is the set of event types to include in the results,
 	// specified using the "portable type name".

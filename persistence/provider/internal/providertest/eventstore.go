@@ -41,10 +41,10 @@ func declareEventStoreTests(
 				Envelope: env1,
 			}
 
-			// event2 = &eventstore.Event{
-			// 	Offset:   2,
-			// 	Envelope: env2,
-			// }
+			event2 = &eventstore.Event{
+				Offset:   2,
+				Envelope: env2,
+			}
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -124,6 +124,7 @@ func declareEventStoreTests(
 							[]*envelopespec.Envelope{
 								env0,
 								env1,
+								env2,
 							},
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -178,12 +179,16 @@ func declareEventStoreTests(
 					table.Entry(
 						"it includes all events by default",
 						eventstore.Query{},
-						event0, event1,
+						event0, event1, event2,
 					),
 					table.Entry(
-						"it honours the begin offset",
-						eventstore.Query{Begin: 1},
-						event1,
+						"it honours the minimum offset",
+						eventstore.Query{MinOffset: 1},
+						event1, event2,
+					),
+					table.Entry(
+						"it returns an empty result if the minimum offset is larger than the largest offset",
+						eventstore.Query{MinOffset: 3},
 					),
 				)
 
@@ -228,7 +233,7 @@ func declareEventStoreTests(
 
 		ginkgo.Describe("type ResultSet (interface)", func() {
 			ginkgo.Describe("func Close()", func() {
-				ginkgo.It("does not return an error if the result set is open", func() {
+				ginkgo.It("does not return an error if the result is open", func() {
 					res, err := repository.QueryEvents(*ctx, eventstore.Query{})
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
@@ -236,8 +241,8 @@ func declareEventStoreTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				})
 
-				ginkgo.It("does not panic if the result set is already closed", func() {
-					// The return value of res.Close() for a result set that is
+				ginkgo.It("does not panic if the result is already closed", func() {
+					// The return value of res.Close() for a result that is
 					// already closed is implementation defined, so this test
 					// simply verifies that it returns *something* without
 					// panicking.
