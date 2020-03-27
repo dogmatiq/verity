@@ -102,6 +102,24 @@ var _ = Describe("type DSNProvider", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 	})
+
+	Context("const DefaultMaxIdleConns", func() {
+		It("is not zero", func() {
+			Expect(DefaultMaxIdleConns).To(BeNumerically(">", 0))
+		})
+	})
+
+	Context("const DefaultMaxOpenConns", func() {
+		It("is larger than DefaultMaxIdleConns", func() {
+			Expect(DefaultMaxOpenConns).To(BeNumerically(">", DefaultMaxIdleConns))
+		})
+	})
+
+	Context("const DefaultMaxConnLifetime", func() {
+		It("is not zero", func() {
+			Expect(DefaultMaxConnLifetime).To(BeNumerically(">", 0))
+		})
+	})
 })
 
 var _ = Describe("type provider", func() {

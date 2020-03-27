@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dogmatiq/infix/persistence/provider/sql/mysql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
 )
 
@@ -24,11 +25,9 @@ type Driver interface {
 
 // NewDriver returns the appropriate driver to use with the given database.
 func NewDriver(db *sql.DB) (Driver, error) {
-	// if mysql.IsCompatibleWith(db) {
-	// 	return &Driver{
-	// 		mysql.StreamDriver{},
-	// 	}, nil
-	// }
+	if mysql.IsCompatibleWith(db) {
+		return mysql.Driver, nil
+	}
 
 	// if postgres.IsCompatibleWith(db) {
 	// 	return &Driver{

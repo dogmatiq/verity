@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	. "github.com/dogmatiq/infix/persistence/provider/sql/driver/mysql"
+	. "github.com/dogmatiq/infix/persistence/provider/sql/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

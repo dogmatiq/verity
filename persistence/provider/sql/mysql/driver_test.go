@@ -5,19 +5,23 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	"github.com/dogmatiq/infix/persistence/internal/providertest"
+	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
-	. "github.com/dogmatiq/infix/persistence/provider/sql/driver/mysql"
+	. "github.com/dogmatiq/infix/persistence/provider/sql/mysql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Context("MySQL driver", func() {
-	var db *sql.DB
+var _ = Describe("type Driver", func() {
+	var (
+		db    *sql.DB
+		close func()
+	)
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db = sqltest.Open("mysql")
+			db, _, close = sqltest.Open("mysql")
 
 			err := DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -26,14 +30,17 @@ var _ = Context("MySQL driver", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return providertest.Out{
-				Provider: &infixsql.Provider{
-					DB: db,
+				NewProvider: func() (persistence.Provider, func()) {
+					return &infixsql.Provider{
+						DB: db,
+					}, nil
 				},
+				IsShared: true,
 			}
 		},
 		func() {
-			if db != nil {
-				db.Close()
+			if close != nil {
+				close()
 			}
 		},
 	)
