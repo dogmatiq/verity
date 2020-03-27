@@ -39,7 +39,10 @@ type eventStoreDriver interface {
 	) (*sql.Rows, error)
 
 	// ScanEvent scans the next event from a row-set returned by SelectEvents().
-	ScanEvent(rows *sql.Rows) (*eventstore.Event, error)
+	ScanEvent(
+		rows *sql.Rows,
+		ev *eventstore.Event,
+	) error
 }
 
 // SaveEvents persists events in the application's event store.
@@ -121,7 +124,19 @@ func (r *eventStoreResult) Next(
 	}
 
 	if r.rows.Next() {
-		ev, err := r.driver.ScanEvent(r.rows)
+		ev := &eventstore.Event{
+			Envelope: &envelopespec.Envelope{
+				MetaData: &envelopespec.MetaData{
+					Source: &envelopespec.Source{
+						Application: &envelopespec.Identity{},
+						Handler:     &envelopespec.Identity{},
+					},
+				},
+			},
+		}
+
+		err := r.driver.ScanEvent(r.rows, ev)
+
 		return ev, true, err
 	}
 

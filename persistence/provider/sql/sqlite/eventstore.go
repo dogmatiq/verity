@@ -132,19 +132,11 @@ func (driver) SelectEvents(
 }
 
 // ScanEvent scans the next event from a row-set returned by SelectEvents().
-func (driver) ScanEvent(rows *sql.Rows) (*eventstore.Event, error) {
-	ev := eventstore.Event{
-		Envelope: &envelopespec.Envelope{
-			MetaData: &envelopespec.MetaData{
-				Source: &envelopespec.Source{
-					Application: &envelopespec.Identity{},
-					Handler:     &envelopespec.Identity{},
-				},
-			},
-		},
-	}
-
-	err := rows.Scan(
+func (driver) ScanEvent(
+	rows *sql.Rows,
+	ev *eventstore.Event,
+) error {
+	return rows.Scan(
 		&ev.Offset,
 		&ev.Envelope.MetaData.MessageId,
 		&ev.Envelope.MetaData.CausationId,
@@ -159,6 +151,4 @@ func (driver) ScanEvent(rows *sql.Rows) (*eventstore.Event, error) {
 		&ev.Envelope.MediaType,
 		&ev.Envelope.Data,
 	)
-
-	return &ev, err
 }
