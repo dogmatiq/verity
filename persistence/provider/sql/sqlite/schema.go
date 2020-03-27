@@ -66,34 +66,6 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
-	sqlx.Exec(
-		ctx,
-		db,
-		`CREATE TABLE event_filter (
-			hash    TEXT NOT NULL,
-			used_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-		)`,
-	)
-
-	sqlx.Exec(
-		ctx,
-		db,
-		`CREATE INDEX hash ON event_filter (
-			hash
-		)`,
-	)
-
-	sqlx.Exec(
-		ctx,
-		db,
-		`CREATE TABLE event_filter_type (
-			filter_id     BIGINT NOT NULL,
-			portable_name TEXT NOT NULL,
-
-			PRIMARY KEY (filter_id, portable_name)
-		) WITHOUT ROWID`,
-	)
-
 	return tx.Commit()
 }
 
@@ -101,10 +73,9 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_type`)
 
 	return nil
 }
