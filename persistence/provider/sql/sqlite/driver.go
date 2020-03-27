@@ -87,7 +87,7 @@ func insertLock(
 	)
 
 	expires := now.Add(lockExpiryOffset)
-	id := sqlx.Insert(
+	res := sqlx.Exec(
 		ctx,
 		tx,
 		`INSERT OR IGNORE INTO app_lock (
@@ -100,13 +100,23 @@ func insertLock(
 		expires.Unix(),
 	)
 
-	sqlx.Commit(tx)
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
 
-	if id == 0 {
+	if n == 0 {
 		return 0, persistence.ErrDataStoreLocked
 	}
 
-	return id, nil
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, nil
+	}
+
+	sqlx.Commit(tx)
+
+	return uint64(id), nil
 }
 
 // maintainLock periodically updates the expiry time of a lock record until ctx
