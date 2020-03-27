@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/persistence"
+	"go.uber.org/multierr"
 )
 
 var (
@@ -143,7 +144,7 @@ type provider struct {
 	db     *sql.DB
 	driver Driver
 	close  func(db *sql.DB) error
-	apps   map[string]struct{}
+	apps   map[string]func() error
 }
 
 // open returns a data-store for a specific application.
@@ -177,12 +178,17 @@ func (p *provider) open(
 	}
 
 	if p.apps == nil {
-		p.apps = map[string]struct{}{}
+		p.apps = map[string]func() error{}
 	} else if _, ok := p.apps[k]; ok {
 		return nil, persistence.ErrDataStoreLocked
 	}
 
-	p.apps[k] = struct{}{}
+	release, err := p.driver.LockApplication(ctx, p.db, k)
+	if err != nil {
+		return nil, err
+	}
+
+	p.apps[k] = release
 
 	return newDataStore(
 		p.db,
@@ -198,14 +204,20 @@ func (p *provider) release(k string) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
+	release := p.apps[k]
 	delete(p.apps, k)
 
+	err := release()
+
 	if len(p.apps) > 0 {
-		return nil
+		return err
 	}
 
 	db := p.db
 	p.db = nil
 
-	return p.close(db)
+	return multierr.Append(
+		err,
+		p.close(db),
+	)
 }

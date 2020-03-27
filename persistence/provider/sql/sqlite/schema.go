@@ -17,6 +17,15 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
+		`CREATE TABLE app_lock (
+			app_key TEXT NOT NULL PRIMARY KEY,
+			expires INTEGER NOT NULL
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
 		`CREATE TABLE event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
 			next_offset    BIGINT NOT NULL

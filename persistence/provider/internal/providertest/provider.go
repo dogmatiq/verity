@@ -63,6 +63,31 @@ func declareProviderTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				ds.Close()
 			})
+
+			ginkgo.When("the provider shares data across instances", func() {
+				ginkgo.BeforeEach(func() {
+					if !out.IsShared {
+						ginkgo.Skip("provider does not share data across instances")
+					}
+				})
+
+				ginkgo.It("returns an error if the application's data-store has already been opened on another instance", func() {
+					p, c := out.NewProvider()
+					if c != nil {
+						defer c()
+					}
+
+					ds1, err := provider.Open(*ctx, "<app-key>")
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer ds1.Close()
+
+					ds2, err := p.Open(*ctx, "<app-key>")
+					if ds2 != nil {
+						ds2.Close()
+					}
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreLocked))
+				})
+			})
 		})
 	})
 }
