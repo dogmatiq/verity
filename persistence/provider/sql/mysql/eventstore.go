@@ -31,7 +31,7 @@ func (driver) UpdateNextOffset(
 		n,
 	)
 
-	next := sqlx.QueryN(
+	next := sqlx.QueryInt64(
 		ctx,
 		tx,
 		`SELECT

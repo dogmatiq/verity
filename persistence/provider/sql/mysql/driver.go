@@ -59,7 +59,7 @@ func acquireLock(conn *sql.Conn, name string) (_ bool, err error) {
 	//
 	// This helps protect against race-conditions that remain unnoticed when the
 	// lock is not released properly.
-	n := sqlx.QueryN(
+	n := sqlx.QueryInt64(
 		context.Background(),
 		conn,
 		`SELECT IS_FREE_LOCK(?) AND GET_LOCK(?, 0)`,
