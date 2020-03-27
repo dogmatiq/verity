@@ -102,7 +102,7 @@ func (driver) SelectEvents(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	q eventstore.Query,
+	begin, end eventstore.Offset,
 ) (*sql.Rows, error) {
 	return db.QueryContext(
 		ctx,
@@ -123,11 +123,11 @@ func (driver) SelectEvents(
 		FROM event AS e
 		WHERE e.source_app_key = $1
 		AND e.offset >= $2
-		AND ($3 == 0 OR e.offset < $3)
+		AND e.offset < $3
 		ORDER BY e.offset`,
 		ak,
-		q.Begin,
-		q.End,
+		begin,
+		end,
 	)
 }
 
