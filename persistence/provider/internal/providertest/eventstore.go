@@ -9,6 +9,7 @@ import (
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/eventstore"
+	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -30,22 +31,31 @@ func declareEventStoreTests(
 			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1)
 			env2 = infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1)
+			env3 = infixfixtures.NewEnvelopeProto("<message-3>", dogmafixtures.MessageA2)
+			env4 = infixfixtures.NewEnvelopeProto("<message-4>", dogmafixtures.MessageB2)
+			env5 = infixfixtures.NewEnvelopeProto("<message-5>", dogmafixtures.MessageC2)
 
-			event0 = &eventstore.Event{
-				Offset:   0,
-				Envelope: env0,
-			}
-
-			event1 = &eventstore.Event{
-				Offset:   1,
-				Envelope: env1,
-			}
-
-			event2 = &eventstore.Event{
-				Offset:   2,
-				Envelope: env2,
-			}
+			event0 = &eventstore.Event{Offset: 0, Envelope: env0}
+			event1 = &eventstore.Event{Offset: 1, Envelope: env1}
+			event2 = &eventstore.Event{Offset: 2, Envelope: env2}
+			event3 = &eventstore.Event{Offset: 3, Envelope: env3}
+			event4 = &eventstore.Event{Offset: 4, Envelope: env4}
+			event5 = &eventstore.Event{Offset: 5, Envelope: env5}
 		)
+
+		// Setup some different source handler values to test the aggregate
+		// instance filtering.
+		env0.MetaData.Source.Handler.Key = "<aggregate>"
+		env0.MetaData.Source.InstanceId = "<instance-a>"
+
+		env1.MetaData.Source.Handler.Key = "<aggregate>"
+		env1.MetaData.Source.InstanceId = "<instance-b>"
+
+		env2.MetaData.Source.Handler.Key = "<aggregate>"
+		env2.MetaData.Source.InstanceId = "<instance-a>"
+
+		env3.MetaData.Source.Handler.Key = "<aggregate>"
+		env3.MetaData.Source.InstanceId = "<instance-b>"
 
 		ginkgo.BeforeEach(func() {
 			provider, close = out.NewProvider()
@@ -125,6 +135,9 @@ func declareEventStoreTests(
 								env0,
 								env1,
 								env2,
+								env3,
+								env4,
+								env5,
 							},
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -179,16 +192,34 @@ func declareEventStoreTests(
 					table.Entry(
 						"it includes all events by default",
 						eventstore.Query{},
-						event0, event1, event2,
+						event0, event1, event2, event3, event4, event5,
 					),
 					table.Entry(
 						"it honours the minimum offset",
-						eventstore.Query{MinOffset: 1},
-						event1, event2,
+						eventstore.Query{MinOffset: 3},
+						event3, event4, event5,
 					),
 					table.Entry(
 						"it returns an empty result if the minimum offset is larger than the largest offset",
-						eventstore.Query{MinOffset: 3},
+						eventstore.Query{MinOffset: 100},
+					),
+					table.XEntry(
+						"it honours the type filter",
+						eventstore.Query{
+							PortableNames: map[string]struct{}{
+								marshalfixtures.MessageAPortableName: struct{}{},
+								marshalfixtures.MessageCPortableName: struct{}{},
+							},
+						},
+						event0, event2, event3, event5,
+					),
+					table.Entry(
+						"it honours the aggregate instance filter",
+						eventstore.Query{
+							AggregateHandlerKey: "<aggregate>",
+							AggregateInstanceID: "<instance-a>",
+						},
+						event0, event2,
 					),
 				)
 

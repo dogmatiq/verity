@@ -35,7 +35,7 @@ type eventStoreDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
-		min eventstore.Offset,
+		q eventstore.Query,
 	) (*sql.Rows, error)
 
 	// ScanEvent scans the next event from a row-set returned by SelectEvents().
@@ -99,7 +99,7 @@ func (r *eventStoreRepository) QueryEvents(
 		ctx,
 		r.db,
 		r.appKey,
-		q.MinOffset,
+		q,
 	)
 	if err != nil {
 		return nil, err

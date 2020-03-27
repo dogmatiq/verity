@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/provider/sql/internal/query"
 )
 
 // UpdateNextOffset increments the eventstore offset by n and returns the
@@ -97,30 +98,49 @@ func (driver) SelectEvents(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	min eventstore.Offset,
+	q eventstore.Query,
 ) (*sql.Rows, error) {
-	return db.QueryContext(
-		ctx,
+	qb := query.Builder{}
+
+	qb.Write(
 		`SELECT
-			offset,
-			message_id,
-			causation_id,
-			correlation_id,
-			source_app_name,
-			source_app_key,
-			source_handler_name,
-			source_handler_key,
-			source_instance_id,
-			created_at,
-			portable_name,
-			media_type,
-			data
+			e.offset,
+			e.message_id,
+			e.causation_id,
+			e.correlation_id,
+			e.source_app_name,
+			e.source_app_key,
+			e.source_handler_name,
+			e.source_handler_key,
+			e.source_instance_id,
+			e.created_at,
+			e.portable_name,
+			e.media_type,
+			e.data
 		FROM event AS e
 		WHERE e.source_app_key = ?
-		AND e.offset >= ?
-		ORDER BY e.offset`,
+		AND e.offset >= ?`,
 		ak,
-		min,
+		q.MinOffset,
+	)
+
+	if q.AggregateHandlerKey != "" {
+		qb.Write(
+			`AND e.source_handler_key = ?
+			AND e.source_instance_id = ?`,
+			q.AggregateHandlerKey,
+			q.AggregateInstanceID,
+		)
+	}
+
+	qb.Write(
+		`ORDER BY e.offset`,
+	)
+
+	return db.QueryContext(
+		ctx,
+		qb.String(),
+		qb.Parameters...,
 	)
 }
 

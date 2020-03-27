@@ -24,11 +24,40 @@ type Query struct {
 
 	// AggregateHandlerKey, if non-empty, limits the results to those events
 	// produced by the aggregate message handler identified by this key.
+	//
+	// If it is non-empty AggregateInstanceID must also be non-empty.
 	AggregateHandlerKey string
 
-	// AggregateInstanceID, if non-empty, limits the results to those events
-	// produced by this aggregate instance.
+	// AggregateInstanceID limits the results to those events produced by this
+	// aggregate instance.
+	//
+	// It is only used if AggregateHandlerKey is non-empty.
 	AggregateInstanceID string
+}
+
+// IsMatch returns true if ev matches the query criteria.
+func (q Query) IsMatch(ev *Event) bool {
+	if ev.Offset < q.MinOffset {
+		return false
+	}
+
+	if len(q.PortableNames) > 0 {
+		if _, ok := q.PortableNames[ev.Envelope.PortableName]; !ok {
+			return false
+		}
+	}
+
+	if q.AggregateHandlerKey != "" {
+		if ev.Envelope.MetaData.Source.Handler.Key != q.AggregateHandlerKey {
+			return false
+		}
+
+		if ev.Envelope.MetaData.Source.InstanceId != q.AggregateInstanceID {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Result is the result of a query to the event store.

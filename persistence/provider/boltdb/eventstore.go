@@ -76,57 +76,32 @@ type eventStoreResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventStoreResult) Next(
 	ctx context.Context,
-) (_ *eventstore.Event, _ bool, err error) {
+) (ev *eventstore.Event, ok bool, err error) {
 	defer bboltx.Recover(&err)
-
-	filtered := len(r.query.PortableNames) > 0
-	var match *eventstore.Event
 
 	// Execute a read-only transaction.
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
-			events, ok := bboltx.TryBucket(
+			events, exists := bboltx.TryBucket(
 				tx,
 				r.appKey,
 				eventStoreBucketKey,
 				eventsBucketKey,
 			)
-			if !ok {
-				return
-			}
 
-			// Loop through the events in the store as per the query range.
-			for {
-				// Bail if we're taking too long.
-				bboltx.Must(ctx.Err())
+			for exists && !ok {
+				bboltx.Must(ctx.Err()) // Bail if we're taking too long.
 
-				ev, ok := loadEvent(events, r.query.MinOffset)
-				if !ok {
-					// There are no more events in the store.
-					return
-				}
+				ev, exists = loadEvent(events, r.query.MinOffset)
+				ok = exists && r.query.IsMatch(ev)
 
 				r.query.MinOffset++
-
-				// Skip over anything that doesn't match the type filter.
-				//
-				// TODO: improve filtering performance by using an "index
-				// bucket" to search by portable type name, aggregate instance,
-				// etc.
-				if filtered {
-					if _, ok := r.query.PortableNames[ev.Envelope.PortableName]; !ok {
-						continue
-					}
-				}
-
-				match = ev
-				return
 			}
 		},
 	)
 
-	return match, match != nil, nil
+	return
 }
 
 // Close closes the cursor.

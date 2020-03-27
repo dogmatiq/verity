@@ -43,6 +43,7 @@ func (r *eventStoreRepository) QueryEvents(
 	return &eventStoreResult{
 		db:    r.db,
 		query: q,
+		index: int(q.MinOffset),
 	}, nil
 }
 
@@ -51,46 +52,33 @@ func (r *eventStoreRepository) QueryEvents(
 type eventStoreResult struct {
 	db    *database
 	query eventstore.Query
+	index int
 }
 
 // Next returns the next event in the result.
 //
 // It returns false if the are no more events in the result.
-func (r *eventStoreResult) Next(ctx context.Context) (*eventstore.Event, bool, error) {
-	// Lock the database for reads.
+func (r *eventStoreResult) Next(
+	ctx context.Context,
+) (*eventstore.Event, bool, error) {
 	if err := r.db.RLock(ctx); err != nil {
 		return nil, false, err
 	}
 	defer r.db.RUnlock()
 
-	filtered := len(r.query.PortableNames) > 0
-
-	end := eventstore.Offset(
-		len(r.db.events),
-	)
-
-	// Loop through the events in the store as per the query range.
-	for r.query.MinOffset < end {
-		// Bail if we're taking too long.
+	for r.index < len(r.db.events) {
 		if ctx.Err() != nil {
 			return nil, false, ctx.Err()
 		}
 
-		ev := r.db.events[int(r.query.MinOffset)]
-		r.query.MinOffset++
+		ev := &r.db.events[r.index]
+		r.index++
 
-		// Skip over anything that doesn't match the type filter.
-		if filtered {
-			if _, ok := r.query.PortableNames[ev.Envelope.PortableName]; !ok {
-				continue
-			}
+		if r.query.IsMatch(ev) {
+			return ev, true, nil
 		}
-
-		// We found a match.
-		return &ev, true, nil
 	}
 
-	// We've reached the end, there are no more events.
 	return nil, false, nil
 }
 
