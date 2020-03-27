@@ -19,7 +19,16 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.stream_offset (
+		`CREATE TABLE infix.app_lock_id (
+			app_key TEXT NOT NULL PRIMARY KEY,
+			lock_id SERIAL NOT NULL UNIQUE
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
 			next_offset    BIGINT NOT NULL
 		)`,
@@ -28,10 +37,8 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.stream (
-	 		stream_offset       BIGINT NOT NULL,
-	 		message_type        TEXT NOT NULL,
-	 		description         TEXT NOT NULL,
+		`CREATE TABLE infix.event (
+	 		"offset"            BIGINT NOT NULL,
 	 		message_id          TEXT NOT NULL,
 	 		causation_id        TEXT NOT NULL,
 	 		correlation_id      TEXT NOT NULL,
@@ -40,50 +47,24 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	 		source_handler_name TEXT NOT NULL,
 	 		source_handler_key  TEXT NOT NULL,
 	 		source_instance_id  TEXT NOT NULL,
-	 		created_at          TEXT NOT NULL, -- RFC3339Nano
+	 		created_at          BYTEA NOT NULL,
+	 		portable_name       TEXT NOT NULL,
 	 		media_type          TEXT NOT NULL,
 			data                BYTEA NOT NULL,
 
- 			PRIMARY KEY (source_app_key, stream_offset)
+			PRIMARY KEY (source_app_key, portable_name)
 	 	)`,
 	)
 
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX cursor_filter ON infix.stream (
+		`CREATE INDEX eventstore_query ON infix.event (
 			source_app_key,
-			message_type,
-			stream_offset
-		)`,
-	)
-
-	sqlx.Exec(
-		ctx,
-		db,
-		`CREATE TABLE infix.stream_filter (
-			id      SERIAL PRIMARY KEY,
-			hash    TEXT NOT NULL,
-			used_at TIMESTAMP NOT NULL DEFAULT NOW()
-		)`,
-	)
-
-	sqlx.Exec(
-		ctx,
-		db,
-		`CREATE INDEX hash ON infix.stream_filter (
-			hash
-		)`,
-	)
-
-	sqlx.Exec(
-		ctx,
-		db,
-		`CREATE TABLE infix.stream_filter_type (
-			filter_id    BIGINT NOT NULL,
-			message_type TEXT NOT NULL,
-
-			PRIMARY KEY (filter_id, message_type)
+			portable_name,
+			"offset",
+			source_handler_key,
+			source_instance_id
 		)`,
 	)
 

@@ -45,7 +45,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	 		source_handler_name TEXT NOT NULL,
 	 		source_handler_key  TEXT NOT NULL,
 	 		source_instance_id  TEXT NOT NULL,
-	 		created_at          TEXT NOT NULL, -- RFC3339Nano
+	 		created_at          TEXT NOT NULL,
 	 		portable_name       TEXT NOT NULL,
 	 		media_type          TEXT NOT NULL,
 			data                BINARY NOT NULL,

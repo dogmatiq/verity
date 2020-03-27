@@ -6,6 +6,7 @@ import (
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	. "github.com/dogmatiq/infix/persistence/provider/sql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/mysql"
+	"github.com/dogmatiq/infix/persistence/provider/sql/postgres"
 	"github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -31,12 +32,10 @@ var _ = Describe("func NewDriver()", func() {
 			"mysql", "mysql", "tcp(127.0.0.1)/mysql",
 			mysql.Driver,
 		),
-		// Entry(
-		// 	"postgres", "postgres", "host=localhost",
-		// 	&Driver{
-		// 		StreamDriver: postgres.StreamDriver{},
-		// 	},
-		// ),
+		Entry(
+			"postgres", "postgres", "host=localhost",
+			postgres.Driver,
+		),
 		Entry(
 			"sqlite", "sqlite3", ":memory:",
 			sqlite.Driver,

@@ -41,3 +41,15 @@ func QueryInt64(
 	QueryInto(ctx, db, &v, query, args...)
 	return v
 }
+
+// QueryBool executes a single-column, single-row query on the given DB and
+// returns a single bool result.
+func QueryBool(
+	ctx context.Context,
+	db DB,
+	query string,
+	args ...interface{},
+) (v bool) {
+	QueryInto(ctx, db, &v, query, args...)
+	return v
+}

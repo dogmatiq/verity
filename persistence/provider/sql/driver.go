@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/infix/persistence/provider/sql/mysql"
+	"github.com/dogmatiq/infix/persistence/provider/sql/postgres"
 	"github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
 )
 
@@ -29,11 +30,9 @@ func NewDriver(db *sql.DB) (Driver, error) {
 		return mysql.Driver, nil
 	}
 
-	// if postgres.IsCompatibleWith(db) {
-	// 	return &Driver{
-	// 		postgres.StreamDriver{},
-	// 	}, nil
-	// }
+	if postgres.IsCompatibleWith(db) {
+		return postgres.Driver, nil
+	}
 
 	if sqlite.IsCompatibleWith(db) {
 		return sqlite.Driver, nil
