@@ -110,16 +110,11 @@ func (p *DSNProvider) Open(ctx context.Context, k string) (persistence.DataStore
 }
 
 // openDB opens the database pool and configures the limits.
-func (p *DSNProvider) openDB() (_ *sql.DB, err error) {
+func (p *DSNProvider) openDB() (*sql.DB, error) {
 	db, err := sql.Open(p.DriverName, p.DSN)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err != nil {
-			db.Close()
-		}
-	}()
 
 	idle := p.MaxIdleConns
 	if idle == 0 {
