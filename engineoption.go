@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/infix/persistence/provider/boltdb"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
@@ -22,12 +22,9 @@ var (
 	// DefaultPersistenceProvider is the default persistence provider.
 	//
 	// It is overridden by the WithPersistence() option.
-	DefaultPersistenceProvider persistence.Provider = &memory.Provider{}
-	// TODO: switch back to BoltDB
-	//
-	// DefaultPersistenceProvider persistence.Provider = &boltdb.FileProvider{
-	// 	Path: "/var/run/infix.boltdb",
-	// }
+	DefaultPersistenceProvider persistence.Provider = &boltdb.FileProvider{
+		Path: "/var/run/infix.boltdb",
+	}
 
 	// DefaultMessageTimeout is the default duration the engine allows for the handling a single message.
 	//

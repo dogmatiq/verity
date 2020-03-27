@@ -7,12 +7,6 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// TODO
-// TODO
-// TODO  AGGREGATES NEED A REVISION, THEY CAN NOT USE OFFSETS FOR OCC
-// TODO
-// TODO
-
 // AggregateSnapshotRepository is an interface for reading and writing aggregate
 // snapshots.
 type AggregateSnapshotRepository interface {
