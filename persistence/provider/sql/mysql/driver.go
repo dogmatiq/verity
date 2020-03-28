@@ -15,6 +15,11 @@ var Driver driver
 
 type driver struct{}
 
+// Begin starts a transaction.
+func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
+	return db.BeginTx(ctx, nil)
+}
+
 // LockApplication acquires an exclusive lock on an application's data.
 //
 // r is a function that releases the lock, if acquired successfully.

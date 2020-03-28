@@ -9,9 +9,14 @@ import (
 )
 
 // Driver is an implementation of sql.Driver for PostgreSQL.
-var Driver driver
+var Driver errorConverter
 
 type driver struct{}
+
+// Begin starts a transaction.
+func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
+	return db.BeginTx(ctx, nil)
+}
 
 // LockApplication acquires an exclusive lock on an application's data.
 //
