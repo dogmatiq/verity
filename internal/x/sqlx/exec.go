@@ -25,14 +25,14 @@ func Insert(
 	db DB,
 	query string,
 	args ...interface{},
-) uint64 {
+) int64 {
 	res, err := db.ExecContext(ctx, query, args...)
 	Must(err)
 
 	id, err := res.LastInsertId()
 	Must(err)
 
-	return uint64(id)
+	return id
 }
 
 // UpdateRow executes an update statement on the given DB.

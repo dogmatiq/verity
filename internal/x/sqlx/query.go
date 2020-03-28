@@ -17,111 +17,39 @@ func Query(
 	return rows
 }
 
-// QueryManyN executes a query on the given DB and returns a slice of integer
-// results.
-func QueryManyN(
+// QueryInto executes single-column, single-row query on the given DB and scans
+// the result into a value.
+func QueryInto(
+	ctx context.Context,
+	db DB,
+	value interface{},
+	query string,
+	args ...interface{},
+) {
+	row := db.QueryRowContext(ctx, query, args...)
+	Must(row.Scan(value))
+}
+
+// QueryInt64 executes a single-column, single-row query on the given DB and
+// returns a single uint64 result.
+func QueryInt64(
 	ctx context.Context,
 	db DB,
 	query string,
 	args ...interface{},
-) []uint64 {
-	rows := Query(ctx, db, query, args...)
-	defer rows.Close()
-
-	var (
-		value  uint64
-		result []uint64
-	)
-
-	for rows.Next() {
-		Scan(rows, &value)
-		result = append(result, value)
-	}
-
-	return result
-}
-
-// QueryManyS executes a query on the given DB and returns a slice of string
-// results.
-func QueryManyS(
-	ctx context.Context,
-	db DB,
-	query string,
-	args ...interface{},
-) []string {
-	rows := Query(ctx, db, query, args...)
-	defer rows.Close()
-
-	var (
-		value  string
-		result []string
-	)
-
-	for rows.Next() {
-		Scan(rows, &value)
-		result = append(result, value)
-	}
-
-	return result
-}
-
-// QueryN executes a query on the given DB and returns a single integer result.
-func QueryN(
-	ctx context.Context,
-	db DB,
-	query string,
-	args ...interface{},
-) uint64 {
-	return ScanN(
-		db.QueryRowContext(ctx, query, args...),
-	)
-}
-
-// TryQueryN executes a query on the given DB and returns a single integer
-// result.
-//
-// It returns false if there are no rows.
-func TryQueryN(
-	ctx context.Context,
-	db DB,
-	query string,
-	args ...interface{},
-) (uint64, bool) {
-	return TryScanN(
-		db.QueryRowContext(ctx, query, args...),
-	)
-}
-
-// Scan scans the values from s into dest, or panics if unable to do so.
-func Scan(s Scanner, dest ...interface{}) {
-	Must(s.Scan(dest...))
-}
-
-// TryScan scans the values from s into dest, or panics if unable to do so.
-//
-// It returns false if there were no rows.
-func TryScan(s Scanner, dest ...interface{}) bool {
-	err := s.Scan(dest...)
-	if err == sql.ErrNoRows {
-		return false
-	}
-
-	Must(err)
-
-	return true
-}
-
-// ScanN scans a single int value from s and returns it.
-func ScanN(s Scanner) uint64 {
-	var v uint64
-	Scan(s, &v)
+) (v int64) {
+	QueryInto(ctx, db, &v, query, args...)
 	return v
 }
 
-// TryScanN scans a single int value from s and returns it.
-//
-// It returns false if there were no rows.
-func TryScanN(s Scanner) (uint64, bool) {
-	var v uint64
-	return v, TryScan(s, &v)
+// QueryBool executes a single-column, single-row query on the given DB and
+// returns a single bool result.
+func QueryBool(
+	ctx context.Context,
+	db DB,
+	query string,
+	args ...interface{},
+) (v bool) {
+	QueryInto(ctx, db, &v, query, args...)
+	return v
 }

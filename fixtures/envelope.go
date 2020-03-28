@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/fixtures"
@@ -53,6 +54,20 @@ func NewEnvelope(
 	cleanseTime(&env.MetaData.ScheduledFor)
 
 	return env
+}
+
+// NewEnvelopeProto returns a new envelope containing the given message,
+// marshaled to its protobuf representation.
+//
+// times can contain up to two elements, the first is the created time, the
+// second is the scheduled-for time.
+func NewEnvelopeProto(
+	id string,
+	m dogma.Message,
+	times ...time.Time,
+) *envelopespec.Envelope {
+	env := NewEnvelope(id, m, times...)
+	return envelope.MustMarshal(env)
 }
 
 // cleanseTime marshals/unmarshals time to strip any internal state that would

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
@@ -22,7 +23,7 @@ func (e *Engine) runApplication(
 		cfg.Identity().Key,
 	)
 
-	ds, err := e.dataStores.Get(ctx, cfg)
+	ds, err := e.dataStores.Get(ctx, cfg.Identity().Key)
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,13 @@ func (e *Engine) runApplication(
 	return e.streamEvents(
 		ctx,
 		cfg,
-		ds.EventStream(),
+		&eventstream.EventStoreStream{
+			App:        cfg.Identity(),
+			Types:      cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
+			Repository: ds.EventStoreRepository(),
+			Marshaler:  e.opts.Marshaler,
+			PreFetch:   10, // TODO: make configurable
+		},
 	)
 }
 

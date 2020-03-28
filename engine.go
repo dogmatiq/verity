@@ -31,8 +31,7 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 	return &Engine{
 		opts: opts,
 		dataStores: &persistence.DataStoreSet{
-			Provider:  opts.PersistenceProvider,
-			Marshaler: opts.Marshaler,
+			Provider: opts.PersistenceProvider,
 		},
 		logger: loggingx.WithPrefix(
 			opts.Logger,

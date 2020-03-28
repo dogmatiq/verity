@@ -3,12 +3,12 @@ module github.com/dogmatiq/infix
 go 1.13
 
 require (
-	github.com/dogmatiq/configkit v0.7.1
+	github.com/dogmatiq/configkit v0.7.2
 	github.com/dogmatiq/dodeca v0.2.1
 	github.com/dogmatiq/dogma v0.6.3
 	github.com/dogmatiq/example v0.0.0-20200320000902-082c6729b73b
 	github.com/dogmatiq/linger v0.2.1
-	github.com/dogmatiq/marshalkit v0.2.0
+	github.com/dogmatiq/marshalkit v0.2.2
 	github.com/dogmatiq/projectionkit v0.3.2
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.3.5

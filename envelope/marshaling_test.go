@@ -5,10 +5,10 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/internal/draftspecs/envelopespec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -49,8 +49,9 @@ var _ = Describe("func Marshal()", func() {
 				CreatedAt:    createdAt,
 				ScheduledFor: scheduledFor,
 			},
-			MediaType: MessageA1Packet.MediaType,
-			Data:      MessageA1Packet.Data,
+			PortableName: MessageAPortableName,
+			MediaType:    MessageA1Packet.MediaType,
+			Data:         MessageA1Packet.Data,
 		}))
 	})
 
@@ -79,6 +80,45 @@ var _ = Describe("func Marshal()", func() {
 		_, err := Marshal(in)
 		Expect(err).Should(HaveOccurred())
 	})
+
+	It("returns an error if the media-type cannot be parsed", func() {
+		in.Packet.MediaType = "<malformed>"
+
+		_, err := Marshal(in)
+		Expect(err).Should(HaveOccurred())
+	})
+})
+
+var _ = Describe("func MarshalMany()", func() {
+	It("marshals multiple envelopes", func() {
+		in1 := NewEnvelope("<id-2>", MessageA1)
+		in2 := NewEnvelope("<id-2>", MessageA2)
+
+		out, err := MarshalMany(
+			[]*Envelope{
+				in1,
+				in2,
+			},
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(out).To(Equal(
+			[]*envelopespec.Envelope{
+				MustMarshal(in1),
+				MustMarshal(in2),
+			},
+		))
+	})
+
+	It("returns an error if marshaling fails", func() {
+		in := NewEnvelope("<id>", MessageA1)
+		in.Packet.MediaType = "<malformed>"
+
+		_, err := MarshalMany(
+			[]*Envelope{in},
+		)
+		Expect(err).Should(HaveOccurred())
+	})
 })
 
 var _ = Describe("func MustMarshal()", func() {
@@ -94,12 +134,41 @@ var _ = Describe("func MustMarshal()", func() {
 
 	It("panics if marshaling fails", func() {
 		in := NewEnvelope("<id>", MessageA1)
-		in.MetaData.ScheduledFor = time.Now().In(
-			time.FixedZone("fractional", 30),
-		)
+		in.Packet.MediaType = "<malformed>"
 
 		Expect(func() {
 			MustMarshal(in)
+		}).To(Panic())
+	})
+})
+
+var _ = Describe("func MustMarshalMany()", func() {
+	It("marshals multiple envelopes", func() {
+		in1 := NewEnvelope("<id-2>", MessageA1)
+		in2 := NewEnvelope("<id-2>", MessageA2)
+		out := MustMarshalMany(
+			[]*Envelope{
+				in1,
+				in2,
+			},
+		)
+
+		Expect(out).To(Equal(
+			[]*envelopespec.Envelope{
+				MustMarshal(in1),
+				MustMarshal(in2),
+			},
+		))
+	})
+
+	It("panics if marshaling fails", func() {
+		in := NewEnvelope("<id>", MessageA1)
+		in.Packet.MediaType = "<malformed>"
+
+		Expect(func() {
+			MustMarshalMany(
+				[]*Envelope{in},
+			)
 		}).To(Panic())
 	})
 })

@@ -7,21 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/linger"
-	"github.com/dogmatiq/linger/backoff"
-	"github.com/dogmatiq/marshalkit"
+	"go.uber.org/multierr"
 )
 
 var (
-	// DefaultStreamBackoff is the default backoff strategy for stream polling.
-	DefaultStreamBackoff backoff.Strategy = backoff.WithTransforms(
-		backoff.Exponential(10*time.Millisecond),
-		linger.FullJitter,
-		linger.Limiter(0, 5*time.Second),
-	)
-
 	// DefaultMaxIdleConns is the default maximum number of idle connections
 	// allowed in the database pool.
 	DefaultMaxIdleConns = runtime.GOMAXPROCS(0)
@@ -38,47 +28,41 @@ var (
 // Provider is an implementation of provider.Provider for SQL that uses an
 // existing open database pool.
 type Provider struct {
+	provider
+
 	// DB is the SQL database to use.
 	DB *sql.DB
 
 	// Driver is the Infix SQL driver to use with this database.
 	// If it is nil, it is determined automatically for built-in drivers.
-	Driver *Driver
-
-	// StreamBackoff is the backoff strategy used to determine delays betweens
-	// stream polls that do not produce any results.
-	//
-	// If it is nil, DefaultStreamBackoff is used.
-	StreamBackoff backoff.Strategy
+	Driver Driver
 }
 
 // Open returns a data-store for a specific application.
-func (p *Provider) Open(
-	ctx context.Context,
-	cfg configkit.RichApplication,
-	m marshalkit.Marshaler,
-) (persistence.DataStore, error) {
-	d := p.Driver
-	if d == nil {
-		var err error
-		d, err = NewDriver(p.DB)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &dataStore{
-		appConfig:     cfg,
-		marshaler:     m,
-		db:            p.DB,
-		driver:        d,
-		streamBackoff: p.StreamBackoff,
-	}, nil
+//
+// k is the identity key of the application.
+//
+// Data stores are opened for exclusive use. If another engine instance has
+// already opened this application's data-store, ErrDataStoreLocked is returned.
+func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, error) {
+	return p.open(
+		ctx,
+		k,
+		func() (*sql.DB, Driver, error) {
+			return p.DB, p.Driver, nil
+		},
+		func(db *sql.DB) error {
+			// Don't actually close the database, since we didn't open it.
+			return nil
+		},
+	)
 }
 
 // DSNProvider is an implementation of provider.Provider for SQL that opens a
 // a database pool using a DSN.
 type DSNProvider struct {
+	provider
+
 	// DriverName is the driver name to be passed to sql.Open().
 	DriverName string
 
@@ -87,13 +71,7 @@ type DSNProvider struct {
 
 	// Driver is the Infix SQL driver to use with this database.
 	// If it is nil, it is determined automatically for built-in drivers.
-	Driver *Driver
-
-	// StreamBackoff is the backoff strategy used to determine delays betweens
-	// stream polls that do not produce any results.
-	//
-	// If it is nil, DefaultStreamBackoff is used.
-	StreamBackoff backoff.Strategy
+	Driver Driver
 
 	// MaxIdleConnections is the maximum number of idle connections allowed in
 	// the database pool.
@@ -110,92 +88,137 @@ type DSNProvider struct {
 	// maxConnLifetime is the maximum lifetime of database connections.
 	// If it is zero, DefaultMaxConnLifetime is used.
 	MaxConnLifetime time.Duration
-
-	m      sync.Mutex
-	refs   int64
-	db     *sql.DB
-	driver *Driver
 }
 
 // Open returns a data-store for a specific application.
-func (p *DSNProvider) Open(
-	ctx context.Context,
-	cfg configkit.RichApplication,
-	m marshalkit.Marshaler,
-) (persistence.DataStore, error) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	if p.refs == 0 {
-		if err := p.open(); err != nil {
-			return nil, err
-		}
-	}
-
-	p.refs++
-
-	return &dataStore{
-		appConfig:     cfg,
-		marshaler:     m,
-		db:            p.db,
-		driver:        p.driver,
-		streamBackoff: p.StreamBackoff,
-		closer:        p.close,
-	}, nil
+//
+// k is the identity key of the application.
+//
+// Data stores are opened for exclusive use. If another engine instance has
+// already opened this application's data-store, ErrDataStoreLocked is returned.
+func (p *DSNProvider) Open(ctx context.Context, k string) (persistence.DataStore, error) {
+	return p.open(
+		ctx,
+		k,
+		func() (*sql.DB, Driver, error) {
+			db, err := p.openDB()
+			return db, p.Driver, err
+		},
+		func(db *sql.DB) error {
+			return db.Close()
+		},
+	)
 }
 
-func (p *DSNProvider) open() (err error) {
-	p.db, err = sql.Open(p.DriverName, p.DSN)
+// openDB opens the database pool and configures the limits.
+func (p *DSNProvider) openDB() (*sql.DB, error) {
+	db, err := sql.Open(p.DriverName, p.DSN)
 	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			p.db.Close()
-		}
-	}()
-
-	p.driver = p.Driver
-	if p.driver == nil {
-		p.driver, err = NewDriver(p.db)
-		if err != nil {
-			return err
-		}
+		return nil, err
 	}
 
 	idle := p.MaxIdleConns
 	if idle == 0 {
 		idle = DefaultMaxIdleConns
 	}
-	p.db.SetMaxIdleConns(idle)
+	db.SetMaxIdleConns(idle)
 
 	open := p.MaxOpenConns
 	if open == 0 {
 		open = DefaultMaxOpenConns
 	}
-	p.db.SetMaxOpenConns(open)
+	db.SetMaxOpenConns(open)
 
 	ttl := p.MaxConnLifetime
 	if ttl == 0 {
 		ttl = DefaultMaxConnLifetime
 	}
-	p.db.SetConnMaxLifetime(ttl)
+	db.SetConnMaxLifetime(ttl)
 
-	return nil
+	return db, nil
 }
 
-func (p *DSNProvider) close() error {
+// provider is the common implementation of Provider and DSNProvider.
+type provider struct {
+	m      sync.Mutex
+	db     *sql.DB
+	driver Driver
+	refs   int
+	close  func(db *sql.DB) error
+}
+
+// open returns a data-store for a specific application.
+func (p *provider) open(
+	ctx context.Context,
+	k string,
+	open func() (*sql.DB, Driver, error),
+	close func(db *sql.DB) error,
+) (_ persistence.DataStore, err error) {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.db == nil {
+		db, d, err := open()
+		if err != nil {
+			return nil, err
+		}
+
+		if d == nil {
+			var err error
+			d, err = NewDriver(db)
+			if err != nil {
+				close(db)
+				return nil, err
+			}
+		}
+
+		p.db = db
+		p.driver = d
+		p.close = close
+	}
+
+	release, err := p.driver.LockApplication(ctx, p.db, k)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			release()
+		}
+	}()
+
+	if err := p.driver.PurgeEventFilters(ctx, p.db, k); err != nil {
+		return nil, err
+	}
+
+	p.refs++
+
+	return newDataStore(
+		p.db,
+		p.driver,
+		k,
+		func() error {
+			return multierr.Append(
+				release(),
+				p.release(),
+			)
+		},
+	), nil
+}
+
+// release releases a reference to the database.
+func (p *provider) release() error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
 	p.refs--
 
-	if p.refs == 0 {
-		db := p.db
-		p.db = nil
-		p.driver = nil
-		return db.Close()
+	if p.refs > 0 {
+		return nil
 	}
 
-	return nil
+	db := p.db
+	p.db = nil
+
+	return p.close(db)
 }

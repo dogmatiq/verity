@@ -3,10 +3,26 @@ package eventstream
 import (
 	"context"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/linger/backoff"
 )
+
+// Handler handles events consumed from a stream.
+type Handler interface {
+	// NextOffset returns the offset of the next event to be consumed from a
+	// specific application's event stream.
+	//
+	// id is the identity of the source application.
+	NextOffset(ctx context.Context, id configkit.Identity) (Offset, error)
+
+	// HandleEvent handles an event obtained from the event stream.
+	//
+	// o must be the offset that would be returned by NextOffset(). On success,
+	// the next call to NextOffset() will return e.Offset + 1.
+	HandleEvent(ctx context.Context, o Offset, ev *Event) error
+}
 
 // Consumer handles events consumed from an event stream.
 type Consumer struct {
@@ -27,7 +43,7 @@ type Consumer struct {
 	// If it is nil, logging.DefaultLogger is used.
 	Logger logging.Logger
 
-	offset        uint64
+	offset        Offset
 	backoff       backoff.Counter
 	handlerFailed bool
 }
@@ -65,7 +81,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 // It consumes until ctx is canceled, an error occurs, no more relevant events
 // will occur.
 func (c *Consumer) consume(ctx context.Context) error {
-	produced, err := c.Stream.MessageTypes(ctx)
+	produced, err := c.Stream.EventTypes(ctx)
 	if err != nil {
 		return err
 	}

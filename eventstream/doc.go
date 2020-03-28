@@ -1,3 +1,3 @@
-// Package eventstream provides abstractions and utilities for working with
-// ordered streams of event messages.
+// Package eventstream provides abstractions for consuming ordered streams of
+// event messages.
 package eventstream

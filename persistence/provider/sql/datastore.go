@@ -1,58 +1,87 @@
 package sql
 
 import (
+	"context"
 	"database/sql"
 	"sync"
 
-	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/linger/backoff"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/infix/persistence/eventstore"
 )
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
 type dataStore struct {
-	appConfig     configkit.RichApplication
-	marshaler     marshalkit.Marshaler
-	db            *sql.DB
-	driver        *Driver
-	streamBackoff backoff.Strategy
-	closer        func() error
+	db     *sql.DB
+	driver Driver
+	appKey string
 
-	once   sync.Once
-	stream *Stream
+	m       sync.RWMutex
+	release func() error
 }
 
-// EventStream returns the application's event stream.
-func (ds *dataStore) EventStream() eventstream.Stream {
-	ds.once.Do(func() {
-		ds.stream = &Stream{
-			App:             ds.appConfig.Identity(),
-			DB:              ds.db,
-			Driver:          ds.driver.StreamDriver,
-			Marshaler:       ds.marshaler,
-			BackoffStrategy: ds.streamBackoff,
-			Types: ds.appConfig.
-				MessageTypes().
-				Produced.
-				FilterByRole(message.EventRole),
-		}
-	})
-
-	return ds.stream
+// newDataStore returns a new data-store.
+func newDataStore(
+	db *sql.DB,
+	d Driver,
+	k string,
+	r func() error,
+) *dataStore {
+	return &dataStore{
+		db:      db,
+		driver:  d,
+		appKey:  k,
+		release: r,
+	}
 }
 
-// MessageQueue returns the application's queue of command and timeout messages.
-func (ds *dataStore) MessageQueue() persistence.Queue {
-	panic("not implemented")
+// EventStoreRepository returns the application's event store repository.
+func (ds *dataStore) EventStoreRepository() eventstore.Repository {
+	return &eventStoreRepository{ds.db, ds.driver, ds.appKey}
+}
+
+// Begin starts a new transaction.
+func (ds *dataStore) Begin(ctx context.Context) (persistence.Transaction, error) {
+	if err := ds.checkOpen(); err != nil {
+		return nil, err
+	}
+
+	return &transaction{ds: ds}, nil
 }
 
 // Close closes the data store.
+//
+// Closing a data-store immediately prevents new transactions from being
+// started. Specifically, it causes Begin() to return ErrDataStoreClosed.
+//
+// The behavior of any other read or write operation on a closed data-store
+// is implementation-defined.
+//
+// It is generally expected that all transactions have ended by the time the
+// data-store is closed.
+//
+// Close() may block until any in-flight transactions are ended, or may
+// prevent any such transactions from being committed.
 func (ds *dataStore) Close() error {
-	if ds.closer != nil {
-		return ds.closer()
+	ds.m.Lock()
+	defer ds.m.Unlock()
+
+	if ds.release == nil {
+		return persistence.ErrDataStoreClosed
+	}
+
+	r := ds.release
+	ds.release = nil
+
+	return r()
+}
+
+// checkOpen returns an error if the data-store is closed.
+func (ds *dataStore) checkOpen() error {
+	ds.m.RLock()
+	defer ds.m.RUnlock()
+
+	if ds.release == nil {
+		return persistence.ErrDataStoreClosed
 	}
 
 	return nil

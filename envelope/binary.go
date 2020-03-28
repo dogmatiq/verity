@@ -1,7 +1,7 @@
 package envelope
 
 import (
-	"github.com/dogmatiq/infix/internal/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
 )
