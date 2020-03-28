@@ -18,7 +18,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		ctx,
 		db,
 		`CREATE TABLE app_lock (
-			app_key TEXT NOT NULL PRIMARY KEY,
+			app_key TEXT NOT NULL UNIQUE,
 			expires INTEGER NOT NULL
 		)`,
 	)
@@ -66,6 +66,25 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event_filter (
+			app_key VARBINARY(255) NOT NULL UNIQUE
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event_filter_name (
+			filter_id     BIGINT NOT NULL REFERENCES event_filter (rowid) ON DELETE CASCADE,
+			portable_name VARBINARY(255) NOT NULL,
+
+			PRIMARY KEY (filter_id, portable_name)
+		) WITHOUT ROWID`,
+	)
+
 	return tx.Commit()
 }
 
@@ -76,6 +95,8 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
 
 	return nil
 }

@@ -153,7 +153,7 @@ func (p *provider) open(
 	k string,
 	open func() (*sql.DB, Driver, error),
 	close func(db *sql.DB) error,
-) (persistence.DataStore, error) {
+) (_ persistence.DataStore, err error) {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -179,6 +179,15 @@ func (p *provider) open(
 
 	release, err := p.driver.LockApplication(ctx, p.db, k)
 	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			release()
+		}
+	}()
+
+	if err := p.driver.PurgeEventFilters(ctx, p.db, k); err != nil {
 		return nil, err
 	}
 

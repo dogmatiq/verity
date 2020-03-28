@@ -3,9 +3,11 @@ package sql
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/eventstore"
+	"go.uber.org/multierr"
 )
 
 // eventStoreDriver is the subset of the Driver interfaces that is concerned
@@ -29,13 +31,44 @@ type eventStoreDriver interface {
 		envelopes []*envelopespec.Envelope,
 	) error
 
+	// InsertEventFilter inserts a filter that limits selected events to those
+	// with a portable name in the given set.
+	//
+	// It returns the filter's ID.
+	InsertEventFilter(
+		ctx context.Context,
+		db *sql.DB,
+		ak string,
+		f eventstore.Filter,
+	) (int64, error)
+
+	// DeleteEventFilter deletes an event filter.
+	//
+	// f is the filter ID, as returned by InsertEventFilter().
+	DeleteEventFilter(
+		ctx context.Context,
+		db *sql.DB,
+		f int64,
+	) error
+
+	// PurgeEventFilters deletes all event filters for the given application.
+	PurgeEventFilters(
+		ctx context.Context,
+		db *sql.DB,
+		ak string,
+	) error
+
 	// SelectEvents selects events from the eventstore that match the given
 	// query.
+	//
+	// f is a filter ID, as returned by InsertEventFilter(). If the query does
+	// not use a filter, f is zero.
 	SelectEvents(
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
 		q eventstore.Query,
+		f int64,
 	) (*sql.Rows, error)
 
 	// ScanEvent scans the next event from a row-set returned by SelectEvents().
@@ -95,27 +128,51 @@ func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
 	q eventstore.Query,
 ) (eventstore.Result, error) {
+	var filterID int64
+
+	if len(q.Filter) > 0 {
+		var err error
+		filterID, err = r.driver.InsertEventFilter(
+			ctx,
+			r.db,
+			r.appKey,
+			q.Filter,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	rows, err := r.driver.SelectEvents(
 		ctx,
 		r.db,
 		r.appKey,
 		q,
+		filterID,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &eventStoreResult{
-		rows:   rows,
-		driver: r.driver,
+		db:       r.db,
+		rows:     rows,
+		driver:   r.driver,
+		filterID: filterID,
 	}, nil
 }
+
+// closeTimeout is maximum duration that a call to eventStoreResult.Close() can
+// take to delete the event filter.
+const closeTimeout = 1 * time.Second
 
 // eventStoreResult is an implementation of eventstore.Result for the SQL event
 // store.
 type eventStoreResult struct {
-	rows   *sql.Rows
-	driver Driver
+	db       *sql.DB
+	rows     *sql.Rows
+	driver   Driver
+	filterID int64
 }
 
 // Next returns the next event in the result.
@@ -150,5 +207,21 @@ func (r *eventStoreResult) Next(
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	return r.rows.Close()
+	err := r.rows.Close()
+
+	if r.filterID != 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), closeTimeout)
+		defer cancel()
+
+		err = multierr.Append(
+			err,
+			r.driver.DeleteEventFilter(
+				ctx,
+				r.db,
+				r.filterID,
+			),
+		)
+	}
+
+	return err
 }

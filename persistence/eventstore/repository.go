@@ -10,17 +10,20 @@ type Repository interface {
 	QueryEvents(ctx context.Context, q Query) (Result, error)
 }
 
+// Filter is a set of portable type names of event messages.
+type Filter map[string]struct{}
+
 // Query defines criteria for matching events in the store.
 type Query struct {
 	// MinOffset specifies the (inclusive) lower-bound of the offset range to
 	// include in the results.
 	MinOffset Offset
 
-	// PortableNames is the set of event types to include in the results,
-	// specified using the "portable type name".
+	// Filter is the set of event types to include in the results, specified
+	// using the "portable type name".
 	//
 	// If it is empty, all event types are included.
-	PortableNames map[string]struct{}
+	Filter Filter
 
 	// AggregateHandlerKey, if non-empty, limits the results to those events
 	// produced by the aggregate message handler identified by this key.
@@ -41,8 +44,8 @@ func (q Query) IsMatch(ev *Event) bool {
 		return false
 	}
 
-	if len(q.PortableNames) > 0 {
-		if _, ok := q.PortableNames[ev.Envelope.PortableName]; !ok {
+	if len(q.Filter) > 0 {
+		if _, ok := q.Filter[ev.Envelope.PortableName]; !ok {
 			return false
 		}
 	}

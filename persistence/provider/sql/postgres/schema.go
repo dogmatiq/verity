@@ -68,6 +68,26 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.event_filter (
+			id        SERIAL NOT NULL PRIMARY KEY,
+			app_key   TEXT NOT NULL UNIQUE
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.event_filter_name (
+			filter_id     BIGINT NOT NULL REFERENCES infix.event_filter (id) ON DELETE CASCADE,
+			portable_name TEXT NOT NULL,
+
+			PRIMARY KEY (filter_id, portable_name)
+		)`,
+	)
+
 	return tx.Commit()
 }
 

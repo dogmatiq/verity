@@ -49,6 +49,26 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
 
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event_filter (
+			id      SERIAL NOT NULL PRIMARY KEY,
+			app_key VARBINARY(255) NOT NULL UNIQUE
+		) ENGINE=InnoDB`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event_filter_name (
+			filter_id     BIGINT NOT NULL REFERENCES event_filter (id) ON DELETE CASCADE,
+			portable_name VARBINARY(255) NOT NULL,
+
+			PRIMARY KEY (filter_id, portable_name)
+		) ENGINE=InnoDB`,
+	)
+
 	return nil
 }
 
@@ -58,6 +78,8 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
 
 	return nil
 }

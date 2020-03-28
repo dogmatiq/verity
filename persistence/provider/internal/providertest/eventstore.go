@@ -203,10 +203,10 @@ func declareEventStoreTests(
 						"it returns an empty result if the minimum offset is larger than the largest offset",
 						eventstore.Query{MinOffset: 100},
 					),
-					table.XEntry(
+					table.Entry(
 						"it honours the type filter",
 						eventstore.Query{
-							PortableNames: map[string]struct{}{
+							Filter: eventstore.Filter{
 								marshalfixtures.MessageAPortableName: struct{}{},
 								marshalfixtures.MessageCPortableName: struct{}{},
 							},
@@ -262,10 +262,18 @@ func declareEventStoreTests(
 			})
 		})
 
-		ginkgo.Describe("type ResultSet (interface)", func() {
+		ginkgo.Describe("type Result (interface)", func() {
 			ginkgo.Describe("func Close()", func() {
 				ginkgo.It("does not return an error if the result is open", func() {
-					res, err := repository.QueryEvents(*ctx, eventstore.Query{})
+					res, err := repository.QueryEvents(*ctx, eventstore.Query{
+						MinOffset: 3,
+						Filter: eventstore.Filter{
+							marshalfixtures.MessageAPortableName: struct{}{},
+							marshalfixtures.MessageCPortableName: struct{}{},
+						},
+						AggregateHandlerKey: "<aggregate>",
+						AggregateInstanceID: "<instance-a>",
+					})
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					err = res.Close()
