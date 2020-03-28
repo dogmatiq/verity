@@ -103,6 +103,52 @@ func declareEventStoreTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.BeNumerically("==", 3))
 				})
+
+				ginkgo.When("the transaction is rolled-back", func() {
+					ginkgo.BeforeEach(func() {
+						tx, err := dataStore.Begin(*ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer tx.Rollback()
+
+						_, err = tx.SaveEvents(
+							*ctx,
+							[]*envelopespec.Envelope{
+								env0,
+								env1,
+								env2,
+							},
+						)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						err = tx.Rollback()
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					})
+
+					ginkgo.It("does not save any events", func() {
+						res, err := repository.QueryEvents(*ctx, eventstore.Query{})
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer res.Close()
+
+						_, ok, err := res.Next(*ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(ok).To(gomega.BeFalse())
+					})
+
+					ginkgo.It("does not increment the offset", func() {
+						tx, err := dataStore.Begin(*ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer tx.Rollback()
+
+						o, err := tx.SaveEvents(
+							*ctx,
+							[]*envelopespec.Envelope{
+								env0,
+							},
+						)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(o).To(gomega.BeNumerically("==", 1))
+					})
+				})
 			})
 		})
 

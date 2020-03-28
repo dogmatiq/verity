@@ -99,7 +99,7 @@ func declareDataStoreTests(
 				select {
 				case err := <-errors:
 					// It appears that Close() blocks until the transactions are
-					// committed or rolled back.
+					// committed or rolled-back.
 					//
 					// If the implementation blocks, we assume the intent is to
 					// allow thetransactions to finish successfully.
