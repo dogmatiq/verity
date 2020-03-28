@@ -52,6 +52,13 @@ func declareTransactionTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 
+			ginkgo.Describe("func SaveEvents()", func() {
+				ginkgo.It("returns an error", func() {
+					_, err := transaction.SaveEvents(*ctx, nil)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
+
 			ginkgo.Describe("func Commit()", func() {
 				ginkgo.It("returns an error", func() {
 					err := transaction.Commit(*ctx)
@@ -71,6 +78,13 @@ func declareTransactionTests(
 			ginkgo.BeforeEach(func() {
 				err := transaction.Rollback()
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.Describe("func SaveEvents()", func() {
+				ginkgo.It("returns an error", func() {
+					_, err := transaction.SaveEvents(*ctx, nil)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
 			})
 
 			ginkgo.Describe("func Commit()", func() {

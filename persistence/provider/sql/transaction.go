@@ -55,6 +55,10 @@ func (t *transaction) Rollback() error {
 func (t *transaction) begin(ctx context.Context) error {
 	var err error
 
+	if t.ds == nil {
+		return persistence.ErrTransactionClosed
+	}
+
 	if t.actual == nil {
 		t.actual, err = t.ds.driver.Begin(ctx, t.ds.db)
 	}
