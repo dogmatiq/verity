@@ -15,6 +15,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
+	"golang.org/x/sync/errgroup"
 )
 
 func declareEventStoreTests(
@@ -134,6 +135,73 @@ func declareEventStoreTests(
 					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
 				})
 
+				ginkgo.It("serializes save operations from competing transactions", func() {
+					// Create a slice of envelopes to test with.
+					envelopes := []*envelopespec.Envelope{
+						env0,
+						env1,
+						env2,
+					}
+
+					// Create a slice to store the "next" offset that each call
+					// to SaveEvents() returns. Because each transaction only
+					// persisted a single event, each event will be persisted at
+					// the offset before this value.
+					nextOffsets := make([]eventstore.Offset, len(envelopes))
+
+					ginkgo.By("running several transactions in parallel")
+
+					g, gctx := errgroup.WithContext(*ctx)
+					for i := range envelopes {
+						i := i // capture loop variable
+						g.Go(func() error {
+							var err error
+							nextOffsets[i], err = saveEvents(
+								gctx,
+								dataStore,
+								envelopes[i],
+							)
+							return err
+						})
+					}
+
+					err := g.Wait()
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					// We don't know what order the transactions will execute,
+					// so allow for the offsets to be in any order.
+					expected := make([]eventstore.Offset, len(nextOffsets))
+					for i := range expected {
+						expected[i] = eventstore.Offset(i + 1)
+					}
+					gomega.Expect(nextOffsets).To(
+						gomega.ConsistOf(expected),
+						"unexpected offsets were returned",
+					)
+
+					ginkgo.By("querying the events")
+
+					// Now we query the events and verify that each specific
+					// envelope ended up at the offset that reported to us.
+					results, err := queryEvents(*ctx, repository, eventstore.Query{})
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(len(results)).To(
+						gomega.Equal(len(envelopes)),
+						"the number of events saved to the store is incorrect",
+					)
+
+					// i is the "envelope number" (envN), o is the offset we
+					// expect that event to be at.
+					for i, next := range nextOffsets {
+						ev := results[next-1]
+						env := envelopes[i]
+
+						gomega.Expect(ev.Envelope.MetaData.MessageId).To(
+							gomega.Equal(env.MetaData.MessageId),
+						)
+					}
+				})
+
 				ginkgo.When("the transaction is rolled-back", func() {
 					ginkgo.BeforeEach(func() {
 						tx, err := dataStore.Begin(*ctx)
@@ -195,7 +263,7 @@ func declareEventStoreTests(
 					func(q eventstore.Query, expected ...*eventstore.Event) {
 						ginkgo.By("saving some events")
 
-						err := saveEvents(
+						_, err := saveEvents(
 							*ctx,
 							dataStore,
 							env0,
@@ -292,7 +360,7 @@ func declareEventStoreTests(
 
 					ginkgo.By("saving some events")
 
-					err = saveEvents(
+					_, err = saveEvents(
 						*ctx,
 						dataStore,
 						env0,
@@ -353,18 +421,19 @@ func saveEvents(
 	ctx context.Context,
 	ds persistence.DataStore,
 	envelopes ...*envelopespec.Envelope,
-) error {
+) (eventstore.Offset, error) {
 	tx, err := ds.Begin(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.SaveEvents(ctx, envelopes); err != nil {
-		return err
+	o, err := tx.SaveEvents(ctx, envelopes)
+	if err != nil {
+		return 0, err
 	}
 
-	return tx.Commit(ctx)
+	return o, tx.Commit(ctx)
 }
 
 // queryEvents queries an event store and returns a slice of the results.
@@ -384,7 +453,7 @@ func queryEvents(
 	for {
 		ev, ok, err := res.Next(ctx)
 		if !ok || err != nil {
-			return nil, err
+			return events, err
 		}
 
 		events = append(events, ev)
