@@ -118,8 +118,8 @@ type Discoverer func(ctx context.Context, o discovery.TargetObserver) error
 //
 // Currently this option MUST be specified.
 //
-// TODO: Use Bonjour as the default discovery mechanism. See
-// See https://github.com/dogmatiq/configkit/issues/58
+// TODO: https://github.com/dogmatiq/configkit/issues/58
+// Use Bonjour as the default discovery mechanism.
 func WithDiscoverer(d Discoverer) NetworkOption {
 	return func(opts *networkOptions) {
 		opts.Discoverer = d

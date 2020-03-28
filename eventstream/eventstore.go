@@ -218,7 +218,9 @@ func (c *eventStoreCursor) execQuery(ctx context.Context) error {
 		}
 	}
 
-	// TODO: use a signaling channel to wake the consumer when an event is
-	// saved to the store.
+	// TODO: https://github.com/dogmatiq/infix/issues/74
+	//
+	// use a signaling channel to wake the consumer when an event is saved to
+	// the store.
 	return linger.Sleep(ctx, 100*time.Millisecond)
 }

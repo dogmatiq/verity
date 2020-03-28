@@ -69,12 +69,14 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 			return err
 		}
 
+		// TODO: https://github.com/dogmatiq/infix/issues/76
+		// Make pre-fetch buffer size configurable.
 		streams[cfg.Identity().Key] = &eventstream.EventStoreStream{
 			App:        cfg.Identity(),
 			Types:      cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
 			Repository: ds.EventStoreRepository(),
 			Marshaler:  e.opts.Marshaler,
-			PreFetch:   10, // TODO: make configurable
+			PreFetch:   10,
 		}
 	}
 
@@ -96,11 +98,13 @@ func (e *Engine) discover(ctx context.Context) error {
 			logger,
 			&discovery.ApplicationExecutor{
 				Task: func(ctx context.Context, a *discovery.Application) {
+					// TODO: https://github.com/dogmatiq/infix/issues/76
+					// Make pre-fetch buffer size configurable.
 					stream := &eventstream.NetworkStream{
 						App:       a.Identity(),
 						Client:    messagingspec.NewEventStreamClient(a.Client.Connection),
 						Marshaler: e.opts.Marshaler,
-						PreFetch:  10, // TODO: make configurable
+						PreFetch:  10,
 					}
 
 					// err will only ever be context-cancelation

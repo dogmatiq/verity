@@ -16,7 +16,9 @@ import (
 // RegisterServer registers an event stream server for the given streams.
 //
 // streams is a map of application key to the stream of that application.
-// TODO: refactor to operate directly on an eventstore repository.
+//
+// TODO: https://github.com/dogmatiq/infix/issues/75
+// Refactor to operate directly on an eventstore repository.
 func RegisterServer(
 	s *grpc.Server,
 	m marshalkit.TypeMarshaler,
@@ -110,10 +112,12 @@ func (s *server) EventTypes(
 		func(t message.Type) bool {
 			res.MessageTypes = append(
 				res.MessageTypes,
+				// TODO: https://github.com/dogmatiq/infix/issues/49
+				// Populate supported MIME media-types.
 				&messagingspec.MessageType{
 					PortableName: marshalkit.MustMarshalType(s.marshaler, t.ReflectType()),
 					ConfigName:   t.Name().String(),
-					MediaTypes:   nil, // TODO: https://github.com/dogmatiq/infix/issues/49
+					MediaTypes:   nil,
 				},
 			)
 
