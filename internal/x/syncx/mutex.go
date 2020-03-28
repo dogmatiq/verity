@@ -117,8 +117,16 @@ func (m *RWMutex) RLock(ctx context.Context) error {
 			m.m.Lock()
 
 			m.readers++
-			close(m.retry)
-			m.retry = nil
+
+			// If m.retry is already nil, it means that a competing goroutine
+			// has already closed it and called RUnlock() after we unlocked the
+			// internal mutex, but before we got to the select.
+			//
+			// See https://github.com/dogmatiq/infix/issues/72.
+			if m.retry != nil {
+				close(m.retry)
+				m.retry = nil
+			}
 
 			m.m.Unlock()
 
