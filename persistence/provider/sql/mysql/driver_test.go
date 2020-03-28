@@ -15,13 +15,13 @@ import (
 
 var _ = Describe("type Driver", func() {
 	var (
-		db    *sql.DB
-		close func()
+		db      *sql.DB
+		closeDB func()
 	)
 
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
-			db, _, close = sqltest.Open("mysql")
+			db, _, closeDB = sqltest.Open("mysql")
 
 			err := DropSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -39,8 +39,8 @@ var _ = Describe("type Driver", func() {
 			}
 		},
 		func() {
-			if close != nil {
-				close()
+			if closeDB != nil {
+				closeDB()
 			}
 		},
 	)

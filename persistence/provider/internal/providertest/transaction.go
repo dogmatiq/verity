@@ -15,14 +15,14 @@ func declareTransactionTests(
 ) {
 	ginkgo.Describe("type Transaction (interface)", func() {
 		var (
-			provider    persistence.Provider
-			close       func()
-			dataStore   persistence.DataStore
-			transaction persistence.Transaction
+			provider      persistence.Provider
+			closeProvider func()
+			dataStore     persistence.DataStore
+			transaction   persistence.Transaction
 		)
 
 		ginkgo.BeforeEach(func() {
-			provider, close = out.NewProvider()
+			provider, closeProvider = out.NewProvider()
 
 			var err error
 			dataStore, err = provider.Open(*ctx, "<app-key>")
@@ -41,8 +41,8 @@ func declareTransactionTests(
 				dataStore.Close()
 			}
 
-			if close != nil {
-				close()
+			if closeProvider != nil {
+				closeProvider()
 			}
 		})
 

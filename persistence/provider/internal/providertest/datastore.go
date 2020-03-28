@@ -16,13 +16,13 @@ func declareDataStoreTests(
 ) {
 	ginkgo.Describe("type DataStore (interface)", func() {
 		var (
-			provider  persistence.Provider
-			close     func()
-			dataStore persistence.DataStore
+			provider      persistence.Provider
+			closeProvider func()
+			dataStore     persistence.DataStore
 		)
 
 		ginkgo.BeforeEach(func() {
-			provider, close = out.NewProvider()
+			provider, closeProvider = out.NewProvider()
 
 			var err error
 			dataStore, err = provider.Open(*ctx, "<app-key>")
@@ -34,8 +34,8 @@ func declareDataStoreTests(
 				dataStore.Close()
 			}
 
-			if close != nil {
-				close()
+			if closeProvider != nil {
+				closeProvider()
 			}
 		})
 

@@ -25,10 +25,10 @@ func declareEventStoreTests(
 ) {
 	ginkgo.Context("package eventstore", func() {
 		var (
-			provider   persistence.Provider
-			close      func()
-			dataStore  persistence.DataStore
-			repository eventstore.Repository
+			provider      persistence.Provider
+			closeProvider func()
+			dataStore     persistence.DataStore
+			repository    eventstore.Repository
 
 			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1)
@@ -60,7 +60,7 @@ func declareEventStoreTests(
 		env3.MetaData.Source.InstanceId = "<instance-b>"
 
 		ginkgo.BeforeEach(func() {
-			provider, close = out.NewProvider()
+			provider, closeProvider = out.NewProvider()
 
 			var err error
 			dataStore, err = provider.Open(*ctx, "<app-key>")
@@ -74,8 +74,8 @@ func declareEventStoreTests(
 				dataStore.Close()
 			}
 
-			if close != nil {
-				close()
+			if closeProvider != nil {
+				closeProvider()
 			}
 		})
 
