@@ -91,7 +91,7 @@ func declareEventStoreTests(
 						},
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(o).To(gomega.BeNumerically("==", 1))
+					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
 
 					o, err = tx.SaveEvents(
 						*ctx,
@@ -101,7 +101,7 @@ func declareEventStoreTests(
 						},
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(o).To(gomega.BeNumerically("==", 3))
+					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(3)))
 				})
 
 				ginkgo.When("the transaction is rolled-back", func() {
@@ -125,13 +125,9 @@ func declareEventStoreTests(
 					})
 
 					ginkgo.It("does not save any events", func() {
-						res, err := repository.QueryEvents(*ctx, eventstore.Query{})
+						events, err := queryEvents(*ctx, repository, eventstore.Query{})
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						defer res.Close()
-
-						_, ok, err := res.Next(*ctx)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(ok).To(gomega.BeFalse())
+						gomega.Expect(events).To(gomega.BeEmpty())
 					})
 
 					ginkgo.It("does not increment the offset", func() {
@@ -146,7 +142,7 @@ func declareEventStoreTests(
 							},
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(o).To(gomega.BeNumerically("==", 1))
+						gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
 					})
 				})
 			})
@@ -167,30 +163,18 @@ func declareEventStoreTests(
 				table.DescribeTable(
 					"it returns a result containing the events that match the query criteria",
 					func(q eventstore.Query, expected ...*eventstore.Event) {
-						ginkgo.By("starting a transaction")
-
-						tx, err := dataStore.Begin(*ctx)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						defer tx.Rollback()
-
 						ginkgo.By("saving some events")
 
-						_, err = tx.SaveEvents(
+						err := saveEvents(
 							*ctx,
-							[]*envelopespec.Envelope{
-								env0,
-								env1,
-								env2,
-								env3,
-								env4,
-								env5,
-							},
+							dataStore,
+							env0,
+							env1,
+							env2,
+							env3,
+							env4,
+							env5,
 						)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-						ginkgo.By("committing the transaction")
-
-						err = tx.Commit(*ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						ginkgo.By("querying the events")
@@ -276,25 +260,14 @@ func declareEventStoreTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer res.Close()
 
-					ginkgo.By("starting a transaction")
-
-					tx, err := dataStore.Begin(*ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer tx.Rollback()
-
 					ginkgo.By("saving some events")
 
-					_, err = tx.SaveEvents(
+					err = saveEvents(
 						*ctx,
-						[]*envelopespec.Envelope{
-							env0, env1,
-						},
+						dataStore,
+						env0,
+						env1,
 					)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-					ginkgo.By("committing the transaction")
-
-					err = tx.Commit(*ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					ginkgo.By("iterating through the result")
@@ -343,4 +316,47 @@ func declareEventStoreTests(
 			})
 		})
 	})
+}
+
+// saveEvents persistences the given events to the store.
+func saveEvents(
+	ctx context.Context,
+	ds persistence.DataStore,
+	envelopes ...*envelopespec.Envelope,
+) error {
+	tx, err := ds.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.SaveEvents(ctx, envelopes); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// queryEvents queries an event store and returns a slice of the results.
+func queryEvents(
+	ctx context.Context,
+	r eventstore.Repository,
+	q eventstore.Query,
+) ([]*eventstore.Event, error) {
+	res, err := r.QueryEvents(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	var events []*eventstore.Event
+
+	for {
+		ev, ok, err := res.Next(ctx)
+		if !ok || err != nil {
+			return nil, err
+		}
+
+		events = append(events, ev)
+	}
 }
