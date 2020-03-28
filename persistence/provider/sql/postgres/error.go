@@ -15,9 +15,7 @@ import (
 //
 // See https://github.com/dogmatiq/infix/issues/35.
 func convertContextErrors(ctx context.Context, err error) error {
-	var e pq.Error
-
-	if errors.As(err, &e) {
+	if e, ok := unwrapError(err); ok {
 		if e.Code.Name() == "query_canceled" {
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -26,6 +24,22 @@ func convertContextErrors(ctx context.Context, err error) error {
 	}
 
 	return err
+}
+
+// unwrapError returns a *pq.Error if err is either a pq.Error or *pq.Error.
+//
+// It appears as through *pq.Error is returned from the methods of the native
+// SQL driver, however the Error() method has a non-pointer receiver, so a
+// pq.Error (non-pointer) also satisfies the Error interface.
+func unwrapError(err error) (*pq.Error, bool) {
+	e := &pq.Error{}
+
+	if errors.As(err, e) ||
+		errors.As(err, &e) {
+		return e, true
+	}
+
+	return nil, false
 }
 
 // errorConverter is an implementation of persistence.Driver that decorates the
