@@ -3,6 +3,7 @@ package providertest
 import (
 	"context"
 	"fmt"
+	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -102,6 +103,35 @@ func declareEventStoreTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(3)))
+				})
+
+				ginkgo.It("blocks if another in-flight transaction has saved events", func() {
+					tx1, err := dataStore.Begin(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx1.Rollback()
+
+					_, err = tx1.SaveEvents(
+						*ctx,
+						[]*envelopespec.Envelope{
+							env0,
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					tx2, err := dataStore.Begin(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx2.Rollback()
+
+					ctx, cancel := context.WithTimeout(*ctx, 50*time.Millisecond)
+					defer cancel()
+
+					_, err = tx2.SaveEvents(
+						ctx,
+						[]*envelopespec.Envelope{
+							env1,
+						},
+					)
+					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
 				})
 
 				ginkgo.When("the transaction is rolled-back", func() {
