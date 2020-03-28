@@ -38,6 +38,11 @@ type errorConverter struct {
 	d driver
 }
 
+func (d errorConverter) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
+	tx, err := db.BeginTx(ctx, nil)
+	return tx, convertContextErrors(ctx, err)
+}
+
 func (d errorConverter) LockApplication(
 	ctx context.Context,
 	db *sql.DB,

@@ -56,7 +56,7 @@ func (t *transaction) begin(ctx context.Context) error {
 	var err error
 
 	if t.actual == nil {
-		t.actual, err = t.ds.db.BeginTx(ctx, nil)
+		t.actual, err = t.ds.driver.Begin(ctx, t.ds.db)
 	}
 
 	return err

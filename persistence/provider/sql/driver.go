@@ -14,6 +14,9 @@ import (
 type Driver interface {
 	eventStoreDriver
 
+	// Begin starts a transaction for use in a peristence.Transaction.
+	Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error)
+
 	// LockApplication acquires an exclusive lock on an application's data.
 	//
 	// r is a function that releases the lock, if acquired successfully.
