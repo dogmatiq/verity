@@ -4,8 +4,12 @@ import (
 	"context"
 	"time"
 
+	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 )
 
@@ -76,46 +80,88 @@ func declareDataStoreTests(
 				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreClosed))
 			})
 
-			ginkgo.It("blocks until transactions end or causes them to fail", func() {
-				tx1, err := dataStore.Begin(*ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer tx1.Rollback()
+			table.DescribeTable(
+				"it blocks until transactions end or otherwise causes them to fail",
+				func(commit, write bool) {
 
-				tx2, err := dataStore.Begin(*ctx)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer tx2.Rollback()
+					ginkgo.By("starting a transaction")
 
-				errors := make(chan error, 2)
+					// The transaction is started outside the goroutine to
+					// ensure it happens before the data-store is closed.
+					tx, err := dataStore.Begin(*ctx)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					defer tx.Rollback()
 
-				go func() {
-					time.Sleep(50 * time.Millisecond)
-					errors <- tx1.Commit(*ctx)
-					errors <- tx2.Rollback()
-				}()
+					result := make(chan error, 1)
+					go func() {
+						// Delay long enough to tell the difference between a
+						// blocking call to Close() and a non-blocking one.
+						time.Sleep(50 * time.Millisecond)
 
-				err = dataStore.Close()
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						if write {
+							ginkgo.By("performing a write operation")
 
-				select {
-				case err := <-errors:
-					// It appears that Close() blocks until the transactions are
-					// committed or rolled-back.
-					//
-					// If the implementation blocks, we assume the intent is to
-					// allow thetransactions to finish successfully.
+							env := infixfixtures.NewEnvelopeProto("<id>", dogmafixtures.MessageA1)
+
+							if _, err := tx.SaveEvents(
+								*ctx,
+								[]*envelopespec.Envelope{env},
+							); err != nil {
+								result <- err
+								return
+							}
+						}
+
+						if commit {
+							ginkgo.By("committing the transaction")
+							result <- tx.Commit(*ctx)
+						} else {
+							ginkgo.By("rolling the transaction back")
+							result <- tx.Rollback()
+						}
+					}()
+
+					ginkgo.By("closing the data-store")
+
+					err = dataStore.Close()
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					err = <-errors
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					select {
+					case err := <-result:
+						// It appears that Close() blocks until the transactions
+						// are committed or rolled-back, otherwise we'd not
+						// expect to see the transaction result already.
+						//
+						// If the implementation blocks, we assume the intent is
+						// to allow thetransactions to finish successfully.
 
-				default:
-					// If there are no errors yet, it's appers that Close() does
-					// not block, and hence we would expect errors to occur when
-					// the transactions are ended.
-					gomega.Expect(<-errors).To(gomega.Equal(persistence.ErrDataStoreClosed))
-					gomega.Expect(<-errors).To(gomega.Equal(persistence.ErrDataStoreClosed))
-				}
-			})
+						ginkgo.By("assuming Close() blocks")
+
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					default:
+						// If there is no result yet, it's appers that Close()
+						// does not block, and hence we would expect an error to
+						// occur when the transactions is used.
+
+						ginkgo.By("assuming Close() does not block")
+
+						select {
+						case err := <-result:
+							// We don't know what error will happen, but it
+							// should definitely fail.
+							gomega.Expect(err).Should(gomega.HaveOccurred())
+						case <-(*ctx).Done():
+							err := (*ctx).Err()
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						}
+					}
+				},
+				table.Entry("committed, without a write operation", true, false),
+				table.Entry("committed, with a write operation", true, true),
+				table.Entry("rolled-back, without a write operation", false, false),
+				table.Entry("rolled-back, with a write operation", false, true),
+			)
 		})
 	})
 }
