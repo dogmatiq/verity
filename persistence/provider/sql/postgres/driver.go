@@ -9,7 +9,7 @@ import (
 )
 
 // Driver is an implementation of sql.Driver for PostgreSQL.
-var Driver driver
+var Driver errorConverter
 
 type driver struct{}
 
