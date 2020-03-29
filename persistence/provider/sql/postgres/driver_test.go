@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
+	"github.com/dogmatiq/infix/persistence/internal/providertest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
 	. "github.com/dogmatiq/infix/persistence/provider/sql/postgres"
 	. "github.com/onsi/ginkgo"

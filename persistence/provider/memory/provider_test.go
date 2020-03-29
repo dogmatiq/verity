@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
+	"github.com/dogmatiq/infix/persistence/internal/providertest"
 	. "github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
 )

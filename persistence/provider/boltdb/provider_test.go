@@ -6,8 +6,8 @@ import (
 
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/internal/providertest"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
-	"github.com/dogmatiq/infix/persistence/provider/internal/providertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
