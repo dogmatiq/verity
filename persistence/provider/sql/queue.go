@@ -28,6 +28,13 @@ type queueDriver interface {
 		ak string,
 		n int,
 	) (*sql.Rows, error)
+
+	// ScanQueuedMessage scans the next message from a row-set returned by
+	// SelectQueuedMessages().
+	ScanQueuedMessage(
+		rows *sql.Rows,
+		m *queue.Message,
+	) error
 }
 
 // EnqueueMessages adds messages to the application's message queue.
@@ -108,21 +115,7 @@ func (r *queueRepository) LoadQueuedMessages(
 			},
 		}
 
-		if err := rows.Scan(
-			&m.Revision,
-			&m.Envelope.MetaData.MessageId,
-			&m.Envelope.MetaData.CausationId,
-			&m.Envelope.MetaData.CorrelationId,
-			&m.Envelope.MetaData.Source.Application.Name,
-			&m.Envelope.MetaData.Source.Application.Key,
-			&m.Envelope.MetaData.Source.Handler.Name,
-			&m.Envelope.MetaData.Source.Handler.Key,
-			&m.Envelope.MetaData.Source.InstanceId,
-			&m.Envelope.MetaData.CreatedAt,
-			&m.Envelope.PortableName,
-			&m.Envelope.MediaType,
-			&m.Envelope.Data,
-		); err != nil {
+		if err := r.driver.ScanQueuedMessage(rows, m); err != nil {
 			return nil, err
 		}
 

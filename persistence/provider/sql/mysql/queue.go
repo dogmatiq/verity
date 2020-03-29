@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
 // InsertQueuedMessages saves messages to the queue.
@@ -82,5 +83,28 @@ func (driver) SelectQueuedMessages(
 		LIMIT ?`,
 		ak,
 		n,
+	)
+}
+
+// ScanQueuedMessage scans the next message from a row-set returned by
+// SelectQueuedMessages().
+func (driver) ScanQueuedMessage(
+	rows *sql.Rows,
+	m *queue.Message,
+) error {
+	return rows.Scan(
+		&m.Revision,
+		&m.Envelope.MetaData.MessageId,
+		&m.Envelope.MetaData.CausationId,
+		&m.Envelope.MetaData.CorrelationId,
+		&m.Envelope.MetaData.Source.Application.Name,
+		&m.Envelope.MetaData.Source.Application.Key,
+		&m.Envelope.MetaData.Source.Handler.Name,
+		&m.Envelope.MetaData.Source.Handler.Key,
+		&m.Envelope.MetaData.Source.InstanceId,
+		&m.Envelope.MetaData.CreatedAt,
+		&m.Envelope.PortableName,
+		&m.Envelope.MediaType,
+		&m.Envelope.Data,
 	)
 }

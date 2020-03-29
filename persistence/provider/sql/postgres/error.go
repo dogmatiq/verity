@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 	"github.com/lib/pq"
 )
 
@@ -158,4 +159,11 @@ func (d errorConverter) SelectQueuedMessages(
 ) (*sql.Rows, error) {
 	rows, err := d.d.SelectQueuedMessages(ctx, db, ak, n)
 	return rows, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) ScanQueuedMessage(
+	rows *sql.Rows,
+	m *queue.Message,
+) error {
+	return d.d.ScanQueuedMessage(rows, m)
 }
