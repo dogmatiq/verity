@@ -19,7 +19,7 @@ type Transaction interface {
 	// DequeueMessage removes a message from the application's message queue.
 	//
 	// m.Revision must be the revision of the queued message as currently
-	// persisted, otherwise an optimistic concurrency conflict has occured, the
+	// persisted, otherwise an optimistic concurrency conflict has occurred, the
 	// message remains on the queue and ok is false.
 	DequeueMessage(
 		ctx context.Context,
@@ -32,7 +32,7 @@ type Transaction interface {
 	// n is the time at which the next attempt at handling the message occurs.
 	//
 	// m.Revision must be the revision of the queued message as currently
-	// persisted, otherwise an optimistic concurrency conflict has occured, the
+	// persisted, otherwise an optimistic concurrency conflict has occurred, the
 	// message is not delayed and ok is false.
 	DelayQueuedMessage(
 		ctx context.Context,

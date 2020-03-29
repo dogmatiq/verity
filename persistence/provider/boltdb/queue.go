@@ -38,9 +38,9 @@ func (t *transaction) EnqueueMessages(
 
 // DequeueMessage removes a message from the application's message queue.
 //
-// m.Revision must be the revision of the queued message as currently
-// persisted, otherwise an optimistic concurrency conflict has occured, the
-// message remains on the queue and ok is false.
+// m.Revision must be the revision of the queued message as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the message
+// remains on the queue and ok is false.
 func (t *transaction) DequeueMessage(
 	ctx context.Context,
 	m *queue.Message,
@@ -48,14 +48,14 @@ func (t *transaction) DequeueMessage(
 	return false, errors.New("not implemented")
 }
 
-// DelayQueuedMessage returns defers the next attempt of a queued message
-// after a failure.
+// DelayQueuedMessage returns defers the next attempt of a queued message after
+// a failure.
 //
-// n is the time at which the next attempt at handling the message occurs.
+// n indicates when the next attempt to handle the message is made.
 //
-// m.Revision must be the revision of the queued message as currently
-// persisted, otherwise an optimistic concurrency conflict has occured, the
-// message is not delayed and ok is false.
+// m.Revision must be the revision of the queued message as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the message is not
+// delayed and ok is false.
 func (t *transaction) DelayQueuedMessage(
 	ctx context.Context,
 	m *queue.Message,
