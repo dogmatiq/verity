@@ -2,6 +2,7 @@ package sql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -43,4 +44,20 @@ func (t *transaction) DelayQueuedMessage(
 	n time.Time,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
+}
+
+// queueRepository is an implementation of queue.Repository that stores queued
+// messages in an SQL database.
+type queueRepository struct {
+	db     *sql.DB
+	driver Driver
+	appKey string
+}
+
+// LoadQueuedMessages loads the next n messages from the queue.
+func (r *queueRepository) LoadQueuedMessages(
+	ctx context.Context,
+	n int,
+) ([]*queue.Message, error) {
+	return nil, errors.New("not implemented")
 }

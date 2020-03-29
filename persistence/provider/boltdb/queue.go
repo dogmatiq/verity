@@ -44,3 +44,18 @@ func (t *transaction) DelayQueuedMessage(
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
+
+// queueRepository is an implementation of queue.Repository that stores queued
+// messages in a BoltDB database.
+type queueRepository struct {
+	db     *database
+	appKey []byte
+}
+
+// LoadQueuedMessages loads the next n messages from the queue.
+func (r *queueRepository) LoadQueuedMessages(
+	ctx context.Context,
+	n int,
+) ([]*queue.Message, error) {
+	return nil, errors.New("not implemented")
+}

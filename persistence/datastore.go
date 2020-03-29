@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 	"go.uber.org/multierr"
 )
 
@@ -18,6 +19,9 @@ var ErrDataStoreClosed = errors.New("data store is closed")
 type DataStore interface {
 	// EventStoreRepository returns the application's event store repository.
 	EventStoreRepository() eventstore.Repository
+
+	// QueueRepository returns the application's message queue repository.
+	QueueRepository() queue.Repository
 
 	// Begin starts a new transaction.
 	Begin(ctx context.Context) (Transaction, error)
