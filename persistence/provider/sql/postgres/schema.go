@@ -25,6 +25,20 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
+	createEventStoreSchema(ctx, db)
+
+	return tx.Commit()
+}
+
+// DropSchema drops the schema elements required by the PostgreSQL driver.
+func DropSchema(ctx context.Context, db *sql.DB) error {
+	_, err := db.ExecContext(ctx, `DROP SCHEMA IF EXISTS infix CASCADE`)
+	return err
+}
+
+// createEventStoreSchema creates the schema elements required by the event
+// store subsystem.
+func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
@@ -87,12 +101,4 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 			PRIMARY KEY (filter_id, portable_name)
 		)`,
 	)
-
-	return tx.Commit()
-}
-
-// DropSchema drops the schema elements required by the PostgreSQL driver.
-func DropSchema(ctx context.Context, db *sql.DB) error {
-	_, err := db.ExecContext(ctx, `DROP SCHEMA IF EXISTS infix CASCADE`)
-	return err
 }

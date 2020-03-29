@@ -11,6 +11,26 @@ import (
 func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
+	createEventStoreSchema(ctx, db)
+
+	return nil
+}
+
+// DropSchema drops the schema elements required by the MySQL driver.
+func DropSchema(ctx context.Context, db *sql.DB) (err error) {
+	defer sqlx.Recover(&err)
+
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
+
+	return nil
+}
+
+// createEventStoreSchema creates the schema elements required by the event
+// store subsystem.
+func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
@@ -68,18 +88,4 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 			PRIMARY KEY (filter_id, portable_name)
 		) ENGINE=InnoDB`,
 	)
-
-	return nil
-}
-
-// DropSchema drops the schema elements required by the MySQL driver.
-func DropSchema(ctx context.Context, db *sql.DB) (err error) {
-	defer sqlx.Recover(&err)
-
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
-
-	return nil
 }

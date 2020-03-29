@@ -23,6 +23,27 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
+	createEventStoreSchema(ctx, db)
+
+	return tx.Commit()
+}
+
+// DropSchema drops the schema elements required by the SQLite driver.
+func DropSchema(ctx context.Context, db *sql.DB) (err error) {
+	defer sqlx.Recover(&err)
+
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
+
+	return nil
+}
+
+// createEventStoreSchema creates the schema elements required by the event
+// store subsystem.
+func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
@@ -84,19 +105,4 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 			PRIMARY KEY (filter_id, portable_name)
 		) WITHOUT ROWID`,
 	)
-
-	return tx.Commit()
-}
-
-// DropSchema drops the schema elements required by the SQLite driver.
-func DropSchema(ctx context.Context, db *sql.DB) (err error) {
-	defer sqlx.Recover(&err)
-
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
-
-	return nil
 }
