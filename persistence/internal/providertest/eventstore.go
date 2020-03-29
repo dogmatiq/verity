@@ -82,25 +82,19 @@ func declareEventStoreTests(
 		ginkgo.Describe("type Transaction (interface)", func() {
 			ginkgo.Describe("func SaveEvents()", func() {
 				ginkgo.It("returns the offset of the next event", func() {
-					tx, err := dataStore.Begin(*ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer tx.Rollback()
-
-					o, err := tx.SaveEvents(
+					o, err := saveEvents(
 						*ctx,
-						[]*envelopespec.Envelope{
-							env0,
-						},
+						dataStore,
+						env0,
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
 
-					o, err = tx.SaveEvents(
+					o, err = saveEvents(
 						*ctx,
-						[]*envelopespec.Envelope{
-							env1,
-							env2,
-						},
+						dataStore,
+						env1,
+						env2,
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(3)))
