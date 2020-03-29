@@ -1,0 +1,46 @@
+package sql
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+)
+
+// EnqueueMessages adds messages to the application's message queue.
+func (t *transaction) EnqueueMessages(
+	ctx context.Context,
+	envelopes ...*envelope.Envelope,
+) error {
+	return errors.New("not implemented")
+}
+
+// DequeueMessage removes a message from the application's message queue.
+//
+// m.Revision must be the revision of the queued message as currently
+// persisted, otherwise an optimistic concurrency conflict has occured, the
+// message remains on the queue and ok is false.
+func (t *transaction) DequeueMessage(
+	ctx context.Context,
+	m *queue.Message,
+) (ok bool, err error) {
+	return false, errors.New("not implemented")
+}
+
+// DelayQueuedMessage returns defers the next attempt of a queued message
+// after a failure.
+//
+// n is the time at which the next attempt at handling the message occurs.
+//
+// m.Revision must be the revision of the queued message as currently
+// persisted, otherwise an optimistic concurrency conflict has occured, the
+// message is not delayed and ok is false.
+func (t *transaction) DelayQueuedMessage(
+	ctx context.Context,
+	m *queue.Message,
+	n time.Time,
+) (ok bool, err error) {
+	return false, errors.New("not implemented")
+}
