@@ -52,7 +52,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	 		media_type          TEXT NOT NULL,
 			data                BYTEA NOT NULL,
 
-			PRIMARY KEY (source_app_key, message_id)
+			PRIMARY KEY (source_app_key, "offset")
 	 	)`,
 	)
 
