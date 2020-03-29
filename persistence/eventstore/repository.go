@@ -13,6 +13,31 @@ type Repository interface {
 // Filter is a set of portable type names of event messages.
 type Filter map[string]struct{}
 
+// NewFilter returns a new filter containing the given names.
+func NewFilter(names ...string) Filter {
+	f := make(Filter, len(names))
+
+	for _, n := range names {
+		f[n] = struct{}{}
+	}
+
+	return f
+}
+
+// Add adds a name to the filter.
+func (f *Filter) Add(n string) {
+	if *f == nil {
+		*f = Filter{}
+	}
+
+	(*f)[n] = struct{}{}
+}
+
+// Remove removes a name from the filter.
+func (f Filter) Remove(n string) {
+	delete(f, n)
+}
+
 // Query defines criteria for matching events in the store.
 type Query struct {
 	// MinOffset specifies the (inclusive) lower-bound of the offset range to

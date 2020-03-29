@@ -67,7 +67,6 @@ func (s *EventStoreStream) Open(
 
 	q := eventstore.Query{
 		MinOffset: eventstore.Offset(o),
-		Filter:    make(eventstore.Filter, f.Len()),
 	}
 
 	f.Range(func(mt message.Type) bool {
@@ -76,7 +75,7 @@ func (s *EventStoreStream) Open(
 			mt.ReflectType(),
 		)
 
-		q.Filter[n] = struct{}{}
+		q.Filter.Add(n)
 
 		return true
 	})

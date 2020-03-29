@@ -334,10 +334,10 @@ func declareEventStoreTests(
 					table.Entry(
 						"it honours the type filter",
 						eventstore.Query{
-							Filter: eventstore.Filter{
-								marshalfixtures.MessageAPortableName: struct{}{},
-								marshalfixtures.MessageCPortableName: struct{}{},
-							},
+							Filter: eventstore.NewFilter(
+								marshalfixtures.MessageAPortableName,
+								marshalfixtures.MessageCPortableName,
+							),
 						},
 						event0, event2, event3, event5,
 					),
@@ -398,10 +398,10 @@ func declareEventStoreTests(
 				ginkgo.It("does not return an error if the result is open", func() {
 					res, err := repository.QueryEvents(*ctx, eventstore.Query{
 						MinOffset: 3,
-						Filter: eventstore.Filter{
-							marshalfixtures.MessageAPortableName: struct{}{},
-							marshalfixtures.MessageCPortableName: struct{}{},
-						},
+						Filter: eventstore.NewFilter(
+							marshalfixtures.MessageAPortableName,
+							marshalfixtures.MessageCPortableName,
+						),
 						AggregateHandlerKey: "<aggregate>",
 						AggregateInstanceID: "<instance-a>",
 					})
