@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
@@ -18,6 +19,7 @@ func declareQueueTests(
 			provider      persistence.Provider
 			closeProvider func()
 			dataStore     persistence.DataStore
+			repository    queue.Repository
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -26,6 +28,8 @@ func declareQueueTests(
 			var err error
 			dataStore, err = provider.Open(*ctx, "<app-key>")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			repository = dataStore.QueueRepository()
 		})
 
 		ginkgo.AfterEach(func() {
@@ -36,6 +40,16 @@ func declareQueueTests(
 			if closeProvider != nil {
 				closeProvider()
 			}
+		})
+
+		ginkgo.Describe("type Repository (interface)", func() {
+			ginkgo.Describe("func LoadQueuedMessages()", func() {
+				ginkgo.It("returns an empty result if the queue is empty", func() {
+					messages, err := repository.LoadQueuedMessages(*ctx, 10)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(messages).To(gomega.BeEmpty())
+				})
+			})
 		})
 	})
 }

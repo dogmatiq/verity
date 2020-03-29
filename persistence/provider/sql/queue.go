@@ -59,5 +59,5 @@ func (r *queueRepository) LoadQueuedMessages(
 	ctx context.Context,
 	n int,
 ) ([]*queue.Message, error) {
-	return nil, errors.New("not implemented")
+	return nil, nil
 }
