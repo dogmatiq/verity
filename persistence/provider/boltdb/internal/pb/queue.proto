@@ -1,0 +1,12 @@
+syntax = "proto3";
+package infix.persistence.boltdb.v1;
+
+option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb";
+
+import "draftspecs/envelopespec/envelope.proto";
+
+// QueueMessage is a protocol buffers representation of an Infix queue.Message.
+message QueueMessage{
+  uint64 revision = 1;
+  dogma.envelope.v1.Envelope Envelope = 2;
+}
