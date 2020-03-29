@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Driver", func() {
+var _ = Describe("type driver", func() {
 	var (
 		db      *sql.DB
 		closeDB func()
