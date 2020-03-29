@@ -3,6 +3,7 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -29,10 +30,43 @@ func Insert(
 	res, err := db.ExecContext(ctx, query, args...)
 	Must(err)
 
+	n, err := res.RowsAffected()
+	Must(err)
+
+	if n != 1 {
+		Must(errors.New("no row was inserted"))
+	}
+
 	id, err := res.LastInsertId()
 	Must(err)
 
 	return id
+}
+
+// TryInsert executes an insert statement on the given DB and returns the last
+// insert ID.
+//
+// If no rows were affected, it returns false.
+func TryInsert(
+	ctx context.Context,
+	db DB,
+	query string,
+	args ...interface{},
+) (int64, bool) {
+	res, err := db.ExecContext(ctx, query, args...)
+	Must(err)
+
+	n, err := res.RowsAffected()
+	Must(err)
+
+	if n != 1 {
+		return 0, false
+	}
+
+	id, err := res.LastInsertId()
+	Must(err)
+
+	return id, true
 }
 
 // UpdateRow executes an update statement on the given DB.

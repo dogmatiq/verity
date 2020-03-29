@@ -76,7 +76,7 @@ func insertLock(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) (_ uint64, err error) {
+) (_ int64, err error) {
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
@@ -92,7 +92,7 @@ func insertLock(
 	)
 
 	expires := now.Add(lockExpiryOffset)
-	res := sqlx.Exec(
+	id, ok := sqlx.TryInsert(
 		ctx,
 		tx,
 		`INSERT OR IGNORE INTO app_lock (
@@ -104,24 +104,13 @@ func insertLock(
 		ak,
 		expires.Unix(),
 	)
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	if n == 0 {
+	if !ok {
 		return 0, persistence.ErrDataStoreLocked
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, nil
 	}
 
 	sqlx.Commit(tx)
 
-	return uint64(id), nil
+	return id, nil
 }
 
 // maintainLock periodically updates the expiry time of a lock record until ctx
@@ -129,7 +118,7 @@ func insertLock(
 func maintainLock(
 	ctx context.Context,
 	db *sql.DB,
-	id uint64,
+	id int64,
 ) (err error) {
 	defer sqlx.Recover(&err)
 
@@ -164,7 +153,7 @@ func maintainLock(
 func updateLock(
 	ctx context.Context,
 	db *sql.DB,
-	id uint64,
+	id int64,
 	expires time.Time,
 ) (err error) {
 	defer sqlx.Recover(&err)
@@ -186,7 +175,7 @@ func updateLock(
 func deleteLock(
 	ctx context.Context,
 	db *sql.DB,
-	id uint64,
+	id int64,
 ) error {
 	_, err := db.ExecContext(
 		ctx,
