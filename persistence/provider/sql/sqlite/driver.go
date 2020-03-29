@@ -12,19 +12,20 @@ import (
 )
 
 // Driver is an implementation of sql.Driver for SQLite.
-var Driver driver
+var Driver = driver{
+	lockUpdateInterval: 1 * time.Second,
+	lockExpiryOffset:   3 * time.Second,
+}
 
-type driver struct{}
-
-const (
+type driver struct {
 	// lockUpdateInterval specifies how often an application lock's expiry timestamp
 	// should be updated.
-	lockUpdateInterval = 1 * time.Second
+	lockUpdateInterval time.Duration
 
 	// lockExpiryOffset specifies how far in the future locks should be set to
 	// expire.
-	lockExpiryOffset = 3 * time.Second
-)
+	lockExpiryOffset time.Duration
+}
 
 // Begin starts a transaction.
 func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
@@ -34,12 +35,12 @@ func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 // LockApplication acquires an exclusive lock on an application's data.
 //
 // r is a function that releases the lock, if acquired successfully.
-func (driver) LockApplication(
+func (d driver) LockApplication(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
 ) (r func() error, err error) {
-	id, err := insertLock(ctx, db, ak)
+	id, err := d.insertLock(ctx, db, ak)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (driver) LockApplication(
 	done := make(chan error)
 
 	go func() {
-		err := maintainLock(ctx, db, id)
+		err := d.maintainLock(ctx, db, id)
 		if err != nil {
 			if ctx.Err() == nil {
 				// If some error occured before we expected to release the lock,
@@ -72,11 +73,11 @@ func (driver) LockApplication(
 }
 
 // insertLock creates a lock record for an application.
-func insertLock(
+func (d driver) insertLock(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) (_ uint64, err error) {
+) (_ int64, err error) {
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
@@ -91,8 +92,8 @@ func insertLock(
 		now.Unix(),
 	)
 
-	expires := now.Add(lockExpiryOffset)
-	res := sqlx.Exec(
+	expires := now.Add(d.lockExpiryOffset)
+	id, ok := sqlx.TryInsert(
 		ctx,
 		tx,
 		`INSERT OR IGNORE INTO app_lock (
@@ -104,46 +105,35 @@ func insertLock(
 		ak,
 		expires.Unix(),
 	)
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	if n == 0 {
+	if !ok {
 		return 0, persistence.ErrDataStoreLocked
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, nil
 	}
 
 	sqlx.Commit(tx)
 
-	return uint64(id), nil
+	return id, nil
 }
 
 // maintainLock periodically updates the expiry time of a lock record until ctx
 // is canceled.
-func maintainLock(
+func (d driver) maintainLock(
 	ctx context.Context,
 	db *sql.DB,
-	id uint64,
+	id int64,
 ) (err error) {
 	defer sqlx.Recover(&err)
 
 	var expires time.Time
 
 	for {
-		expires = time.Now().Add(lockExpiryOffset)
+		expires = time.Now().Add(d.lockExpiryOffset)
 
-		err = updateLock(ctx, db, id, expires)
+		err = d.updateLock(ctx, db, id, expires)
 		if err != nil {
 			break
 		}
 
-		err = linger.Sleep(ctx, lockUpdateInterval)
+		err = linger.Sleep(ctx, d.lockUpdateInterval)
 		if err != nil {
 			break
 		}
@@ -156,15 +146,15 @@ func maintainLock(
 
 	return multierr.Append(
 		err,
-		deleteLock(deleteCtx, db, id),
+		d.deleteLock(deleteCtx, db, id),
 	)
 }
 
 // updateLock updates the expiry time of a lock record.
-func updateLock(
+func (d driver) updateLock(
 	ctx context.Context,
 	db *sql.DB,
-	id uint64,
+	id int64,
 	expires time.Time,
 ) (err error) {
 	defer sqlx.Recover(&err)
@@ -183,10 +173,10 @@ func updateLock(
 }
 
 // deleteLock removes an application lock record.
-func deleteLock(
+func (d driver) deleteLock(
 	ctx context.Context,
 	db *sql.DB,
-	id uint64,
+	id int64,
 ) error {
 	_, err := db.ExecContext(
 		ctx,

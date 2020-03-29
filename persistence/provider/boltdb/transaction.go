@@ -56,7 +56,7 @@ func (t *transaction) Rollback() (err error) {
 // begin acquires a write-lock on the database and begins an actual BoltDB
 // transaction.
 func (t *transaction) begin(ctx context.Context) error {
-	if t.ds.db == nil {
+	if t.ds == nil {
 		return persistence.ErrTransactionClosed
 	}
 

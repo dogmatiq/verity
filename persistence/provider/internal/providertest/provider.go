@@ -15,17 +15,17 @@ func declareProviderTests(
 ) {
 	ginkgo.Describe("type Provider (interface)", func() {
 		var (
-			provider persistence.Provider
-			close    func()
+			provider      persistence.Provider
+			closeProvider func()
 		)
 
 		ginkgo.BeforeEach(func() {
-			provider, close = out.NewProvider()
+			provider, closeProvider = out.NewProvider()
 		})
 
 		ginkgo.AfterEach(func() {
-			if close != nil {
-				close()
+			if closeProvider != nil {
+				closeProvider()
 			}
 		})
 

@@ -42,6 +42,15 @@ var _ = Describe("type RWMutex", func() {
 			err = mutex.RLock(ctx)
 			Expect(err).To(Equal(context.DeadlineExceeded))
 		})
+
+		It("returns an error if the context is canceled", func() {
+			// The idea here is to bail before ever trying to acquire the
+			// internal mutex.
+			cancel()
+
+			err := mutex.Lock(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
 	})
 
 	Describe("func Unlock()", func() {
@@ -161,6 +170,15 @@ var _ = Describe("type RWMutex", func() {
 
 			err = mutex.RLock(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("returns an error if the context is canceled", func() {
+			// The idea here is to bail before ever trying to acquire the
+			// internal mutex.
+			cancel()
+
+			err := mutex.RLock(ctx)
+			Expect(err).To(Equal(context.Canceled))
 		})
 
 		It("does not panic if two calls succeed without retries", func() {
