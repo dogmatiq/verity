@@ -67,6 +67,9 @@ func declareQueueTests(
 					)
 				})
 
+				ginkgo.XIt("ignores messages that are already on the queue", func() {
+				})
+
 				ginkgo.When("the transaction is rolled-back", func() {
 					ginkgo.BeforeEach(func() {
 						tx, err := dataStore.Begin(*ctx)
