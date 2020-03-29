@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 )
 
 // Transaction defines the primitive persistence operations for manipulating the
@@ -13,7 +13,7 @@ type Transaction interface {
 	// EnqueueMessages adds messages to the application's message queue.
 	EnqueueMessages(
 		ctx context.Context,
-		envelopes ...*envelope.Envelope,
+		envelopes []*envelopespec.Envelope,
 	) error
 
 	// DequeueMessage removes a message from the application's message queue.

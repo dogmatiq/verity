@@ -6,14 +6,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
 // EnqueueMessages adds messages to the application's message queue.
 func (t *transaction) EnqueueMessages(
 	ctx context.Context,
-	envelopes ...*envelope.Envelope,
+	envelopes []*envelopespec.Envelope,
 ) error {
 	return errors.New("not implemented")
 }
