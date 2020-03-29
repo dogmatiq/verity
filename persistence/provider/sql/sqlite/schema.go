@@ -49,7 +49,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
-			next_offset    BIGINT NOT NULL
+			next_offset    INTEGER NOT NULL
 		) WITHOUT ROWID`,
 	)
 
@@ -57,7 +57,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event (
-	 		offset              BIGINT NOT NULL,
+	 		offset              INTEGER NOT NULL,
 	 		message_id          TEXT NOT NULL,
 	 		causation_id        TEXT NOT NULL,
 	 		correlation_id      TEXT NOT NULL,
@@ -69,7 +69,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	 		created_at          TEXT NOT NULL,
 	 		portable_name       TEXT NOT NULL,
 	 		media_type          TEXT NOT NULL,
-			data                BINARY NOT NULL,
+			data                BLOB NOT NULL,
 
 			PRIMARY KEY (source_app_key, offset)
 	 	) WITHOUT ROWID`,
@@ -99,8 +99,8 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event_filter_name (
-			filter_id     BIGINT NOT NULL REFERENCES event_filter (rowid) ON DELETE CASCADE,
-			portable_name VARBINARY(255) NOT NULL,
+			filter_id     INTEGER NOT NULL REFERENCES event_filter (rowid) ON DELETE CASCADE,
+			portable_name TEXT NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)
 		) WITHOUT ROWID`,
