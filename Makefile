@@ -6,3 +6,18 @@ CGO_ENABLED ?= 1
 
 .makefiles/%:
 	@curl -sfL https://makefiles.dev/v1 | bash /dev/stdin "$@"
+
+boltdb:
+	go test -count=1 ./persistence/provider/boltdb
+
+memory:
+	go test -count=1 ./persistence/provider/memory
+
+mysql:
+	go test -count=1 ./persistence/provider/sql/mysql
+
+postgres:
+	go test -count=1 ./persistence/provider/sql/postgres
+
+sqlite:
+	go test -count=1 ./persistence/provider/sql/sqlite
