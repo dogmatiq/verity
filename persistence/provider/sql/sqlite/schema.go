@@ -24,6 +24,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	)
 
 	createEventStoreSchema(ctx, db)
+	createQueueSchema(ctx, db)
 
 	return tx.Commit()
 }
@@ -33,10 +34,13 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
+
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
+
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS queue`)
 
 	return nil
 }
@@ -103,6 +107,33 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			portable_name TEXT NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)
+		) WITHOUT ROWID`,
+	)
+}
+
+// createQueueSchema creates the schema elements required by the message queue
+// subsystem.
+func createQueueSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE queue (
+			app_key             TEXT NOT NULL,
+			revision            INTEGER NOT NULL DEFAULT 1,
+			message_id          TEXT NOT NULL,
+			causation_id        TEXT NOT NULL,
+			correlation_id      TEXT NOT NULL,
+			source_app_name     TEXT NOT NULL,
+			source_app_key      TEXT NOT NULL,
+			source_handler_name TEXT NOT NULL,
+			source_handler_key  TEXT NOT NULL,
+			source_instance_id  TEXT NOT NULL,
+			created_at          TEXT NOT NULL,
+			portable_name       TEXT NOT NULL,
+			media_type          TEXT NOT NULL,
+			data                BLOB NOT NULL,
+
+			PRIMARY KEY (app_key, message_id)
 		) WITHOUT ROWID`,
 	)
 }

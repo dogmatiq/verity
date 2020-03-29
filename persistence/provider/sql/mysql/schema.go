@@ -12,6 +12,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
 	createEventStoreSchema(ctx, db)
+	createQueueSchema(ctx, db)
 
 	return nil
 }
@@ -21,9 +22,12 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
+
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
+
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS queue`)
 
 	return nil
 }
@@ -87,5 +91,32 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 
 			PRIMARY KEY (filter_id, portable_name)
 		) ENGINE=InnoDB`,
+	)
+}
+
+// createQueueSchema creates the schema elements required by the message queue
+// subsystem.
+func createQueueSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE queue (
+			app_key             VARBINARY(255) NOT NULL,
+			revision            BIGINT UNSIGNED NOT NULL DEFAULT 1,
+			message_id          VARBINARY(255) NOT NULL,
+			causation_id        VARBINARY(255) NOT NULL,
+			correlation_id      VARBINARY(255) NOT NULL,
+			source_app_name     VARBINARY(255) NOT NULL,
+			source_app_key      VARBINARY(255) NOT NULL,
+			source_handler_name VARBINARY(255) NOT NULL,
+			source_handler_key  VARBINARY(255) NOT NULL,
+			source_instance_id  VARBINARY(255) NOT NULL,
+			created_at          VARBINARY(255) NOT NULL,
+			portable_name       VARBINARY(255) NOT NULL,
+			media_type          VARBINARY(255) NOT NULL,
+			data                LONGBLOB NOT NULL,
+
+			PRIMARY KEY (app_key, message_id)
+		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
 }

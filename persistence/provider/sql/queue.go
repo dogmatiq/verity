@@ -10,12 +10,41 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
+// queueDriver is the subset of the Driver interface that is concerned with the
+// message queue subsystem.
+type queueDriver interface {
+	// InsertQueuedMessages saves messages to the queue.
+	InsertQueuedMessages(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak string,
+		envelopes []*envelopespec.Envelope,
+	) error
+
+	// SelectQueuedMessages selects up to n messages from the queue.
+	SelectQueuedMessages(
+		ctx context.Context,
+		db *sql.DB,
+		ak string,
+		n int,
+	) (*sql.Rows, error)
+}
+
 // EnqueueMessages adds messages to the application's message queue.
 func (t *transaction) EnqueueMessages(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
 ) error {
-	return nil
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
+	return t.ds.driver.InsertQueuedMessages(
+		ctx,
+		t.actual,
+		t.ds.appKey,
+		envelopes,
+	)
 }
 
 // DequeueMessage removes a message from the application's message queue.
@@ -59,5 +88,46 @@ func (r *queueRepository) LoadQueuedMessages(
 	ctx context.Context,
 	n int,
 ) ([]*queue.Message, error) {
-	return nil, nil
+	rows, err := r.driver.SelectQueuedMessages(ctx, r.db, r.appKey, n)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]*queue.Message, 0, n)
+
+	for rows.Next() {
+		m := &queue.Message{
+			Envelope: &envelopespec.Envelope{
+				MetaData: &envelopespec.MetaData{
+					Source: &envelopespec.Source{
+						Application: &envelopespec.Identity{},
+						Handler:     &envelopespec.Identity{},
+					},
+				},
+			},
+		}
+
+		if err := rows.Scan(
+			&m.Revision,
+			&m.Envelope.MetaData.MessageId,
+			&m.Envelope.MetaData.CausationId,
+			&m.Envelope.MetaData.CorrelationId,
+			&m.Envelope.MetaData.Source.Application.Name,
+			&m.Envelope.MetaData.Source.Application.Key,
+			&m.Envelope.MetaData.Source.Handler.Name,
+			&m.Envelope.MetaData.Source.Handler.Key,
+			&m.Envelope.MetaData.Source.InstanceId,
+			&m.Envelope.MetaData.CreatedAt,
+			&m.Envelope.PortableName,
+			&m.Envelope.MediaType,
+			&m.Envelope.Data,
+		); err != nil {
+			return nil, err
+		}
+
+		result = append(result, m)
+	}
+
+	return result, nil
 }
