@@ -2,6 +2,7 @@ package providertest
 
 import (
 	"context"
+	"errors"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -61,10 +62,9 @@ func declareQueueTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					messages, err := repository.LoadQueuedMessages(*ctx, 1)
+					m, err := loadQueuedMessage(*ctx, repository)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(messages).To(gomega.HaveLen(1))
-					gomega.Expect(messages[0].Revision).To(
+					gomega.Expect(m.Revision).To(
 						gomega.Equal(queue.Revision(1)),
 					)
 				})
@@ -175,4 +175,21 @@ func enqueueMessages(
 	}
 
 	return tx.Commit(ctx)
+}
+
+// loadQueuedMessage loads the next message from the queue.
+func loadQueuedMessage(
+	ctx context.Context,
+	r queue.Repository,
+) (*queue.Message, error) {
+	messages, err := r.LoadQueuedMessages(ctx, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(messages) == 0 {
+		return nil, errors.New("no messages returned")
+	}
+
+	return messages[0], nil
 }
