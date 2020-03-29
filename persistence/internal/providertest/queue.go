@@ -3,6 +3,7 @@ package providertest
 import (
 	"context"
 	"errors"
+	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -66,6 +67,21 @@ func declareQueueTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.Revision).To(
 						gomega.Equal(queue.Revision(1)),
+					)
+				})
+
+				ginkgo.It("schedules commands to be attempted immediately", func() {
+					err := enqueueMessages(
+						*ctx,
+						dataStore,
+						command1,
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					m, err := loadQueuedMessage(*ctx, repository)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(m.NextAttemptAt).To(
+						gomega.BeTemporally("<=", time.Now()),
 					)
 				})
 
