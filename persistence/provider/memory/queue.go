@@ -18,11 +18,12 @@ func (t *transaction) EnqueueMessages(
 		return err
 	}
 
-	for range envelopes {
+	for _, env := range envelopes {
 		t.uncommitted.queue = append(
 			t.uncommitted.queue,
 			&queue.Message{
 				Revision: 1,
+				Envelope: cloneEnvelope(env),
 			},
 		)
 	}

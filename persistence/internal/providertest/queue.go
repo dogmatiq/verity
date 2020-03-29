@@ -8,7 +8,9 @@ import (
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/golang/protobuf/proto"
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 )
 
@@ -106,6 +108,51 @@ func declareQueueTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(messages).To(gomega.BeEmpty())
 				})
+
+				table.DescribeTable(
+					"it returns messages from the queue, ordered by their next attempt time",
+					func(n int, expected ...*envelopespec.Envelope) {
+						ginkgo.By("enqueuing some messages")
+
+						err := enqueueMessages(
+							*ctx,
+							dataStore,
+							command1,
+							command2,
+							command3,
+						)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						ginkgo.By("loading the messages")
+
+						messages, err := repository.LoadQueuedMessages(*ctx, n)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
+
+						ginkgo.By("iterating through the result")
+
+						for i, m := range messages {
+							x := expected[i]
+
+							if !proto.Equal(m.Envelope, x) {
+								gomega.Expect(m.Envelope).To(gomega.Equal(x))
+							}
+						}
+					},
+					table.Entry(
+						"it returns all the messages if the limit is larger than the actual number of messages",
+						10,
+						command1,
+						command2,
+						command3,
+					),
+					table.Entry(
+						"it limits the result size to the given number of messages",
+						2,
+						command1,
+						command2,
+					),
+				)
 			})
 		})
 	})
