@@ -53,7 +53,7 @@ type errorConverter struct {
 }
 
 func (d errorConverter) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := d.d.Begin(ctx, db)
 	return tx, convertContextErrors(ctx, err)
 }
 
