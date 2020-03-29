@@ -14,7 +14,7 @@ func (t *transaction) EnqueueMessages(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
 ) error {
-	return errors.New("not implemented")
+	return nil
 }
 
 // DequeueMessage removes a message from the application's message queue.
