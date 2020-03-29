@@ -19,11 +19,22 @@ func (t *transaction) EnqueueMessages(
 	}
 
 	for _, env := range envelopes {
+		var next time.Time
+
+		if len(env.MetaData.ScheduledFor) != 0 {
+			var err error
+			next, err = time.Parse(time.RFC3339Nano, env.MetaData.ScheduledFor)
+			if err != nil {
+				return err
+			}
+		}
+
 		t.uncommitted.queue = append(
 			t.uncommitted.queue,
 			&queue.Message{
-				Revision: 1,
-				Envelope: cloneEnvelope(env),
+				Revision:      1,
+				NextAttemptAt: next,
+				Envelope:      cloneEnvelope(env),
 			},
 		)
 	}

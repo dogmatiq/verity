@@ -8,5 +8,6 @@ import "draftspecs/envelopespec/envelope.proto";
 // QueueMessage is a protocol buffers representation of an Infix queue.Message.
 message QueueMessage{
   uint64 revision = 1;
-  dogma.envelope.v1.Envelope Envelope = 2;
+  string next_attempt_at = 2;
+  dogma.envelope.v1.Envelope Envelope = 3;
 }

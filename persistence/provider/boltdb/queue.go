@@ -120,9 +120,17 @@ func unmarshalQueueMessage(data []byte) *queue.Message {
 	var m pb.QueueMessage
 	bboltx.Must(proto.Unmarshal(data, &m))
 
+	var next time.Time
+	if len(m.NextAttemptAt) != 0 {
+		var err error
+		next, err = time.Parse(time.RFC3339Nano, m.NextAttemptAt)
+		bboltx.Must(err)
+	}
+
 	return &queue.Message{
-		Revision: queue.Revision(m.Revision),
-		Envelope: m.Envelope,
+		Revision:      queue.Revision(m.Revision),
+		NextAttemptAt: next,
+		Envelope:      m.Envelope,
 	}
 }
 
@@ -133,8 +141,9 @@ func enqueueMessages(
 ) {
 	for _, env := range envelopes {
 		penv := &pb.QueueMessage{
-			Revision: 1,
-			Envelope: env,
+			Revision:      1,
+			NextAttemptAt: env.MetaData.ScheduledFor,
+			Envelope:      env,
 		}
 
 		k := []byte(env.MetaData.MessageId)

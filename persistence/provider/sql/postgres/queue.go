@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
@@ -19,11 +20,22 @@ func (driver) InsertQueuedMessages(
 	defer sqlx.Recover(&err)
 
 	for _, env := range envelopes {
+		var next time.Time
+
+		if len(env.MetaData.ScheduledFor) != 0 {
+			var err error
+			next, err = time.Parse(time.RFC3339Nano, env.MetaData.ScheduledFor)
+			if err != nil {
+				return err
+			}
+		}
+
 		sqlx.Exec(
 			ctx,
 			tx,
 			`INSERT INTO infix.queue (
 				app_key,
+				next_attempt_at,
 				message_id,
 				causation_id,
 				correlation_id,
@@ -37,9 +49,10 @@ func (driver) InsertQueuedMessages(
 				media_type,
 				data
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 			)`,
 			ak,
+			next,
 			env.MetaData.MessageId,
 			env.MetaData.CausationId,
 			env.MetaData.CorrelationId,
@@ -69,6 +82,7 @@ func (driver) SelectQueuedMessages(
 		ctx,
 		`SELECT
 			q.revision,
+			q.next_attempt_at,
 			q.message_id,
 			q.causation_id,
 			q.correlation_id,
@@ -97,6 +111,7 @@ func (driver) ScanQueuedMessage(
 ) error {
 	return rows.Scan(
 		&m.Revision,
+		&m.NextAttemptAt,
 		&m.Envelope.MetaData.MessageId,
 		&m.Envelope.MetaData.CausationId,
 		&m.Envelope.MetaData.CorrelationId,

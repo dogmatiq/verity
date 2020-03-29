@@ -10,6 +10,9 @@ import (
 	"go.uber.org/multierr"
 )
 
+// timeLayout is the Go date/time "layout" for MySQL date/time strings.
+const timeLayout = "2006-01-02 15:04:05.999999"
+
 // Driver is an implementation of sql.Driver for MySQL.
 var Driver driver
 

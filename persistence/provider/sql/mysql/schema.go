@@ -103,6 +103,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 		`CREATE TABLE queue (
 			app_key             VARBINARY(255) NOT NULL,
 			revision            BIGINT UNSIGNED NOT NULL DEFAULT 1,
+			next_attempt_at     TIMESTAMP(6) NOT NULL,
 			message_id          VARBINARY(255) NOT NULL,
 			causation_id        VARBINARY(255) NOT NULL,
 			correlation_id      VARBINARY(255) NOT NULL,
@@ -119,4 +120,6 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 			PRIMARY KEY (app_key, message_id)
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
+
+	// TODO: add index for sorting by next_attempt_at
 }

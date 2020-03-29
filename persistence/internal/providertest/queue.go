@@ -31,6 +31,14 @@ func declareQueueTests(
 			command1 = infixfixtures.NewEnvelopeProto("<command-1>", dogmafixtures.MessageC1)
 			command2 = infixfixtures.NewEnvelopeProto("<command-2>", dogmafixtures.MessageC2)
 			command3 = infixfixtures.NewEnvelopeProto("<command-3>", dogmafixtures.MessageC3)
+
+			timeout1ScheduledFor = time.Now().Add(1 * time.Hour)
+			timeout1             = infixfixtures.NewEnvelopeProto(
+				"<timeout-1>",
+				dogmafixtures.MessageT1,
+				time.Now(),
+				timeout1ScheduledFor,
+			)
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -82,6 +90,21 @@ func declareQueueTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.NextAttemptAt).To(
 						gomega.BeTemporally("<=", time.Now()),
+					)
+				})
+
+				ginkgo.It("schedules timeouts to be attempted at their scheduled-for time", func() {
+					err := enqueueMessages(
+						*ctx,
+						dataStore,
+						timeout1,
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					m, err := loadQueuedMessage(*ctx, repository)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(m.NextAttemptAt).To(
+						gomega.BeTemporally("==", timeout1ScheduledFor),
 					)
 				})
 

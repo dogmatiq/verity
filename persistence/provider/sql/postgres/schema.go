@@ -113,6 +113,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 		`CREATE TABLE infix.queue (
 			app_key             TEXT NOT NULL,
 			revision            BIGINT NOT NULL DEFAULT 1,
+			next_attempt_at     TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			message_id          TEXT NOT NULL,
 			causation_id        TEXT NOT NULL,
 			correlation_id      TEXT NOT NULL,
@@ -128,5 +129,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 
 			PRIMARY KEY (app_key, message_id)
 		)`,
+
+		// TODO: add index for sorting by next_attempt_id
 	)
 }

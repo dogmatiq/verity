@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
@@ -19,11 +20,22 @@ func (driver) InsertQueuedMessages(
 	defer sqlx.Recover(&err)
 
 	for _, env := range envelopes {
+		var next time.Time
+
+		if len(env.MetaData.ScheduledFor) != 0 {
+			var err error
+			next, err = time.Parse(time.RFC3339Nano, env.MetaData.ScheduledFor)
+			if err != nil {
+				return err
+			}
+		}
+
 		sqlx.Exec(
 			ctx,
 			tx,
 			`INSERT INTO queue SET
 				app_key = ?,
+				next_attempt_at = ?,
 				message_id = ?,
 				causation_id = ?,
 				correlation_id = ?,
@@ -37,6 +49,7 @@ func (driver) InsertQueuedMessages(
 				media_type = ?,
 				data = ?`,
 			ak,
+			next,
 			env.MetaData.MessageId,
 			env.MetaData.CausationId,
 			env.MetaData.CorrelationId,
@@ -66,6 +79,7 @@ func (driver) SelectQueuedMessages(
 		ctx,
 		`SELECT
 			q.revision,
+			q.next_attempt_at,
 			q.message_id,
 			q.causation_id,
 			q.correlation_id,
@@ -92,8 +106,11 @@ func (driver) ScanQueuedMessage(
 	rows *sql.Rows,
 	m *queue.Message,
 ) error {
-	return rows.Scan(
+	var next string
+
+	err := rows.Scan(
 		&m.Revision,
+		&next,
 		&m.Envelope.MetaData.MessageId,
 		&m.Envelope.MetaData.CausationId,
 		&m.Envelope.MetaData.CorrelationId,
@@ -107,4 +124,11 @@ func (driver) ScanQueuedMessage(
 		&m.Envelope.MediaType,
 		&m.Envelope.Data,
 	)
+	if err != nil {
+		return err
+	}
+
+	m.NextAttemptAt, err = time.Parse(timeLayout, next)
+
+	return nil
 }
