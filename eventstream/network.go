@@ -121,7 +121,7 @@ func (s *NetworkStream) Open(
 			return nil, err
 		}
 
-		// If no error occured, we hand ownership of cancelConsume() over to the
+		// If no error occurred, we hand ownership of cancelConsume() over to the
 		// cursor to be called when the cursor is closed by the user.
 		c := &networkCursor{
 			stream:    stream,

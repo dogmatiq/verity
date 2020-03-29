@@ -52,9 +52,9 @@ func (d driver) LockApplication(
 		err := d.maintainLock(ctx, db, id)
 		if err != nil {
 			if ctx.Err() == nil {
-				// If some error occured before we expected to release the lock,
-				// we forcefully close the database pool. It's likely already
-				// "disconnected" or the data is corrupted.
+				// If some error occurred before we expected to release the
+				// lock, we forcefully close the database pool. It's likely
+				// already "disconnected" or the data is corrupted.
 				db.Close()
 			} else if err == context.Canceled {
 				// Otherwise, if the error was just the expected context
