@@ -48,18 +48,17 @@ func (t *transaction) DequeueMessage(
 	return false, errors.New("not implemented")
 }
 
-// DelayQueuedMessage returns defers the next attempt of a queued message after
-// a failure.
+// UpdateQueuedMessage updates meta-data about a queued message.
 //
-// n indicates when the next attempt to handle the message is made.
+// The following fields are updated:
+//  - NextAttemptAt
 //
 // m.Revision must be the revision of the queued message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message is not
-// delayed and ok is false.
-func (t *transaction) DelayQueuedMessage(
+// updated and ok is false.
+func (t *transaction) UpdateQueuedMessage(
 	ctx context.Context,
 	m *queue.Message,
-	n time.Time,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
