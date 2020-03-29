@@ -19,14 +19,23 @@ func (t *transaction) SaveEvents(
 		return 0, err
 	}
 
-	t.uncommitted.events = append(
-		t.uncommitted.events,
-		envelopes...,
+	next := eventstore.Offset(
+		len(t.ds.db.events),
 	)
 
-	return eventstore.Offset(
-		len(t.ds.db.events) + len(t.uncommitted.events),
-	), nil
+	for _, env := range envelopes {
+		t.uncommitted.events = append(
+			t.uncommitted.events,
+			eventstore.Event{
+				Offset:   next,
+				Envelope: env,
+			},
+		)
+
+		next++
+	}
+
+	return next, nil
 }
 
 // eventStoreRepository is an implementation of eventstore.Repository that

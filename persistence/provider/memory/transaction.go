@@ -3,7 +3,6 @@ package memory
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
@@ -15,7 +14,7 @@ type transaction struct {
 	hasLock bool
 
 	uncommitted struct {
-		events []*envelopespec.Envelope
+		events []eventstore.Event
 	}
 }
 
@@ -35,21 +34,10 @@ func (t *transaction) Commit(ctx context.Context) error {
 		return nil
 	}
 
-	next := eventstore.Offset(
-		len(t.ds.db.events),
+	t.ds.db.events = append(
+		t.ds.db.events,
+		t.uncommitted.events...,
 	)
-
-	for _, env := range t.uncommitted.events {
-		t.ds.db.events = append(
-			t.ds.db.events,
-			eventstore.Event{
-				Offset:   next,
-				Envelope: env,
-			},
-		)
-
-		next++
-	}
 
 	return nil
 }
