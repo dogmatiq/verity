@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/lib/pq"
 )
 

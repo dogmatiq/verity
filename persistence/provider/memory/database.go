@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 
 	"github.com/dogmatiq/infix/internal/x/syncx"
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
 // database encapsulates a single application's data.

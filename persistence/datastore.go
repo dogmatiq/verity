@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"go.uber.org/multierr"
 )
 

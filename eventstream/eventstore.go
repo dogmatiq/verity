@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 )

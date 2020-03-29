@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
 	"github.com/onsi/ginkgo"

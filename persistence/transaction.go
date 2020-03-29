@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
 // ErrTransactionClosed is returned by all methods on Transaction once the

@@ -5,7 +5,7 @@ import (
 	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
 // SaveEvents persists events in the application's event store.

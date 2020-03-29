@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
