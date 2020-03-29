@@ -14,7 +14,7 @@ type transaction struct {
 	hasLock bool
 
 	uncommitted struct {
-		events []eventstore.Event
+		events []*eventstore.Event
 	}
 }
 

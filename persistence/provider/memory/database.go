@@ -12,7 +12,7 @@ type database struct {
 	syncx.RWMutex
 
 	open   uint32 // atomic
-	events []eventstore.Event
+	events []*eventstore.Event
 }
 
 // newDatabase returns a new empty database.

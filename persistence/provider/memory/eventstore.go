@@ -26,7 +26,7 @@ func (t *transaction) SaveEvents(
 	for _, env := range envelopes {
 		t.uncommitted.events = append(
 			t.uncommitted.events,
-			eventstore.Event{
+			&eventstore.Event{
 				Offset:   next,
 				Envelope: env,
 			},
@@ -80,11 +80,15 @@ func (r *eventStoreResult) Next(
 			return nil, false, ctx.Err()
 		}
 
-		ev := &r.db.events[r.index]
+		ev := r.db.events[r.index]
 		r.index++
 
 		if r.query.IsMatch(ev) {
-			return ev, true, nil
+			// Clone event on the way out so inadvertent manipulation does not
+			// affect the data in the data-store.
+			clone := *ev
+
+			return &clone, true, nil
 		}
 	}
 
