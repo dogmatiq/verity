@@ -67,7 +67,7 @@ func (d errorConverter) LockApplication(
 }
 
 //
-// eventstore.Repository
+// eventstore
 //
 
 func (d errorConverter) UpdateNextOffset(

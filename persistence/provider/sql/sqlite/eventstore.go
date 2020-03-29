@@ -10,8 +10,8 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
-// UpdateNextOffset increments the eventstore offset by n and returns the
-// new value.
+// UpdateNextOffset increments the eventstore offset by n and returns the new
+// value.
 func (driver) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
@@ -98,8 +98,8 @@ func (driver) InsertEvents(
 	return nil
 }
 
-// InsertEventFilter inserts a filter that limits selected events to those
-// with a portable name in the given set.
+// InsertEventFilter inserts a filter that limits selected events to those with
+// a portable name in the given set.
 //
 // It returns the filter's ID.
 func (driver) InsertEventFilter(
@@ -174,11 +174,10 @@ func (driver) PurgeEventFilters(
 	return err
 }
 
-// SelectEvents selects events from the eventstore that match the given
-// query.
+// SelectEvents selects events from the eventstore that match the given query.
 //
-// f is a filter ID, as returned by InsertEventFilter(). If the query does
-// not use a filter, f is zero.
+// f is a filter ID, as returned by InsertEventFilter(). If the query does not
+// use a filter, f is zero.
 func (driver) SelectEvents(
 	ctx context.Context,
 	db *sql.DB,

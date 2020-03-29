@@ -10,8 +10,8 @@ import (
 	"go.uber.org/multierr"
 )
 
-// eventStoreDriver is the subset of the Driver interfaces that is concerned
-// with the eventstore.
+// eventStoreDriver is the subset of the Driver interface that is concerned
+// with the eventstore subsystem.
 type eventStoreDriver interface {
 	// UpdateNextOffset increments the eventstore offset by n and returns the
 	// new value.
