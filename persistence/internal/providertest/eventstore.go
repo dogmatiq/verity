@@ -247,7 +247,7 @@ func declareEventStoreTests(
 		})
 
 		ginkgo.Describe("type Repository (interface)", func() {
-			ginkgo.Describe("func Query()", func() {
+			ginkgo.Describe("func QueryEvents()", func() {
 				ginkgo.It("returns an empty result if the store is empty", func() {
 					res, err := repository.QueryEvents(*ctx, eventstore.Query{})
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -430,7 +430,7 @@ func declareEventStoreTests(
 	})
 }
 
-// saveEvents persistences the given events to the store.
+// saveEvents persists the given events to the store.
 func saveEvents(
 	ctx context.Context,
 	ds persistence.DataStore,
