@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
 // transaction is an implementation of persistence.Transaction for in-memory
@@ -15,6 +16,7 @@ type transaction struct {
 
 	uncommitted struct {
 		events []*eventstore.Event
+		queue  []*queue.Message
 	}
 }
 
@@ -37,6 +39,11 @@ func (t *transaction) Commit(ctx context.Context) error {
 	t.ds.db.events = append(
 		t.ds.db.events,
 		t.uncommitted.events...,
+	)
+
+	t.ds.db.queue = append(
+		t.ds.db.queue,
+		t.uncommitted.queue...,
 	)
 
 	return nil

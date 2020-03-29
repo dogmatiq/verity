@@ -14,6 +14,19 @@ func (t *transaction) EnqueueMessages(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
 ) error {
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
+	for range envelopes {
+		t.uncommitted.queue = append(
+			t.uncommitted.queue,
+			&queue.Message{
+				Revision: 1,
+			},
+		)
+	}
+
 	return nil
 }
 
@@ -56,5 +69,23 @@ func (r *queueRepository) LoadQueuedMessages(
 	ctx context.Context,
 	n int,
 ) ([]*queue.Message, error) {
-	return nil, nil
+	if err := r.db.RLock(ctx); err != nil {
+		return nil, err
+	}
+	defer r.db.RUnlock()
+
+	max := len(r.db.queue)
+	if n > max {
+		n = max
+	}
+
+	result := make([]*queue.Message, n)
+
+	for i := range result {
+		result[i] = cloneQueuedMessage(
+			r.db.queue[i],
+		)
+	}
+
+	return result, nil
 }
