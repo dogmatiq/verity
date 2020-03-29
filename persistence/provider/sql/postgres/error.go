@@ -128,10 +128,3 @@ func (d errorConverter) SelectEvents(
 	rows, err := d.d.SelectEvents(ctx, db, ak, q, f)
 	return rows, convertContextErrors(ctx, err)
 }
-
-func (d errorConverter) ScanEvent(
-	rows *sql.Rows,
-	ev *eventstore.Event,
-) error {
-	return d.d.ScanEvent(rows, ev)
-}

@@ -229,25 +229,3 @@ func (driver) SelectEvents(
 		qb.Parameters...,
 	)
 }
-
-// ScanEvent scans the next event from a row-set returned by SelectEvents().
-func (driver) ScanEvent(
-	rows *sql.Rows,
-	ev *eventstore.Event,
-) error {
-	return rows.Scan(
-		&ev.Offset,
-		&ev.Envelope.MetaData.MessageId,
-		&ev.Envelope.MetaData.CausationId,
-		&ev.Envelope.MetaData.CorrelationId,
-		&ev.Envelope.MetaData.Source.Application.Name,
-		&ev.Envelope.MetaData.Source.Application.Key,
-		&ev.Envelope.MetaData.Source.Handler.Name,
-		&ev.Envelope.MetaData.Source.Handler.Key,
-		&ev.Envelope.MetaData.Source.InstanceId,
-		&ev.Envelope.MetaData.CreatedAt,
-		&ev.Envelope.PortableName,
-		&ev.Envelope.MediaType,
-		&ev.Envelope.Data,
-	)
-}
