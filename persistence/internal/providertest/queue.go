@@ -51,6 +51,22 @@ func declareQueueTests(
 
 		ginkgo.Describe("type Transaction (interface)", func() {
 			ginkgo.Describe("func EnqueueMessages()", func() {
+				ginkgo.It("sets the initial revision to 1", func() {
+					err := enqueueMessages(
+						*ctx,
+						dataStore,
+						command1,
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					messages, err := repository.LoadQueuedMessages(*ctx, 1)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(messages).To(gomega.HaveLen(1))
+					gomega.Expect(messages[0].Revision).To(
+						gomega.Equal(queue.Revision(1)),
+					)
+				})
+
 				ginkgo.When("the transaction is rolled-back", func() {
 					ginkgo.BeforeEach(func() {
 						tx, err := dataStore.Begin(*ctx)
@@ -90,4 +106,23 @@ func declareQueueTests(
 			})
 		})
 	})
+}
+
+// enqueueMessages persists the given messages to the queue.
+func enqueueMessages(
+	ctx context.Context,
+	ds persistence.DataStore,
+	envelopes ...*envelopespec.Envelope,
+) error {
+	tx, err := ds.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := tx.EnqueueMessages(ctx, envelopes); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
