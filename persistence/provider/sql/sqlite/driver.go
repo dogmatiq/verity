@@ -12,19 +12,20 @@ import (
 )
 
 // Driver is an implementation of sql.Driver for SQLite.
-var Driver driver
+var Driver = driver{
+	lockUpdateInterval: 1 * time.Second,
+	lockExpiryOffset:   3 * time.Second,
+}
 
-type driver struct{}
-
-const (
+type driver struct {
 	// lockUpdateInterval specifies how often an application lock's expiry timestamp
 	// should be updated.
-	lockUpdateInterval = 1 * time.Second
+	lockUpdateInterval time.Duration
 
 	// lockExpiryOffset specifies how far in the future locks should be set to
 	// expire.
-	lockExpiryOffset = 3 * time.Second
-)
+	lockExpiryOffset time.Duration
+}
 
 // Begin starts a transaction.
 func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
@@ -34,12 +35,12 @@ func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 // LockApplication acquires an exclusive lock on an application's data.
 //
 // r is a function that releases the lock, if acquired successfully.
-func (driver) LockApplication(
+func (d driver) LockApplication(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
 ) (r func() error, err error) {
-	id, err := insertLock(ctx, db, ak)
+	id, err := d.insertLock(ctx, db, ak)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func (driver) LockApplication(
 	done := make(chan error)
 
 	go func() {
-		err := maintainLock(ctx, db, id)
+		err := d.maintainLock(ctx, db, id)
 		if err != nil {
 			if ctx.Err() == nil {
 				// If some error occured before we expected to release the lock,
@@ -72,7 +73,7 @@ func (driver) LockApplication(
 }
 
 // insertLock creates a lock record for an application.
-func insertLock(
+func (d driver) insertLock(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
@@ -91,7 +92,7 @@ func insertLock(
 		now.Unix(),
 	)
 
-	expires := now.Add(lockExpiryOffset)
+	expires := now.Add(d.lockExpiryOffset)
 	id, ok := sqlx.TryInsert(
 		ctx,
 		tx,
@@ -115,7 +116,7 @@ func insertLock(
 
 // maintainLock periodically updates the expiry time of a lock record until ctx
 // is canceled.
-func maintainLock(
+func (d driver) maintainLock(
 	ctx context.Context,
 	db *sql.DB,
 	id int64,
@@ -125,14 +126,14 @@ func maintainLock(
 	var expires time.Time
 
 	for {
-		expires = time.Now().Add(lockExpiryOffset)
+		expires = time.Now().Add(d.lockExpiryOffset)
 
-		err = updateLock(ctx, db, id, expires)
+		err = d.updateLock(ctx, db, id, expires)
 		if err != nil {
 			break
 		}
 
-		err = linger.Sleep(ctx, lockUpdateInterval)
+		err = linger.Sleep(ctx, d.lockUpdateInterval)
 		if err != nil {
 			break
 		}
@@ -145,12 +146,12 @@ func maintainLock(
 
 	return multierr.Append(
 		err,
-		deleteLock(deleteCtx, db, id),
+		d.deleteLock(deleteCtx, db, id),
 	)
 }
 
 // updateLock updates the expiry time of a lock record.
-func updateLock(
+func (d driver) updateLock(
 	ctx context.Context,
 	db *sql.DB,
 	id int64,
@@ -172,7 +173,7 @@ func updateLock(
 }
 
 // deleteLock removes an application lock record.
-func deleteLock(
+func (d driver) deleteLock(
 	ctx context.Context,
 	db *sql.DB,
 	id int64,
