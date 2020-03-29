@@ -44,7 +44,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event (
-			offset              BIGINT(20) UNSIGNED NOT NULL,
+			offset              BIGINT UNSIGNED NOT NULL,
 			message_id          VARBINARY(255) NOT NULL,
 			causation_id        VARBINARY(255) NOT NULL,
 			correlation_id      VARBINARY(255) NOT NULL,
@@ -73,7 +73,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event_filter (
-			id      SERIAL NOT NULL PRIMARY KEY,
+			id      SERIAL PRIMARY KEY,
 			app_key VARBINARY(255) NOT NULL UNIQUE
 		) ENGINE=InnoDB`,
 	)
@@ -82,7 +82,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event_filter_name (
-			filter_id     BIGINT NOT NULL REFERENCES event_filter (id) ON DELETE CASCADE,
+			filter_id     BIGINT UNSIGNED NOT NULL REFERENCES event_filter (id) ON DELETE CASCADE,
 			portable_name VARBINARY(255) NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)
