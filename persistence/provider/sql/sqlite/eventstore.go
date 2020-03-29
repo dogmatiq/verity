@@ -6,8 +6,8 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/provider/sql/internal/query"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
 // UpdateNextOffset increments the eventstore offset by n and returns the

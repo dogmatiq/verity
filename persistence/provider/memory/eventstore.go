@@ -28,7 +28,7 @@ func (t *transaction) SaveEvents(
 			t.uncommitted.events,
 			&eventstore.Event{
 				Offset:   next,
-				Envelope: env,
+				Envelope: cloneEnvelope(env),
 			},
 		)
 
@@ -86,9 +86,7 @@ func (r *eventStoreResult) Next(
 		if r.query.IsMatch(ev) {
 			// Clone event on the way out so inadvertent manipulation does not
 			// affect the data in the data-store.
-			clone := *ev
-
-			return &clone, true, nil
+			return cloneEvent(ev), true, nil
 		}
 	}
 
