@@ -10,42 +10,32 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
-// AddMessagesToQueue adds messages to the application's message queue.
-func (t *transaction) AddMessagesToQueue(
+// AddMessageToQueue add a message to the application's message queue.
+//
+// n indicates when the next attempt at handling the message is to be made.
+func (t *transaction) AddMessageToQueue(
 	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
+	n time.Time,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	for _, env := range envelopes {
+	id := env.GetMetaData().GetMessageId()
 
-		id := env.GetMetaData().GetMessageId()
+	if _, ok := t.ds.db.queue.uniq[id]; ok {
+		return nil
+	}
 
-		if _, ok := t.ds.db.queue.uniq[id]; ok {
-			continue
-		}
+	if t.uncommitted.queue == nil {
+		t.uncommitted.queue = map[string]*queue.Message{}
+	}
 
-		data := env.MetaData.ScheduledFor
-		if data == "" {
-			data = env.MetaData.CreatedAt
-		}
-
-		next, err := time.Parse(time.RFC3339Nano, data)
-		if err != nil {
-			return err
-		}
-
-		if t.uncommitted.queue == nil {
-			t.uncommitted.queue = map[string]*queue.Message{}
-		}
-
-		t.uncommitted.queue[id] = &queue.Message{
-			Revision:      1,
-			NextAttemptAt: next,
-			Envelope:      cloneEnvelope(env),
-		}
+	t.uncommitted.queue[id] = &queue.Message{
+		Revision:      1,
+		NextAttemptAt: n,
+		Envelope:      cloneEnvelope(env),
 	}
 
 	return nil
