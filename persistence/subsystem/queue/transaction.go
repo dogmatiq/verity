@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 )
@@ -9,10 +10,13 @@ import (
 // Transaction defines the primitive persistence operations for manipulating the
 // message queue.
 type Transaction interface {
-	// AddMessagesToQueue adds messages to the application's message queue.
-	AddMessagesToQueue(
+	// AddMessageToQueue add a message to the application's message queue.
+	//
+	// n indicates when the next attempt at handling the message is to be made.
+	AddMessageToQueue(
 		ctx context.Context,
-		envelopes []*envelopespec.Envelope,
+		env *envelopespec.Envelope,
+		n time.Time,
 	) error
 
 	// RemoveMessageFromQueue removes a specific message from the application's

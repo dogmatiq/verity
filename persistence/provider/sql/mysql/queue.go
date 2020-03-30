@@ -10,32 +10,22 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
-// InsertQueueMessages saves messages to the queue.
-func (driver) InsertQueueMessages(
+// InsertQueueMessage saves a messages to the queue.
+func (driver) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
+	n time.Time,
 ) (err error) {
 	defer sqlx.Recover(&err)
 
-	for _, env := range envelopes {
-		data := env.MetaData.ScheduledFor
-		if data == "" {
-			data = env.MetaData.CreatedAt
-		}
-
-		next, err := time.Parse(time.RFC3339Nano, data)
-		if err != nil {
-			return err
-		}
-
-		// Note: ON DUPLICATE KEY UPDATE is used because INSERT IGNORE ignores
-		// more than just key conflicts.
-		sqlx.Exec(
-			ctx,
-			tx,
-			`INSERT INTO queue SET
+	// Note: ON DUPLICATE KEY UPDATE is used because INSERT IGNORE ignores
+	// more than just key conflicts.
+	sqlx.Exec(
+		ctx,
+		tx,
+		`INSERT INTO queue SET
 				app_key = ?,
 				next_attempt_at = ?,
 				message_id = ?,
@@ -53,23 +43,22 @@ func (driver) InsertQueueMessages(
 				data = ?
 			ON DUPLICATE KEY UPDATE
 				app_key = VALUES(app_key)`,
-			ak,
-			next,
-			env.MetaData.MessageId,
-			env.MetaData.CausationId,
-			env.MetaData.CorrelationId,
-			env.MetaData.Source.Application.Name,
-			env.MetaData.Source.Application.Key,
-			env.MetaData.Source.Handler.Name,
-			env.MetaData.Source.Handler.Key,
-			env.MetaData.Source.InstanceId,
-			env.MetaData.CreatedAt,
-			env.MetaData.ScheduledFor,
-			env.PortableName,
-			env.MediaType,
-			env.Data,
-		)
-	}
+		ak,
+		n,
+		env.MetaData.MessageId,
+		env.MetaData.CausationId,
+		env.MetaData.CorrelationId,
+		env.MetaData.Source.Application.Name,
+		env.MetaData.Source.Application.Key,
+		env.MetaData.Source.Handler.Name,
+		env.MetaData.Source.Handler.Key,
+		env.MetaData.Source.InstanceId,
+		env.MetaData.CreatedAt,
+		env.MetaData.ScheduledFor,
+		env.PortableName,
+		env.MediaType,
+		env.Data,
+	)
 
 	return nil
 }

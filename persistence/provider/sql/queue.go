@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
@@ -12,12 +13,13 @@ import (
 // queueDriver is the subset of the Driver interface that is concerned with the
 // message queue subsystem.
 type queueDriver interface {
-	// InsertQueueMessages saves messages to the queue.
-	InsertQueueMessages(
+	// InsertQueueMessage saves a message to the queue.
+	InsertQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		envelopes []*envelopespec.Envelope,
+		env *envelopespec.Envelope,
+		n time.Time,
 	) error
 
 	// SelectQueueMessages selects up to n messages from the queue.
@@ -36,20 +38,24 @@ type queueDriver interface {
 	) error
 }
 
-// AddMessagesToQueue adds messages to the application's message queue.
-func (t *transaction) AddMessagesToQueue(
+// AddMessageToQueue add a message to the application's message queue.
+//
+// n indicates when the next attempt at handling the message is to be made.
+func (t *transaction) AddMessageToQueue(
 	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
+	n time.Time,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	return t.ds.driver.InsertQueueMessages(
+	return t.ds.driver.InsertQueueMessage(
 		ctx,
 		t.actual,
 		t.ds.appKey,
-		envelopes,
+		env,
+		n,
 	)
 }
 

@@ -13,10 +13,13 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// AddMessagesToQueue adds messages to the application's message queue.
-func (t *transaction) AddMessagesToQueue(
+// AddMessageToQueue add a message to the application's message queue.
+//
+// n indicates when the next attempt at handling the message is to be made.
+func (t *transaction) AddMessageToQueue(
 	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
+	n time.Time,
 ) (err error) {
 	defer bboltx.Recover(&err)
 
@@ -38,21 +41,19 @@ func (t *transaction) AddMessagesToQueue(
 		messagesBucketKey,
 	)
 
-	for _, env := range envelopes {
-		id := []byte(env.MetaData.MessageId)
+	id := []byte(env.MetaData.MessageId)
 
-		if messages.Get(id) != nil {
-			continue
-		}
-
-		m, data := marshalEnvelopeAsQueueMessage(env)
-
-		bboltx.Put(messages, id, data)
-		bboltx.CreateBucketIfNotExists(
-			order,
-			[]byte(m.NextAttemptAt),
-		).Put(id, nil)
+	if messages.Get(id) != nil {
+		return nil
 	}
+
+	m, data := marshalEnvelopeAsQueueMessage(env, n)
+
+	bboltx.Put(messages, id, data)
+	bboltx.CreateBucketIfNotExists(
+		order,
+		[]byte(m.NextAttemptAt),
+	).Put(id, nil)
 
 	return nil
 }
@@ -175,15 +176,12 @@ func unmarshalQueueMessage(data []byte) *queue.Message {
 // representation as a queue.Message.
 func marshalEnvelopeAsQueueMessage(
 	env *envelopespec.Envelope,
+	n time.Time,
 ) (*pb.QueueMessage, []byte) {
 	m := &pb.QueueMessage{
 		Revision:      1,
-		NextAttemptAt: env.MetaData.ScheduledFor,
+		NextAttemptAt: n.Format(time.RFC3339Nano),
 		Envelope:      env,
-	}
-
-	if m.NextAttemptAt == "" {
-		m.NextAttemptAt = env.MetaData.CreatedAt
 	}
 
 	data, err := proto.Marshal(m)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -141,13 +142,14 @@ func (d errorConverter) ScanEvent(
 // queue
 //
 
-func (d errorConverter) InsertQueueMessages(
+func (d errorConverter) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
+	n time.Time,
 ) error {
-	err := d.d.InsertQueueMessages(ctx, tx, ak, envelopes)
+	err := d.d.InsertQueueMessage(ctx, tx, ak, env, n)
 	return convertContextErrors(ctx, err)
 }
 
