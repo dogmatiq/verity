@@ -38,6 +38,14 @@ func (t *transaction) SaveEvents(
 	return next, nil
 }
 
+// commitEvents commits staged events to the database.
+func (t *transaction) commitEvents() {
+	t.ds.db.events = append(
+		t.ds.db.events,
+		t.uncommitted.events...,
+	)
+}
+
 // eventStoreRepository is an implementation of eventstore.Repository that
 // stores events in memory.
 type eventStoreRepository struct {

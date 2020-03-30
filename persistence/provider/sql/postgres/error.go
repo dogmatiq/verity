@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 	"github.com/lib/pq"
 )
 
@@ -134,4 +135,35 @@ func (d errorConverter) ScanEvent(
 	ev *eventstore.Event,
 ) error {
 	return d.d.ScanEvent(rows, ev)
+}
+
+//
+// queue
+//
+
+func (d errorConverter) InsertQueueMessages(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	envelopes []*envelopespec.Envelope,
+) error {
+	err := d.d.InsertQueueMessages(ctx, tx, ak, envelopes)
+	return convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) SelectQueueMessages(
+	ctx context.Context,
+	db *sql.DB,
+	ak string,
+	n int,
+) (*sql.Rows, error) {
+	rows, err := d.d.SelectQueueMessages(ctx, db, ak, n)
+	return rows, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) ScanQueueMessage(
+	rows *sql.Rows,
+	m *queue.Message,
+) error {
+	return d.d.ScanQueueMessage(rows, m)
 }

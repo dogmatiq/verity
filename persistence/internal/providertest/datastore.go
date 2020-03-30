@@ -50,6 +50,13 @@ func declareDataStoreTests(
 			})
 		})
 
+		ginkgo.Describe("func QueueRepository()", func() {
+			ginkgo.It("returns a non-nil repository", func() {
+				r := dataStore.QueueRepository()
+				gomega.Expect(r).NotTo(gomega.BeNil())
+			})
+		})
+
 		ginkgo.Describe("func Begin()", func() {
 			ginkgo.It("returns a non-nil transaction", func() {
 				tx, err := dataStore.Begin(*ctx)

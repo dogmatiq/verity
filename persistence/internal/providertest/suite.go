@@ -80,5 +80,6 @@ func Declare(
 		declareDataStoreTests(&ctx, &in, &out)
 		declareTransactionTests(&ctx, &in, &out)
 		declareEventStoreTests(&ctx, &in, &out)
+		declareQueueTests(&ctx, &in, &out)
 	})
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
 // dataStore is an implementation of persistence.DataStore for the in-memory
@@ -25,6 +26,11 @@ func newDataStore(db *database) *dataStore {
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
 	return &eventStoreRepository{ds.db}
+}
+
+// QueueRepository returns the application's message queue repository.
+func (ds *dataStore) QueueRepository() queue.Repository {
+	return &queueRepository{ds.db}
 }
 
 // Begin starts a new transaction.

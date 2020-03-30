@@ -26,6 +26,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	)
 
 	createEventStoreSchema(ctx, db)
+	createQueueSchema(ctx, db)
 
 	return tx.Commit()
 }
@@ -73,7 +74,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX eventstore_query ON infix.event (
+		`CREATE INDEX repository_query ON infix.event (
 			source_app_key,
 			portable_name,
 			"offset",
@@ -99,6 +100,44 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			portable_name TEXT NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)
+		)`,
+	)
+}
+
+// createQueueSchema creates the schema elements required by the message queue
+// subsystem.
+func createQueueSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.queue (
+			app_key             TEXT NOT NULL,
+			revision            BIGINT NOT NULL DEFAULT 1,
+			next_attempt_at     TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+			message_id          TEXT NOT NULL,
+			causation_id        TEXT NOT NULL,
+			correlation_id      TEXT NOT NULL,
+			source_app_name     TEXT NOT NULL,
+			source_app_key      TEXT NOT NULL,
+			source_handler_name TEXT NOT NULL,
+			source_handler_key  TEXT NOT NULL,
+			source_instance_id  TEXT NOT NULL,
+			created_at          TEXT NOT NULL,
+			scheduled_for       TEXT NOT NULL,
+			portable_name       TEXT NOT NULL,
+			media_type          TEXT NOT NULL,
+			data                BYTEA NOT NULL,
+
+			PRIMARY KEY (app_key, message_id)
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE INDEX repository_load ON infix.queue (
+			app_key,
+			next_attempt_at
 		)`,
 	)
 }
