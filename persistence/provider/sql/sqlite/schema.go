@@ -82,7 +82,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX eventstore_query ON event (
+		`CREATE INDEX repository_query ON event (
 			source_app_key,
 			portable_name,
 			offset,
@@ -137,5 +137,14 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 
 			PRIMARY KEY (app_key, message_id)
 		) WITHOUT ROWID`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE INDEX repository_load ON queue (
+			app_key,
+			next_attempt_at
+		)`,
 	)
 }

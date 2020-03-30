@@ -63,7 +63,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			data                LONGBLOB NOT NULL,
 
 			PRIMARY KEY (source_app_key, offset),
-			INDEX eventstore_query (
+			INDEX repository_query (
 				source_app_key,
 				portable_name,
 				offset,
@@ -118,9 +118,8 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 			media_type          VARBINARY(255) NOT NULL,
 			data                LONGBLOB NOT NULL,
 
-			PRIMARY KEY (app_key, message_id)
+			PRIMARY KEY (app_key, message_id),
+			INDEX repository_load (app_key, next_attempt_at)
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
-
-	// TODO: add index for sorting by next_attempt_at
 }

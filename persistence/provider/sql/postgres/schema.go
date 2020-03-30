@@ -74,7 +74,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX eventstore_query ON infix.event (
+		`CREATE INDEX repository_query ON infix.event (
 			source_app_key,
 			portable_name,
 			"offset",
@@ -130,7 +130,14 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 
 			PRIMARY KEY (app_key, message_id)
 		)`,
+	)
 
-		// TODO: add index for sorting by next_attempt_id
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE INDEX repository_load ON infix.queue (
+			app_key,
+			next_attempt_at
+		)`,
 	)
 }
