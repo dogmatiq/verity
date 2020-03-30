@@ -105,7 +105,7 @@ var _ = Describe("type server", func() {
 			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: envelope.MustMarshal(env0),
+					Envelope: envelope.MustMarshal(Marshaler, env0),
 				},
 			))
 
@@ -114,7 +114,7 @@ var _ = Describe("type server", func() {
 			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   1,
-					Envelope: envelope.MustMarshal(env1),
+					Envelope: envelope.MustMarshal(Marshaler, env1),
 				},
 			))
 		})
@@ -134,7 +134,7 @@ var _ = Describe("type server", func() {
 			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: envelope.MustMarshal(env2),
+					Envelope: envelope.MustMarshal(Marshaler, env2),
 				},
 			))
 		})
@@ -153,7 +153,7 @@ var _ = Describe("type server", func() {
 			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: envelope.MustMarshal(env0),
+					Envelope: envelope.MustMarshal(Marshaler, env0),
 				},
 			))
 
@@ -162,7 +162,7 @@ var _ = Describe("type server", func() {
 			Expect(ev).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: envelope.MustMarshal(env2),
+					Envelope: envelope.MustMarshal(Marshaler, env2),
 				},
 			))
 		})

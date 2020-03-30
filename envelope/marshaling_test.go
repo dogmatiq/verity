@@ -27,7 +27,7 @@ var _ = Describe("func Marshal()", func() {
 	})
 
 	It("marshals to protobuf", func() {
-		out, err := Marshal(in)
+		out, err := Marshal(Marshaler, in)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		createdAt := in.CreatedAt.Format(time.RFC3339Nano)
@@ -55,17 +55,18 @@ var _ = Describe("func Marshal()", func() {
 	It("marshals a zero scheduled-for time as an empty string", func() {
 		in.MetaData.ScheduledFor = time.Time{}
 
-		out, err := Marshal(in)
+		out, err := Marshal(Marshaler, in)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(out.MetaData.ScheduledFor).To(BeEmpty())
 	})
 
-	It("returns an error if the media-type cannot be parsed", func() {
-		in.Packet.MediaType = "<malformed>"
+	It("returns an error if marshaling fails", func() {
+		in.Message = "<unsupported type>"
 
-		_, err := Marshal(in)
+		_, err := Marshal(Marshaler, in)
 		Expect(err).Should(HaveOccurred())
 	})
+
 })
 
 var _ = Describe("func MarshalMany()", func() {
@@ -74,6 +75,7 @@ var _ = Describe("func MarshalMany()", func() {
 		in2 := NewEnvelope("<id-2>", MessageA2)
 
 		out, err := MarshalMany(
+			Marshaler,
 			[]*Envelope{
 				in1,
 				in2,
@@ -83,17 +85,18 @@ var _ = Describe("func MarshalMany()", func() {
 
 		Expect(out).To(Equal(
 			[]*envelopespec.Envelope{
-				MustMarshal(in1),
-				MustMarshal(in2),
+				MustMarshal(Marshaler, in1),
+				MustMarshal(Marshaler, in2),
 			},
 		))
 	})
 
 	It("returns an error if marshaling fails", func() {
 		in := NewEnvelope("<id>", MessageA1)
-		in.Packet.MediaType = "<malformed>"
+		in.Message = "<unsupported type>"
 
 		_, err := MarshalMany(
+			Marshaler,
 			[]*Envelope{in},
 		)
 		Expect(err).Should(HaveOccurred())
@@ -104,19 +107,19 @@ var _ = Describe("func MustMarshal()", func() {
 	It("marshals the envelope", func() {
 		in := NewEnvelope("<id>", MessageA1)
 
-		expect, err := Marshal(in)
+		expect, err := Marshal(Marshaler, in)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		out := MustMarshal(in)
+		out := MustMarshal(Marshaler, in)
 		Expect(out).To(Equal(expect))
 	})
 
 	It("panics if marshaling fails", func() {
 		in := NewEnvelope("<id>", MessageA1)
-		in.Packet.MediaType = "<malformed>"
+		in.Message = "<unsupported type>"
 
 		Expect(func() {
-			MustMarshal(in)
+			MustMarshal(Marshaler, in)
 		}).To(Panic())
 	})
 })
@@ -126,6 +129,7 @@ var _ = Describe("func MustMarshalMany()", func() {
 		in1 := NewEnvelope("<id-2>", MessageA1)
 		in2 := NewEnvelope("<id-2>", MessageA2)
 		out := MustMarshalMany(
+			Marshaler,
 			[]*Envelope{
 				in1,
 				in2,
@@ -134,18 +138,19 @@ var _ = Describe("func MustMarshalMany()", func() {
 
 		Expect(out).To(Equal(
 			[]*envelopespec.Envelope{
-				MustMarshal(in1),
-				MustMarshal(in2),
+				MustMarshal(Marshaler, in1),
+				MustMarshal(Marshaler, in2),
 			},
 		))
 	})
 
 	It("panics if marshaling fails", func() {
 		in := NewEnvelope("<id>", MessageA1)
-		in.Packet.MediaType = "<malformed>"
+		in.Message = "<unsupported type>"
 
 		Expect(func() {
 			MustMarshalMany(
+				Marshaler,
 				[]*Envelope{in},
 			)
 		}).To(Panic())
@@ -162,17 +167,19 @@ var _ = Describe("func Unmarshal()", func() {
 		createdAt = time.Now()
 		scheduledFor = time.Now().Add(1 * time.Hour)
 
-		in = MustMarshal(NewEnvelope(
-			"<id>",
-			MessageA1,
-			createdAt,
-			scheduledFor,
-		))
+		in = MustMarshal(
+			Marshaler,
+			NewEnvelope(
+				"<id>",
+				MessageA1,
+				createdAt,
+				scheduledFor,
+			),
+		)
 	})
 
 	It("unmarshals from protobuf", func() {
-		var out envelope.Envelope
-		err := Unmarshal(Marshaler, in, &out)
+		out, err := Unmarshal(Marshaler, in)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(out.CreatedAt).To(BeTemporally("==", createdAt))
@@ -182,7 +189,7 @@ var _ = Describe("func Unmarshal()", func() {
 		out.CreatedAt = time.Time{}
 		out.ScheduledFor = time.Time{}
 
-		Expect(out).To(Equal(envelope.Envelope{
+		Expect(out).To(Equal(&envelope.Envelope{
 			MetaData: envelope.MetaData{
 				MessageID:     "<id>",
 				CausationID:   "<cause>",
@@ -194,31 +201,27 @@ var _ = Describe("func Unmarshal()", func() {
 				},
 			},
 			Message: MessageA1,
-			Packet:  MessageA1Packet,
 		}))
 	})
 
 	It("returns an error if the created-at time can not be unmarshaled", func() {
 		in.MetaData.CreatedAt = "not-a-valid-time"
 
-		var out envelope.Envelope
-		err := Unmarshal(Marshaler, in, &out)
+		_, err := Unmarshal(Marshaler, in)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("returns an error if the scheduled-for time can not be unmarshaled", func() {
 		in.MetaData.ScheduledFor = "not-a-valid-time"
 
-		var out envelope.Envelope
-		err := Unmarshal(Marshaler, in, &out)
+		_, err := Unmarshal(Marshaler, in)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("does not return an error if the scheduled-for time is empty", func() {
 		in.MetaData.ScheduledFor = ""
 
-		var out envelope.Envelope
-		err := Unmarshal(Marshaler, in, &out)
+		out, err := Unmarshal(Marshaler, in)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(out.MetaData.ScheduledFor.IsZero()).To(BeTrue())
 	})
@@ -226,24 +229,21 @@ var _ = Describe("func Unmarshal()", func() {
 	It("returns an error if the source is not valid", func() {
 		in.MetaData.Source.Handler = nil
 
-		var out envelope.Envelope
-		err := Unmarshal(Marshaler, in, &out)
+		_, err := Unmarshal(Marshaler, in)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("returns an error if the meta-data is not valid", func() {
 		in.MetaData.CreatedAt = ""
 
-		var out envelope.Envelope
-		err := Unmarshal(Marshaler, in, &out)
+		_, err := Unmarshal(Marshaler, in)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("returns an error if the marshaler fails", func() {
 		in.MediaType = "<unknown>"
 
-		var out envelope.Envelope
-		err := Unmarshal(Marshaler, in, &out)
+		_, err := Unmarshal(Marshaler, in)
 		Expect(err).Should(HaveOccurred())
 	})
 })

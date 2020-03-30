@@ -220,15 +220,11 @@ func (c *networkCursor) recv() error {
 	}
 
 	ev := &Event{
-		Offset:   Offset(res.Offset),
-		Envelope: &envelope.Envelope{},
+		Offset: Offset(res.Offset),
 	}
 
-	if err := envelope.Unmarshal(
-		c.marshaler,
-		res.GetEnvelope(),
-		ev.Envelope,
-	); err != nil {
+	ev.Envelope, err = envelope.Unmarshal(c.marshaler, res.GetEnvelope())
+	if err != nil {
 		return err
 	}
 

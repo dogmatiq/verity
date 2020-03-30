@@ -10,7 +10,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/envelope"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +27,6 @@ var _ = Describe("type Packer", func() {
 		now = time.Now()
 		packer = &Packer{
 			Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			Marshaler:   Marshaler,
 			Roles: message.TypeRoles{
 				MessageCType: message.CommandRole,
 				MessageEType: message.EventRole,
@@ -42,35 +40,6 @@ var _ = Describe("type Packer", func() {
 				return now
 			},
 		}
-	})
-
-	Describe("func NewPackerForApplication()", func() {
-		It("returns a packer that uses the produced message roles", func() {
-			app := &Application{
-				ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-					c.Identity("<app-name>", "<app-key>")
-
-					c.RegisterIntegration(&IntegrationMessageHandler{
-						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
-							c.Identity("<integration-name>", "<integration-key>")
-							c.ConsumesCommandType(MessageC{})
-							c.ProducesEventType(MessageE{})
-						},
-					})
-				},
-			}
-
-			cfg := configkit.FromApplication(app)
-
-			p := NewPackerForApplication(cfg, Marshaler)
-			Expect(p).To(Equal(&Packer{
-				Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-				Roles: message.TypeRoles{
-					MessageEType: message.EventRole,
-				},
-				Marshaler: Marshaler,
-			}))
-		})
 	})
 
 	Describe("func PackCommand()", func() {
@@ -89,7 +58,6 @@ var _ = Describe("type Packer", func() {
 						CreatedAt: now,
 					},
 					Message: MessageC1,
-					Packet:  MessageC1Packet,
 				},
 			))
 		})
@@ -123,7 +91,6 @@ var _ = Describe("type Packer", func() {
 						CreatedAt: now,
 					},
 					Message: MessageE1,
-					Packet:  MessageE1Packet,
 				},
 			))
 		})
@@ -155,7 +122,6 @@ var _ = Describe("type Packer", func() {
 					},
 				},
 				Message: MessageE1,
-				Packet:  MessageE1Packet,
 			}
 		})
 
@@ -181,7 +147,6 @@ var _ = Describe("type Packer", func() {
 						CreatedAt: now,
 					},
 					Message: MessageC1,
-					Packet:  MessageC1Packet,
 				},
 			))
 		})
@@ -223,7 +188,6 @@ var _ = Describe("type Packer", func() {
 					},
 				},
 				Message: MessageC1,
-				Packet:  MessageC1Packet,
 			}
 		})
 
@@ -249,7 +213,6 @@ var _ = Describe("type Packer", func() {
 						CreatedAt: now,
 					},
 					Message: MessageE1,
-					Packet:  MessageE1Packet,
 				},
 			))
 		})
@@ -291,7 +254,6 @@ var _ = Describe("type Packer", func() {
 					},
 				},
 				Message: MessageE1,
-				Packet:  MessageE1Packet,
 			}
 		})
 
@@ -320,7 +282,6 @@ var _ = Describe("type Packer", func() {
 						ScheduledFor: scheduledFor,
 					},
 					Message: MessageT1,
-					Packet:  MessageT1Packet,
 				},
 			))
 		})

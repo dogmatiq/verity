@@ -189,22 +189,10 @@ func (c *eventStoreCursor) execQuery(ctx context.Context) error {
 		}
 
 		ev := &Event{
-			Offset:   Offset(pev.Offset),
-			Envelope: &envelope.Envelope{},
+			Offset: Offset(pev.Offset),
 		}
 
-		if err := envelope.Unmarshal(
-			c.marshaler,
-			pev.Envelope,
-			ev.Envelope,
-		); err != nil {
-			return err
-		}
-
-		ev.Envelope.Message, err = marshalkit.UnmarshalMessage(
-			c.marshaler,
-			ev.Envelope.Packet,
-		)
+		ev.Envelope, err = envelope.Unmarshal(c.marshaler, pev.Envelope)
 		if err != nil {
 			return err
 		}

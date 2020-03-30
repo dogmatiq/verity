@@ -10,7 +10,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/envelope"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -27,7 +26,6 @@ var _ = Describe("type BoundPacker", func() {
 		now = time.Now()
 		packer = &Packer{
 			Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			Marshaler:   Marshaler,
 			Roles: message.TypeRoles{
 				MessageCType: message.CommandRole,
 				MessageDType: message.CommandRole,
@@ -63,7 +61,6 @@ var _ = Describe("type BoundPacker", func() {
 					},
 				},
 				Message: MessageE1,
-				Packet:  MessageE1Packet,
 			}
 
 			cfg := configkit.FromProcess(&ProcessMessageHandler{
@@ -98,7 +95,6 @@ var _ = Describe("type BoundPacker", func() {
 						CreatedAt: now,
 					},
 					Message: MessageC1,
-					Packet:  MessageC1Packet,
 				},
 			))
 		})
@@ -127,7 +123,6 @@ var _ = Describe("type BoundPacker", func() {
 					},
 				},
 				Message: MessageC1,
-				Packet:  MessageC1Packet,
 			}
 
 			cfg := configkit.FromAggregate(&AggregateMessageHandler{
@@ -162,7 +157,6 @@ var _ = Describe("type BoundPacker", func() {
 						CreatedAt: now,
 					},
 					Message: MessageE1,
-					Packet:  MessageE1Packet,
 				},
 			))
 		})
@@ -191,7 +185,6 @@ var _ = Describe("type BoundPacker", func() {
 					},
 				},
 				Message: MessageE1,
-				Packet:  MessageE1Packet,
 			}
 
 			cfg := configkit.FromProcess(&ProcessMessageHandler{
@@ -229,7 +222,6 @@ var _ = Describe("type BoundPacker", func() {
 						ScheduledFor: scheduledFor,
 					},
 					Message: MessageT1,
-					Packet:  MessageT1Packet,
 				},
 			))
 		})
