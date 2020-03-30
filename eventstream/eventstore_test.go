@@ -39,7 +39,7 @@ var _ = Describe("type EventStoreStream", func() {
 
 					_, err = tx.SaveEvents(
 						ctx,
-						envelope.MustMarshalMany(envelopes),
+						envelope.MustMarshalMany(stream.Marshaler, envelopes),
 					)
 					Expect(err).ShouldNot(HaveOccurred())
 

@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/google/uuid"
 )
 
@@ -14,9 +13,6 @@ import (
 type Packer struct {
 	// Application is the identity of this application.
 	Application configkit.Identity
-
-	// Marshaler is the marshaler used to marshal messages.
-	Marshaler marshalkit.Marshaler
 
 	// Roles is a map of message type to role, used to validate the messages
 	// that are being packed.
@@ -29,19 +25,6 @@ type Packer struct {
 	// Now is a function used to get the current time. If it is nil, time.Now()
 	// is used.
 	Now func() time.Time
-}
-
-// NewPackerForApplication returns an message packer configured for use with the
-// given application.
-func NewPackerForApplication(
-	cfg configkit.RichApplication,
-	ma marshalkit.Marshaler,
-) *Packer {
-	return &Packer{
-		Application: cfg.Identity(),
-		Roles:       cfg.MessageTypes().Produced,
-		Marshaler:   ma,
-	}
 }
 
 // PackCommand returns a new command envelope containing the given message.
@@ -201,7 +184,6 @@ func (p *Packer) new(
 			time.Time{},
 		},
 		m,
-		marshalkit.MustMarshalMessage(p.Marshaler, m),
 	}
 }
 

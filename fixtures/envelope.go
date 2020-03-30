@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/google/uuid"
 )
@@ -39,10 +38,6 @@ func NewEnvelope(
 			},
 		},
 		Message: m,
-		Packet: marshalkit.MustMarshalMessage(
-			fixtures.Marshaler,
-			m,
-		),
 	}
 
 	switch len(times) {
@@ -76,7 +71,7 @@ func NewEnvelopeProto(
 	times ...time.Time,
 ) *envelopespec.Envelope {
 	env := NewEnvelope(id, m, times...)
-	return envelope.MustMarshal(env)
+	return envelope.MustMarshal(fixtures.Marshaler, env)
 }
 
 // cleanseTime marshals/unmarshals time to strip any internal state that would

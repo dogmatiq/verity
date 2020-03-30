@@ -9,33 +9,41 @@ import (
 )
 
 // Marshal marshals a message envelope to its protobuf representation.
-func Marshal(in *Envelope) (*envelopespec.Envelope, error) {
-	md, err := marshalMetaData(&in.MetaData)
+func Marshal(
+	m marshalkit.ValueMarshaler,
+	env *Envelope,
+) (*envelopespec.Envelope, error) {
+	p, err := marshalkit.MarshalMessage(m, env.Message)
 	if err != nil {
 		return nil, err
 	}
 
-	_, n, err := in.Packet.ParseMediaType()
+	_, n, err := p.ParseMediaType()
 	if err != nil {
-		return nil, err
+		// CODE COVERAGE: This branch would require the marshaler to violate its
+		// own requirements on the format of the media-type.
+		panic(err)
 	}
 
 	return &envelopespec.Envelope{
-		MetaData:     md,
+		MetaData:     marshalMetaData(&env.MetaData),
 		PortableName: n,
-		MediaType:    in.Packet.MediaType,
-		Data:         in.Packet.Data,
+		MediaType:    p.MediaType,
+		Data:         p.Data,
 	}, nil
 }
 
 // MarshalMany marshals multiple message envelopes to their protobuf
 // representations.
-func MarshalMany(in []*Envelope) ([]*envelopespec.Envelope, error) {
-	out := make([]*envelopespec.Envelope, len(in))
+func MarshalMany(
+	m marshalkit.ValueMarshaler,
+	envelopes []*Envelope,
+) ([]*envelopespec.Envelope, error) {
+	out := make([]*envelopespec.Envelope, len(envelopes))
 
 	var err error
-	for i, env := range in {
-		out[i], err = Marshal(env)
+	for i, env := range envelopes {
+		out[i], err = Marshal(m, env)
 		if err != nil {
 			return nil, err
 		}
@@ -46,8 +54,11 @@ func MarshalMany(in []*Envelope) ([]*envelopespec.Envelope, error) {
 
 // MustMarshal marshals a message envelope to its protobuf representation, or
 // panics if it is unable to do so.
-func MustMarshal(in *Envelope) *envelopespec.Envelope {
-	out, err := Marshal(in)
+func MustMarshal(
+	m marshalkit.ValueMarshaler,
+	in *Envelope,
+) *envelopespec.Envelope {
+	out, err := Marshal(m, in)
 	if err != nil {
 		panic(err)
 	}
@@ -57,8 +68,11 @@ func MustMarshal(in *Envelope) *envelopespec.Envelope {
 
 // MustMarshalMany marshals multiple messages envelope to their protobuf
 // representations, or panics if it is unable to do so.
-func MustMarshalMany(in []*Envelope) []*envelopespec.Envelope {
-	out, err := MarshalMany(in)
+func MustMarshalMany(
+	m marshalkit.ValueMarshaler,
+	envelopes []*Envelope,
+) []*envelopespec.Envelope {
+	out, err := MarshalMany(m, envelopes)
 	if err != nil {
 		panic(err)
 	}
@@ -69,24 +83,28 @@ func MustMarshalMany(in []*Envelope) []*envelopespec.Envelope {
 // Unmarshal unmarshals a message envelope from its protobuf representation.
 func Unmarshal(
 	m marshalkit.ValueMarshaler,
-	in *envelopespec.Envelope,
-	out *Envelope,
-) error {
-	err := unmarshalMetaData(in.GetMetaData(), &out.MetaData)
+	env *envelopespec.Envelope,
+) (*Envelope, error) {
+	var out Envelope
+
+	err := unmarshalMetaData(env.GetMetaData(), &out.MetaData)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	out.Packet.MediaType = in.GetMediaType()
-	out.Packet.Data = in.GetData()
+	out.Message, err = marshalkit.UnmarshalMessage(
+		m,
+		marshalkit.Packet{
+			MediaType: env.GetMediaType(),
+			Data:      env.GetData(),
+		},
+	)
 
-	out.Message, err = marshalkit.UnmarshalMessage(m, out.Packet)
-
-	return err
+	return &out, err
 }
 
 // marshalMetaData marshals message meta-data to its protobuf representation.
-func marshalMetaData(in *MetaData) (*envelopespec.MetaData, error) {
+func marshalMetaData(in *MetaData) *envelopespec.MetaData {
 	return &envelopespec.MetaData{
 		MessageId:     in.MessageID,
 		CausationId:   in.CausationID,
@@ -94,7 +112,7 @@ func marshalMetaData(in *MetaData) (*envelopespec.MetaData, error) {
 		Source:        marshalSource(&in.Source),
 		CreatedAt:     marshalTime(in.CreatedAt),
 		ScheduledFor:  marshalTime(in.ScheduledFor),
-	}, nil
+	}
 }
 
 // unmarshalMetaData unmarshals message meta-data from its protobuf

@@ -21,7 +21,7 @@ import (
 // Refactor to operate directly on an eventstore repository.
 func RegisterServer(
 	s *grpc.Server,
-	m marshalkit.TypeMarshaler,
+	m marshalkit.Marshaler,
 	streams map[string]Stream,
 ) {
 	svr := &server{
@@ -34,7 +34,7 @@ func RegisterServer(
 
 // server is an implementation of the dogma.messaging.v1 EventStream service.
 type server struct {
-	marshaler marshalkit.TypeMarshaler
+	marshaler marshalkit.Marshaler
 	streams   map[string]Stream
 }
 
@@ -58,7 +58,7 @@ func (s *server) Consume(
 
 		res := &messagingspec.ConsumeResponse{
 			Offset:   uint64(ev.Offset),
-			Envelope: envelope.MustMarshal(ev.Envelope),
+			Envelope: envelope.MustMarshal(s.marshaler, ev.Envelope),
 		}
 
 		if err := consumer.Send(res); err != nil {
