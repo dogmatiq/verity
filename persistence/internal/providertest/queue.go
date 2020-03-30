@@ -104,7 +104,7 @@ func declareQueueTests(
 					m, err := loadQueuedMessage(*ctx, repository)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.NextAttemptAt).To(
-						gomega.BeTemporally("==", timeout1ScheduledFor),
+						gomega.BeTemporally("~", timeout1ScheduledFor),
 					)
 				})
 
