@@ -2,6 +2,7 @@ package providertest
 
 import (
 	"context"
+	"time"
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/onsi/ginkgo"
@@ -59,6 +60,13 @@ func declareTransactionTests(
 				})
 			})
 
+			ginkgo.Describe("func AddMessageToQueue()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.AddMessageToQueue(*ctx, nil, time.Now())
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
+
 			ginkgo.Describe("func Commit()", func() {
 				ginkgo.It("returns an error", func() {
 					err := transaction.Commit(*ctx)
@@ -83,6 +91,13 @@ func declareTransactionTests(
 			ginkgo.Describe("func SaveEvents()", func() {
 				ginkgo.It("returns an error", func() {
 					_, err := transaction.SaveEvents(*ctx, nil)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
+
+			ginkgo.Describe("func AddMessageToQueue()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.AddMessageToQueue(*ctx, nil, time.Now())
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
