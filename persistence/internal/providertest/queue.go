@@ -2,6 +2,7 @@ package providertest
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -13,6 +14,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
+	"golang.org/x/sync/errgroup"
 )
 
 func declareQueueTests(
@@ -30,7 +32,8 @@ func declareQueueTests(
 			now = time.Now()
 
 			// Note, we use generated UUIDs for the message IDs to avoid them
-			// having any predictable effect on the queue order.
+			// having any predictable effect on the queue order. Likewise, we
+			// don't use the fixture messages in order.
 			env0 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA3)
 			env1 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA1)
 			env2 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA2)
@@ -137,6 +140,76 @@ func declareQueueTests(
 					)
 				})
 
+				ginkgo.It("serializes operations from competing transactions", func() {
+					ginkgo.By("running several transactions in parallel")
+
+					g, gctx := errgroup.WithContext(*ctx)
+
+					g.Go(func() error {
+						return persistence.WithTransaction(
+							gctx,
+							dataStore,
+							func(tx persistence.Transaction) error {
+								return tx.AddMessageToQueue(
+									gctx,
+									env0,
+									time.Now(),
+								)
+							},
+						)
+					})
+
+					g.Go(func() error {
+						return persistence.WithTransaction(
+							gctx,
+							dataStore,
+							func(tx persistence.Transaction) error {
+								if err := tx.AddMessageToQueue(
+									gctx,
+									env1,
+									time.Now().Add(-1*time.Hour),
+								); err != nil {
+									return err
+								}
+
+								return tx.AddMessageToQueue(
+									gctx,
+									env2,
+									time.Now().Add(+1*time.Hour),
+								)
+							},
+						)
+					})
+
+					err := g.Wait()
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					ginkgo.By("loading the messages")
+
+					// Expected is the envelopes we expect to have been queued,
+					// in the order we expect them.
+					expected := []*envelopespec.Envelope{env1, env0, env2}
+
+					// Now we query the messages and verify that each specific
+					// envelope ended up in the order specified by the next
+					// attempt times.
+					messages, err := repository.LoadQueueMessages(*ctx, len(expected)+1)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(len(messages)).To(
+						gomega.Equal(len(expected)),
+						"the number of messages saved to the queue is incorrect",
+					)
+
+					for i, m := range messages {
+						x := expected[i]
+
+						gomega.Expect(m.Envelope.MetaData.MessageId).To(
+							gomega.Equal(x.MetaData.MessageId),
+							fmt.Sprintf("message at index #%d in result is not the expected envelope", i),
+						)
+					}
+				})
+
 				ginkgo.When("the transaction is rolled-back", func() {
 					ginkgo.BeforeEach(func() {
 						tx, err := dataStore.Begin(*ctx)
@@ -213,7 +286,10 @@ func declareQueueTests(
 							x := expected[i]
 
 							if !proto.Equal(m.Envelope, x) {
-								gomega.Expect(m.Envelope).To(gomega.Equal(x))
+								gomega.Expect(m.Envelope).To(
+									gomega.Equal(x),
+									fmt.Sprintf("message at index #%d in result does not match the expected envelope", i),
+								)
 							}
 						}
 					},

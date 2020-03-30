@@ -282,7 +282,10 @@ func declareEventStoreTests(
 							)
 
 							if !proto.Equal(ev.Envelope, x.Envelope) {
-								gomega.Expect(ev.Envelope).To(gomega.Equal(x.Envelope))
+								gomega.Expect(ev.Envelope).To(
+									gomega.Equal(x.Envelope),
+									fmt.Sprintf("event at index #%d in result does not match the expected envelope", index),
+								)
 							}
 
 							index++
