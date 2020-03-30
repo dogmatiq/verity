@@ -9,9 +9,12 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/google/uuid"
 )
 
 // NewEnvelope returns a new envelope containing the given message.
+//
+// If id is empty, a new UUID is generated.
 //
 // times can contain up to two elements, the first is the created time, the
 // second is the scheduled-for time.
@@ -20,6 +23,10 @@ func NewEnvelope(
 	m dogma.Message,
 	times ...time.Time,
 ) *envelope.Envelope {
+	if id == "" {
+		id = uuid.New().String()
+	}
+
 	env := &envelope.Envelope{
 		MetaData: envelope.MetaData{
 			MessageID:     id,
@@ -58,6 +65,8 @@ func NewEnvelope(
 
 // NewEnvelopeProto returns a new envelope containing the given message,
 // marshaled to its protobuf representation.
+//
+// If id is empty, a new UUID is generated.
 //
 // times can contain up to two elements, the first is the created time, the
 // second is the scheduled-for time.
