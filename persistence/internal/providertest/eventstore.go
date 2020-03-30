@@ -124,7 +124,7 @@ func declareEventStoreTests(
 					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
 				})
 
-				ginkgo.It("serializes save operations from competing transactions", func() {
+				ginkgo.It("serializes operations from competing transactions", func() {
 					// Create a slice of envelopes to test with.
 					envelopes := []*envelopespec.Envelope{
 						env0,
@@ -170,9 +170,9 @@ func declareEventStoreTests(
 
 					// Now we query the events and verify that each specific
 					// envelope ended up at the offset that reported to us.
-					results, err := queryEvents(*ctx, repository, eventstore.Query{})
+					events, err := queryEvents(*ctx, repository, eventstore.Query{})
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(len(results)).To(
+					gomega.Expect(len(events)).To(
 						gomega.Equal(len(envelopes)),
 						"the number of events saved to the store is incorrect",
 					)
@@ -180,7 +180,7 @@ func declareEventStoreTests(
 					// i is the "envelope number" (envN), o is the offset we
 					// expect that event to be at.
 					for i, o := range offsets {
-						ev := results[o]
+						ev := events[o]
 						env := envelopes[i]
 
 						gomega.Expect(ev.Envelope.MetaData.MessageId).To(
@@ -399,70 +399,4 @@ func declareEventStoreTests(
 			})
 		})
 	})
-}
-
-// saveEvent persists an events to the store.
-func saveEvent(
-	ctx context.Context,
-	ds persistence.DataStore,
-	env *envelopespec.Envelope,
-) (eventstore.Offset, error) {
-	tx, err := ds.Begin(ctx)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback()
-
-	o, err := tx.SaveEvent(ctx, env)
-	if err != nil {
-		return 0, err
-	}
-
-	return o, tx.Commit(ctx)
-}
-
-// saveEvents persists the given events to the store.
-func saveEvents(
-	ctx context.Context,
-	ds persistence.DataStore,
-	envelopes ...*envelopespec.Envelope,
-) error {
-	tx, err := ds.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	for _, env := range envelopes {
-		_, err := tx.SaveEvent(ctx, env)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit(ctx)
-}
-
-// queryEvents queries an event store and returns a slice of the results.
-func queryEvents(
-	ctx context.Context,
-	r eventstore.Repository,
-	q eventstore.Query,
-) ([]*eventstore.Event, error) {
-	res, err := r.QueryEvents(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Close()
-
-	var events []*eventstore.Event
-
-	for {
-		ev, ok, err := res.Next(ctx)
-		if !ok || err != nil {
-			return events, err
-		}
-
-		events = append(events, ev)
-	}
 }

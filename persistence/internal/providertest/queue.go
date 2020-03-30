@@ -2,7 +2,6 @@ package providertest
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -242,41 +241,4 @@ func declareQueueTests(
 			})
 		})
 	})
-}
-
-// addMessageToQueue persists the given message to the queue.
-func addMessageToQueue(
-	ctx context.Context,
-	ds persistence.DataStore,
-	env *envelopespec.Envelope,
-	t time.Time,
-) error {
-	tx, err := ds.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	if err := tx.AddMessageToQueue(ctx, env, t); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
-}
-
-// loadQueueMessage loads the next message from the queue.
-func loadQueueMessage(
-	ctx context.Context,
-	r queue.Repository,
-) (*queue.Message, error) {
-	messages, err := r.LoadQueueMessages(ctx, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(messages) == 0 {
-		return nil, errors.New("no messages returned")
-	}
-
-	return messages[0], nil
 }

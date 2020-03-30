@@ -89,7 +89,6 @@ func declareDataStoreTests(
 			table.DescribeTable(
 				"it blocks until transactions end or otherwise causes them to fail",
 				func(commit, write bool) {
-
 					ginkgo.By("starting a transaction")
 
 					// The transaction is started outside the goroutine to
