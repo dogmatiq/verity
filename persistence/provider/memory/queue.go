@@ -84,12 +84,13 @@ func (t *transaction) commitQueue() {
 	}
 }
 
-// DequeueMessage removes a message from the application's message queue.
+// RemoveMessageFromQueue removes a specific message from the application's
+// message queue.
 //
 // m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // remains on the queue and ok is false.
-func (t *transaction) DequeueMessage(
+func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queue.Message,
 ) (ok bool, err error) {
