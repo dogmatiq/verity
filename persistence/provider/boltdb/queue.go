@@ -24,6 +24,13 @@ func (t *transaction) EnqueueMessages(
 		return err
 	}
 
+	order := bboltx.CreateBucketIfNotExists(
+		t.actual,
+		t.appKey,
+		queueBucketKey,
+		orderBucketKey,
+	)
+
 	messages := bboltx.CreateBucketIfNotExists(
 		t.actual,
 		t.appKey,
@@ -31,7 +38,7 @@ func (t *transaction) EnqueueMessages(
 		messagesBucketKey,
 	)
 
-	enqueueMessages(messages, envelopes)
+	enqueueMessages(order, messages, envelopes)
 
 	return nil
 }
@@ -83,24 +90,42 @@ func (r *queueRepository) LoadQueuedMessages(
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
-			messages, exists := bboltx.TryBucket(
+			order, exists := bboltx.TryBucket(
+				tx,
+				r.appKey,
+				queueBucketKey,
+				orderBucketKey,
+			)
+			if !exists {
+				return
+			}
+
+			messages := bboltx.Bucket(
 				tx,
 				r.appKey,
 				queueBucketKey,
 				messagesBucketKey,
 			)
 
-			if exists {
-				c := messages.Cursor()
+			orderCursor := order.Cursor()
+			k, _ := orderCursor.First()
 
-				k, v := c.First()
+			for k != nil {
+				idCursor := order.Bucket(k).Cursor()
+				id, _ := idCursor.First()
 
-				for k != nil && len(result) < n {
-					m := unmarshalQueueMessage(v)
+				for id != nil {
+					m := loadQueueMessage(messages, id)
 					result = append(result, m)
 
-					k, v = c.Next()
+					if len(result) == n {
+						return
+					}
+
+					id, _ = idCursor.Next()
 				}
+
+				k, _ = orderCursor.Next()
 			}
 		},
 	)
@@ -111,11 +136,16 @@ func (r *queueRepository) LoadQueuedMessages(
 var (
 	queueBucketKey    = []byte("queue")
 	messagesBucketKey = []byte("messages")
+	orderBucketKey    = []byte("order")
 )
 
-// unmarshalQueueMessage unmarshals a queue message from its protobuf
-// representation.
-func unmarshalQueueMessage(data []byte) *queue.Message {
+// loadQueueMessage loads a message from the queue.
+func loadQueueMessage(
+	messages *bbolt.Bucket,
+	id []byte,
+) *queue.Message {
+	data := messages.Get(id)
+
 	var m pb.QueueMessage
 	bboltx.Must(proto.Unmarshal(data, &m))
 
@@ -131,13 +161,14 @@ func unmarshalQueueMessage(data []byte) *queue.Message {
 
 // enqueueMessages writes messages to the queue.
 func enqueueMessages(
-	b *bbolt.Bucket,
+	order *bbolt.Bucket,
+	messages *bbolt.Bucket,
 	envelopes []*envelopespec.Envelope,
 ) {
 	for _, env := range envelopes {
-		k := []byte(env.MetaData.MessageId)
+		id := []byte(env.MetaData.MessageId)
 
-		if b.Get(k) != nil {
+		if messages.Get(id) != nil {
 			continue
 		}
 
@@ -151,9 +182,13 @@ func enqueueMessages(
 			penv.NextAttemptAt = env.MetaData.CreatedAt
 		}
 
-		v, err := proto.Marshal(penv)
+		data, err := proto.Marshal(penv)
 		bboltx.Must(err)
 
-		bboltx.Put(b, k, v)
+		bboltx.Put(messages, id, data)
+		bboltx.CreateBucketIfNotExists(
+			order,
+			[]byte(penv.NextAttemptAt),
+		).Put(id, nil)
 	}
 }
