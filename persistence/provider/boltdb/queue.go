@@ -59,7 +59,7 @@ func (t *transaction) AddMessagesToQueue(
 
 // DequeueMessage removes a message from the application's message queue.
 //
-// m.Revision must be the revision of the queued message as currently persisted,
+// m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // remains on the queue and ok is false.
 func (t *transaction) DequeueMessage(
@@ -69,15 +69,15 @@ func (t *transaction) DequeueMessage(
 	return false, errors.New("not implemented")
 }
 
-// UpdateQueuedMessage updates meta-data about a queued message.
+// UpdateQueueMessage updates meta-data about a message on the queue.
 //
 // The following fields are updated:
 //  - NextAttemptAt
 //
-// m.Revision must be the revision of the queued message as currently persisted,
+// m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message is not
 // updated and ok is false.
-func (t *transaction) UpdateQueuedMessage(
+func (t *transaction) UpdateQueueMessage(
 	ctx context.Context,
 	m *queue.Message,
 ) (ok bool, err error) {
@@ -91,8 +91,8 @@ type queueRepository struct {
 	appKey []byte
 }
 
-// LoadQueuedMessages loads the next n messages from the queue.
-func (r *queueRepository) LoadQueuedMessages(
+// LoadQueueMessages loads the next n messages from the queue.
+func (r *queueRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
 ) (_ []*queue.Message, err error) {

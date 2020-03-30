@@ -6,6 +6,6 @@ import (
 
 // Repository is an interface for reading persisted event messages.
 type Repository interface {
-	// LoadQueuedMessages loads the next n messages from the queue.
-	LoadQueuedMessages(ctx context.Context, n int) ([]*Message, error)
+	// LoadQueueMessages loads the next n messages from the queue.
+	LoadQueueMessages(ctx context.Context, n int) ([]*Message, error)
 }

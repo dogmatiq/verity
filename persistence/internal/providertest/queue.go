@@ -80,7 +80,7 @@ func declareQueueTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					m, err := loadQueuedMessage(*ctx, repository)
+					m, err := loadQueueMessage(*ctx, repository)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.Revision).To(
 						gomega.Equal(queue.Revision(1)),
@@ -95,7 +95,7 @@ func declareQueueTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					m, err := loadQueuedMessage(*ctx, repository)
+					m, err := loadQueueMessage(*ctx, repository)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.NextAttemptAt).To(
 						gomega.BeTemporally("~", command1CreatedAt),
@@ -110,7 +110,7 @@ func declareQueueTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					m, err := loadQueuedMessage(*ctx, repository)
+					m, err := loadQueueMessage(*ctx, repository)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.NextAttemptAt).To(
 						gomega.BeTemporally("~", timeout1ScheduledFor),
@@ -142,7 +142,7 @@ func declareQueueTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					messages, err := repository.LoadQueuedMessages(*ctx, 2)
+					messages, err := repository.LoadQueueMessages(*ctx, 2)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(messages).To(gomega.HaveLen(1))
 
@@ -172,7 +172,7 @@ func declareQueueTests(
 					})
 
 					ginkgo.It("does not enqueue any messages", func() {
-						messages, err := repository.LoadQueuedMessages(*ctx, 10)
+						messages, err := repository.LoadQueueMessages(*ctx, 10)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						gomega.Expect(messages).To(gomega.BeEmpty())
 					})
@@ -181,9 +181,9 @@ func declareQueueTests(
 		})
 
 		ginkgo.Describe("type Repository (interface)", func() {
-			ginkgo.Describe("func LoadQueuedMessages()", func() {
+			ginkgo.Describe("func LoadQueueMessages()", func() {
 				ginkgo.It("returns an empty result if the queue is empty", func() {
-					messages, err := repository.LoadQueuedMessages(*ctx, 10)
+					messages, err := repository.LoadQueueMessages(*ctx, 10)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(messages).To(gomega.BeEmpty())
 				})
@@ -220,7 +220,7 @@ func declareQueueTests(
 
 						ginkgo.By("loading the messages")
 
-						messages, err := repository.LoadQueuedMessages(*ctx, n)
+						messages, err := repository.LoadQueueMessages(*ctx, n)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
 
@@ -235,7 +235,7 @@ func declareQueueTests(
 						}
 					},
 					table.Entry(
-						"it returns all the messages if the limit is equal to the number of queued messages",
+						"it returns all the messages if the limit is equal the length of the queue",
 						6,
 						timeout1,
 						command1,
@@ -245,7 +245,7 @@ func declareQueueTests(
 						timeout3,
 					),
 					table.Entry(
-						"it returns all the messages if the limit is larger than the actual number of messages",
+						"it returns all the messages if the limit is larger than the length of the queue",
 						10,
 						timeout1,
 						command1,
@@ -255,7 +255,7 @@ func declareQueueTests(
 						timeout3,
 					),
 					table.Entry(
-						"it returns the messages with the earliest next attempt times if the limit is less than the actual number of messages",
+						"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
 						3,
 						timeout1,
 						command1,
@@ -286,12 +286,12 @@ func addMessagesToQueue(
 	return tx.Commit(ctx)
 }
 
-// loadQueuedMessage loads the next message from the queue.
-func loadQueuedMessage(
+// loadQueueMessage loads the next message from the queue.
+func loadQueueMessage(
 	ctx context.Context,
 	r queue.Repository,
 ) (*queue.Message, error) {
-	messages, err := r.LoadQueuedMessages(ctx, 1)
+	messages, err := r.LoadQueueMessages(ctx, 1)
 	if err != nil {
 		return nil, err
 	}

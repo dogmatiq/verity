@@ -13,7 +13,7 @@ func cloneEvent(ev *eventstore.Event) *eventstore.Event {
 	return &clone
 }
 
-func cloneQueuedMessage(m *queue.Message) *queue.Message {
+func cloneQueueMessage(m *queue.Message) *queue.Message {
 	clone := *m
 	clone.Envelope = cloneEnvelope(clone.Envelope)
 	return &clone

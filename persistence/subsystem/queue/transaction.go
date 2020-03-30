@@ -17,7 +17,7 @@ type Transaction interface {
 
 	// DequeueMessage removes a message from the application's message queue.
 	//
-	// m.Revision must be the revision of the queued message as currently
+	// m.Revision must be the revision of the message as currently
 	// persisted, otherwise an optimistic concurrency conflict has occurred, the
 	// message remains on the queue and ok is false.
 	DequeueMessage(
@@ -25,15 +25,15 @@ type Transaction interface {
 		m *Message,
 	) (ok bool, err error)
 
-	// UpdateQueuedMessage updates meta-data about a queued message.
+	// UpdateQueueMessage updates meta-data about a message on the queue.
 	//
 	// The following fields are updated:
 	//  - NextAttemptAt
 	//
-	// m.Revision must be the revision of the queued message as currently
+	// m.Revision must be the revision of the message as currently
 	// persisted, otherwise an optimistic concurrency conflict has occurred, the
 	// message is not updated and ok is false.
-	UpdateQueuedMessage(
+	UpdateQueueMessage(
 		ctx context.Context,
 		m *Message,
 	) (ok bool, err error)

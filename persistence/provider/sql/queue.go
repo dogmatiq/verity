@@ -12,25 +12,25 @@ import (
 // queueDriver is the subset of the Driver interface that is concerned with the
 // message queue subsystem.
 type queueDriver interface {
-	// InsertQueuedMessages saves messages to the queue.
-	InsertQueuedMessages(
+	// InsertQueueMessages saves messages to the queue.
+	InsertQueueMessages(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
 		envelopes []*envelopespec.Envelope,
 	) error
 
-	// SelectQueuedMessages selects up to n messages from the queue.
-	SelectQueuedMessages(
+	// SelectQueueMessages selects up to n messages from the queue.
+	SelectQueueMessages(
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
 		n int,
 	) (*sql.Rows, error)
 
-	// ScanQueuedMessage scans the next message from a row-set returned by
-	// SelectQueuedMessages().
-	ScanQueuedMessage(
+	// ScanQueueMessage scans the next message from a row-set returned by
+	// SelectQueueMessages().
+	ScanQueueMessage(
 		rows *sql.Rows,
 		m *queue.Message,
 	) error
@@ -45,7 +45,7 @@ func (t *transaction) AddMessagesToQueue(
 		return err
 	}
 
-	return t.ds.driver.InsertQueuedMessages(
+	return t.ds.driver.InsertQueueMessages(
 		ctx,
 		t.actual,
 		t.ds.appKey,
@@ -55,7 +55,7 @@ func (t *transaction) AddMessagesToQueue(
 
 // DequeueMessage removes a message from the application's message queue.
 //
-// m.Revision must be the revision of the queued message as currently persisted,
+// m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // remains on the queue and ok is false.
 func (t *transaction) DequeueMessage(
@@ -65,15 +65,15 @@ func (t *transaction) DequeueMessage(
 	return false, errors.New("not implemented")
 }
 
-// UpdateQueuedMessage updates meta-data about a queued message.
+// UpdateQueueMessage updates meta-data about a message on the queue.
 //
 // The following fields are updated:
 //  - NextAttemptAt
 //
-// m.Revision must be the revision of the queued message as currently persisted,
+// m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message is not
 // updated and ok is false.
-func (t *transaction) UpdateQueuedMessage(
+func (t *transaction) UpdateQueueMessage(
 	ctx context.Context,
 	m *queue.Message,
 ) (ok bool, err error) {
@@ -88,12 +88,12 @@ type queueRepository struct {
 	appKey string
 }
 
-// LoadQueuedMessages loads the next n messages from the queue.
-func (r *queueRepository) LoadQueuedMessages(
+// LoadQueueMessages loads the next n messages from the queue.
+func (r *queueRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
 ) ([]*queue.Message, error) {
-	rows, err := r.driver.SelectQueuedMessages(ctx, r.db, r.appKey, n)
+	rows, err := r.driver.SelectQueueMessages(ctx, r.db, r.appKey, n)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (r *queueRepository) LoadQueuedMessages(
 			},
 		}
 
-		if err := r.driver.ScanQueuedMessage(rows, m); err != nil {
+		if err := r.driver.ScanQueueMessage(rows, m); err != nil {
 			return nil, err
 		}
 

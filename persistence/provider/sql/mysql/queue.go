@@ -10,8 +10,8 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
-// InsertQueuedMessages saves messages to the queue.
-func (driver) InsertQueuedMessages(
+// InsertQueueMessages saves messages to the queue.
+func (driver) InsertQueueMessages(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
@@ -74,8 +74,8 @@ func (driver) InsertQueuedMessages(
 	return nil
 }
 
-// SelectQueuedMessages selects up to n messages from the queue.
-func (driver) SelectQueuedMessages(
+// SelectQueueMessages selects up to n messages from the queue.
+func (driver) SelectQueueMessages(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
@@ -108,9 +108,9 @@ func (driver) SelectQueuedMessages(
 	)
 }
 
-// ScanQueuedMessage scans the next message from a row-set returned by
-// SelectQueuedMessages().
-func (driver) ScanQueuedMessage(
+// ScanQueueMessage scans the next message from a row-set returned by
+// SelectQueueMessages().
+func (driver) ScanQueueMessage(
 	rows *sql.Rows,
 	m *queue.Message,
 ) error {

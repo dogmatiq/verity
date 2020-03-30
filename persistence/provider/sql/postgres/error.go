@@ -141,29 +141,29 @@ func (d errorConverter) ScanEvent(
 // queue
 //
 
-func (d errorConverter) InsertQueuedMessages(
+func (d errorConverter) InsertQueueMessages(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
 	envelopes []*envelopespec.Envelope,
 ) error {
-	err := d.d.InsertQueuedMessages(ctx, tx, ak, envelopes)
+	err := d.d.InsertQueueMessages(ctx, tx, ak, envelopes)
 	return convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) SelectQueuedMessages(
+func (d errorConverter) SelectQueueMessages(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
 	n int,
 ) (*sql.Rows, error) {
-	rows, err := d.d.SelectQueuedMessages(ctx, db, ak, n)
+	rows, err := d.d.SelectQueueMessages(ctx, db, ak, n)
 	return rows, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) ScanQueuedMessage(
+func (d errorConverter) ScanQueueMessage(
 	rows *sql.Rows,
 	m *queue.Message,
 ) error {
-	return d.d.ScanQueuedMessage(rows, m)
+	return d.d.ScanQueueMessage(rows, m)
 }
