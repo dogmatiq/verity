@@ -37,20 +37,20 @@ func saveEvents(
 	ds persistence.DataStore,
 	envelopes ...*envelopespec.Envelope,
 ) error {
-	tx, err := ds.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	return persistence.WithTransaction(
+		ctx,
+		ds,
+		func(tx persistence.Transaction) error {
+			for _, env := range envelopes {
+				_, err := tx.SaveEvent(ctx, env)
+				if err != nil {
+					return err
+				}
+			}
 
-	for _, env := range envelopes {
-		_, err := tx.SaveEvent(ctx, env)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit(ctx)
+			return nil
+		},
+	)
 }
 
 // queryEvents queries an event store and returns a slice of the results.
@@ -84,17 +84,13 @@ func addMessageToQueue(
 	env *envelopespec.Envelope,
 	t time.Time,
 ) error {
-	tx, err := ds.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	if err := tx.AddMessageToQueue(ctx, env, t); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	return persistence.WithTransaction(
+		ctx,
+		ds,
+		func(tx persistence.Transaction) error {
+			return tx.AddMessageToQueue(ctx, env, t)
+		},
+	)
 }
 
 // loadQueueMessage loads the next message from the queue.

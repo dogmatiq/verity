@@ -92,17 +92,22 @@ func declareEventStoreTests(
 				})
 
 				ginkgo.It("returns the offset of the event for subsequent calls in the same transaction", func() {
-					tx, err := dataStore.Begin(*ctx)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer tx.Rollback()
+					err := persistence.WithTransaction(
+						*ctx,
+						dataStore,
+						func(tx persistence.Transaction) error {
+							o, err := tx.SaveEvent(*ctx, env0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
 
-					o, err := tx.SaveEvent(*ctx, env0)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
+							o, err = tx.SaveEvent(*ctx, env1)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
 
-					o, err = tx.SaveEvent(*ctx, env1)
+							return nil
+						},
+					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
 				})
 
 				ginkgo.It("blocks if another in-flight transaction has saved events", func() {
