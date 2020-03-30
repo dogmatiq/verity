@@ -98,6 +98,7 @@ func (driver) SelectQueuedMessages(
 			q.data
 		FROM queue AS q
 		WHERE q.app_key = ?
+		ORDER BY q.next_attempt_at
 		LIMIT ?`,
 		ak,
 		n,
