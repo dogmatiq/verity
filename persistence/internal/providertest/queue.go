@@ -108,7 +108,35 @@ func declareQueueTests(
 					)
 				})
 
-				ginkgo.XIt("ignores messages that are already on the queue", func() {
+				ginkgo.It("ignores messages that are already on the queue", func() {
+					err := enqueueMessages(
+						*ctx,
+						dataStore,
+						command1,
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					// conflict has the same message ID as command1, but
+					// a different message type.
+					conflict := infixfixtures.NewEnvelopeProto(
+						"<command-1>",
+						dogmafixtures.MessageX1,
+					)
+
+					err = enqueueMessages(
+						*ctx,
+						dataStore,
+						conflict,
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					messages, err := repository.LoadQueuedMessages(*ctx, 2)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(messages).To(gomega.HaveLen(1))
+
+					gomega.Expect(messages[0].Envelope.PortableName).To(
+						gomega.Equal(command1.PortableName),
+					)
 				})
 
 				ginkgo.When("the transaction is rolled-back", func() {

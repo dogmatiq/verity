@@ -30,6 +30,8 @@ func (driver) InsertQueuedMessages(
 			}
 		}
 
+		// Note: ON DUPLICATE KEY UPDATE is used because INSERT IGNORE ignores
+		// more than just key conflicts.
 		sqlx.Exec(
 			ctx,
 			tx,
@@ -47,7 +49,9 @@ func (driver) InsertQueuedMessages(
 				created_at = ?,
 				portable_name = ?,
 				media_type = ?,
-				data = ?`,
+				data = ?
+			ON DUPLICATE KEY UPDATE
+				app_key = VALUES(app_key)`,
 			ak,
 			next,
 			env.MetaData.MessageId,

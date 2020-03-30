@@ -16,7 +16,7 @@ type transaction struct {
 
 	uncommitted struct {
 		events []*eventstore.Event
-		queue  []*queue.Message
+		queue  map[string]*queue.Message
 	}
 }
 
@@ -41,10 +41,14 @@ func (t *transaction) Commit(ctx context.Context) error {
 		t.uncommitted.events...,
 	)
 
-	t.ds.db.queue = append(
-		t.ds.db.queue,
-		t.uncommitted.queue...,
-	)
+	for id, m := range t.uncommitted.queue {
+		if t.ds.db.queue.uniq == nil {
+			t.ds.db.queue.uniq = map[string]*queue.Message{}
+		}
+
+		t.ds.db.queue.order = append(t.ds.db.queue.order, m)
+		t.ds.db.queue.uniq[id] = m
+	}
 
 	return nil
 }

@@ -21,6 +21,12 @@ func (t *transaction) EnqueueMessages(
 	for _, env := range envelopes {
 		var next time.Time
 
+		id := env.GetMetaData().GetMessageId()
+
+		if _, ok := t.ds.db.queue.uniq[id]; ok {
+			continue
+		}
+
 		if len(env.MetaData.ScheduledFor) != 0 {
 			var err error
 			next, err = time.Parse(time.RFC3339Nano, env.MetaData.ScheduledFor)
@@ -29,14 +35,15 @@ func (t *transaction) EnqueueMessages(
 			}
 		}
 
-		t.uncommitted.queue = append(
-			t.uncommitted.queue,
-			&queue.Message{
-				Revision:      1,
-				NextAttemptAt: next,
-				Envelope:      cloneEnvelope(env),
-			},
-		)
+		if t.uncommitted.queue == nil {
+			t.uncommitted.queue = map[string]*queue.Message{}
+		}
+
+		t.uncommitted.queue[id] = &queue.Message{
+			Revision:      1,
+			NextAttemptAt: next,
+			Envelope:      cloneEnvelope(env),
+		}
 	}
 
 	return nil
@@ -85,17 +92,15 @@ func (r *queueRepository) LoadQueuedMessages(
 	}
 	defer r.db.RUnlock()
 
-	max := len(r.db.queue)
+	max := len(r.db.queue.order)
 	if n > max {
 		n = max
 	}
 
 	result := make([]*queue.Message, n)
 
-	for i := range result {
-		result[i] = cloneQueuedMessage(
-			r.db.queue[i],
-		)
+	for i, m := range r.db.queue.order[:n] {
+		result[i] = cloneQueuedMessage(m)
 	}
 
 	return result, nil

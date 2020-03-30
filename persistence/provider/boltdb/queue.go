@@ -146,9 +146,12 @@ func enqueueMessages(
 		}
 
 		k := []byte(env.MetaData.MessageId)
-		v, err := proto.Marshal(penv)
-		bboltx.Must(err)
 
-		bboltx.Put(b, k, v)
+		if b.Get(k) == nil {
+			v, err := proto.Marshal(penv)
+			bboltx.Must(err)
+
+			bboltx.Put(b, k, v)
+		}
 	}
 }

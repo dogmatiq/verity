@@ -14,7 +14,10 @@ type database struct {
 
 	open   uint32 // atomic
 	events []*eventstore.Event
-	queue  []*queue.Message
+	queue  struct {
+		order []*queue.Message
+		uniq  map[string]*queue.Message
+	}
 }
 
 // newDatabase returns a new empty database.
