@@ -71,9 +71,9 @@ func declareQueueTests(
 		})
 
 		ginkgo.Describe("type Transaction (interface)", func() {
-			ginkgo.Describe("func EnqueueMessages()", func() {
+			ginkgo.Describe("func AddMessagesToQueue()", func() {
 				ginkgo.It("sets the initial revision to 1", func() {
-					err := enqueueMessages(
+					err := addMessagesToQueue(
 						*ctx,
 						dataStore,
 						command1,
@@ -88,7 +88,7 @@ func declareQueueTests(
 				})
 
 				ginkgo.It("schedules commands to be attempted at their created-at time", func() {
-					err := enqueueMessages(
+					err := addMessagesToQueue(
 						*ctx,
 						dataStore,
 						command1,
@@ -103,7 +103,7 @@ func declareQueueTests(
 				})
 
 				ginkgo.It("schedules timeouts to be attempted at their scheduled-for time", func() {
-					err := enqueueMessages(
+					err := addMessagesToQueue(
 						*ctx,
 						dataStore,
 						timeout1,
@@ -118,7 +118,7 @@ func declareQueueTests(
 				})
 
 				ginkgo.It("ignores messages that are already on the queue", func() {
-					err := enqueueMessages(
+					err := addMessagesToQueue(
 						*ctx,
 						dataStore,
 						command1,
@@ -135,7 +135,7 @@ func declareQueueTests(
 						dogmafixtures.MessageX1,
 					)
 
-					err = enqueueMessages(
+					err = addMessagesToQueue(
 						*ctx,
 						dataStore,
 						conflict,
@@ -157,7 +157,7 @@ func declareQueueTests(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Rollback()
 
-						err = tx.EnqueueMessages(
+						err = tx.AddMessagesToQueue(
 							*ctx,
 							[]*envelopespec.Envelope{
 								command1,
@@ -211,7 +211,7 @@ func declareQueueTests(
 							},
 						)
 
-						err := enqueueMessages(
+						err := addMessagesToQueue(
 							*ctx,
 							dataStore,
 							envelopes...,
@@ -267,8 +267,8 @@ func declareQueueTests(
 	})
 }
 
-// enqueueMessages persists the given messages to the queue.
-func enqueueMessages(
+// addMessagesToQueue persists the given messages to the queue.
+func addMessagesToQueue(
 	ctx context.Context,
 	ds persistence.DataStore,
 	envelopes ...*envelopespec.Envelope,
@@ -279,7 +279,7 @@ func enqueueMessages(
 	}
 	defer tx.Rollback()
 
-	if err := tx.EnqueueMessages(ctx, envelopes); err != nil {
+	if err := tx.AddMessagesToQueue(ctx, envelopes); err != nil {
 		return err
 	}
 

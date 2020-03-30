@@ -10,8 +10,8 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
-// EnqueueMessages adds messages to the application's message queue.
-func (t *transaction) EnqueueMessages(
+// AddMessagesToQueue adds messages to the application's message queue.
+func (t *transaction) AddMessagesToQueue(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
 ) error {

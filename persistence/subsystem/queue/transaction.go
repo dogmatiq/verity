@@ -9,8 +9,8 @@ import (
 // Transaction defines the primitive persistence operations for manipulating the
 // message queue.
 type Transaction interface {
-	// EnqueueMessages adds messages to the application's message queue.
-	EnqueueMessages(
+	// AddMessagesToQueue adds messages to the application's message queue.
+	AddMessagesToQueue(
 		ctx context.Context,
 		envelopes []*envelopespec.Envelope,
 	) error

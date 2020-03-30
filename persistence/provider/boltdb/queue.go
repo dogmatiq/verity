@@ -13,8 +13,8 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// EnqueueMessages adds messages to the application's message queue.
-func (t *transaction) EnqueueMessages(
+// AddMessagesToQueue adds messages to the application's message queue.
+func (t *transaction) AddMessagesToQueue(
 	ctx context.Context,
 	envelopes []*envelopespec.Envelope,
 ) (err error) {
@@ -38,7 +38,21 @@ func (t *transaction) EnqueueMessages(
 		messagesBucketKey,
 	)
 
-	enqueueMessages(order, messages, envelopes)
+	for _, env := range envelopes {
+		id := []byte(env.MetaData.MessageId)
+
+		if messages.Get(id) != nil {
+			continue
+		}
+
+		m, data := marshalEnvelopeAsQueueMessage(env)
+
+		bboltx.Put(messages, id, data)
+		bboltx.CreateBucketIfNotExists(
+			order,
+			[]byte(m.NextAttemptAt),
+		).Put(id, nil)
+	}
 
 	return nil
 }
@@ -115,7 +129,8 @@ func (r *queueRepository) LoadQueuedMessages(
 				id, _ := idCursor.First()
 
 				for id != nil {
-					m := loadQueueMessage(messages, id)
+					data := messages.Get(id)
+					m := unmarshalQueueMessage(data)
 					result = append(result, m)
 
 					if len(result) == n {
@@ -139,13 +154,9 @@ var (
 	orderBucketKey    = []byte("order")
 )
 
-// loadQueueMessage loads a message from the queue.
-func loadQueueMessage(
-	messages *bbolt.Bucket,
-	id []byte,
-) *queue.Message {
-	data := messages.Get(id)
-
+// unmarshalQueueMessage unmarshals a queue message from its binary
+// representation.
+func unmarshalQueueMessage(data []byte) *queue.Message {
 	var m pb.QueueMessage
 	bboltx.Must(proto.Unmarshal(data, &m))
 
@@ -159,36 +170,23 @@ func loadQueueMessage(
 	}
 }
 
-// enqueueMessages writes messages to the queue.
-func enqueueMessages(
-	order *bbolt.Bucket,
-	messages *bbolt.Bucket,
-	envelopes []*envelopespec.Envelope,
-) {
-	for _, env := range envelopes {
-		id := []byte(env.MetaData.MessageId)
-
-		if messages.Get(id) != nil {
-			continue
-		}
-
-		penv := &pb.QueueMessage{
-			Revision:      1,
-			NextAttemptAt: env.MetaData.ScheduledFor,
-			Envelope:      env,
-		}
-
-		if penv.NextAttemptAt == "" {
-			penv.NextAttemptAt = env.MetaData.CreatedAt
-		}
-
-		data, err := proto.Marshal(penv)
-		bboltx.Must(err)
-
-		bboltx.Put(messages, id, data)
-		bboltx.CreateBucketIfNotExists(
-			order,
-			[]byte(penv.NextAttemptAt),
-		).Put(id, nil)
+// marshalEnvelopeAsQueueMessage marshals an envelope to its binary
+// representation as a queue.Message.
+func marshalEnvelopeAsQueueMessage(
+	env *envelopespec.Envelope,
+) (*pb.QueueMessage, []byte) {
+	m := &pb.QueueMessage{
+		Revision:      1,
+		NextAttemptAt: env.MetaData.ScheduledFor,
+		Envelope:      env,
 	}
+
+	if m.NextAttemptAt == "" {
+		m.NextAttemptAt = env.MetaData.CreatedAt
+	}
+
+	data, err := proto.Marshal(m)
+	bboltx.Must(err)
+
+	return m, data
 }
