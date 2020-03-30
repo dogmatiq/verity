@@ -25,3 +25,25 @@ type Transaction interface {
 	// Rollback aborts the transaction.
 	Rollback() error
 }
+
+// WithTransaction executes fn inside a transaction.
+//
+// If fn returns nil the transaction is committed, Otherwise, the transaction is
+// rolled-back and the error is returned.
+func WithTransaction(
+	ctx context.Context,
+	ds DataStore,
+	fn func(Transaction) error,
+) error {
+	tx, err := ds.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := fn(tx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
