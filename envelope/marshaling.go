@@ -33,25 +33,6 @@ func Marshal(
 	}, nil
 }
 
-// MarshalMany marshals multiple message envelopes to their protobuf
-// representations.
-func MarshalMany(
-	m marshalkit.ValueMarshaler,
-	envelopes []*Envelope,
-) ([]*envelopespec.Envelope, error) {
-	out := make([]*envelopespec.Envelope, len(envelopes))
-
-	var err error
-	for i, env := range envelopes {
-		out[i], err = Marshal(m, env)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return out, nil
-}
-
 // MustMarshal marshals a message envelope to its protobuf representation, or
 // panics if it is unable to do so.
 func MustMarshal(
@@ -59,20 +40,6 @@ func MustMarshal(
 	in *Envelope,
 ) *envelopespec.Envelope {
 	out, err := Marshal(m, in)
-	if err != nil {
-		panic(err)
-	}
-
-	return out
-}
-
-// MustMarshalMany marshals multiple messages envelope to their protobuf
-// representations, or panics if it is unable to do so.
-func MustMarshalMany(
-	m marshalkit.ValueMarshaler,
-	envelopes []*Envelope,
-) []*envelopespec.Envelope {
-	out, err := MarshalMany(m, envelopes)
 	if err != nil {
 		panic(err)
 	}
