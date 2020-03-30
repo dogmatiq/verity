@@ -42,11 +42,7 @@ func (driver) LockApplication(
 
 	name := fmt.Sprintf("infix(%s)", ak)
 
-	ok, err := acquireLock(conn, name)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
+	if !acquireLock(conn, name) {
 		return nil, persistence.ErrDataStoreLocked
 	}
 
@@ -59,9 +55,7 @@ func (driver) LockApplication(
 }
 
 // acquireLock acquires a mysql advisory lock.
-func acquireLock(conn *sql.Conn, name string) (_ bool, err error) {
-	defer sqlx.Recover(&err)
-
+func acquireLock(conn *sql.Conn, name string) bool {
 	// Note: the IS_FREE_LOCK() call guards against accidentally acquiring the
 	// same lock again on the same connection, which is permitted by GET_LOCK().
 	//
@@ -75,7 +69,7 @@ func acquireLock(conn *sql.Conn, name string) (_ bool, err error) {
 		name,
 	)
 
-	return n == 1, nil
+	return n == 1
 }
 
 func releaseLock(conn *sql.Conn, name string) error {
