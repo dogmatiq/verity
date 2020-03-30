@@ -87,23 +87,13 @@ func Unmarshal(
 
 // marshalMetaData marshals message meta-data to its protobuf representation.
 func marshalMetaData(in *MetaData) (*envelopespec.MetaData, error) {
-	createdAt, err := marshalTime(in.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduledFor, err := marshalTime(in.ScheduledFor)
-	if err != nil {
-		return nil, err
-	}
-
 	return &envelopespec.MetaData{
 		MessageId:     in.MessageID,
 		CausationId:   in.CausationID,
 		CorrelationId: in.CorrelationID,
 		Source:        marshalSource(&in.Source),
-		CreatedAt:     createdAt,
-		ScheduledFor:  scheduledFor,
+		CreatedAt:     marshalTime(in.CreatedAt),
+		ScheduledFor:  marshalTime(in.ScheduledFor),
 	}, nil
 }
 
@@ -173,22 +163,23 @@ func unmarshalIdentity(
 	return out.Validate()
 }
 
-// marshalTime marshals a time.Time to its protocol buffers representation.
-func marshalTime(in time.Time) ([]byte, error) {
+// marshalTime marshals a time.Time to its RFC-3339 representation.
+func marshalTime(in time.Time) string {
 	if in.IsZero() {
-		return nil, nil
+		return ""
 	}
 
-	return in.MarshalBinary()
+	return in.Format(time.RFC3339Nano)
 }
 
-// unmarshalTime unmarshals a time.Time from its protocol buffers
-// representation.
-func unmarshalTime(in []byte, out *time.Time) error {
+// unmarshalTime unmarshals a time.Time from its RFC-3339 representation.
+func unmarshalTime(in string, out *time.Time) error {
 	if len(in) == 0 {
 		*out = time.Time{}
 		return nil
 	}
 
-	return out.UnmarshalBinary(in)
+	var err error
+	*out, err = time.Parse(time.RFC3339Nano, in)
+	return err
 }

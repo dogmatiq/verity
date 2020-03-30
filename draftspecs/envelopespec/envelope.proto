@@ -45,12 +45,12 @@ message MetaData  {
   Source source = 4;
 
   // CreatedAt is the time at which the message was created, marshaled in
-  // binary format.
-  bytes created_at = 5;
+  // RFC-3339 format, with nanoseconds.
+  string created_at = 5;
 
-  // ScheduledFor is the time at which a timeout message was scheduled,
-  // marshaled in binary format.
-  bytes scheduled_for = 6;
+  // ScheduledFor is the time at which a timeout message was scheduled, RFC-3339
+  // format, with nanoseconds.
+  string scheduled_for = 6;
 }
 
 // Envelope is a protocol buffers representation of the envelope.Envelope type.

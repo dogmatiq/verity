@@ -30,11 +30,8 @@ var _ = Describe("func Marshal()", func() {
 		out, err := Marshal(in)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		createdAt, err := in.CreatedAt.MarshalBinary()
-		Expect(err).ShouldNot(HaveOccurred())
-
-		scheduledFor, err := in.ScheduledFor.MarshalBinary()
-		Expect(err).ShouldNot(HaveOccurred())
+		createdAt := in.CreatedAt.Format(time.RFC3339Nano)
+		scheduledFor := in.ScheduledFor.Format(time.RFC3339Nano)
 
 		Expect(out).To(Equal(&envelopespec.Envelope{
 			MetaData: &envelopespec.MetaData{
@@ -55,30 +52,12 @@ var _ = Describe("func Marshal()", func() {
 		}))
 	})
 
-	It("marshals a zero scheduled-for time as an empty buffer", func() {
+	It("marshals a zero scheduled-for time as an empty string", func() {
 		in.MetaData.ScheduledFor = time.Time{}
 
 		out, err := Marshal(in)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(out.MetaData.ScheduledFor).To(BeNil())
-	})
-
-	It("returns an error if the created-at time cannot be marshaled", func() {
-		in.MetaData.CreatedAt = time.Now().In(
-			time.FixedZone("fractional", 30),
-		)
-
-		_, err := Marshal(in)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("returns an error if the scheduled-for time cannot be marshaled", func() {
-		in.MetaData.ScheduledFor = time.Now().In(
-			time.FixedZone("fractional", 30),
-		)
-
-		_, err := Marshal(in)
-		Expect(err).Should(HaveOccurred())
+		Expect(out.MetaData.ScheduledFor).To(BeEmpty())
 	})
 
 	It("returns an error if the media-type cannot be parsed", func() {
@@ -220,7 +199,7 @@ var _ = Describe("func Unmarshal()", func() {
 	})
 
 	It("returns an error if the created-at time can not be unmarshaled", func() {
-		in.MetaData.CreatedAt = []byte("not-a-valid-time")
+		in.MetaData.CreatedAt = "not-a-valid-time"
 
 		var out envelope.Envelope
 		err := Unmarshal(Marshaler, in, &out)
@@ -228,7 +207,7 @@ var _ = Describe("func Unmarshal()", func() {
 	})
 
 	It("returns an error if the scheduled-for time can not be unmarshaled", func() {
-		in.MetaData.ScheduledFor = []byte("not-a-valid-time")
+		in.MetaData.ScheduledFor = "not-a-valid-time"
 
 		var out envelope.Envelope
 		err := Unmarshal(Marshaler, in, &out)
@@ -236,7 +215,7 @@ var _ = Describe("func Unmarshal()", func() {
 	})
 
 	It("does not return an error if the scheduled-for time is empty", func() {
-		in.MetaData.ScheduledFor = nil
+		in.MetaData.ScheduledFor = ""
 
 		var out envelope.Envelope
 		err := Unmarshal(Marshaler, in, &out)
@@ -253,7 +232,7 @@ var _ = Describe("func Unmarshal()", func() {
 	})
 
 	It("returns an error if the meta-data is not valid", func() {
-		in.MetaData.CreatedAt = nil
+		in.MetaData.CreatedAt = ""
 
 		var out envelope.Envelope
 		err := Unmarshal(Marshaler, in, &out)

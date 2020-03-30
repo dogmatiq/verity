@@ -37,9 +37,7 @@ var _ = Describe("func MarshalBinary(), MustMarshalBinary() and UnmarshalBinary(
 		})
 
 		It("returns an error if marshaling fails", func() {
-			in.MetaData.CreatedAt = time.Now().In(
-				time.FixedZone("fractional", 30),
-			)
+			in.Packet.MediaType = "<malformed>"
 
 			_, err := MarshalBinary(in)
 			Expect(err).Should(HaveOccurred())
@@ -76,9 +74,7 @@ var _ = Describe("func MarshalBinary(), MustMarshalBinary() and UnmarshalBinary(
 		})
 
 		It("panics if marshaling fails", func() {
-			in.MetaData.CreatedAt = time.Now().In(
-				time.FixedZone("fractional", 30),
-			)
+			in.Packet.MediaType = "<malformed>"
 
 			Expect(func() {
 				MustMarshalBinary(in)
