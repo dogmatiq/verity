@@ -315,6 +315,14 @@ func declareQueueTests(
 					),
 				)
 			})
+
+			ginkgo.It("returns an error if the context is canceled", func() {
+				ctx, cancel := context.WithCancel(*ctx)
+				cancel()
+
+				_, err := repository.LoadQueueMessages(ctx, 1)
+				gomega.Expect(err).To(gomega.Equal(context.Canceled))
+			})
 		})
 	})
 }

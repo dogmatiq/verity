@@ -360,7 +360,7 @@ func declareEventStoreTests(
 
 		ginkgo.Describe("type Result (interface)", func() {
 			ginkgo.Describe("func Next()", func() {
-				ginkgo.It("returns an error if the context canceled", func() {
+				ginkgo.It("returns an error if the context is canceled", func() {
 					res, err := repository.QueryEvents(*ctx, eventstore.Query{})
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer res.Close()
