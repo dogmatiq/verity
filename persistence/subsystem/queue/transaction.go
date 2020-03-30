@@ -31,9 +31,9 @@ type Transaction interface {
 	// The following fields are updated:
 	//  - NextAttemptAt
 	//
-	// m.Revision must be the revision of the message as currently
-	// persisted, otherwise an optimistic concurrency conflict has occurred, the
-	// message is not updated and ok is false.
+	// m.Revision must be the revision of the message as currently persisted,
+	// otherwise an optimistic concurrency conflict has occurred, the message is
+	// not updated and ok is false.
 	UpdateQueueMessage(
 		ctx context.Context,
 		m *Message,

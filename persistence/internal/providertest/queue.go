@@ -125,9 +125,6 @@ func declareQueueTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					// TODO: This test should be asserting that meta-data, such
-					// as the revision and next-attempt time does not change.
-
 					// conflict has the same message ID as command1, but
 					// a different message type.
 					conflict := infixfixtures.NewEnvelopeProto(
@@ -146,8 +143,18 @@ func declareQueueTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(messages).To(gomega.HaveLen(1))
 
-					gomega.Expect(messages[0].Envelope.PortableName).To(
+					m := messages[0]
+
+					gomega.Expect(m.Envelope.PortableName).To(
 						gomega.Equal(command1.PortableName),
+					)
+
+					gomega.Expect(m.Revision).To(
+						gomega.Equal(queue.Revision(1)),
+					)
+
+					gomega.Expect(m.NextAttemptAt).To(
+						gomega.BeTemporally("~", command1CreatedAt),
 					)
 				})
 
