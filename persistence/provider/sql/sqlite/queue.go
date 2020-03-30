@@ -45,11 +45,12 @@ func (driver) InsertQueuedMessages(
 				source_handler_key,
 				source_instance_id,
 				created_at,
+				scheduled_for,
 				portable_name,
 				media_type,
 				data
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 			) ON CONFLICT (app_key, message_id) DO NOTHING`,
 			ak,
 			next,
@@ -62,6 +63,7 @@ func (driver) InsertQueuedMessages(
 			env.MetaData.Source.Handler.Key,
 			env.MetaData.Source.InstanceId,
 			env.MetaData.CreatedAt,
+			env.MetaData.ScheduledFor,
 			env.PortableName,
 			env.MediaType,
 			env.Data,
@@ -92,6 +94,7 @@ func (driver) SelectQueuedMessages(
 			q.source_handler_key,
 			q.source_instance_id,
 			q.created_at,
+			q.scheduled_for,
 			q.portable_name,
 			q.media_type,
 			q.data
@@ -122,6 +125,7 @@ func (driver) ScanQueuedMessage(
 		&m.Envelope.MetaData.Source.Handler.Key,
 		&m.Envelope.MetaData.Source.InstanceId,
 		&m.Envelope.MetaData.CreatedAt,
+		&m.Envelope.MetaData.ScheduledFor,
 		&m.Envelope.PortableName,
 		&m.Envelope.MediaType,
 		&m.Envelope.Data,

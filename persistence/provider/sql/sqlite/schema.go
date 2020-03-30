@@ -130,6 +130,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 			source_handler_key  TEXT NOT NULL,
 			source_instance_id  TEXT NOT NULL,
 			created_at          TEXT NOT NULL,
+			scheduled_for       TEXT NOT NULL,
 			portable_name       TEXT NOT NULL,
 			media_type          TEXT NOT NULL,
 			data                BLOB NOT NULL,
