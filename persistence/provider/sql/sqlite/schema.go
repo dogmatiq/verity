@@ -57,22 +57,22 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event (
-	 		offset              INTEGER NOT NULL,
-	 		message_id          TEXT NOT NULL,
-	 		causation_id        TEXT NOT NULL,
-	 		correlation_id      TEXT NOT NULL,
-	 		source_app_name     TEXT NOT NULL,
-	 		source_app_key      TEXT NOT NULL,
-	 		source_handler_name TEXT NOT NULL,
-	 		source_handler_key  TEXT NOT NULL,
-	 		source_instance_id  TEXT NOT NULL,
-	 		created_at          TEXT NOT NULL,
-	 		portable_name       TEXT NOT NULL,
-	 		media_type          TEXT NOT NULL,
+			offset              INTEGER NOT NULL,
+			message_id          TEXT NOT NULL,
+			causation_id        TEXT NOT NULL,
+			correlation_id      TEXT NOT NULL,
+			source_app_name     TEXT NOT NULL,
+			source_app_key      TEXT NOT NULL,
+			source_handler_name TEXT NOT NULL,
+			source_handler_key  TEXT NOT NULL,
+			source_instance_id  TEXT NOT NULL,
+			created_at          TEXT NOT NULL,
+			portable_name       TEXT NOT NULL,
+			media_type          TEXT NOT NULL,
 			data                BLOB NOT NULL,
 
 			PRIMARY KEY (source_app_key, offset)
-	 	) WITHOUT ROWID`,
+		) WITHOUT ROWID`,
 	)
 
 	sqlx.Exec(
