@@ -19,7 +19,6 @@ func (t *transaction) EnqueueMessages(
 	}
 
 	for _, env := range envelopes {
-		var next time.Time
 
 		id := env.GetMetaData().GetMessageId()
 
@@ -27,12 +26,14 @@ func (t *transaction) EnqueueMessages(
 			continue
 		}
 
-		if len(env.MetaData.ScheduledFor) != 0 {
-			var err error
-			next, err = time.Parse(time.RFC3339Nano, env.MetaData.ScheduledFor)
-			if err != nil {
-				return err
-			}
+		data := env.MetaData.ScheduledFor
+		if data == "" {
+			data = env.MetaData.CreatedAt
+		}
+
+		next, err := time.Parse(time.RFC3339Nano, data)
+		if err != nil {
+			return err
 		}
 
 		if t.uncommitted.queue == nil {

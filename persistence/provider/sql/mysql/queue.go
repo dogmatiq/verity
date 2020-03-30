@@ -20,14 +20,14 @@ func (driver) InsertQueuedMessages(
 	defer sqlx.Recover(&err)
 
 	for _, env := range envelopes {
-		var next time.Time
+		data := env.MetaData.ScheduledFor
+		if data == "" {
+			data = env.MetaData.CreatedAt
+		}
 
-		if len(env.MetaData.ScheduledFor) != 0 {
-			var err error
-			next, err = time.Parse(time.RFC3339Nano, env.MetaData.ScheduledFor)
-			if err != nil {
-				return err
-			}
+		next, err := time.Parse(time.RFC3339Nano, data)
+		if err != nil {
+			return err
 		}
 
 		// Note: ON DUPLICATE KEY UPDATE is used because INSERT IGNORE ignores

@@ -28,15 +28,21 @@ func declareQueueTests(
 			dataStore     persistence.DataStore
 			repository    queue.Repository
 
-			command1 = infixfixtures.NewEnvelopeProto("<command-1>", dogmafixtures.MessageC1)
-			command2 = infixfixtures.NewEnvelopeProto("<command-2>", dogmafixtures.MessageC2)
-			command3 = infixfixtures.NewEnvelopeProto("<command-3>", dogmafixtures.MessageC3)
+			now = time.Now()
 
-			timeout1ScheduledFor = time.Now().Add(1 * time.Hour)
+			command1CreatedAt = now.Add(1 * time.Second)
+			command2CreatedAt = now.Add(2 * time.Second)
+			command3CreatedAt = now.Add(3 * time.Second)
+
+			command1 = infixfixtures.NewEnvelopeProto("<command-1>", dogmafixtures.MessageC1, command1CreatedAt)
+			command2 = infixfixtures.NewEnvelopeProto("<command-2>", dogmafixtures.MessageC2, command2CreatedAt)
+			command3 = infixfixtures.NewEnvelopeProto("<command-3>", dogmafixtures.MessageC3, command3CreatedAt)
+
+			timeout1ScheduledFor = now.Add(1 * time.Hour)
 			timeout1             = infixfixtures.NewEnvelopeProto(
 				"<timeout-1>",
 				dogmafixtures.MessageT1,
-				time.Now(),
+				now,
 				timeout1ScheduledFor,
 			)
 		)
@@ -78,7 +84,7 @@ func declareQueueTests(
 					)
 				})
 
-				ginkgo.It("schedules commands to be attempted immediately", func() {
+				ginkgo.It("schedules commands to be attempted at their created-at time", func() {
 					err := enqueueMessages(
 						*ctx,
 						dataStore,
@@ -89,7 +95,7 @@ func declareQueueTests(
 					m, err := loadQueuedMessage(*ctx, repository)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.NextAttemptAt).To(
-						gomega.BeTemporally("<=", time.Now()),
+						gomega.BeTemporally("~", command1CreatedAt),
 					)
 				})
 
