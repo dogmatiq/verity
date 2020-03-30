@@ -13,12 +13,12 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-// SaveEvents persists events in the application's event store.
+// SaveEvent persists an event in the application's event store.
 //
-// It returns the next free offset in the store.
-func (t *transaction) SaveEvents(
+// It returns the event's offset.
+func (t *transaction) SaveEvent(
 	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
 ) (_ eventstore.Offset, err error) {
 	defer bboltx.Recover(&err)
 
@@ -38,8 +38,8 @@ func (t *transaction) SaveEvents(
 	)
 
 	o := loadNextOffset(store)
-	o = saveEvents(events, o, envelopes)
-	storeNextOffset(store, o)
+	saveEvent(events, o, env)
+	storeNextOffset(store, o+1)
 
 	return o, nil
 }
@@ -154,9 +154,12 @@ func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
 }
 
 // loadEvent loads an event at a specific offset.
-func loadEvent(b *bbolt.Bucket, o eventstore.Offset) (*eventstore.Event, bool) {
+func loadEvent(
+	events *bbolt.Bucket,
+	o eventstore.Offset,
+) (*eventstore.Event, bool) {
 	k := marshalOffset(o)
-	v := b.Get(k)
+	v := events.Get(k)
 
 	if v == nil {
 		return nil, false
@@ -171,20 +174,14 @@ func loadEvent(b *bbolt.Bucket, o eventstore.Offset) (*eventstore.Event, bool) {
 	}, true
 }
 
-// saveEvents writes events to the database.
-func saveEvents(
-	b *bbolt.Bucket,
+// saveEvent writes an event to the store at a specific offset.
+func saveEvent(
+	events *bbolt.Bucket,
 	o eventstore.Offset,
-	envelopes []*envelopespec.Envelope,
-) eventstore.Offset {
-	for _, env := range envelopes {
-		k := marshalOffset(o)
-		v, err := proto.Marshal(env)
-		bboltx.Must(err)
-
-		bboltx.Put(b, k, v)
-		o++
-	}
-
-	return o
+	env *envelopespec.Envelope,
+) {
+	k := marshalOffset(o)
+	v, err := proto.Marshal(env)
+	bboltx.Must(err)
+	bboltx.Put(events, k, v)
 }

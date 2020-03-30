@@ -13,22 +13,20 @@ import (
 // eventStoreDriver is the subset of the Driver interface that is concerned
 // with the eventstore subsystem.
 type eventStoreDriver interface {
-	// UpdateNextOffset increments the eventstore offset by n and returns the
+	// UpdateNextOffset increments the eventstore offset by 1 and returns the
 	// new value.
 	UpdateNextOffset(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		n eventstore.Offset,
 	) (eventstore.Offset, error)
 
-	// InsertEvents saves events to the eventstore, starting at a specific
-	// offset.
-	InsertEvents(
+	// InsertEvent saves an event to the eventstore at a specific offset.
+	InsertEvent(
 		ctx context.Context,
 		tx *sql.Tx,
 		o eventstore.Offset,
-		envelopes []*envelopespec.Envelope,
+		env *envelopespec.Envelope,
 	) error
 
 	// InsertEventFilter inserts a filter that limits selected events to those
@@ -78,41 +76,34 @@ type eventStoreDriver interface {
 	) error
 }
 
-// SaveEvents persists events in the application's event store.
+// SaveEvent persists an event in the application's event store.
 //
-// It returns the next free offset in the store.
-func (t *transaction) SaveEvents(
+// It returns the event's offset.
+func (t *transaction) SaveEvent(
 	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
 ) (_ eventstore.Offset, err error) {
 	if err := t.begin(ctx); err != nil {
 		return 0, err
 	}
 
-	n := eventstore.Offset(
-		len(envelopes),
-	)
-
 	next, err := t.ds.driver.UpdateNextOffset(
 		ctx,
 		t.actual,
 		t.ds.appKey,
-		n,
 	)
 	if err != nil {
 		return 0, err
 	}
 
-	if err := t.ds.driver.InsertEvents(
+	next--
+
+	return next, t.ds.driver.InsertEvent(
 		ctx,
 		t.actual,
-		next-n,
-		envelopes,
-	); err != nil {
-		return 0, err
-	}
-
-	return next, nil
+		next,
+		env,
+	)
 }
 
 // eventStoreRepository is an implementation of eventstore.Repository that

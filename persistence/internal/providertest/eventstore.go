@@ -80,49 +80,29 @@ func declareEventStoreTests(
 		})
 
 		ginkgo.Describe("type Transaction (interface)", func() {
-			ginkgo.Describe("func SaveEvents()", func() {
-				ginkgo.It("returns the offset of the next event", func() {
-					o, err := saveEvents(
-						*ctx,
-						dataStore,
-						env0,
-					)
+			ginkgo.Describe("func SaveEvent()", func() {
+				ginkgo.It("returns the offset of the event", func() {
+					o, err := saveEvent(*ctx, dataStore, env0)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
+
+					o, err = saveEvent(*ctx, dataStore, env1)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
-
-					o, err = saveEvents(
-						*ctx,
-						dataStore,
-						env1,
-						env2,
-					)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(3)))
 				})
 
-				ginkgo.It("returns the offset of the next event for subsequent calls in the same transaction", func() {
+				ginkgo.It("returns the offset of the event for subsequent calls in the same transaction", func() {
 					tx, err := dataStore.Begin(*ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Rollback()
 
-					o, err := tx.SaveEvents(
-						*ctx,
-						[]*envelopespec.Envelope{
-							env0,
-						},
-					)
+					o, err := tx.SaveEvent(*ctx, env0)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
+
+					o, err = tx.SaveEvent(*ctx, env1)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
-
-					o, err = tx.SaveEvents(
-						*ctx,
-						[]*envelopespec.Envelope{
-							env1,
-							env2,
-						},
-					)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(3)))
 				})
 
 				ginkgo.It("blocks if another in-flight transaction has saved events", func() {
@@ -130,12 +110,7 @@ func declareEventStoreTests(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx1.Rollback()
 
-					_, err = tx1.SaveEvents(
-						*ctx,
-						[]*envelopespec.Envelope{
-							env0,
-						},
-					)
+					_, err = tx1.SaveEvent(*ctx, env0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					tx2, err := dataStore.Begin(*ctx)
@@ -145,12 +120,7 @@ func declareEventStoreTests(
 					ctx, cancel := context.WithTimeout(*ctx, 50*time.Millisecond)
 					defer cancel()
 
-					_, err = tx2.SaveEvents(
-						ctx,
-						[]*envelopespec.Envelope{
-							env1,
-						},
-					)
+					_, err = tx2.SaveEvent(ctx, env1)
 					gomega.Expect(err).To(gomega.Equal(context.DeadlineExceeded))
 				})
 
@@ -162,11 +132,9 @@ func declareEventStoreTests(
 						env2,
 					}
 
-					// Create a slice to store the "next" offset that each call
-					// to SaveEvents() returns. Because each transaction only
-					// persisted a single event, each event will be persisted at
-					// the offset before this value.
-					nextOffsets := make([]eventstore.Offset, len(envelopes))
+					// Create a slice to store the offset that each call to
+					// SaveEvent() returns.
+					offsets := make([]eventstore.Offset, len(envelopes))
 
 					ginkgo.By("running several transactions in parallel")
 
@@ -175,7 +143,7 @@ func declareEventStoreTests(
 						i := i // capture loop variable
 						g.Go(func() error {
 							var err error
-							nextOffsets[i], err = saveEvents(
+							offsets[i], err = saveEvent(
 								gctx,
 								dataStore,
 								envelopes[i],
@@ -189,11 +157,11 @@ func declareEventStoreTests(
 
 					// We don't know what order the transactions will execute,
 					// so allow for the offsets to be in any order.
-					expected := make([]eventstore.Offset, len(nextOffsets))
+					expected := make([]eventstore.Offset, len(offsets))
 					for i := range expected {
-						expected[i] = eventstore.Offset(i + 1)
+						expected[i] = eventstore.Offset(i)
 					}
-					gomega.Expect(nextOffsets).To(
+					gomega.Expect(offsets).To(
 						gomega.ConsistOf(expected),
 						"unexpected offsets were returned",
 					)
@@ -211,8 +179,8 @@ func declareEventStoreTests(
 
 					// i is the "envelope number" (envN), o is the offset we
 					// expect that event to be at.
-					for i, next := range nextOffsets {
-						ev := results[next-1]
+					for i, o := range offsets {
+						ev := results[o]
 						env := envelopes[i]
 
 						gomega.Expect(ev.Envelope.MetaData.MessageId).To(
@@ -227,14 +195,7 @@ func declareEventStoreTests(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Rollback()
 
-						_, err = tx.SaveEvents(
-							*ctx,
-							[]*envelopespec.Envelope{
-								env0,
-								env1,
-								env2,
-							},
-						)
+						_, err = tx.SaveEvent(*ctx, env0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						err = tx.Rollback()
@@ -248,18 +209,9 @@ func declareEventStoreTests(
 					})
 
 					ginkgo.It("does not increment the offset", func() {
-						tx, err := dataStore.Begin(*ctx)
+						o, err := saveEvent(*ctx, dataStore, env0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						defer tx.Rollback()
-
-						o, err := tx.SaveEvents(
-							*ctx,
-							[]*envelopespec.Envelope{
-								env0,
-							},
-						)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
+						gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
 					})
 				})
 			})
@@ -282,7 +234,7 @@ func declareEventStoreTests(
 					func(q eventstore.Query, expected ...*eventstore.Event) {
 						ginkgo.By("saving some events")
 
-						_, err := saveEvents(
+						err := saveEvents(
 							*ctx,
 							dataStore,
 							env0,
@@ -379,7 +331,7 @@ func declareEventStoreTests(
 
 					ginkgo.By("saving some events")
 
-					_, err = saveEvents(
+					err = saveEvents(
 						*ctx,
 						dataStore,
 						env0,
@@ -449,11 +401,11 @@ func declareEventStoreTests(
 	})
 }
 
-// saveEvents persists the given events to the store.
-func saveEvents(
+// saveEvent persists an events to the store.
+func saveEvent(
 	ctx context.Context,
 	ds persistence.DataStore,
-	envelopes ...*envelopespec.Envelope,
+	env *envelopespec.Envelope,
 ) (eventstore.Offset, error) {
 	tx, err := ds.Begin(ctx)
 	if err != nil {
@@ -461,12 +413,34 @@ func saveEvents(
 	}
 	defer tx.Rollback()
 
-	o, err := tx.SaveEvents(ctx, envelopes)
+	o, err := tx.SaveEvent(ctx, env)
 	if err != nil {
 		return 0, err
 	}
 
 	return o, tx.Commit(ctx)
+}
+
+// saveEvents persists the given events to the store.
+func saveEvents(
+	ctx context.Context,
+	ds persistence.DataStore,
+	envelopes ...*envelopespec.Envelope,
+) error {
+	tx, err := ds.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for _, env := range envelopes {
+		_, err := tx.SaveEvent(ctx, env)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 // queryEvents queries an event store and returns a slice of the results.

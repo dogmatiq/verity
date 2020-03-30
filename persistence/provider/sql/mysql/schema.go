@@ -40,7 +40,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE event_offset (
 			source_app_key VARBINARY(255) NOT NULL PRIMARY KEY,
-			next_offset    BIGINT NOT NULL
+			next_offset    BIGINT NOT NULL DEFAULT 1
 		) ENGINE=InnoDB`,
 	)
 

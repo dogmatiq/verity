@@ -34,7 +34,7 @@ var _ = Describe("type database", func() {
 			defer tx.Rollback()
 
 			// Perform a write to cause the actual transaction to be started.
-			_, err = tx.SaveEvents(ctx, nil)
+			_, err = tx.SaveEvent(ctx, nil)
 			Expect(err).Should(HaveOccurred())
 		})
 	})
