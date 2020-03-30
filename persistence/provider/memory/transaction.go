@@ -36,19 +36,8 @@ func (t *transaction) Commit(ctx context.Context) error {
 		return nil
 	}
 
-	t.ds.db.events = append(
-		t.ds.db.events,
-		t.uncommitted.events...,
-	)
-
-	for id, m := range t.uncommitted.queue {
-		if t.ds.db.queue.uniq == nil {
-			t.ds.db.queue.uniq = map[string]*queue.Message{}
-		}
-
-		t.ds.db.queue.order = append(t.ds.db.queue.order, m)
-		t.ds.db.queue.uniq[id] = m
-	}
+	t.commitEvents()
+	t.commitQueue()
 
 	return nil
 }

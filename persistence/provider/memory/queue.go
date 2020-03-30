@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"errors"
+	"sort"
 	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -48,6 +49,39 @@ func (t *transaction) EnqueueMessages(
 	}
 
 	return nil
+}
+
+// commitQueue commits staged queue items to the database.
+func (t *transaction) commitQueue() {
+	q := &t.ds.db.queue
+
+	for id, m := range t.uncommitted.queue {
+		// Add the message to the unique index.
+		if q.uniq == nil {
+			q.uniq = map[string]*queue.Message{}
+		}
+		q.uniq[id] = m
+
+		// Find the index where we'll insert our event. It's the index of the
+		// first message that has a NextAttemptedAt greater than m's.
+		index := sort.Search(
+			len(q.order),
+			func(i int) bool {
+				return m.NextAttemptAt.Before(
+					q.order[i].NextAttemptAt,
+				)
+			},
+		)
+
+		// Expand the size of the queue.
+		q.order = append(q.order, nil)
+
+		// Shift messages further back to make space for m.
+		copy(q.order[index+1:], q.order[index:])
+
+		// Insert m at the index.
+		q.order[index] = m
+	}
 }
 
 // DequeueMessage removes a message from the application's message queue.
