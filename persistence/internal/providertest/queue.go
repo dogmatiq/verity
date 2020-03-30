@@ -3,6 +3,7 @@ package providertest
 import (
 	"context"
 	"errors"
+	"math/rand"
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -30,21 +31,19 @@ func declareQueueTests(
 
 			now = time.Now()
 
-			command1CreatedAt = now.Add(1 * time.Second)
-			command2CreatedAt = now.Add(2 * time.Second)
-			command3CreatedAt = now.Add(3 * time.Second)
-
-			command1 = infixfixtures.NewEnvelopeProto("<command-1>", dogmafixtures.MessageC1, command1CreatedAt)
-			command2 = infixfixtures.NewEnvelopeProto("<command-2>", dogmafixtures.MessageC2, command2CreatedAt)
-			command3 = infixfixtures.NewEnvelopeProto("<command-3>", dogmafixtures.MessageC3, command3CreatedAt)
+			command1CreatedAt = now.Add(-1 * time.Hour)
+			command2CreatedAt = now
+			command3CreatedAt = now.Add(+1 * time.Hour)
 
 			timeout1ScheduledFor = now.Add(1 * time.Hour)
-			timeout1             = infixfixtures.NewEnvelopeProto(
-				"<timeout-1>",
-				dogmafixtures.MessageT1,
-				now,
-				timeout1ScheduledFor,
-			)
+
+			// Note, we use generated UUIDs for the message IDs to avoid them
+			// having any predictable effect on the queue order.
+			command1 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageC1, command1CreatedAt)
+			command2 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageC2, command2CreatedAt)
+			command3 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageC3, command3CreatedAt)
+
+			timeout1 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageT1, now, timeout1ScheduledFor)
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -122,10 +121,13 @@ func declareQueueTests(
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
+					// TODO: This test should be asserting that meta-data, such
+					// as the revision and next-attempt time does not change.
+
 					// conflict has the same message ID as command1, but
 					// a different message type.
 					conflict := infixfixtures.NewEnvelopeProto(
-						"<command-1>",
+						command1.MetaData.MessageId,
 						dogmafixtures.MessageX1,
 					)
 
@@ -185,14 +187,27 @@ func declareQueueTests(
 				table.DescribeTable(
 					"it returns messages from the queue, ordered by their next attempt time",
 					func(n int, expected ...*envelopespec.Envelope) {
-						ginkgo.By("enqueuing some messages")
+						ginkgo.By("enqueuing some messages in random order")
+
+						envelopes := []*envelopespec.Envelope{
+							command1,
+							command2,
+							command3,
+						}
+
+						// Shuffle the order that the envelopes are enqueue to
+						// ensure that they are sorted properly on the way out.
+						rand.Shuffle(
+							len(envelopes),
+							func(i, j int) {
+								envelopes[i], envelopes[j] = envelopes[j], envelopes[i]
+							},
+						)
 
 						err := enqueueMessages(
 							*ctx,
 							dataStore,
-							command1,
-							command2,
-							command3,
+							envelopes...,
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
