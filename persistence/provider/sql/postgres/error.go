@@ -76,19 +76,18 @@ func (d errorConverter) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	n eventstore.Offset,
 ) (eventstore.Offset, error) {
-	o, err := d.d.UpdateNextOffset(ctx, tx, ak, n)
+	o, err := d.d.UpdateNextOffset(ctx, tx, ak)
 	return o, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) InsertEvents(
+func (d errorConverter) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
 	o eventstore.Offset,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
 ) error {
-	err := d.d.InsertEvents(ctx, tx, o, envelopes)
+	err := d.d.InsertEvent(ctx, tx, o, env)
 	return convertContextErrors(ctx, err)
 }
 

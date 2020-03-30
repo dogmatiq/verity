@@ -5,7 +5,6 @@ import (
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/onsi/ginkgo"
@@ -110,10 +109,7 @@ func declareDataStoreTests(
 
 							env := infixfixtures.NewEnvelopeProto("<id>", dogmafixtures.MessageA1)
 
-							if _, err := tx.SaveEvents(
-								*ctx,
-								[]*envelopespec.Envelope{env},
-							); err != nil {
+							if _, err := tx.SaveEvent(*ctx, env); err != nil {
 								result <- err
 								return
 							}

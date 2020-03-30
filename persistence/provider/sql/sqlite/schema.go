@@ -53,7 +53,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
-			next_offset    INTEGER NOT NULL
+			next_offset    INTEGER NOT NULL DEFAULT 1
 		) WITHOUT ROWID`,
 	)
 

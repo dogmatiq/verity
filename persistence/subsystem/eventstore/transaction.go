@@ -9,11 +9,11 @@ import (
 // Transaction defines the primitive persistence operations for manipulating the
 // event store.
 type Transaction interface {
-	// SaveEvents persists events in the application's event store.
+	// SaveEvent persists an event in the application's event store.
 	//
-	// It returns the next free offset in the store.
-	SaveEvents(
+	// It returns the event's offset.
+	SaveEvent(
 		ctx context.Context,
-		envelopes []*envelopespec.Envelope,
+		env *envelopespec.Envelope,
 	) (Offset, error)
 }

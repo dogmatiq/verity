@@ -10,13 +10,12 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
-// UpdateNextOffset increments the eventstore offset by n and returns the new
+// UpdateNextOffset increments the eventstore offset by 1 and returns the new
 // value.
 func (driver) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	n eventstore.Offset,
 ) (_ eventstore.Offset, err error) {
 	defer sqlx.Recover(&err)
 
@@ -24,34 +23,28 @@ func (driver) UpdateNextOffset(
 		ctx,
 		tx,
 		`INSERT INTO infix.event_offset AS o (
-			source_app_key,
-			next_offset
+			source_app_key
 		) VALUES (
-			$1, $2
+			$1
 		) ON CONFLICT (source_app_key) DO UPDATE SET
-			next_offset = o.next_offset + excluded.next_offset
+			next_offset = o.next_offset + 1
 		RETURNING next_offset`,
 		ak,
-		n,
 	)
 
 	return eventstore.Offset(o), nil
 }
 
-// InsertEvents saves events to the eventstore, starting at a specific offset.
-func (driver) InsertEvents(
+// InsertEvent saves an event to the eventstore at a specific offset.
+func (driver) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
 	o eventstore.Offset,
-	envelopes []*envelopespec.Envelope,
-) (err error) {
-	defer sqlx.Recover(&err)
-
-	for _, env := range envelopes {
-		sqlx.Exec(
-			ctx,
-			tx,
-			`INSERT INTO infix.event (
+	env *envelopespec.Envelope,
+) error {
+	_, err := tx.ExecContext(
+		ctx,
+		`INSERT INTO infix.event (
 				"offset",
 				message_id,
 				causation_id,
@@ -68,25 +61,22 @@ func (driver) InsertEvents(
 			) VALUES (
 				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 			)`,
-			o,
-			env.MetaData.MessageId,
-			env.MetaData.CausationId,
-			env.MetaData.CorrelationId,
-			env.MetaData.Source.Application.Name,
-			env.MetaData.Source.Application.Key,
-			env.MetaData.Source.Handler.Name,
-			env.MetaData.Source.Handler.Key,
-			env.MetaData.Source.InstanceId,
-			env.MetaData.CreatedAt,
-			env.PortableName,
-			env.MediaType,
-			env.Data,
-		)
+		o,
+		env.MetaData.MessageId,
+		env.MetaData.CausationId,
+		env.MetaData.CorrelationId,
+		env.MetaData.Source.Application.Name,
+		env.MetaData.Source.Application.Key,
+		env.MetaData.Source.Handler.Name,
+		env.MetaData.Source.Handler.Key,
+		env.MetaData.Source.InstanceId,
+		env.MetaData.CreatedAt,
+		env.PortableName,
+		env.MediaType,
+		env.Data,
+	)
 
-		o++
-	}
-
-	return nil
+	return err
 }
 
 // InsertEventFilter inserts a filter that limits selected events to those with

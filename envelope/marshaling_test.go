@@ -69,40 +69,6 @@ var _ = Describe("func Marshal()", func() {
 
 })
 
-var _ = Describe("func MarshalMany()", func() {
-	It("marshals multiple envelopes", func() {
-		in1 := NewEnvelope("<id-2>", MessageA1)
-		in2 := NewEnvelope("<id-2>", MessageA2)
-
-		out, err := MarshalMany(
-			Marshaler,
-			[]*Envelope{
-				in1,
-				in2,
-			},
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(out).To(Equal(
-			[]*envelopespec.Envelope{
-				MustMarshal(Marshaler, in1),
-				MustMarshal(Marshaler, in2),
-			},
-		))
-	})
-
-	It("returns an error if marshaling fails", func() {
-		in := NewEnvelope("<id>", MessageA1)
-		in.Message = "<unsupported type>"
-
-		_, err := MarshalMany(
-			Marshaler,
-			[]*Envelope{in},
-		)
-		Expect(err).Should(HaveOccurred())
-	})
-})
-
 var _ = Describe("func MustMarshal()", func() {
 	It("marshals the envelope", func() {
 		in := NewEnvelope("<id>", MessageA1)
@@ -120,39 +86,6 @@ var _ = Describe("func MustMarshal()", func() {
 
 		Expect(func() {
 			MustMarshal(Marshaler, in)
-		}).To(Panic())
-	})
-})
-
-var _ = Describe("func MustMarshalMany()", func() {
-	It("marshals multiple envelopes", func() {
-		in1 := NewEnvelope("<id-2>", MessageA1)
-		in2 := NewEnvelope("<id-2>", MessageA2)
-		out := MustMarshalMany(
-			Marshaler,
-			[]*Envelope{
-				in1,
-				in2,
-			},
-		)
-
-		Expect(out).To(Equal(
-			[]*envelopespec.Envelope{
-				MustMarshal(Marshaler, in1),
-				MustMarshal(Marshaler, in2),
-			},
-		))
-	})
-
-	It("panics if marshaling fails", func() {
-		in := NewEnvelope("<id>", MessageA1)
-		in.Message = "<unsupported type>"
-
-		Expect(func() {
-			MustMarshalMany(
-				Marshaler,
-				[]*Envelope{in},
-			)
 		}).To(Panic())
 	})
 })

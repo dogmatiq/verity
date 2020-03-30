@@ -8,12 +8,12 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
-// SaveEvents persists events in the application's event store.
+// SaveEvent persists an event in the application's event store.
 //
-// It returns the next free offset in the store.
-func (t *transaction) SaveEvents(
+// It returns the event's offset.
+func (t *transaction) SaveEvent(
 	ctx context.Context,
-	envelopes []*envelopespec.Envelope,
+	env *envelopespec.Envelope,
 ) (eventstore.Offset, error) {
 	if err := t.begin(ctx); err != nil {
 		return 0, err
@@ -23,17 +23,13 @@ func (t *transaction) SaveEvents(
 		len(t.ds.db.events) + len(t.uncommitted.events),
 	)
 
-	for _, env := range envelopes {
-		t.uncommitted.events = append(
-			t.uncommitted.events,
-			&eventstore.Event{
-				Offset:   next,
-				Envelope: cloneEnvelope(env),
-			},
-		)
-
-		next++
-	}
+	t.uncommitted.events = append(
+		t.uncommitted.events,
+		&eventstore.Event{
+			Offset:   next,
+			Envelope: cloneEnvelope(env),
+		},
+	)
 
 	return next, nil
 }
