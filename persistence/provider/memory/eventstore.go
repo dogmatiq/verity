@@ -20,7 +20,7 @@ func (t *transaction) SaveEvents(
 	}
 
 	next := eventstore.Offset(
-		len(t.ds.db.events),
+		len(t.ds.db.events) + len(t.uncommitted.events),
 	)
 
 	for _, env := range envelopes {
