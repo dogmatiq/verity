@@ -25,6 +25,7 @@ type Queue struct {
 	in       chan *queue.Message
 	out      chan *queue.Message
 	complete bool // true if all persisted messages are in memory
+	size     int
 	pq       pqueue
 }
 
@@ -62,9 +63,7 @@ func (q *Queue) Run(ctx context.Context) error {
 	q.init()
 
 	for {
-		out, ok := q.pq.PeekFront()
-
-		if ok {
+		if out, ok := q.pq.PeekFront(); ok {
 			return q.dispatch(ctx, out)
 		} else if !q.complete {
 			return q.load(ctx)
@@ -131,18 +130,7 @@ func (q *Queue) wait(ctx context.Context, d time.Duration) (bool, error) {
 
 // load fills the in-memory queue with persisted messages.
 func (q *Queue) load(ctx context.Context) error {
-	if q.pq.Len() != 0 {
-		// CODE COVERAGE: This should never be allowed to occur, as it could
-		// result in duplicate messages in the priority-queue.
-		panic("can't load messages into non-empty queue")
-	}
-
-	size := q.BufferSize
-	if size <= 0 {
-		size = DefaultBufferSize
-	}
-
-	messages, err := q.Repository.LoadQueueMessages(ctx, size)
+	messages, err := q.Repository.LoadQueueMessages(ctx, q.size)
 	if err != nil {
 		return err
 	}
@@ -151,11 +139,9 @@ func (q *Queue) load(ctx context.Context) error {
 		q.pq.Push(m)
 	}
 
-	if len(messages) < size {
-		// If we didn't get back as many message as we asked for, we know that
-		// we've loaded everything that has been persisted.
-		q.complete = true
-	}
+	// If we didn't get back as many message as we asked for, we know that
+	// we've loaded everything that has been persisted.
+	q.complete = len(messages) < q.size
 
 	return nil
 }
@@ -164,12 +150,7 @@ func (q *Queue) load(ctx context.Context) error {
 func (q *Queue) push(m *queue.Message) bool {
 	front := q.pq.Push(m)
 
-	size := q.BufferSize
-	if size <= 0 {
-		size = DefaultBufferSize
-	}
-
-	if q.pq.Len() > size {
+	if q.pq.Len() > q.size {
 		q.pq.PopBack()
 
 		// We've had to remove a message from the buffer, so now there are
@@ -182,6 +163,11 @@ func (q *Queue) push(m *queue.Message) bool {
 
 func (q *Queue) init() {
 	q.once.Do(func() {
+		q.size = q.BufferSize
+		if q.size <= 0 {
+			q.size = DefaultBufferSize
+		}
+
 		q.in = make(chan *queue.Message)
 		q.out = make(chan *queue.Message)
 	})
