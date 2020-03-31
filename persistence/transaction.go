@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // ErrTransactionClosed is returned by all methods on Transaction once the
@@ -17,7 +17,7 @@ var ErrTransactionClosed = errors.New("transaction already committed or rolled-b
 // Transactions are not safe for concurrent use.
 type Transaction interface {
 	eventstore.Transaction
-	queue.Transaction
+	queuestore.Transaction
 
 	// Commit applies the changes from the transaction.
 	Commit(ctx context.Context) error

@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
-// AddMessageToQueue add a message to the application's message queue.
+// SaveMessageToQueue persists a message to the application's message queue.
 //
 // n indicates when the next attempt at handling the message is to be made.
-func (t *transaction) AddMessageToQueue(
+func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
 	env *envelopespec.Envelope,
 	n time.Time,
@@ -29,10 +29,10 @@ func (t *transaction) AddMessageToQueue(
 	}
 
 	if t.uncommitted.queue == nil {
-		t.uncommitted.queue = map[string]*queue.Message{}
+		t.uncommitted.queue = map[string]*queuestore.Message{}
 	}
 
-	t.uncommitted.queue[id] = &queue.Message{
+	t.uncommitted.queue[id] = &queuestore.Message{
 		Revision:      1,
 		NextAttemptAt: n,
 		Envelope:      cloneEnvelope(env),
@@ -48,7 +48,7 @@ func (t *transaction) commitQueue() {
 	for id, m := range t.uncommitted.queue {
 		// Add the message to the unique index.
 		if q.uniq == nil {
-			q.uniq = map[string]*queue.Message{}
+			q.uniq = map[string]*queuestore.Message{}
 		}
 		q.uniq[id] = m
 
@@ -82,7 +82,7 @@ func (t *transaction) commitQueue() {
 // remains on the queue and ok is false.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
-	m *queue.Message,
+	m *queuestore.Message,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
@@ -97,22 +97,22 @@ func (t *transaction) RemoveMessageFromQueue(
 // updated and ok is false.
 func (t *transaction) UpdateQueueMessage(
 	ctx context.Context,
-	m *queue.Message,
+	m *queuestore.Message,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
 
-// queueRepository is an implementation of queue.Repository that stores queued
-// messages in memory.
-type queueRepository struct {
+// queueStoreRepository is an implementation of queuestore.Repository that
+// stores queued messages in memory.
+type queueStoreRepository struct {
 	db *database
 }
 
 // LoadQueueMessages loads the next n messages from the queue.
-func (r *queueRepository) LoadQueueMessages(
+func (r *queueStoreRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) ([]*queue.Message, error) {
+) ([]*queuestore.Message, error) {
 	if err := r.db.RLock(ctx); err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (r *queueRepository) LoadQueueMessages(
 		n = max
 	}
 
-	result := make([]*queue.Message, n)
+	result := make([]*queuestore.Message, n)
 
 	for i, m := range r.db.queue.order[:n] {
 		result[i] = cloneQueueMessage(m)

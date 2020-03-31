@@ -5,7 +5,7 @@ option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/inter
 
 import "draftspecs/envelopespec/envelope.proto";
 
-// QueueMessage is a protocol buffers representation of an Infix queue.Message.
+// QueueMessage is a protocol buffers representation of a queuestore.Message.
 message QueueMessage{
   uint64 revision = 1;
   string next_attempt_at = 2;

@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"go.uber.org/multierr"
 )
 
@@ -20,8 +20,8 @@ type DataStore interface {
 	// EventStoreRepository returns the application's event store repository.
 	EventStoreRepository() eventstore.Repository
 
-	// QueueRepository returns the application's message queue repository.
-	QueueRepository() queue.Repository
+	// QueueStoreRepository returns the application's queue store repository.
+	QueueStoreRepository() queuestore.Repository
 
 	// Begin starts a new transaction.
 	Begin(ctx context.Context) (Transaction, error)

@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/golang/protobuf/proto"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -22,12 +22,12 @@ func declareQueueTests(
 	in *In,
 	out *Out,
 ) {
-	ginkgo.Context("package queue", func() {
+	ginkgo.Context("package queuestore", func() {
 		var (
 			provider      persistence.Provider
 			closeProvider func()
 			dataStore     persistence.DataStore
-			repository    queue.Repository
+			repository    queuestore.Repository
 
 			now = time.Now()
 
@@ -46,7 +46,7 @@ func declareQueueTests(
 			dataStore, err = provider.Open(*ctx, "<app-key>")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			repository = dataStore.QueueRepository()
+			repository = dataStore.QueueStoreRepository()
 		})
 
 		ginkgo.AfterEach(func() {
@@ -60,9 +60,9 @@ func declareQueueTests(
 		})
 
 		ginkgo.Describe("type Transaction (interface)", func() {
-			ginkgo.Describe("func AddMessageToQueue()", func() {
+			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.It("sets the initial revision to 1", func() {
-					err := addMessageToQueue(
+					err := saveMessageToQueue(
 						*ctx,
 						dataStore,
 						env0,
@@ -73,14 +73,14 @@ func declareQueueTests(
 					m, err := loadQueueMessage(*ctx, repository)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(m.Revision).To(
-						gomega.Equal(queue.Revision(1)),
+						gomega.Equal(queuestore.Revision(1)),
 					)
 				})
 
 				ginkgo.It("stores the correct next-attempt time", func() {
 					t := now.Add(1 * time.Hour)
 
-					err := addMessageToQueue(
+					err := saveMessageToQueue(
 						*ctx,
 						dataStore,
 						env0,
@@ -98,7 +98,7 @@ func declareQueueTests(
 				ginkgo.It("ignores messages that are already on the queue", func() {
 					t := now.Add(1 * time.Hour)
 
-					err := addMessageToQueue(
+					err := saveMessageToQueue(
 						*ctx,
 						dataStore,
 						env0,
@@ -113,7 +113,7 @@ func declareQueueTests(
 						dogmafixtures.MessageX1,
 					)
 
-					err = addMessageToQueue(
+					err = saveMessageToQueue(
 						*ctx,
 						dataStore,
 						conflict,
@@ -132,7 +132,7 @@ func declareQueueTests(
 					)
 
 					gomega.Expect(m.Revision).To(
-						gomega.Equal(queue.Revision(1)),
+						gomega.Equal(queuestore.Revision(1)),
 					)
 
 					gomega.Expect(m.NextAttemptAt).To(
@@ -150,7 +150,7 @@ func declareQueueTests(
 							gctx,
 							dataStore,
 							func(tx persistence.Transaction) error {
-								return tx.AddMessageToQueue(
+								return tx.SaveMessageToQueue(
 									gctx,
 									env0,
 									time.Now(),
@@ -164,7 +164,7 @@ func declareQueueTests(
 							gctx,
 							dataStore,
 							func(tx persistence.Transaction) error {
-								if err := tx.AddMessageToQueue(
+								if err := tx.SaveMessageToQueue(
 									gctx,
 									env1,
 									time.Now().Add(-1*time.Hour),
@@ -172,7 +172,7 @@ func declareQueueTests(
 									return err
 								}
 
-								return tx.AddMessageToQueue(
+								return tx.SaveMessageToQueue(
 									gctx,
 									env2,
 									time.Now().Add(+1*time.Hour),
@@ -216,7 +216,7 @@ func declareQueueTests(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer tx.Rollback()
 
-						err = tx.AddMessageToQueue(
+						err = tx.SaveMessageToQueue(
 							*ctx,
 							env0,
 							time.Now(),
@@ -250,7 +250,7 @@ func declareQueueTests(
 						ginkgo.By("enqueuing some messages out of order")
 
 						// The expected order is env1, env2, env0.
-						err := addMessageToQueue(
+						err := saveMessageToQueue(
 							*ctx,
 							dataStore,
 							env0,
@@ -258,7 +258,7 @@ func declareQueueTests(
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						err = addMessageToQueue(
+						err = saveMessageToQueue(
 							*ctx,
 							dataStore,
 							env1,
@@ -266,7 +266,7 @@ func declareQueueTests(
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						err = addMessageToQueue(
+						err = saveMessageToQueue(
 							*ctx,
 							dataStore,
 							env2,

@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // transaction is an implementation of persistence.Transaction for in-memory
@@ -16,7 +16,7 @@ type transaction struct {
 
 	uncommitted struct {
 		events []*eventstore.Event
-		queue  map[string]*queue.Message
+		queue  map[string]*queuestore.Message
 	}
 }
 
