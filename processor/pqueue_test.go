@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type pqueue()", func() {
+var _ = Describe("type pqueue", func() {
 	var (
 		pq *pqueue
 
