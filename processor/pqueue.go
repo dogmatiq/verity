@@ -7,32 +7,21 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
-// pqueue is a capped-size, in-memory priority queue of messages.
+// pqueue is a double-ended message queue.
 //
 // Messages are prioritized according to their "next attempt" time.
 type pqueue struct {
-	limit int
-
 	m   sync.Mutex
 	min minheap
 	max maxheap
 }
 
 // Push adds a message to the queue.
-//
-// If the new message causes the queue to exceed its size limit, the lowest
-// priority message is removed.
 func (q *pqueue) Push(m *queue.Message) {
-	if q.limit == 0 {
-		return
-	}
-
 	q.m.Lock()
 	defer q.m.Unlock()
 
 	n := q.min.Len()
-	pop := n == q.limit
-
 	i := &item{
 		message: m,
 		min:     n,
@@ -41,17 +30,12 @@ func (q *pqueue) Push(m *queue.Message) {
 
 	heap.Push(&q.min, i)
 	heap.Push(&q.max, i)
-
-	if pop {
-		i := heap.Pop(&q.max).(*item)
-		heap.Remove(&q.min, i.min)
-	}
 }
 
-// Pop removes the next message from the queue.
+// PopFront removes the next message from the queue and returns it.
 //
 // It returns false if the queue is empty.
-func (q *pqueue) Pop() (*queue.Message, bool) {
+func (q *pqueue) PopFront() (*queue.Message, bool) {
 	q.m.Lock()
 	defer q.m.Unlock()
 
@@ -61,6 +45,23 @@ func (q *pqueue) Pop() (*queue.Message, bool) {
 
 	i := heap.Pop(&q.min).(*item)
 	heap.Remove(&q.max, i.max)
+
+	return i.message, true
+}
+
+// PopBack removes the message with the lowest priority from the queue.
+//
+// It returns false if the queue is empty.
+func (q *pqueue) PopBack() (*queue.Message, bool) {
+	q.m.Lock()
+	defer q.m.Unlock()
+
+	if q.min.Len() == 0 {
+		return nil, false
+	}
+
+	i := heap.Pop(&q.max).(*item)
+	heap.Remove(&q.min, i.min)
 
 	return i.message, true
 }
@@ -106,7 +107,8 @@ func (h *pheap) Pop() interface{} {
 	return m
 }
 
-// minheap is a heap that pop's messages with the earliest next-attempt times.
+// minheap is a heap where Pop() returns the message with the earliest
+// next-attempt time.
 type minheap struct{ pheap }
 
 func (h *minheap) Swap(i, j int) {
@@ -115,7 +117,8 @@ func (h *minheap) Swap(i, j int) {
 	h.items[j].min = j
 }
 
-// maxheap is a heap that pop's messages with the latest next-attempt times.
+// maxheap is a heap where Pop() returns the message with the latest
+// next-attempt time.
 type maxheap struct{ pheap }
 
 func (h *maxheap) Less(i, j int) bool {
