@@ -22,10 +22,10 @@ type Queue struct {
 	BufferSize int
 
 	once     sync.Once
-	in       chan *queue.Message
-	out      chan *queue.Message
+	inbound  chan *queue.Message
+	outbound chan *queue.Message
 	complete bool // true if all persisted messages are in memory
-	size     int
+	size     int  // actual buffer size, with fallback to default
 	pq       pqueue
 }
 
@@ -36,8 +36,8 @@ func (q *Queue) Pop(ctx context.Context) (*queue.Message, error) {
 	q.init()
 
 	select {
-	case out := <-q.out:
-		return out, nil
+	case m := <-q.outbound:
+		return m, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -50,7 +50,7 @@ func (q *Queue) Push(ctx context.Context, m *queue.Message) error {
 	q.init()
 
 	select {
-	case q.in <- m:
+	case q.inbound <- m:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -62,27 +62,25 @@ func (q *Queue) Push(ctx context.Context, m *queue.Message) error {
 func (q *Queue) Run(ctx context.Context) error {
 	q.init()
 
-	for {
-		if out, ok := q.pq.PeekFront(); ok {
-			return q.dispatch(ctx, out)
-		} else if !q.complete {
-			return q.load(ctx)
-		}
+	var err error
 
-		// We've got everything in memory, so all we can do is wait until
-		// something new is pushed.
-		select {
-		case in := <-q.in:
-			q.push(in)
-		case <-ctx.Done():
-			return ctx.Err()
+	for err == nil {
+		if m, ok := q.pq.PeekFront(); ok {
+			err = q.send(ctx, m)
+		} else if q.complete {
+			err = q.idle(ctx)
+		} else {
+			err = q.load(ctx)
 		}
 	}
+
+	return err
 }
 
-// dispatch sends out to a waiting Pop() call.
-func (q *Queue) dispatch(ctx context.Context, out *queue.Message) error {
-	delay := time.Until(out.NextAttemptAt)
+// send waits until the given message is ready to be handled, then delivers it
+// to a blocked call to Pop().
+func (q *Queue) send(ctx context.Context, m *queue.Message) error {
+	delay := time.Until(m.NextAttemptAt)
 
 	if delay > 0 {
 		ready, err := q.wait(ctx, delay)
@@ -93,11 +91,11 @@ func (q *Queue) dispatch(ctx context.Context, out *queue.Message) error {
 
 	for {
 		select {
-		case in := <-q.in:
-			if q.push(in) {
+		case p := <-q.inbound:
+			if q.push(p) {
 				return nil
 			}
-		case q.out <- out:
+		case q.outbound <- m:
 			q.pq.PopFront()
 			return nil
 		case <-ctx.Done():
@@ -118,12 +116,25 @@ func (q *Queue) wait(ctx context.Context, d time.Duration) (bool, error) {
 		select {
 		case <-timer.C:
 			return true, nil
-		case in := <-q.in:
-			if q.push(in) {
+		case m := <-q.inbound:
+			if q.push(m) {
 				return false, nil
 			}
 		case <-ctx.Done():
 			return false, ctx.Err()
+		}
+	}
+}
+
+// idle blocks until a new message is pushed to the queue.
+func (q *Queue) idle(ctx context.Context) error {
+	for {
+		select {
+		case m := <-q.inbound:
+			q.push(m)
+			return q.send(ctx, m)
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
@@ -168,7 +179,7 @@ func (q *Queue) init() {
 			q.size = DefaultBufferSize
 		}
 
-		q.in = make(chan *queue.Message)
-		q.out = make(chan *queue.Message)
+		q.inbound = make(chan *queue.Message)
+		q.outbound = make(chan *queue.Message)
 	})
 }
