@@ -2,25 +2,26 @@ package processor
 
 import (
 	"container/heap"
-	"sync"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/queue"
 )
 
-// pqueue is a double-ended message queue.
+// pqueue is a double-ended priority queue.
 //
-// Messages are prioritized according to their "next attempt" time.
+// Messages are prioritized according to their "next attempt" time. The message
+// that is to be attempted soonest is said to have the hightest priority.
 type pqueue struct {
-	m   sync.Mutex
 	min minheap
 	max maxheap
 }
 
+// Len returns the number of messages on the queue.
+func (q *pqueue) Len() int {
+	return q.min.Len()
+}
+
 // Push adds a message to the queue.
 func (q *pqueue) Push(m *queue.Message) {
-	q.m.Lock()
-	defer q.m.Unlock()
-
 	n := q.min.Len()
 	i := &item{
 		message: m,
@@ -32,13 +33,22 @@ func (q *pqueue) Push(m *queue.Message) {
 	heap.Push(&q.max, i)
 }
 
-// PopFront removes the next message from the queue and returns it.
+// PeekFront returns the message with the highest priority without removing it
+// from the queue.
+//
+// It returns false if the queue is empty.
+func (q *pqueue) PeekFront() (*queue.Message, bool) {
+	if q.min.Len() == 0 {
+		return nil, false
+	}
+
+	return q.min.items[0].message, true
+}
+
+// PopFront removes the message with the highest priority and returns it.
 //
 // It returns false if the queue is empty.
 func (q *pqueue) PopFront() (*queue.Message, bool) {
-	q.m.Lock()
-	defer q.m.Unlock()
-
 	if q.min.Len() == 0 {
 		return nil, false
 	}
@@ -49,13 +59,22 @@ func (q *pqueue) PopFront() (*queue.Message, bool) {
 	return i.message, true
 }
 
-// PopBack removes the message with the lowest priority from the queue.
+// PeekBack returns the message with the lowest priority without removing it
+// from the queue.
+//
+// It returns false if the queue is empty.
+func (q *pqueue) PeekBack() (*queue.Message, bool) {
+	if q.min.Len() == 0 {
+		return nil, false
+	}
+
+	return q.max.items[0].message, true
+}
+
+// PopBack removes the message with the lowest priority and returns it.
 //
 // It returns false if the queue is empty.
 func (q *pqueue) PopBack() (*queue.Message, bool) {
-	q.m.Lock()
-	defer q.m.Unlock()
-
 	if q.min.Len() == 0 {
 		return nil, false
 	}

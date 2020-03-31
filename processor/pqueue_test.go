@@ -35,15 +35,34 @@ var _ = Describe("type pqueue()", func() {
 	Describe("func Push()", func() {
 		It("adds a message to the queue", func() {
 			pq.Push(message0)
+			Expect(pq.Len()).To(Equal(1))
+		})
+	})
 
-			m, ok := pq.PopFront()
+	Describe("func PeekFront()", func() {
+		It("returns the message with the highest priority", func() {
+			pq.Push(message2)
+			pq.Push(message0)
+			pq.Push(message1)
+
+			m, ok := pq.PeekFront()
 			Expect(ok).To(BeTrue())
 			Expect(m).To(BeIdenticalTo(message0))
+
+			Expect(pq.Len()).To(
+				Equal(3),
+				"PeekFront() modified the size of the queue",
+			)
+		})
+
+		It("returns false if the queue is empty", func() {
+			_, ok := pq.PeekFront()
+			Expect(ok).To(BeFalse())
 		})
 	})
 
 	Describe("func PopFront()", func() {
-		It("pops messages in order of priority", func() {
+		It("removes and returns the message with the highest priority", func() {
 			pq.Push(message2)
 			pq.Push(message0)
 			pq.Push(message1)
@@ -51,21 +70,43 @@ var _ = Describe("type pqueue()", func() {
 			m, ok := pq.PopFront()
 			Expect(ok).To(BeTrue())
 			Expect(m).To(BeIdenticalTo(message0))
+
+			Expect(pq.Len()).To(
+				Equal(2),
+				"PopFront() did not modify the size of the queue",
+			)
 		})
 
 		It("returns false if the queue is empty", func() {
-			pq.Push(message0)
-
 			_, ok := pq.PopFront()
-			Expect(ok).To(BeTrue())
+			Expect(ok).To(BeFalse())
+		})
+	})
 
-			_, ok = pq.PopFront()
+	Describe("func PeekBack()", func() {
+		It("returns the message with the lowest priority", func() {
+			pq.Push(message2)
+			pq.Push(message0)
+			pq.Push(message1)
+
+			m, ok := pq.PeekBack()
+			Expect(ok).To(BeTrue())
+			Expect(m).To(BeIdenticalTo(message2))
+
+			Expect(pq.Len()).To(
+				Equal(3),
+				"PeekBack() modified the size of the queue",
+			)
+		})
+
+		It("returns false if the queue is empty", func() {
+			_, ok := pq.PeekBack()
 			Expect(ok).To(BeFalse())
 		})
 	})
 
 	Describe("func PopBack()", func() {
-		It("pops messages in reverse order of priority", func() {
+		It("removes and returns the message with the lowest priority", func() {
 			pq.Push(message2)
 			pq.Push(message0)
 			pq.Push(message1)
@@ -73,15 +114,15 @@ var _ = Describe("type pqueue()", func() {
 			m, ok := pq.PopBack()
 			Expect(ok).To(BeTrue())
 			Expect(m).To(BeIdenticalTo(message2))
+
+			Expect(pq.Len()).To(
+				Equal(2),
+				"PopBack() did not modify the size of the queue",
+			)
 		})
 
 		It("returns false if the queue is empty", func() {
-			pq.Push(message0)
-
 			_, ok := pq.PopBack()
-			Expect(ok).To(BeTrue())
-
-			_, ok = pq.PopBack()
 			Expect(ok).To(BeFalse())
 		})
 	})
