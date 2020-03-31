@@ -37,6 +37,13 @@ var _ = Describe("type pqueue()", func() {
 			pq.Push(message0)
 			Expect(pq.Len()).To(Equal(1))
 		})
+
+		It("returns true if the new message has the highest priority", func() {
+			pq.Push(message1)
+
+			Expect(pq.Push(message2)).To(BeFalse())
+			Expect(pq.Push(message0)).To(BeTrue())
+		})
 	})
 
 	Describe("func PeekFront()", func() {

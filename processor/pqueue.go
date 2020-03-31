@@ -21,7 +21,9 @@ func (q *pqueue) Len() int {
 }
 
 // Push adds a message to the queue.
-func (q *pqueue) Push(m *queue.Message) {
+//
+// It returns true if m has become the highest priority message.
+func (q *pqueue) Push(m *queue.Message) bool {
 	n := q.min.Len()
 	i := &item{
 		message: m,
@@ -31,6 +33,8 @@ func (q *pqueue) Push(m *queue.Message) {
 
 	heap.Push(&q.min, i)
 	heap.Push(&q.max, i)
+
+	return i.min == 0
 }
 
 // PeekFront returns the message with the highest priority without removing it
