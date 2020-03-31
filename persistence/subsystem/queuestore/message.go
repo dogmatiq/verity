@@ -1,4 +1,4 @@
-package queue
+package queuestore
 
 import (
 	"time"

@@ -1,4 +1,4 @@
-package queue
+package queuestore
 
 import (
 	"context"
@@ -10,10 +10,10 @@ import (
 // Transaction defines the primitive persistence operations for manipulating the
 // message queue.
 type Transaction interface {
-	// AddMessageToQueue add a message to the application's message queue.
+	// SaveMessageToQueue persists a message to the application's message queue.
 	//
 	// n indicates when the next attempt at handling the message is to be made.
-	AddMessageToQueue(
+	SaveMessageToQueue(
 		ctx context.Context,
 		env *envelopespec.Envelope,
 		n time.Time,

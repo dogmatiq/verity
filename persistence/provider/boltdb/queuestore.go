@@ -8,15 +8,15 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
 
-// AddMessageToQueue add a message to the application's message queue.
+// SaveMessageToQueue persists a message to the application's message queue.
 //
 // n indicates when the next attempt at handling the message is to be made.
-func (t *transaction) AddMessageToQueue(
+func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
 	env *envelopespec.Envelope,
 	n time.Time,
@@ -66,7 +66,7 @@ func (t *transaction) AddMessageToQueue(
 // remains on the queue and ok is false.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
-	m *queue.Message,
+	m *queuestore.Message,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
@@ -81,26 +81,26 @@ func (t *transaction) RemoveMessageFromQueue(
 // updated and ok is false.
 func (t *transaction) UpdateQueueMessage(
 	ctx context.Context,
-	m *queue.Message,
+	m *queuestore.Message,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
 
-// queueRepository is an implementation of queue.Repository that stores queued
-// messages in a BoltDB database.
-type queueRepository struct {
+// queueStoreRepository is an implementation of queuestore.Repository that
+// stores queued messages in a BoltDB database.
+type queueStoreRepository struct {
 	db     *database
 	appKey []byte
 }
 
 // LoadQueueMessages loads the next n messages from the queue.
-func (r *queueRepository) LoadQueueMessages(
+func (r *queueStoreRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) (_ []*queue.Message, err error) {
+) (_ []*queuestore.Message, err error) {
 	defer bboltx.Recover(&err)
 
-	var result []*queue.Message
+	var result []*queuestore.Message
 
 	// Execute a read-only transaction.
 	r.db.View(
@@ -158,22 +158,22 @@ var (
 
 // unmarshalQueueMessage unmarshals a queue message from its binary
 // representation.
-func unmarshalQueueMessage(data []byte) *queue.Message {
+func unmarshalQueueMessage(data []byte) *queuestore.Message {
 	var m pb.QueueMessage
 	bboltx.Must(proto.Unmarshal(data, &m))
 
 	next, err := time.Parse(time.RFC3339Nano, m.NextAttemptAt)
 	bboltx.Must(err)
 
-	return &queue.Message{
-		Revision:      queue.Revision(m.Revision),
+	return &queuestore.Message{
+		Revision:      queuestore.Revision(m.Revision),
 		NextAttemptAt: next,
 		Envelope:      m.Envelope,
 	}
 }
 
 // marshalEnvelopeAsQueueMessage marshals an envelope to its binary
-// representation as a queue.Message.
+// representation as a queuestore.Message.
 func marshalEnvelopeAsQueueMessage(
 	env *envelopespec.Envelope,
 	n time.Time,

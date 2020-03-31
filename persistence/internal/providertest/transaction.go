@@ -60,9 +60,9 @@ func declareTransactionTests(
 				})
 			})
 
-			ginkgo.Describe("func AddMessageToQueue()", func() {
+			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.AddMessageToQueue(*ctx, nil, time.Now())
+					err := transaction.SaveMessageToQueue(*ctx, nil, time.Now())
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
@@ -95,9 +95,9 @@ func declareTransactionTests(
 				})
 			})
 
-			ginkgo.Describe("func AddMessageToQueue()", func() {
+			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.AddMessageToQueue(*ctx, nil, time.Now())
+					err := transaction.SaveMessageToQueue(*ctx, nil, time.Now())
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})

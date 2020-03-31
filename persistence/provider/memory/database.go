@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/internal/x/syncx"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // database encapsulates a single application's data.
@@ -15,8 +15,8 @@ type database struct {
 	open   uint32 // atomic
 	events []*eventstore.Event
 	queue  struct {
-		order []*queue.Message
-		uniq  map[string]*queue.Message
+		order []*queuestore.Message
+		uniq  map[string]*queuestore.Message
 	}
 }
 

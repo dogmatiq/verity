@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // saveEvent persists an events to the store.
@@ -77,8 +77,8 @@ func queryEvents(
 	}
 }
 
-// addMessageToQueue persists the given message to the queue.
-func addMessageToQueue(
+// saveMessageToQueue persists the given message to the queue.
+func saveMessageToQueue(
 	ctx context.Context,
 	ds persistence.DataStore,
 	env *envelopespec.Envelope,
@@ -88,7 +88,7 @@ func addMessageToQueue(
 		ctx,
 		ds,
 		func(tx persistence.Transaction) error {
-			return tx.AddMessageToQueue(ctx, env, t)
+			return tx.SaveMessageToQueue(ctx, env, t)
 		},
 	)
 }
@@ -96,8 +96,8 @@ func addMessageToQueue(
 // loadQueueMessage loads the next message from the queue.
 func loadQueueMessage(
 	ctx context.Context,
-	r queue.Repository,
-) (*queue.Message, error) {
+	r queuestore.Repository,
+) (*queuestore.Message, error) {
 	messages, err := r.LoadQueueMessages(ctx, 1)
 	if err != nil {
 		return nil, err

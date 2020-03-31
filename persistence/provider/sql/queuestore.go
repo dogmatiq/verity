@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // queueDriver is the subset of the Driver interface that is concerned with the
@@ -34,14 +34,14 @@ type queueDriver interface {
 	// SelectQueueMessages().
 	ScanQueueMessage(
 		rows *sql.Rows,
-		m *queue.Message,
+		m *queuestore.Message,
 	) error
 }
 
-// AddMessageToQueue add a message to the application's message queue.
+// SaveMessageToQueue persists a message to the application's message queue.
 //
 // n indicates when the next attempt at handling the message is to be made.
-func (t *transaction) AddMessageToQueue(
+func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
 	env *envelopespec.Envelope,
 	n time.Time,
@@ -67,7 +67,7 @@ func (t *transaction) AddMessageToQueue(
 // remains on the queue and ok is false.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
-	m *queue.Message,
+	m *queuestore.Message,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
@@ -82,34 +82,34 @@ func (t *transaction) RemoveMessageFromQueue(
 // updated and ok is false.
 func (t *transaction) UpdateQueueMessage(
 	ctx context.Context,
-	m *queue.Message,
+	m *queuestore.Message,
 ) (ok bool, err error) {
 	return false, errors.New("not implemented")
 }
 
-// queueRepository is an implementation of queue.Repository that stores queued
-// messages in an SQL database.
-type queueRepository struct {
+// queueStoreRepository is an implementation of queuestore.Repository that
+// stores queued messages in an SQL database.
+type queueStoreRepository struct {
 	db     *sql.DB
 	driver Driver
 	appKey string
 }
 
 // LoadQueueMessages loads the next n messages from the queue.
-func (r *queueRepository) LoadQueueMessages(
+func (r *queueStoreRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) ([]*queue.Message, error) {
+) ([]*queuestore.Message, error) {
 	rows, err := r.driver.SelectQueueMessages(ctx, r.db, r.appKey, n)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	result := make([]*queue.Message, 0, n)
+	result := make([]*queuestore.Message, 0, n)
 
 	for rows.Next() {
-		m := &queue.Message{
+		m := &queuestore.Message{
 			Envelope: &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
 					Source: &envelopespec.Source{

@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // InsertQueueMessage saves a messages to the queue.
@@ -100,7 +100,7 @@ func (driver) SelectQueueMessages(
 // SelectQueueMessages().
 func (driver) ScanQueueMessage(
 	rows *sql.Rows,
-	m *queue.Message,
+	m *queuestore.Message,
 ) error {
 	return rows.Scan(
 		&m.Revision,

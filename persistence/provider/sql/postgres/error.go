@@ -8,7 +8,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/lib/pq"
 )
 
@@ -164,7 +164,7 @@ func (d errorConverter) SelectQueueMessages(
 
 func (d errorConverter) ScanQueueMessage(
 	rows *sql.Rows,
-	m *queue.Message,
+	m *queuestore.Message,
 ) error {
 	return d.d.ScanQueueMessage(rows, m)
 }

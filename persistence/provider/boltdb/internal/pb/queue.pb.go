@@ -21,7 +21,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// QueueMessage is a protocol buffers representation of an Infix queue.Message.
+// QueueMessage is a protocol buffers representation of a queuestore.Message.
 type QueueMessage struct {
 	Revision             uint64                 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
 	NextAttemptAt        string                 `protobuf:"bytes,2,opt,name=next_attempt_at,json=nextAttemptAt,proto3" json:"next_attempt_at,omitempty"`

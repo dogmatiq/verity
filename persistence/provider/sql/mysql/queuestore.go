@@ -1,4 +1,4 @@
-package postgres
+package mysql
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/subsystem/queue"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // InsertQueueMessage saves a messages to the queue.
@@ -20,28 +20,29 @@ func (driver) InsertQueueMessage(
 ) (err error) {
 	defer sqlx.Recover(&err)
 
+	// Note: ON DUPLICATE KEY UPDATE is used because INSERT IGNORE ignores
+	// more than just key conflicts.
 	sqlx.Exec(
 		ctx,
 		tx,
-		`INSERT INTO infix.queue (
-				app_key,
-				next_attempt_at,
-				message_id,
-				causation_id,
-				correlation_id,
-				source_app_name,
-				source_app_key,
-				source_handler_name,
-				source_handler_key,
-				source_instance_id,
-				created_at,
-				scheduled_for,
-				portable_name,
-				media_type,
-				data
-			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-			) ON CONFLICT (app_key, message_id) DO NOTHING`,
+		`INSERT INTO queue SET
+				app_key = ?,
+				next_attempt_at = ?,
+				message_id = ?,
+				causation_id = ?,
+				correlation_id = ?,
+				source_app_name = ?,
+				source_app_key = ?,
+				source_handler_name = ?,
+				source_handler_key = ?,
+				source_instance_id = ?,
+				created_at = ?,
+				scheduled_for = ?,
+				portable_name = ?,
+				media_type = ?,
+				data = ?
+			ON DUPLICATE KEY UPDATE
+				app_key = VALUES(app_key)`,
 		ak,
 		n,
 		env.MetaData.MessageId,
@@ -87,10 +88,10 @@ func (driver) SelectQueueMessages(
 			q.portable_name,
 			q.media_type,
 			q.data
-		FROM infix.queue AS q
-		WHERE q.app_key = $1
+		FROM queue AS q
+		WHERE q.app_key = ?
 		ORDER BY q.next_attempt_at
-		LIMIT $2`,
+		LIMIT ?`,
 		ak,
 		n,
 	)
@@ -100,11 +101,13 @@ func (driver) SelectQueueMessages(
 // SelectQueueMessages().
 func (driver) ScanQueueMessage(
 	rows *sql.Rows,
-	m *queue.Message,
+	m *queuestore.Message,
 ) error {
-	return rows.Scan(
+	var next string
+
+	err := rows.Scan(
 		&m.Revision,
-		&m.NextAttemptAt,
+		&next,
 		&m.Envelope.MetaData.MessageId,
 		&m.Envelope.MetaData.CausationId,
 		&m.Envelope.MetaData.CorrelationId,
@@ -119,4 +122,11 @@ func (driver) ScanQueueMessage(
 		&m.Envelope.MediaType,
 		&m.Envelope.Data,
 	)
+	if err != nil {
+		return err
+	}
+
+	m.NextAttemptAt, err = time.Parse(timeLayout, next)
+
+	return nil
 }

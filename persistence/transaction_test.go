@@ -46,12 +46,12 @@ var _ = Describe("func WithTransaction", func() {
 			ctx,
 			dataStore,
 			func(tx Transaction) error {
-				return tx.AddMessageToQueue(ctx, env, time.Now())
+				return tx.SaveMessageToQueue(ctx, env, time.Now())
 			},
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		messages, err := dataStore.QueueRepository().LoadQueueMessages(ctx, 1)
+		messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(messages).NotTo(BeEmpty())
 	})
@@ -63,7 +63,7 @@ var _ = Describe("func WithTransaction", func() {
 			ctx,
 			dataStore,
 			func(tx Transaction) error {
-				err := tx.AddMessageToQueue(ctx, env, time.Now())
+				err := tx.SaveMessageToQueue(ctx, env, time.Now())
 				Expect(err).ShouldNot(HaveOccurred())
 
 				return errors.New("<error>")
@@ -71,7 +71,7 @@ var _ = Describe("func WithTransaction", func() {
 		)
 		Expect(err).To(MatchError("<error>"))
 
-		messages, err := dataStore.QueueRepository().LoadQueueMessages(ctx, 1)
+		messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(messages).To(BeEmpty())
 	})
