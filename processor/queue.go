@@ -147,7 +147,7 @@ func (q *Queue) load(ctx context.Context) error {
 	}
 
 	for _, m := range messages {
-		q.pq.Push(m)
+		q.push(m)
 	}
 
 	// If we didn't get back as many message as we asked for, we know that
