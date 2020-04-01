@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/semaphore"
+	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 )
 
@@ -25,7 +26,7 @@ type Handler interface {
 	HandleEvent(ctx context.Context, o Offset, ev *Event) error
 }
 
-// Consumer handles events consumed from an event stream.
+// Consumer reads events from a stream in order to handle them.
 type Consumer struct {
 	// Stream is the event stream to consume.
 	Stream Stream
@@ -70,12 +71,16 @@ func (c *Consumer) Run(ctx context.Context) error {
 			return ctx.Err()
 		}
 
-		logging.LogString(
+		delay := c.backoff.Fail(err)
+
+		logging.Log(
 			c.Logger,
-			err.Error(),
+			"delaying next attempt for %s: %s",
+			delay,
+			err,
 		)
 
-		if err := c.backoff.Sleep(ctx, err); err != nil {
+		if err := linger.Sleep(ctx, delay); err != nil {
 			return err
 		}
 	}
