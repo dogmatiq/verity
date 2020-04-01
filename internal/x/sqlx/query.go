@@ -53,3 +53,15 @@ func QueryBool(
 	QueryInto(ctx, db, &v, query, args...)
 	return v
 }
+
+// Scan scans values from a row or row-set.
+func Scan(rows Scanner, targets ...interface{}) {
+	Must(rows.Scan(targets...))
+}
+
+// ScanInt64 scans a single int64 alue from a row or row-set.
+func ScanInt64(rows Scanner) int64 {
+	var v int64
+	Scan(rows, &v)
+	return v
+}

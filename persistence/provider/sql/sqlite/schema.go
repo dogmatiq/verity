@@ -95,7 +95,8 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event_filter (
-			app_key VARBINARY(255) NOT NULL UNIQUE
+			id      INTEGER PRIMARY KEY,
+			app_key VARBINARY(255) NOT NULL
 		)`,
 	)
 
@@ -103,7 +104,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE event_filter_name (
-			filter_id     INTEGER NOT NULL REFERENCES event_filter (rowid) ON DELETE CASCADE,
+			filter_id     INTEGER NOT NULL,
 			portable_name TEXT NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)

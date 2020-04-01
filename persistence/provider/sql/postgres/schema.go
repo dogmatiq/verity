@@ -88,7 +88,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE infix.event_filter (
 			id        SERIAL NOT NULL PRIMARY KEY,
-			app_key   TEXT NOT NULL UNIQUE
+			app_key   TEXT NOT NULL
 		)`,
 	)
 

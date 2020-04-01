@@ -139,14 +139,29 @@ func (driver) DeleteEventFilter(
 	ctx context.Context,
 	db *sql.DB,
 	f int64,
-) error {
-	_, err := db.ExecContext(
+) (err error) {
+	defer sqlx.Recover(&err)
+
+	tx := sqlx.Begin(ctx, db)
+	defer tx.Rollback()
+
+	sqlx.Exec(
 		ctx,
+		tx,
 		`DELETE FROM event_filter
-		WHERE rowid = $1`,
+		WHERE id = $1`,
 		f,
 	)
-	return err
+
+	sqlx.Exec(
+		ctx,
+		tx,
+		`DELETE FROM event_filter_name
+		WHERE filter_id = $1`,
+		f,
+	)
+
+	return tx.Commit()
 }
 
 // PurgeEventFilters deletes all event filters for the given application.
@@ -154,14 +169,31 @@ func (driver) PurgeEventFilters(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) error {
-	_, err := db.ExecContext(
+) (err error) {
+	tx := sqlx.Begin(ctx, db)
+	defer tx.Rollback()
+
+	sqlx.Exec(
 		ctx,
+		tx,
+		`DELETE FROM event_filter_name
+		WHERE filter_id IN (
+			SELECT id
+			FROM event_filter
+			WHERE app_key = $1
+		)`,
+		ak,
+	)
+
+	sqlx.Exec(
+		ctx,
+		tx,
 		`DELETE FROM event_filter
 		WHERE app_key = $1`,
 		ak,
 	)
-	return err
+
+	return tx.Commit()
 }
 
 // SelectEvents selects events from the eventstore that match the given query.

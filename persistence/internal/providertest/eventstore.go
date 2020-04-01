@@ -3,6 +3,7 @@ package providertest
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -329,6 +330,44 @@ func declareEventStoreTests(
 						event0, event2,
 					),
 				)
+
+				ginkgo.It("allows concurrent filtered consumers for the same application", func() {
+					err := saveEvents(
+						*ctx,
+						dataStore,
+						env0,
+						env1,
+						env2,
+						env3,
+						env4,
+						env5,
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					q := eventstore.Query{
+						Filter: eventstore.NewFilter(
+							marshalfixtures.MessageAPortableName,
+						),
+					}
+
+					var g sync.WaitGroup
+
+					fn := func() {
+						defer g.Done()
+						defer ginkgo.GinkgoRecover()
+						events, err := queryEvents(*ctx, repository, q)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(events).To(gomega.HaveLen(2))
+					}
+
+					g.Add(3)
+
+					go fn()
+					go fn()
+					go fn()
+
+					g.Wait()
+				})
 
 				ginkgo.It("does not return an error if events exist beyond the end offset", func() {
 					ginkgo.By("querying the events")
