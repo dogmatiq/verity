@@ -1,3 +1,5 @@
+// Package main executes a modified version of dogmatiq/example with handlers
+// split into 3 separate applications.
 package main
 
 import (
@@ -14,7 +16,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix"
-	"github.com/dogmatiq/infix/cmd/bank/apps"
+	"github.com/dogmatiq/infix/cmd/bank-split/apps"
 	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
 	"github.com/dogmatiq/infix/persistence/provider/sql/postgres"
