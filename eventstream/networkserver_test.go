@@ -215,7 +215,7 @@ var _ = Describe("type server", func() {
 			Expect(s.Code()).To(Equal(codes.InvalidArgument))
 		})
 
-		It("returns an INVALID_ARGUMENT error if the message type collection contains unrecognised messages", func() {
+		It("returns an INVALID_ARGUMENT error if the message type collection contains unrecognized messages", func() {
 			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"<unknown-1>", "<unknown-2>"},

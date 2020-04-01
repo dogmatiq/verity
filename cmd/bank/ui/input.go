@@ -76,7 +76,7 @@ func (ui *UI) askTextRaw() string {
 			ui.println("   /help  display a help message")
 			ui.println("")
 		default:
-			ui.println("     unrecognised command, try /help")
+			ui.println("     unrecognized command, try /help")
 			ui.println("")
 		}
 	}
@@ -124,7 +124,7 @@ func (ui *UI) askMenu(items ...item) (state, error) {
 				ui.println("")
 				ui.println(options)
 			} else {
-				ui.println("     unrecognised option, try ? and /help")
+				ui.println("     unrecognized option, try ? and /help")
 				ui.println("")
 			}
 		}
