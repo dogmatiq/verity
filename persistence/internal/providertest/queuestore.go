@@ -140,6 +140,28 @@ func declareQueueTests(
 					)
 				})
 
+				ginkgo.It("saves messages that were not created by a handler", func() {
+					env := infixfixtures.NewEnvelopeProto(
+						env0.MetaData.MessageId,
+						dogmafixtures.MessageX1,
+					)
+
+					env.MetaData.Source.Handler = nil
+					env.MetaData.Source.InstanceId = ""
+
+					err := saveMessageToQueue(
+						*ctx,
+						dataStore,
+						env,
+						time.Now(),
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					messages, err := repository.LoadQueueMessages(*ctx, 2)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(messages).To(gomega.HaveLen(1))
+				})
+
 				ginkgo.It("serializes operations from competing transactions", func() {
 					ginkgo.By("running several transactions in parallel")
 
