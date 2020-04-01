@@ -13,9 +13,9 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// EventStoreStream is an implementation of Stream that reads events from a
+// PersistedStream is an implementation of Stream that reads events from a
 // eventstore.Repository.
-type EventStoreStream struct {
+type PersistedStream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity
 
@@ -33,12 +33,12 @@ type EventStoreStream struct {
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *EventStoreStream) Application() configkit.Identity {
+func (s *PersistedStream) Application() configkit.Identity {
 	return s.App
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *EventStoreStream) EventTypes(context.Context) (message.TypeCollection, error) {
+func (s *PersistedStream) EventTypes(context.Context) (message.TypeCollection, error) {
 	return s.Types, nil
 }
 
@@ -52,7 +52,7 @@ func (s *EventStoreStream) EventTypes(context.Context) (message.TypeCollection, 
 //
 // It returns an error if any of the event types in f are not supported, as
 // indicated by EventTypes().
-func (s *EventStoreStream) Open(
+func (s *PersistedStream) Open(
 	ctx context.Context,
 	o Offset,
 	f message.TypeCollection,
@@ -82,7 +82,7 @@ func (s *EventStoreStream) Open(
 
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
-	c := &eventStoreCursor{
+	c := &persistedCursor{
 		repository: s.Repository,
 		query:      q,
 		marshaler:  s.Marshaler,
@@ -95,8 +95,8 @@ func (s *EventStoreStream) Open(
 	return c, nil
 }
 
-// eventStoreCursor is a Cursor that reads events from an EventStoreStream.
-type eventStoreCursor struct {
+// persistedCursor is a Cursor that reads events from an PersistedStream.
+type persistedCursor struct {
 	repository eventstore.Repository
 	query      eventstore.Query
 	marshaler  marshalkit.ValueMarshaler
@@ -113,7 +113,7 @@ type eventStoreCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *eventStoreCursor) Next(ctx context.Context) (*Event, error) {
+func (c *persistedCursor) Next(ctx context.Context) (*Event, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -130,7 +130,7 @@ func (c *eventStoreCursor) Next(ctx context.Context) (*Event, error) {
 //
 // It returns ErrCursorClosed if the cursor is already closed.
 // Any current or future calls to Next() return ErrCursorClosed.
-func (c *eventStoreCursor) Close() error {
+func (c *persistedCursor) Close() error {
 	if !c.close(ErrCursorClosed) {
 		return ErrCursorClosed
 	}
@@ -139,7 +139,7 @@ func (c *eventStoreCursor) Close() error {
 }
 
 // close closes the cursor. It returns false if the cursor was already closed.
-func (c *eventStoreCursor) close(cause error) bool {
+func (c *persistedCursor) close(cause error) bool {
 	ok := false
 
 	c.once.Do(func() {
@@ -156,7 +156,7 @@ func (c *eventStoreCursor) close(cause error) bool {
 //
 // It exits when the ctx is canceled or some other error occurs while reading
 // from the underlying cursor.
-func (c *eventStoreCursor) consume(ctx context.Context) {
+func (c *persistedCursor) consume(ctx context.Context) {
 	defer close(c.events)
 
 	for {
@@ -171,7 +171,7 @@ func (c *eventStoreCursor) consume(ctx context.Context) {
 
 // execQuery executes a query against the event store to obtain the next batch
 // of events.
-func (c *eventStoreCursor) execQuery(ctx context.Context) error {
+func (c *persistedCursor) execQuery(ctx context.Context) error {
 	res, err := c.repository.QueryEvents(ctx, c.query)
 	if err != nil {
 		return err

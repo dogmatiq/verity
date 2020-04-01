@@ -71,7 +71,7 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 
 		// TODO: https://github.com/dogmatiq/infix/issues/76
 		// Make pre-fetch buffer size configurable.
-		streams[cfg.Identity().Key] = &eventstream.EventStoreStream{
+		streams[cfg.Identity().Key] = &eventstream.PersistedStream{
 			App:        cfg.Identity(),
 			Types:      cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
 			Repository: ds.EventStoreRepository(),

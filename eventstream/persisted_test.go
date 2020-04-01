@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type EventStoreStream", func() {
+var _ = Describe("type PersistedStream", func() {
 	var dataStore persistence.DataStore
 
 	streamtest.Declare(
@@ -23,7 +23,7 @@ var _ = Describe("type EventStoreStream", func() {
 			dataStore, err = provider.Open(ctx, in.Application.Identity().Key)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			stream := &EventStoreStream{
+			stream := &PersistedStream{
 				App:        in.Application.Identity(),
 				Types:      in.EventTypes,
 				Repository: dataStore.EventStoreRepository(),

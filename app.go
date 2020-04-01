@@ -33,7 +33,7 @@ func (e *Engine) runApplication(
 		cfg,
 		// TODO: https://github.com/dogmatiq/infix/issues/76
 		// Make pre-fetch buffer size configurable.
-		&eventstream.EventStoreStream{
+		&eventstream.PersistedStream{
 			App:        cfg.Identity(),
 			Types:      cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
 			Repository: ds.EventStoreRepository(),
