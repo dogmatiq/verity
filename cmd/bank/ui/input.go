@@ -31,9 +31,8 @@ func (ui *UI) printPrompt() bool {
 
 func (ui *UI) askText(prompt string) (string, bool) {
 	ui.println("   %s (enter = cancel)", prompt)
-	ui.printPrompt()
 
-	v := ui.read()
+	v := ui.askTextRaw()
 	ui.println("")
 
 	return v, v != ""
@@ -41,9 +40,8 @@ func (ui *UI) askText(prompt string) (string, bool) {
 
 func (ui *UI) askTextWithDefault(prompt, def string) string {
 	ui.println("   %s (enter = %#v)", prompt, def)
-	ui.printPrompt()
 
-	v := ui.read()
+	v := ui.askTextRaw()
 	ui.println("")
 
 	if v == "" {
@@ -53,6 +51,37 @@ func (ui *UI) askTextWithDefault(prompt, def string) string {
 	return v
 }
 
+func (ui *UI) askTextRaw() string {
+	for {
+		ui.printPrompt()
+		v := ui.read()
+
+		if v == "" {
+			return ""
+		}
+
+		if v[0] != '/' {
+			return v
+		}
+
+		switch v {
+		case "/quit":
+			ui.quit()
+		case "/log":
+			ui.flushLog()
+		case "/help":
+			ui.println("")
+			ui.println("   /log   display infix log messages")
+			ui.println("   /quit  exit immediately")
+			ui.println("   /help  display a help message")
+			ui.println("")
+		default:
+			ui.println("     unrecognised command, try /help")
+			ui.println("")
+		}
+	}
+}
+
 type item struct {
 	key  interface{}
 	desc string
@@ -60,7 +89,6 @@ type item struct {
 }
 
 func (ui *UI) askMenu(items ...item) (state, error) {
-	items = append(items, item{"q", "quit", nil})
 	states := map[string]state{}
 
 	var options string
@@ -77,9 +105,7 @@ func (ui *UI) askMenu(items ...item) (state, error) {
 		ui.println(options)
 
 		for {
-			ui.printPrompt()
-
-			v := ui.read()
+			v := ui.askTextRaw()
 
 			if v == "" {
 				if ui.flushLog() {
@@ -89,18 +115,18 @@ func (ui *UI) askMenu(items ...item) (state, error) {
 				continue
 			}
 
-			if v == "?" {
-				ui.println("")
-				ui.println(options)
-				continue
-			}
-
 			if s, ok := states[v]; ok {
 				ui.println("")
 				return s, nil
 			}
 
-			ui.println("     unrecognised option (%s), use ? to see the valid options", v)
+			if v == "?" {
+				ui.println("")
+				ui.println(options)
+			} else {
+				ui.println("     unrecognised option, try ? and /help")
+				ui.println("")
+			}
 		}
 	}
 }

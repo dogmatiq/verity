@@ -24,6 +24,13 @@ type UI struct {
 
 // Run starts the UI.
 func (ui *UI) Run(ctx context.Context) error {
+	defer func() {
+		r := recover()
+		if r != "quit" && r != nil {
+			panic(r)
+		}
+	}()
+
 	ui.println("")
 
 	var err error
@@ -34,6 +41,10 @@ func (ui *UI) Run(ctx context.Context) error {
 	}
 
 	return err
+}
+
+func (ui *UI) quit() {
+	panic("quit")
 }
 
 func (ui *UI) execute(ctx context.Context, m dogma.Message) {
@@ -47,6 +58,7 @@ func (ui *UI) main(ctx context.Context) (state, error) {
 
 	return ui.askMenu(
 		item{"n", "open an account for a new customer", ui.openAccountForNewCustomer},
+		item{"q", "quit", nil},
 	)
 }
 
