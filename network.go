@@ -98,17 +98,17 @@ func (e *Engine) discover(ctx context.Context) error {
 			logger,
 			&discovery.ApplicationExecutor{
 				Task: func(ctx context.Context, a *discovery.Application) {
-					// TODO: https://github.com/dogmatiq/infix/issues/76
-					// Make pre-fetch buffer size configurable.
 					stream := &eventstream.NetworkStream{
 						App:       a.Identity(),
 						Client:    messagingspec.NewEventStreamClient(a.Client.Connection),
 						Marshaler: e.opts.Marshaler,
-						PreFetch:  10,
+						// TODO: https://github.com/dogmatiq/infix/issues/76
+						// Make pre-fetch buffer size configurable.
+						PreFetch: 10,
 					}
 
 					// err will only ever be context-cancelation
-					_ = e.streamEvents(ctx, a, stream)
+					_ = e.consumeStream(ctx, stream)
 				},
 			},
 		),
