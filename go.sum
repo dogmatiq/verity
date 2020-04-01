@@ -10,8 +10,6 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/dogmatiq/configkit v0.2.0/go.mod h1:86SjxjPQaHBYQMqj/DcRj1Dcpn7Mp/0JGDhvhyC/KAI=
 github.com/dogmatiq/configkit v0.3.0 h1:DHEhga+cVgGBaNuAKNk1yZMuFsGTkIK+WRLn2B43/mg=
 github.com/dogmatiq/configkit v0.3.0/go.mod h1:rdU30Lpfc1IbHja7fVd7vBdMshLXDTBrtiZA8dq0rn0=
-github.com/dogmatiq/configkit v0.7.1 h1:Qe1/FiPyx0J4pCRH+jQiRRaWuJfd0b9EY4o3K60gtP8=
-github.com/dogmatiq/configkit v0.7.1/go.mod h1:5PjrZ1G2OByNzuSzSIks/Q9jFu8LNx1zC5Q6emSQEuc=
 github.com/dogmatiq/configkit v0.7.2 h1:8CNsybxJL94k3BCHf+xtrmvsX5IaqcAzBRQt4+yqiGY=
 github.com/dogmatiq/configkit v0.7.2/go.mod h1:W0N9v/EfQBqQ80tbv6cV+qIsqQqk9i1hcAYnrysBB/8=
 github.com/dogmatiq/dapper v0.3.5 h1:F4bCCc8KKv/USNzYa22BeelzJEhLVbVhg3/vAk+xEL4=
@@ -21,13 +19,11 @@ github.com/dogmatiq/dodeca v0.2.1/go.mod h1:YjUCbfmgl08gQ4QPNA0Dp9f+ge6kImQ7PgVM
 github.com/dogmatiq/dogma v0.6.2/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/dogma v0.6.3 h1:owkM3lOFmLmwaFpYogO46taVuPJU5sF5YApICZr4ljk=
 github.com/dogmatiq/dogma v0.6.3/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
-github.com/dogmatiq/example v0.0.0-20200320000902-082c6729b73b h1:WarB94kAv6tDA2aIY3w9195yOWIOhYfVWAydfVuEZ4o=
-github.com/dogmatiq/example v0.0.0-20200320000902-082c6729b73b/go.mod h1:hfnMxPKY8DlU1Davr9lQvzFhfad7xeZj+bj8rkdPakQ=
+github.com/dogmatiq/example v0.0.0-20200401013300-d9451ee452b6 h1:uPNSPLOuU2AFBZbU6NL3Tli+fIVvI68OU8qgYN7F3AU=
+github.com/dogmatiq/example v0.0.0-20200401013300-d9451ee452b6/go.mod h1:bSHywH//+pdJVpBVFt0hKMwm71i0djq1TEo9GYRRKNI=
 github.com/dogmatiq/graphkit v0.4.0/go.mod h1:ZTMym1P/z6anjOPWlZm6t5WxkGOig3CiX3gn8s1g5yM=
 github.com/dogmatiq/iago v0.4.0 h1:57nZqVT34IZxtCZEW/RFif7DNUEjMXgevfr/Mmd0N8I=
 github.com/dogmatiq/iago v0.4.0/go.mod h1:fishMWBtzYcjgis6d873VTv9kFm/wHYLOzOyO9ECBDc=
-github.com/dogmatiq/linger v0.2.0 h1:WwpFy+0kwL0DNVFPx9tUuWxl2yZIALE5oFsjy8aWnKM=
-github.com/dogmatiq/linger v0.2.0/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
 github.com/dogmatiq/linger v0.2.1 h1:ecVwiFlTcQuQ7ygQXH5bUPkWNve8n5BmVnCYMGMQ3zc=
 github.com/dogmatiq/linger v0.2.1/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
 github.com/dogmatiq/marshalkit v0.2.2 h1:FpF0bRTwq10fOt9Ab1qTr5KUR+OuYxj3YhvX1Aswi1k=
