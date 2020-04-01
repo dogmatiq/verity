@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/configkit"
 	configapi "github.com/dogmatiq/configkit/api"
 	"github.com/dogmatiq/configkit/api/discovery"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream"
@@ -62,22 +61,8 @@ func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error
 func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) error {
 	streams := map[string]eventstream.Stream{}
 
-	// Create a map of application-key to stream for each hosted application.
-	for _, cfg := range e.opts.AppConfigs {
-		ds, err := e.dataStores.Get(ctx, cfg.Identity().Key)
-		if err != nil {
-			return err
-		}
-
-		// TODO: https://github.com/dogmatiq/infix/issues/76
-		// Make pre-fetch buffer size configurable.
-		streams[cfg.Identity().Key] = &eventstream.PersistedStream{
-			App:        cfg.Identity(),
-			Types:      cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
-			Repository: ds.EventStoreRepository(),
-			Marshaler:  e.opts.Marshaler,
-			PreFetch:   10,
-		}
+	for k, a := range e.appsByKey {
+		streams[k] = a.Stream
 	}
 
 	eventstream.RegisterServer(
