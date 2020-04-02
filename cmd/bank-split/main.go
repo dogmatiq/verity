@@ -15,11 +15,12 @@ import (
 	"github.com/dogmatiq/configkit/api/discovery/static"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/example/database"
 	"github.com/dogmatiq/infix"
 	"github.com/dogmatiq/infix/cmd/bank-split/apps"
-	"github.com/dogmatiq/infix/internal/testing/sqltest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
-	"github.com/dogmatiq/infix/persistence/provider/sql/postgres"
+	infixsqlite "github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
+	"github.com/dogmatiq/projectionkit/sql/sqlite"
 	"google.golang.org/grpc"
 )
 
@@ -60,11 +61,25 @@ func run(ctx context.Context) error {
 	}
 	appName := os.Args[1]
 
-	db, _, close := sqltest.Open("postgres")
-	defer close()
+	db, err := sql.Open("sqlite3", "file:artifacts/bank-split.sqlite?mode=rwc")
+	if err != nil {
+		return err
+	}
+	defer db.Close()
 
-	if err := postgres.CreateSchema(ctx, db); err != nil {
-		fmt.Println(err)
+	// Create the schema for dogmatiq/infix.
+	if err := infixsqlite.CreateSchema(ctx, db); err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// Create the schema for dogmatiq/projectionkit.
+	if err := sqlite.CreateSchema(ctx, db); err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// Create the schema for dogmatiq/example.
+	if err := database.CreateSchema(ctx, db); err != nil {
+		fmt.Println(err.Error())
 	}
 
 	app, err := newApp(db, appName)
