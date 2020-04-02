@@ -2,6 +2,7 @@ package infix
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
@@ -34,7 +35,11 @@ func (e *Engine) initApp(
 
 	ds, err := e.dataStores.Get(ctx, id.Key)
 	if err != nil {
-		return err
+		return fmt.Errorf(
+			"unable to open data-store for %s: %w",
+			cfg.Identity(),
+			err,
+		)
 	}
 
 	commands := cfg.MessageTypes().Consumed.FilterByRole(message.CommandRole)

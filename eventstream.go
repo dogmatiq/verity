@@ -2,6 +2,7 @@ package infix
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
@@ -87,5 +88,14 @@ func (e *Engine) runStreamConsumerForProjection(
 		Logger:          logger,
 	}
 
-	return c.Run(ctx)
+	if err := c.Run(ctx); err != nil {
+		return fmt.Errorf(
+			"stopped consuming events from %s for %s: %w",
+			s.Application(),
+			h.Identity(),
+			err,
+		)
+	}
+
+	return nil
 }
