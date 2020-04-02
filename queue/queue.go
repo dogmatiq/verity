@@ -42,11 +42,7 @@ func (q *Queue) Enqueue(ctx context.Context, env *envelope.Envelope) error {
 		return err
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit(ctx)
 }
 
 // item is a container for a queued message that is buffered in memory.
