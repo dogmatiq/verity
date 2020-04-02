@@ -42,7 +42,7 @@ var _ = Describe("func NewDriver()", func() {
 		),
 	)
 
-	It("returns an error if the driver is unrecognised", func() {
+	It("returns an error if the driver is unrecognized", func() {
 		_, err := NewDriver(sqltest.MockDB())
 		Expect(err).Should(HaveOccurred())
 	})

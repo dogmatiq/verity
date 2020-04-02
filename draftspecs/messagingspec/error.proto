@@ -4,7 +4,7 @@ package dogma.messaging.v1;
 option go_package = "github.com/dogmatiq/infix/draftspecs/messagingspec";
 
 // UnrecognizedApplication is an error-details value for INVALID_ARGUMENT
-// errors that occurred because a specific application key was not recognised by
+// errors that occurred because a specific application key was not recognized by
 // the server.
 message UnrecognizedApplication {
   // ApplicationKey is the identity of the application that produced the error.
@@ -12,7 +12,7 @@ message UnrecognizedApplication {
 }
 
 // UnrecognizedMessage is an error-details value for INVALID_ARGUMENT errors
-// that occurred because a specific message type was not recognised by the
+// that occurred because a specific message type was not recognized by the
 // server.
 message UnrecognizedMessage {
   // Name is the name of the message type.

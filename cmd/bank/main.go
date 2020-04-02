@@ -4,22 +4,21 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/example"
-	"github.com/dogmatiq/example/cmd/bank/ui"
 	"github.com/dogmatiq/example/database"
 	"github.com/dogmatiq/infix"
-	"github.com/dogmatiq/infix/internal/testing/sqltest"
+	"github.com/dogmatiq/infix/cmd/bank/ui"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
 	infixsqlite "github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
 	"github.com/dogmatiq/projectionkit/sql/sqlite"
+	"golang.org/x/sync/errgroup"
 )
 
 // newContext returns a cancelable context that is canceled when the process
@@ -54,30 +53,35 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	db, _, close := sqltest.Open("sqlite3")
-	defer close()
-
-	// Create the schema for dogmatiq/infix.
-	if err := infixsqlite.CreateSchema(ctx, db); err != nil {
-		fmt.Println(err)
+	db, err := sql.Open("sqlite3", "file:artifacts/bank.sqlite?mode=rwc")
+	if err != nil {
+		return err
 	}
-
-	// Create the schema for dogmatiq/projectionkit.
-	if err := sqlite.CreateSchema(ctx, db); err != nil {
-		fmt.Println(err)
-	}
-
-	// Create the schema for dogmatiq/example.
-	if err := database.CreateSchema(ctx, db); err != nil {
-		fmt.Println(err)
-	}
+	defer db.Close()
 
 	app, err := example.NewApp(db)
 	if err != nil {
 		return err
 	}
 
-	go ui.Run(db, nil)
+	u := &ui.UI{
+		DB: db,
+	}
+
+	// Create the schema for dogmatiq/infix.
+	if err := infixsqlite.CreateSchema(ctx, db); err != nil {
+		u.DebugString(err.Error())
+	}
+
+	// Create the schema for dogmatiq/projectionkit.
+	if err := sqlite.CreateSchema(ctx, db); err != nil {
+		u.DebugString(err.Error())
+	}
+
+	// Create the schema for dogmatiq/example.
+	if err := database.CreateSchema(ctx, db); err != nil {
+		u.DebugString(err.Error())
+	}
 
 	e := infix.New(
 		app,
@@ -86,12 +90,24 @@ func run(ctx context.Context) error {
 				DB: db,
 			},
 		),
-		infix.WithLogger(
-			&logging.StandardLogger{
-				Target: log.New(os.Stderr, "", 0),
-			},
-		),
+		infix.WithLogger(u),
 	)
 
-	return e.Run(ctx)
+	u.Executor = e
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return e.Run(ctx)
+	})
+
+	g.Go(func() error {
+		defer cancel()
+		return u.Run(ctx)
+	})
+
+	return g.Wait()
 }

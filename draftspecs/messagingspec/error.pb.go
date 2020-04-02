@@ -21,7 +21,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // UnrecognizedApplication is an error-details value for INVALID_ARGUMENT
-// errors that occurred because a specific application key was not recognised by
+// errors that occurred because a specific application key was not recognized by
 // the server.
 type UnrecognizedApplication struct {
 	// ApplicationKey is the identity of the application that produced the error.
@@ -64,7 +64,7 @@ func (m *UnrecognizedApplication) GetApplicationKey() string {
 }
 
 // UnrecognizedMessage is an error-details value for INVALID_ARGUMENT errors
-// that occurred because a specific message type was not recognised by the
+// that occurred because a specific message type was not recognized by the
 // server.
 type UnrecognizedMessage struct {
 	// Name is the name of the message type.
