@@ -20,10 +20,12 @@ func (ui *UI) printPrompt() bool {
 	n := len(ui.log)
 	ui.m.Unlock()
 
-	if n == 0 {
-		ui.print("   > ")
-	} else {
+	if n != 0 {
 		ui.print("%2d > ", n)
+	} else if ui.ctx.Err() != nil {
+		ui.print(" ✖ > ")
+	} else {
+		ui.print("   > ")
 	}
 
 	return len(ui.log) > 0

@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 
 	"github.com/dogmatiq/example/messages/commands"
@@ -11,19 +12,22 @@ import (
 	"github.com/dogmatiq/dogma"
 )
 
-type state func(ctx context.Context) (state, error)
+type state func() (state, error)
 
 // UI manages the states of the user interface.
 type UI struct {
 	DB       *sql.DB
 	Executor dogma.CommandExecutor
 
+	ctx context.Context
 	m   sync.Mutex
 	log []string
 }
 
 // Run starts the UI.
 func (ui *UI) Run(ctx context.Context) error {
+	ui.ctx = ctx
+
 	defer func() {
 		r := recover()
 		if r != "quit" && r != nil {
@@ -37,7 +41,7 @@ func (ui *UI) Run(ctx context.Context) error {
 	st := ui.main
 
 	for st != nil && err == nil {
-		st, err = st(ctx)
+		st, err = st()
 	}
 
 	return err
@@ -47,13 +51,18 @@ func (ui *UI) quit() {
 	panic("quit")
 }
 
-func (ui *UI) execute(ctx context.Context, m dogma.Message) {
-	if err := ui.Executor.ExecuteCommand(ctx, m); err != nil {
-		ui.appendLog(err.Error())
+func (ui *UI) execute(m dogma.Message) {
+	if err := ui.Executor.ExecuteCommand(ui.ctx, m); err != nil {
+		ui.appendLog(
+			fmt.Sprintf(
+				"could not enqueue command: %s",
+				err,
+			),
+		)
 	}
 }
 
-func (ui *UI) main(ctx context.Context) (state, error) {
+func (ui *UI) main() (state, error) {
 	ui.banner("MAIN MENU")
 
 	return ui.askMenu(
@@ -62,7 +71,7 @@ func (ui *UI) main(ctx context.Context) (state, error) {
 	)
 }
 
-func (ui *UI) openAccountForNewCustomer(ctx context.Context) (state, error) {
+func (ui *UI) openAccountForNewCustomer() (state, error) {
 	ui.banner("OPEN ACCOUNT (NEW CUSTOMER)")
 
 	cname, ok := ui.askText("Customer Name")
@@ -72,7 +81,7 @@ func (ui *UI) openAccountForNewCustomer(ctx context.Context) (state, error) {
 
 	aname := ui.askTextWithDefault("Account Name", "Savings")
 
-	ui.execute(ctx, commands.OpenAccountForNewCustomer{
+	ui.execute(commands.OpenAccountForNewCustomer{
 		CustomerID:   uuid.New().String(),
 		CustomerName: cname,
 		AccountID:    uuid.New().String(),

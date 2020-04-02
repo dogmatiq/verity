@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -46,7 +45,6 @@ func main() {
 
 	if err := run(ctx); err != nil {
 		if !errors.Is(err, context.Canceled) {
-			fmt.Println(err)
 			os.Exit(1)
 		}
 	}
@@ -101,7 +99,12 @@ func run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		return e.Run(ctx)
+		if err := e.Run(ctx); err != nil {
+			u.Log("infix has stopped: %s", err)
+			return err
+		}
+
+		return nil
 	})
 
 	g.Go(func() error {
