@@ -13,8 +13,8 @@ import (
 
 // Driver is an implementation of sql.Driver for SQLite.
 var Driver = driver{
-	lockUpdateInterval: 1 * time.Second,
-	lockExpiryOffset:   3 * time.Second,
+	lockUpdateInterval: 10 * time.Second,
+	lockExpiryOffset:   5 * time.Second,
 }
 
 type driver struct {
