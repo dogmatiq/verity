@@ -90,11 +90,11 @@ func (e *Engine) run(ctx context.Context) error {
 
 	if e.opts.Network != nil {
 		g.Go(func() error {
-			return e.serve(ctx)
+			return e.runServer(ctx)
 		})
 
 		g.Go(func() error {
-			return e.discover(ctx)
+			return e.runDiscoverer(ctx)
 		})
 	}
 
@@ -107,7 +107,7 @@ func (e *Engine) run(ctx context.Context) error {
 		})
 
 		g.Go(func() error {
-			return e.consumeStream(ctx, a.Stream)
+			return e.runStreamConsumersForEachApp(ctx, a.Stream)
 		})
 	}
 

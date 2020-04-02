@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// serve starts the listener and gRPC server.
-func (e *Engine) serve(ctx context.Context) error {
+// runServer runs the listener and gRPC server.
+func (e *Engine) runServer(ctx context.Context) error {
 	server := grpc.NewServer(e.opts.Network.ServerOptions...)
 
 	if err := e.registerConfigServer(ctx, server); err != nil {
@@ -74,54 +74,27 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 	return nil
 }
 
-// discover starts the gRPC server discovery system.
-func (e *Engine) discover(ctx context.Context) error {
+// runDiscoverer runs the gRPC server discovery system.
+func (e *Engine) runDiscoverer(ctx context.Context) error {
 	logger := discoveryLogger{e.logger}
 
-	i := &discovery.Inspector{
+	inspector := &discovery.Inspector{
 		Observer: discovery.NewApplicationObserverSet(
 			logger,
-			&discovery.ApplicationExecutor{
-				Task: func(ctx context.Context, a *discovery.Application) {
-					stream := &eventstream.NetworkStream{
-						App:       a.Identity(),
-						Client:    messagingspec.NewEventStreamClient(a.Client.Connection),
-						Marshaler: e.opts.Marshaler,
-						// TODO: https://github.com/dogmatiq/infix/issues/76
-						// Make pre-fetch buffer size configurable.
-						PreFetch: 10,
-					}
-
-					// err will only ever be context-cancelation
-					_ = e.consumeStream(ctx, stream)
-				},
-			},
+			&discovery.ApplicationExecutor{Task: e.runDiscoveredApp},
 		),
-		Ignore: func(a *discovery.Application) bool {
-			for _, cfg := range e.opts.AppConfigs {
-				if cfg.Identity().ConflictsWith(a.Identity()) {
-					logging.Debug(
-						e.logger,
-						"ignoring remote %s application at %s because it conflicts with the local %s application",
-						a.Identity(),
-						a.Client.Target.Name,
-						cfg.Identity(),
-					)
-
-					return true
-				}
-			}
-
-			return false
-		},
+		Ignore: e.ignoreDiscoveredApp,
 	}
 
-	c := &discovery.Connector{
+	connector := &discovery.Connector{
 		Observer: discovery.NewClientObserverSet(
 			logger,
 			&discovery.ClientExecutor{
 				Task: func(ctx context.Context, c *discovery.Client) {
-					i.Run(ctx, c)
+					inspector.Run(ctx, c)
+
+					// TODO: why is this needed? it's probably a remnant from
+					// when logging was performed with a defer.
 					<-ctx.Done()
 				},
 			},
@@ -136,7 +109,11 @@ func (e *Engine) discover(ctx context.Context) error {
 			logger,
 			&discovery.TargetExecutor{
 				Task: func(ctx context.Context, t *discovery.Target) {
-					c.Run(ctx, t)
+					// TODO: add convenience methods to configkit for adding tasks
+					// to observer sets, including tasks that return errors. Perhaps
+					// a task-with-error could panic if the error is not
+					// context.Canceled.
+					connector.Run(ctx, t)
 				},
 			},
 		),
@@ -145,6 +122,42 @@ func (e *Engine) discover(ctx context.Context) error {
 	return fmt.Errorf("discoverer stopped: %w", err)
 }
 
+// ignoreDiscoveredApp returns true if the discovered application should be
+// ignored because it is hosted by this engine.
+func (e *Engine) ignoreDiscoveredApp(a *discovery.Application) bool {
+	if _, ok := e.appsByKey[a.Identity().Key]; !ok {
+		return false
+	}
+
+	logging.Debug(
+		e.logger,
+		"ignoring remote %s application at %s because it is hosted by this engine",
+		a.Identity(),
+		a.Client.Target.Name,
+	)
+
+	return true
+}
+
+// runDiscoveredApp runs whatever processes need to run on this engine as a
+// result of discovering a remote application.
+func (e *Engine) runDiscoveredApp(ctx context.Context, a *discovery.Application) {
+	// err will only ever be context cancelation, as
+	// stream.Consumer always retries until ctx is canceled.
+	_ = e.runStreamConsumersForEachApp(
+		ctx,
+		&eventstream.NetworkStream{
+			App:       a.Identity(),
+			Client:    messagingspec.NewEventStreamClient(a.Client.Connection),
+			Marshaler: e.opts.Marshaler,
+			// TODO: https://github.com/dogmatiq/infix/issues/76
+			// Make pre-fetch buffer size configurable.
+			PreFetch: 10,
+		},
+	)
+}
+
+// discoveryLogger logs about discovery-related events.
 type discoveryLogger struct {
 	Logger logging.Logger
 }

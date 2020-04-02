@@ -11,24 +11,27 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// consumeStream starts any consumers that need to consume from s across all
-// hosted applications.
-func (e *Engine) consumeStream(ctx context.Context, s eventstream.Stream) error {
+// runStreamConsumersForEachApp runs any consumers that need to consume from s
+// across all hosted applications.
+func (e *Engine) runStreamConsumersForEachApp(
+	ctx context.Context,
+	s eventstream.Stream,
+) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	for _, a := range e.appsByKey {
 		a := a // capture loop variable
 		g.Go(func() error {
-			return e.consumeStreamForApp(ctx, s, a.Config)
+			return e.runStreamConsumersForApp(ctx, s, a.Config)
 		})
 	}
 
 	return g.Wait()
 }
 
-// consumeStreamForApp starts any consumers that need to consume from s for a
-// specific application.
-func (e *Engine) consumeStreamForApp(
+// runStreamConsumersForApp runs any consumers that need to consume from s for
+// a specific application.
+func (e *Engine) runStreamConsumersForApp(
 	ctx context.Context,
 	s eventstream.Stream,
 	a configkit.RichApplication,
@@ -38,16 +41,15 @@ func (e *Engine) consumeStreamForApp(
 	for _, h := range a.RichHandlers().Projections() {
 		h := h // capture loop variable
 		g.Go(func() error {
-			return e.consumeStreamForProjection(ctx, s, a, h)
+			return e.runStreamConsumerForProjection(ctx, s, a, h)
 		})
 	}
 
 	return g.Wait()
 }
 
-// consumeStreamForApp starts any consumers that need to consume from s for a
-// specific projection message handlers.
-func (e *Engine) consumeStreamForProjection(
+// runStreamConsumerForProjection runs a consumer for a specific projection.
+func (e *Engine) runStreamConsumerForProjection(
 	ctx context.Context,
 	s eventstream.Stream,
 	a configkit.RichApplication,
