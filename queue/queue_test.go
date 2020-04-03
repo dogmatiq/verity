@@ -20,7 +20,7 @@ var _ = Describe("type Queue", func() {
 	var (
 		ctx       context.Context
 		cancel    context.CancelFunc
-		provider  *PersistenceProvider
+		provider  *ProviderStub
 		dataStore persistence.DataStore
 		queue     *Queue
 		env       = NewEnvelope("<id>", MessageA1)
@@ -29,7 +29,7 @@ var _ = Describe("type Queue", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		provider = &PersistenceProvider{
+		provider = &ProviderStub{
 			Provider: &memory.Provider{},
 		}
 

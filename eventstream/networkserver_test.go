@@ -26,7 +26,7 @@ var _ = Describe("type server", func() {
 		ctx      context.Context
 		cancel   func()
 		mstream  *MemoryStream
-		stream   *EventStream
+		stream   *EventStreamStub
 		listener net.Listener
 		server   *grpc.Server
 		client   messagingspec.EventStreamClient
@@ -49,7 +49,7 @@ var _ = Describe("type server", func() {
 			),
 		}
 
-		stream = &EventStream{
+		stream = &EventStreamStub{
 			Stream: mstream,
 		}
 

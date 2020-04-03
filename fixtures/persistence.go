@@ -6,16 +6,15 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// PersistenceProvider is a test implementation of the persistence.Provider
-// interface.
-type PersistenceProvider struct {
+// ProviderStub is a test implementation of the persistence.Provider interface.
+type ProviderStub struct {
 	persistence.Provider
 
 	OpenFunc func(context.Context, string) (persistence.DataStore, error)
 }
 
 // Open returns a data-store for a specific application.
-func (p *PersistenceProvider) Open(ctx context.Context, k string) (persistence.DataStore, error) {
+func (p *ProviderStub) Open(ctx context.Context, k string) (persistence.DataStore, error) {
 	if p.OpenFunc != nil {
 		return p.OpenFunc(ctx, k)
 	}

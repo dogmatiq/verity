@@ -14,12 +14,12 @@ import (
 var _ = Describe("type DataStoreSet", func() {
 	var (
 		ctx      = context.Background()
-		provider *PersistenceProvider
+		provider *ProviderStub
 		set      *DataStoreSet
 	)
 
 	BeforeEach(func() {
-		provider = &PersistenceProvider{
+		provider = &ProviderStub{
 			Provider: &memory.Provider{},
 		}
 

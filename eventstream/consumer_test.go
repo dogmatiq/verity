@@ -24,8 +24,8 @@ var _ = Describe("type Consumer", func() {
 		ctx      context.Context
 		cancel   func()
 		mstream  *MemoryStream
-		stream   *EventStream
-		handler  *EventStreamHandler
+		stream   *EventStreamStub
+		handler  *EventStreamHandlerStub
 		consumer *Consumer
 
 		env0 = NewEnvelope("<message-0>", MessageA1)
@@ -51,7 +51,7 @@ var _ = Describe("type Consumer", func() {
 			),
 		}
 
-		stream = &EventStream{
+		stream = &EventStreamStub{
 			Stream: mstream,
 		}
 
@@ -64,7 +64,7 @@ var _ = Describe("type Consumer", func() {
 			env5,
 		)
 
-		handler = &EventStreamHandler{}
+		handler = &EventStreamHandlerStub{}
 
 		consumer = &Consumer{
 			Stream: stream,
