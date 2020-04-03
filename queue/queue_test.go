@@ -51,6 +51,30 @@ var _ = Describe("type Queue", func() {
 		cancel()
 	})
 
+	Describe("func Pop()", func() {
+		It("returns a non-nil session", func() {
+			err := queue.Push(ctx, env)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = sess.Close()
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("provides the unmarshaled message envelope", func() {
+			err := queue.Push(ctx, env)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			Expect(sess.Envelope()).To(Equal(env))
+		})
+	})
+
 	Describe("func Push()", func() {
 		It("persists the message in the queue store", func() {
 			err := queue.Push(ctx, env)

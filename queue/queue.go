@@ -2,10 +2,13 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/internal/x/deque"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/marshalkit"
@@ -27,11 +30,38 @@ type Queue struct {
 	// BufferSize is the maximum number of messages to buffer in memory.
 	// If it is non-positive, DefaultBufferSize is used.
 	BufferSize int
+
+	m      sync.Mutex
+	buffer deque.Deque
+}
+
+// Pop removes the first message from the queue.
+//
+// It blocks until a message is ready to be handled or ctx is canceled.
+// It returns a session within which the message is to be handled.
+func (q *Queue) Pop(ctx context.Context) (_ *Session, err error) {
+	q.m.Lock()
+	defer q.m.Unlock()
+
+	x, ok := q.buffer.PopFront()
+	if !ok {
+		return nil, errors.New("not implemented")
+	}
+
+	e := x.(*elem)
+
+	if e.message.NextAttemptAt.After(time.Now()) {
+		return nil, errors.New("not implemented")
+	}
+
+	return &Session{
+		elem: e,
+	}, nil
 }
 
 // Push adds a message to the queue.
 func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
-	it := &item{
+	e := &elem{
 		env: env,
 		message: &queuestore.Message{
 			NextAttemptAt: time.Now(),
@@ -45,18 +75,33 @@ func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
 	}
 	defer tx.Rollback()
 
-	if err := tx.SaveMessageToQueue(ctx, it.message); err != nil {
+	if err := tx.SaveMessageToQueue(ctx, e.message); err != nil {
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	q.m.Lock()
+	defer q.m.Unlock()
+
+	q.buffer.Push(e)
+
+	return nil
 }
 
-// item is a container for a queued message that is buffered in memory.
+// elem is a container for a queued message that is buffered in memory.
 //
 // It keeps the in-memory envelope representation alongside the protocol buffers
 // representation to avoid excess marshaling/unmarshaling.
-type item struct {
+type elem struct {
 	env     *envelope.Envelope
 	message *queuestore.Message
+}
+
+func (e *elem) Less(v deque.Elem) bool {
+	return e.message.NextAttemptAt.Before(
+		v.(*elem).message.NextAttemptAt,
+	)
 }
