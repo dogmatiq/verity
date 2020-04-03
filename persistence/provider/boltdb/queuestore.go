@@ -71,21 +71,6 @@ func (t *transaction) RemoveMessageFromQueue(
 	return false, errors.New("not implemented")
 }
 
-// UpdateQueueMessage updates meta-data about a message on the queue.
-//
-// The following fields are updated:
-//  - NextAttemptAt
-//
-// m.Revision must be the revision of the message as currently persisted,
-// otherwise an optimistic concurrency conflict has occurred, the message is not
-// updated and ok is false.
-func (t *transaction) UpdateQueueMessage(
-	ctx context.Context,
-	m *queuestore.Message,
-) (ok bool, err error) {
-	return false, errors.New("not implemented")
-}
-
 // queueStoreRepository is an implementation of queuestore.Repository that
 // stores queued messages in a BoltDB database.
 type queueStoreRepository struct {
