@@ -7,6 +7,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
@@ -17,8 +18,8 @@ var _ = Describe("type Session", func() {
 	var (
 		ctx       context.Context
 		cancel    context.CancelFunc
-		provider  *PersistenceProvider
-		dataStore persistence.DataStore
+		provider  *ProviderStub
+		dataStore *DataStoreStub
 		queue     *Queue
 		env       = NewEnvelope("<id>", MessageA1)
 	)
@@ -26,11 +27,14 @@ var _ = Describe("type Session", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		provider = &PersistenceProvider{}
+		provider = &ProviderStub{
+			Provider: &memory.Provider{},
+		}
 
-		var err error
-		dataStore, err = provider.Open(ctx, "<app-key>")
+		ds, err := provider.Open(ctx, "<app-key>")
 		Expect(err).ShouldNot(HaveOccurred())
+
+		dataStore = ds.(*DataStoreStub)
 
 		queue = &Queue{
 			DataStore: dataStore,
