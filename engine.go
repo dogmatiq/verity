@@ -17,8 +17,10 @@ import (
 type Engine struct {
 	opts       *engineOptions
 	dataStores *persistence.DataStoreSet
-	semaphore  semaphore.Semaphore // TODO: make size configurable
-	logger     logging.Logger
+	// TODO: https://github.com/dogmatiq/infix/issues/103
+	// Make semaphore size configurable.
+	semaphore semaphore.Semaphore
+	logger    logging.Logger
 
 	appsByKey     map[string]*app
 	appsByCommand map[message.Type]*app
