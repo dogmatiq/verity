@@ -9,8 +9,6 @@ import (
 // not be modified because its revision is out of date.
 var ErrConflict = errors.New("optimistic concurrency conflict on queue message")
 
-// TODO: add tests for revision update on save
-
 // Transaction defines the primitive persistence operations for manipulating the
 // message queue.
 type Transaction interface {

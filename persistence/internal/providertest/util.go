@@ -117,8 +117,6 @@ func loadQueueMessage(
 
 // expectQueueMessageToEqual asserts that a queue message equals an expected
 // value. It does not compare the revisions.
-//
-// TODO: implement something similar for event messages.
 func expectQueueMessageToEqual(check, expect *queuestore.Message, desc ...interface{}) {
 	gomega.Expect(check.NextAttemptAt).To(
 		gomega.BeTemporally("~", expect.NextAttemptAt),
@@ -128,6 +126,9 @@ func expectQueueMessageToEqual(check, expect *queuestore.Message, desc ...interf
 }
 
 // expectProtoToEqual asserts that a protobuf message equals an expected value.
+//
+// TODO: https://github.com/dogmatiq/infix/issues/100
+// Use helpers like this and expectQueueMessageToEqual() in eventstore tests.
 func expectProtoToEqual(check, expect proto.Message, desc ...interface{}) {
 	if !proto.Equal(check, expect) {
 		gomega.Expect(check).To(
