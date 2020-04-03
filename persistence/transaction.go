@@ -12,18 +12,29 @@ import (
 // transaction is committed or rolled-back.
 var ErrTransactionClosed = errors.New("transaction already committed or rolled-back")
 
-// Transaction exposes persistence operations that can be performed atomically.
-//
-// Transactions are not safe for concurrent use.
-type Transaction interface {
+// transaction is an interface containing all of the sub-system specific
+// transaction operations.
+type transaction interface {
 	eventstore.Transaction
 	queuestore.Transaction
+}
+
+// Transaction exposes persistence operations that can be performed atomically.
+// Transactions are not safe for concurrent use.
+type Transaction interface {
+	transaction
 
 	// Commit applies the changes from the transaction.
 	Commit(ctx context.Context) error
 
 	// Rollback aborts the transaction.
 	Rollback() error
+}
+
+// ManagedTransaction is a Transaction that can not be commit or rolled-back
+// directly because its life-time is managed for the user.
+type ManagedTransaction interface {
+	transaction
 }
 
 // WithTransaction executes fn inside a transaction.
@@ -33,7 +44,7 @@ type Transaction interface {
 func WithTransaction(
 	ctx context.Context,
 	ds DataStore,
-	fn func(Transaction) error,
+	fn func(ManagedTransaction) error,
 ) error {
 	tx, err := ds.Begin(ctx)
 	if err != nil {

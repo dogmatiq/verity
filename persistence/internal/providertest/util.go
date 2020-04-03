@@ -40,7 +40,7 @@ func saveEvents(
 	return persistence.WithTransaction(
 		ctx,
 		ds,
-		func(tx persistence.Transaction) error {
+		func(tx persistence.ManagedTransaction) error {
 			for _, env := range envelopes {
 				_, err := tx.SaveEvent(ctx, env)
 				if err != nil {
@@ -87,7 +87,7 @@ func saveMessageToQueue(
 	return persistence.WithTransaction(
 		ctx,
 		ds,
-		func(tx persistence.Transaction) error {
+		func(tx persistence.ManagedTransaction) error {
 			return tx.SaveMessageToQueue(ctx, env, t)
 		},
 	)

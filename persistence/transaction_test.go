@@ -45,7 +45,7 @@ var _ = Describe("func WithTransaction", func() {
 		err := WithTransaction(
 			ctx,
 			dataStore,
-			func(tx Transaction) error {
+			func(tx ManagedTransaction) error {
 				return tx.SaveMessageToQueue(ctx, env, time.Now())
 			},
 		)
@@ -62,7 +62,7 @@ var _ = Describe("func WithTransaction", func() {
 		err := WithTransaction(
 			ctx,
 			dataStore,
-			func(tx Transaction) error {
+			func(tx ManagedTransaction) error {
 				err := tx.SaveMessageToQueue(ctx, env, time.Now())
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -82,7 +82,7 @@ var _ = Describe("func WithTransaction", func() {
 		err := WithTransaction(
 			ctx,
 			dataStore,
-			func(Transaction) error {
+			func(ManagedTransaction) error {
 				Fail("unexpectedly invoked fn()")
 				return nil
 			},

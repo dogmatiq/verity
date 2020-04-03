@@ -96,7 +96,7 @@ func declareEventStoreTests(
 					err := persistence.WithTransaction(
 						*ctx,
 						dataStore,
-						func(tx persistence.Transaction) error {
+						func(tx persistence.ManagedTransaction) error {
 							o, err := tx.SaveEvent(*ctx, env0)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 							gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))

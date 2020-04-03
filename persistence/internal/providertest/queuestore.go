@@ -171,7 +171,7 @@ func declareQueueTests(
 						return persistence.WithTransaction(
 							gctx,
 							dataStore,
-							func(tx persistence.Transaction) error {
+							func(tx persistence.ManagedTransaction) error {
 								return tx.SaveMessageToQueue(
 									gctx,
 									env0,
@@ -185,7 +185,7 @@ func declareQueueTests(
 						return persistence.WithTransaction(
 							gctx,
 							dataStore,
-							func(tx persistence.Transaction) error {
+							func(tx persistence.ManagedTransaction) error {
 								if err := tx.SaveMessageToQueue(
 									gctx,
 									env1,
