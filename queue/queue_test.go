@@ -9,6 +9,7 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -53,6 +54,71 @@ var _ = Describe("type Queue", func() {
 	})
 
 	Describe("func Pop()", func() {
+		When("the queue is empty", func() {
+			XIt("blocks until a message pushed", func() {
+			})
+
+			XIt("does not unblock if a pushed message is not ready", func() {
+			})
+
+			It("returns an error if the context deadline is exceeded", func() {
+				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
+				defer cancel()
+
+				sess, err := queue.Pop(ctx)
+				if sess != nil {
+					sess.Close()
+				}
+				Expect(err).To(Equal(context.DeadlineExceeded))
+			})
+		})
+
+		When("the queue is not empty", func() {
+			When("the message at the front of the queue is ready for handling", func() {
+
+			})
+
+			When("the message at the front of the queue is not-ready for handling", func() {
+				BeforeEach(func() {
+					// It's not possible to push a message with a future
+					// next-attempt time via Queue's interface, so we need to
+					// persist something directly, then tell the queue that it's
+					// buffer is stale.
+					err := persistence.WithTransaction(
+						ctx,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							return tx.SaveMessageToQueue(
+								ctx,
+								&queuestore.Message{
+									NextAttemptAt: time.Now().Add(10 * time.Millisecond),
+									Envelope:      envelope.MustMarshal(Marshaler, env),
+								},
+							)
+						},
+					)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				XIt("blocks until the message is ready", func() {
+				})
+
+				XIt("unblocks if a new message jumps the queue", func() {
+				})
+
+				It("returns an error if the context deadline is exceeded", func() {
+					ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
+					defer cancel()
+
+					sess, err := queue.Pop(ctx)
+					if sess != nil {
+						sess.Close()
+					}
+					Expect(err).To(Equal(context.DeadlineExceeded))
+				})
+			})
+		})
+
 		It("returns a non-nil session", func() {
 			err := queue.Push(ctx, env)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -73,6 +139,16 @@ var _ = Describe("type Queue", func() {
 			defer sess.Close()
 
 			Expect(sess.Envelope()).To(Equal(env))
+		})
+
+		It("returns an error if the context is canceled", func() {
+			cancel()
+
+			sess, err := queue.Pop(ctx)
+			if sess != nil {
+				sess.Close()
+			}
+			Expect(err).To(Equal(context.Canceled))
 		})
 
 		It("starts a transaction", func() {

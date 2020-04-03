@@ -45,7 +45,8 @@ func (q *Queue) Pop(ctx context.Context) (_ *Session, err error) {
 	x, ok := q.buffer.PeekFront()
 
 	if !ok {
-		return nil, errors.New("not implemented")
+		<-ctx.Done()
+		return nil, ctx.Err()
 	}
 
 	e := x.(*elem)
