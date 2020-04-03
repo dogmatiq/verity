@@ -79,8 +79,7 @@ func queryEvents(
 }
 
 // saveMessagesToQueue persists the given message to the queue.
-// TODO: rename to saveMessagesToQueue
-func saveMessageToQueue(
+func saveMessagesToQueue(
 	ctx context.Context,
 	ds persistence.DataStore,
 	messages ...*queuestore.Message,

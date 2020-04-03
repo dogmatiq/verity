@@ -78,13 +78,13 @@ func declareQueueTests(
 			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.When("the message is already on the queue", func() {
 					ginkgo.BeforeEach(func() {
-						err := saveMessageToQueue(*ctx, dataStore, message0)
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						message0.Revision++
 					})
 
 					ginkgo.It("increments the revision even if no meta-data has changed", func() {
-						err := saveMessageToQueue(*ctx, dataStore, message0)
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						m, err := loadQueueMessage(*ctx, repository)
@@ -97,7 +97,7 @@ func declareQueueTests(
 					ginkgo.It("increments the revision when the meta-data has changed", func() {
 						message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
 
-						err := saveMessageToQueue(*ctx, dataStore, message0)
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						m, err := loadQueueMessage(*ctx, repository)
@@ -110,7 +110,7 @@ func declareQueueTests(
 					ginkgo.It("updates the message meta-data", func() {
 						message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
 
-						err := saveMessageToQueue(*ctx, dataStore, message0)
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						m, err := loadQueueMessage(*ctx, repository)
@@ -127,7 +127,7 @@ func declareQueueTests(
 						env1.MetaData.MessageId = env0.MetaData.MessageId
 						message1.Revision++
 
-						err := saveMessageToQueue(*ctx, dataStore, message1)
+						err := saveMessagesToQueue(*ctx, dataStore, message1)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						m, err := loadQueueMessage(*ctx, repository)
@@ -148,13 +148,13 @@ func declareQueueTests(
 							// Update the message once more so that it's up to
 							// revision 2. This lets us test for both 0 (the
 							// special case) and 1 as incorrect revisions.
-							err := saveMessageToQueue(*ctx, dataStore, message0)
+							err := saveMessagesToQueue(*ctx, dataStore, message0)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 							// Now try the save with a revision that we expect
 							// to fail. Note that we change the meta-data so we
 							// can detect whether any change was persisted.
-							err = saveMessageToQueue(
+							err = saveMessagesToQueue(
 								*ctx,
 								dataStore,
 								&queuestore.Message{
@@ -257,7 +257,7 @@ func declareQueueTests(
 
 				ginkgo.When("the message is not yet on the queue", func() {
 					ginkgo.It("sets the initial revision to 1", func() {
-						err := saveMessageToQueue(*ctx, dataStore, message0)
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						m, err := loadQueueMessage(*ctx, repository)
@@ -268,7 +268,7 @@ func declareQueueTests(
 					})
 
 					ginkgo.It("stores the message meta-data", func() {
-						err := saveMessageToQueue(*ctx, dataStore, message0)
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						m, err := loadQueueMessage(*ctx, repository)
@@ -279,7 +279,7 @@ func declareQueueTests(
 					ginkgo.It("does not persist the message when an OCC conflict occurs", func() {
 						message0.Revision = 123
 
-						err := saveMessageToQueue(*ctx, dataStore, message0)
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
 						gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
 
 						messages, err := repository.LoadQueueMessages(*ctx, 1)
@@ -352,7 +352,7 @@ func declareQueueTests(
 				})
 
 				ginkgo.It("does not update the revision field of the passed value", func() {
-					err := saveMessageToQueue(*ctx, dataStore, message0)
+					err := saveMessagesToQueue(*ctx, dataStore, message0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(message0.Revision).To(
 						gomega.Equal(queuestore.Revision(0)),
@@ -363,7 +363,7 @@ func declareQueueTests(
 					message0.Envelope.MetaData.Source.Handler = nil
 					message0.Envelope.MetaData.Source.InstanceId = ""
 
-					err := saveMessageToQueue(*ctx, dataStore, message0)
+					err := saveMessagesToQueue(*ctx, dataStore, message0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					messages, err := repository.LoadQueueMessages(*ctx, 2)
@@ -377,13 +377,13 @@ func declareQueueTests(
 					g, gctx := errgroup.WithContext(*ctx)
 
 					g.Go(func() error {
-						return saveMessageToQueue(gctx, dataStore, message0)
+						return saveMessagesToQueue(gctx, dataStore, message0)
 					})
 
 					g.Go(func() error {
 						message1.NextAttemptAt = time.Now().Add(-1 * time.Hour)
 						message2.NextAttemptAt = time.Now().Add(+1 * time.Hour)
-						return saveMessageToQueue(gctx, dataStore, message1, message2)
+						return saveMessagesToQueue(gctx, dataStore, message1, message2)
 					})
 
 					err := g.Wait()
@@ -431,7 +431,7 @@ func declareQueueTests(
 						message1.NextAttemptAt = time.Now().Add(-10 * time.Hour)
 						message2.NextAttemptAt = time.Now().Add(2 * time.Hour)
 
-						err := saveMessageToQueue(
+						err := saveMessagesToQueue(
 							*ctx,
 							dataStore,
 							message0,
