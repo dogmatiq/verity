@@ -58,6 +58,9 @@ func (e *Engine) initApp(
 		Queue: &queue.Queue{
 			DataStore: ds,
 			Marshaler: e.opts.Marshaler,
+			// TODO: https://github.com/dogmatiq/infix/issues/102
+			// Make buffer size configurable.
+			BufferSize: 0,
 		},
 		InternalPacker: &envelope.Packer{
 			Application: id,

@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"github.com/dogmatiq/infix/envelope"
@@ -10,12 +11,22 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
+// DefaultBufferSize is the default size of the in-memory queue buffer.
+var DefaultBufferSize = runtime.GOMAXPROCS(0) * 10
+
 // A Queue is an prioritized collection of messages.
 //
 // It implements the dogma.CommandExecutor interface.
 type Queue struct {
+	// DataStore is the data-store that stores the queued messages.
 	DataStore persistence.DataStore
+
+	// Marshaler is used to unmarshal messages read from the queue store.
 	Marshaler marshalkit.ValueMarshaler
+
+	// BufferSize is the maximum number of messages to buffer in memory.
+	// If it is non-positive, DefaultBufferSize is used.
+	BufferSize int
 }
 
 // Push adds a message to the queue.
