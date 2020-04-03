@@ -55,10 +55,19 @@ var _ = Describe("type Queue", func() {
 
 	Describe("func Pop()", func() {
 		When("the queue is empty", func() {
-			XIt("blocks until a message pushed", func() {
+			It("blocks until a message is pushed", func() {
+				go func() {
+					time.Sleep(50 * time.Millisecond)
+					err := queue.Push(ctx, env)
+					Expect(err).ShouldNot(HaveOccurred())
+				}()
+
+				sess, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				defer sess.Close()
 			})
 
-			XIt("does not unblock if a pushed message is not ready", func() {
+			XIt("does not unblock if a non-ready message is returned to the queue", func() {
 			})
 
 			It("returns an error if the context deadline is exceeded", func() {
@@ -213,10 +222,18 @@ var _ = Describe("type Queue", func() {
 		})
 
 		It("returns an error if the transaction can not be begun", func() {
-			dataStore.Close()
+			dataStore.BeginFunc = func(
+				ctx context.Context,
+			) (persistence.Transaction, error) {
+				return nil, errors.New("<error>")
+			}
 
 			err := queue.Push(ctx, env)
 			Expect(err).Should(HaveOccurred())
+		})
+
+		XIt("shrinks the buffer if becomes oversized", func() {
+
 		})
 	})
 })
