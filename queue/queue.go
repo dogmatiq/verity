@@ -18,8 +18,8 @@ type Queue struct {
 	Marshaler marshalkit.ValueMarshaler
 }
 
-// Enqueue adds a message to the queue.
-func (q *Queue) Enqueue(ctx context.Context, env *envelope.Envelope) error {
+// Push adds a message to the queue.
+func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
 	it := &item{
 		env: env,
 		message: &queuestore.Message{

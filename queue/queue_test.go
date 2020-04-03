@@ -48,9 +48,9 @@ var _ = Describe("type Queue", func() {
 		cancel()
 	})
 
-	Describe("func Enqueue()", func() {
+	Describe("func Push()", func() {
 		It("persists the message in the queue store", func() {
-			err := queue.Enqueue(ctx, env)
+			err := queue.Push(ctx, env)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
@@ -63,7 +63,7 @@ var _ = Describe("type Queue", func() {
 		})
 
 		It("schedules the message for immediate handling", func() {
-			err := queue.Enqueue(ctx, env)
+			err := queue.Push(ctx, env)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
@@ -77,7 +77,7 @@ var _ = Describe("type Queue", func() {
 		It("returns an error if the transaction can not be begun", func() {
 			dataStore.Close()
 
-			err := queue.Enqueue(ctx, env)
+			err := queue.Push(ctx, env)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

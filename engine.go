@@ -66,7 +66,7 @@ func (e *Engine) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 
 	env := a.ExternalPacker.PackCommand(m)
 
-	return a.Queue.Enqueue(ctx, env)
+	return a.Queue.Push(ctx, env)
 }
 
 // Run hosts the given application until ctx is canceled or an error occurs.
