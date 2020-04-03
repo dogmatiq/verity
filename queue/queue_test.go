@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -28,7 +29,9 @@ var _ = Describe("type Queue", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		provider = &PersistenceProvider{}
+		provider = &PersistenceProvider{
+			Provider: &memory.Provider{},
+		}
 
 		var err error
 		dataStore, err = provider.Open(ctx, "<app-key>")

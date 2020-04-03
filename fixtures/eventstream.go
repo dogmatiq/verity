@@ -8,11 +8,9 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 )
 
-// EventStream is a mock of the eventstream.Stream interface.
-//
-// It is based on a memory stream.
+// EventStream is a test implementation of the eventstream.Stream interface.
 type EventStream struct {
-	Memory eventstream.MemoryStream
+	eventstream.Stream
 
 	ApplicationFunc func() configkit.Identity
 	EventTypesFunc  func(context.Context) (message.TypeCollection, error)
@@ -20,33 +18,32 @@ type EventStream struct {
 }
 
 // Application returns the identity of the application that owns the stream.
-//
-// If s.ApplicationFunc is non-nil, it returns s.ApplicationFunc(), otherwise it
-// dispatches to s.Memory.
 func (s *EventStream) Application() configkit.Identity {
 	if s.ApplicationFunc != nil {
 		return s.ApplicationFunc()
 	}
 
-	return s.Memory.Application()
+	if s.Stream != nil {
+		return s.Stream.Application()
+	}
+
+	return configkit.Identity{}
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-//
-// If s.EventTypesFunc is non-nil, it returns s.EventTypesFunc(ctx), otherwise
-// it dispatches to s.Memory.
 func (s *EventStream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
 	if s.EventTypesFunc != nil {
 		return s.EventTypesFunc(ctx)
 	}
 
-	return s.Memory.EventTypes(ctx)
+	if s.Stream != nil {
+		return s.Stream.EventTypes(ctx)
+	}
+
+	return nil, nil
 }
 
 // Open returns a cursor that reads events from the stream.
-//
-// If s.OpenFunc is non-nil, it returns s.OpenFunc(ctx, offset, types),
-// otherwise it dispatches to s.Memory.
 func (s *EventStream) Open(
 	ctx context.Context,
 	offset eventstream.Offset,
@@ -56,20 +53,24 @@ func (s *EventStream) Open(
 		return s.OpenFunc(ctx, offset, types)
 	}
 
-	return s.Memory.Open(ctx, offset, types)
+	if s.Stream != nil {
+		return s.Stream.Open(ctx, offset, types)
+	}
+
+	return nil, nil
 }
 
-// EventStreamHandler is a mock of the eventstream.Handler interface.
+// EventStreamHandler is a test implementation of the eventstream.Handler
+// interface.
 type EventStreamHandler struct {
+	eventstream.Handler
+
 	NextOffsetFunc  func(context.Context, configkit.Identity) (eventstream.Offset, error)
 	HandleEventFunc func(context.Context, eventstream.Offset, *eventstream.Event) error
 }
 
 // NextOffset returns the offset of the next event to be consumed from a
 // specific application's event stream.
-//
-// If h.NextOffsetFunc is non-nil, it returns h.NextOffsetFunc(ctx, id),
-// otherwise it returns (0, nil).
 func (h *EventStreamHandler) NextOffset(
 	ctx context.Context,
 	id configkit.Identity,
@@ -78,13 +79,14 @@ func (h *EventStreamHandler) NextOffset(
 		return h.NextOffsetFunc(ctx, id)
 	}
 
+	if h.Handler != nil {
+		return h.Handler.NextOffset(ctx, id)
+	}
+
 	return 0, nil
 }
 
 // HandleEvent handles an event obtained from the event stream.
-//
-// If h.HandleEventFunc is non-nil, it returns h.HandleEventFunc(ctx, o, ev),
-// otherwise it returns nil.
 func (h *EventStreamHandler) HandleEvent(
 	ctx context.Context,
 	o eventstream.Offset,
@@ -92,6 +94,10 @@ func (h *EventStreamHandler) HandleEvent(
 ) error {
 	if h.HandleEventFunc != nil {
 		return h.HandleEventFunc(ctx, o, ev)
+	}
+
+	if h.Handler != nil {
+		return h.Handler.HandleEvent(ctx, o, ev)
 	}
 
 	return nil

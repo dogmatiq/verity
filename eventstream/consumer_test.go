@@ -23,6 +23,7 @@ var _ = Describe("type Consumer", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
+		mstream  *MemoryStream
 		stream   *EventStream
 		handler  *EventStreamHandler
 		consumer *Consumer
@@ -42,17 +43,19 @@ var _ = Describe("type Consumer", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		stream = &EventStream{
-			Memory: MemoryStream{
-				App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-				Types: message.NewTypeSet(
-					MessageAType,
-					MessageBType,
-				),
-			},
+		mstream = &MemoryStream{
+			App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			Types: message.NewTypeSet(
+				MessageAType,
+				MessageBType,
+			),
 		}
 
-		stream.Memory.Append(
+		stream = &EventStream{
+			Stream: mstream,
+		}
+
+		mstream.Append(
 			env0,
 			env1,
 			env2,
@@ -107,9 +110,11 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("returns if the stream does not produce any relevant events", func() {
-			stream.Memory.Types = message.NewTypeSet(
-				MessageCType,
-			)
+			stream.EventTypesFunc = func(
+				context.Context,
+			) (message.TypeCollection, error) {
+				return message.NewTypeSet(MessageCType), nil
+			}
 
 			err := consumer.Run(ctx)
 			Expect(err).ShouldNot(HaveOccurred())

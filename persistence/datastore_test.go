@@ -6,6 +6,7 @@ import (
 
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -18,7 +19,9 @@ var _ = Describe("type DataStoreSet", func() {
 	)
 
 	BeforeEach(func() {
-		provider = &PersistenceProvider{}
+		provider = &PersistenceProvider{
+			Provider: &memory.Provider{},
+		}
 
 		set = &DataStoreSet{
 			Provider: provider,
@@ -31,7 +34,7 @@ var _ = Describe("type DataStoreSet", func() {
 
 	Describe("func Get()", func() {
 		It("opens a data-store", func() {
-			expect, err := provider.Memory.Open(ctx, "<app-key>")
+			expect, err := provider.Open(ctx, "<app-key>")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			provider.OpenFunc = func(

@@ -25,6 +25,7 @@ var _ = Describe("type server", func() {
 	var (
 		ctx      context.Context
 		cancel   func()
+		mstream  *MemoryStream
 		stream   *EventStream
 		listener net.Listener
 		server   *grpc.Server
@@ -39,15 +40,17 @@ var _ = Describe("type server", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
+		mstream = &MemoryStream{
+			Types: message.TypesOf(
+				env0.Message,
+				env1.Message,
+				env2.Message,
+				env3.Message,
+			),
+		}
+
 		stream = &EventStream{
-			Memory: MemoryStream{
-				Types: message.TypesOf(
-					env0.Message,
-					env1.Message,
-					env2.Message,
-					env3.Message,
-				),
-			},
+			Stream: mstream,
 		}
 
 		var err error
@@ -88,7 +91,7 @@ var _ = Describe("type server", func() {
 
 	Describe("func Consume()", func() {
 		BeforeEach(func() {
-			stream.Memory.Append(env0, env1, env2, env3)
+			mstream.Append(env0, env1, env2, env3)
 		})
 
 		It("exposes the messages from the underlying stream", func() {
