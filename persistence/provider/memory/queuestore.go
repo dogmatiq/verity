@@ -18,7 +18,7 @@ import (
 func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
 	m *queuestore.Message,
-) (err error) {
+) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
@@ -52,51 +52,69 @@ func (t *transaction) commitQueue() {
 	q := &t.ds.db.queue
 
 	for id, m := range t.uncommitted.queue {
-		if q.uniq == nil {
-			q.uniq = map[string]*queuestore.Message{}
-		} else if x, ok := q.uniq[id]; ok {
-			// This message is already on the queue, we don't insert it, only
-			// update its meta-data.
-			x.Revision = m.Revision
-
-			if !x.NextAttemptAt.Equal(m.NextAttemptAt) {
-				x.NextAttemptAt = m.NextAttemptAt
-				sort.Slice(
-					q.order,
-					func(i, j int) bool {
-						return q.order[i].NextAttemptAt.Before(
-							q.order[j].NextAttemptAt,
-						)
-					},
-				)
-			}
-
-			continue
+		if x, ok := q.uniq[id]; ok {
+			t.commitQueueUpdate(id, m, x)
+		} else {
+			t.commitQueueInsert(id, m)
 		}
-
-		// Add the message to the unique index.
-		q.uniq[id] = m
-
-		// Find the index where we'll insert our event. It's the index of the
-		// first message that has a NextAttemptedAt greater than m's.
-		index := sort.Search(
-			len(q.order),
-			func(i int) bool {
-				return m.NextAttemptAt.Before(
-					q.order[i].NextAttemptAt,
-				)
-			},
-		)
-
-		// Expand the size of the queue.
-		q.order = append(q.order, nil)
-
-		// Shift messages further back to make space for m.
-		copy(q.order[index+1:], q.order[index:])
-
-		// Insert m at the index.
-		q.order[index] = m
 	}
+}
+
+// commitQueueInsert inserts a new message into the queue as part of a commit.
+func (t *transaction) commitQueueInsert(id string, m *queuestore.Message) {
+	q := &t.ds.db.queue
+
+	// Add the message to the unique index.
+	if q.uniq == nil {
+		q.uniq = map[string]*queuestore.Message{}
+	}
+	q.uniq[id] = m
+
+	// Find the index where we'll insert our event. It's the index of the
+	// first message that has a NextAttemptedAt greater than m's.
+	index := sort.Search(
+		len(q.order),
+		func(i int) bool {
+			return m.NextAttemptAt.Before(
+				q.order[i].NextAttemptAt,
+			)
+		},
+	)
+
+	// Expand the size of the queue.
+	q.order = append(q.order, nil)
+
+	// Shift messages further back to make space for m.
+	copy(q.order[index+1:], q.order[index:])
+
+	// Insert m at the index.
+	q.order[index] = m
+}
+
+// commitQueueUpdate updates an existing message as part of a commit.
+func (t *transaction) commitQueueUpdate(id string, m, existing *queuestore.Message) {
+	q := &t.ds.db.queue
+
+	// This message is already on the queue, we don't insert it, only
+	// update its meta-data.
+	existing.Revision = m.Revision
+
+	if m.NextAttemptAt.Equal(existing.NextAttemptAt) {
+		// Bail early if the next-attempt time has not change to avoid sorting
+		// the queue unnecessarily.
+		return
+	}
+
+	existing.NextAttemptAt = m.NextAttemptAt
+
+	sort.Slice(
+		q.order,
+		func(i, j int) bool {
+			return q.order[i].NextAttemptAt.Before(
+				q.order[j].NextAttemptAt,
+			)
+		},
+	)
 }
 
 // RemoveMessageFromQueue removes a specific message from the application's
