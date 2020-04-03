@@ -22,6 +22,9 @@ func (m *Session) Tx() persistence.ManagedTransaction {
 }
 
 // Envelope returns the envelope containing the message to be handled.
+//
+// TODO: defer unmarshaling to the session so that a failure is visible to the
+// logic that has access to the backoff strategy.
 func (m *Session) Envelope() *envelope.Envelope {
 	return m.elem.env
 }
