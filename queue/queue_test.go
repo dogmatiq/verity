@@ -7,7 +7,6 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -21,7 +20,7 @@ var _ = Describe("type Queue", func() {
 		ctx       context.Context
 		cancel    context.CancelFunc
 		provider  *ProviderStub
-		dataStore persistence.DataStore
+		dataStore *DataStoreStub
 		queue     *Queue
 		env       = NewEnvelope("<id>", MessageA1)
 	)
@@ -33,9 +32,10 @@ var _ = Describe("type Queue", func() {
 			Provider: &memory.Provider{},
 		}
 
-		var err error
-		dataStore, err = provider.Open(ctx, "<app-key>")
+		ds, err := provider.Open(ctx, "<app-key>")
 		Expect(err).ShouldNot(HaveOccurred())
+
+		dataStore = ds.(*DataStoreStub)
 
 		queue = &Queue{
 			DataStore: dataStore,
