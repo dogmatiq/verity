@@ -4,39 +4,45 @@ import (
 	"context"
 	"errors"
 	"sort"
-	"time"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // SaveMessageToQueue persists a message to the application's message queue.
 //
-// n indicates when the next attempt at handling the message is to be made.
+// If the message is already on the queue its meta-data is updated.
+//
+// m.Revision must be the revision of the message as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the message
+// is not saved and ErrConflict is returned.
 func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
-	env *envelopespec.Envelope,
-	n time.Time,
-) error {
+	m *queuestore.Message,
+) (err error) {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	id := env.GetMetaData().GetMessageId()
+	id := m.Envelope.GetMetaData().GetMessageId()
 
-	if _, ok := t.ds.db.queue.uniq[id]; ok {
-		return nil
+	var rev queuestore.Revision
+	if x, ok := t.uncommitted.queue[id]; ok {
+		rev = x.Revision
+	} else if x, ok := t.ds.db.queue.uniq[id]; ok {
+		rev = x.Revision
 	}
+
+	if m.Revision != rev {
+		return queuestore.ErrConflict
+	}
+
+	m = cloneQueueMessage(m)
+	m.Revision++
 
 	if t.uncommitted.queue == nil {
 		t.uncommitted.queue = map[string]*queuestore.Message{}
 	}
-
-	t.uncommitted.queue[id] = &queuestore.Message{
-		Revision:      1,
-		NextAttemptAt: n,
-		Envelope:      cloneEnvelope(env),
-	}
+	t.uncommitted.queue[id] = m
 
 	return nil
 }
@@ -46,10 +52,29 @@ func (t *transaction) commitQueue() {
 	q := &t.ds.db.queue
 
 	for id, m := range t.uncommitted.queue {
-		// Add the message to the unique index.
 		if q.uniq == nil {
 			q.uniq = map[string]*queuestore.Message{}
+		} else if x, ok := q.uniq[id]; ok {
+			// This message is already on the queue, we don't insert it, only
+			// update its meta-data.
+			x.Revision = m.Revision
+
+			if !x.NextAttemptAt.Equal(m.NextAttemptAt) {
+				x.NextAttemptAt = m.NextAttemptAt
+				sort.Slice(
+					q.order,
+					func(i, j int) bool {
+						return q.order[i].NextAttemptAt.Before(
+							q.order[j].NextAttemptAt,
+						)
+					},
+				)
+			}
+
+			continue
 		}
+
+		// Add the message to the unique index.
 		q.uniq[id] = m
 
 		// Find the index where we'll insert our event. It's the index of the
@@ -79,12 +104,12 @@ func (t *transaction) commitQueue() {
 //
 // m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
-// remains on the queue and ok is false.
+// remains on the queue and ErrConflict is returned.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queuestore.Message,
-) (ok bool, err error) {
-	return false, errors.New("not implemented")
+) (err error) {
+	return errors.New("not implemented")
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

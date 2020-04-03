@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -15,24 +14,22 @@ import (
 
 // SaveMessageToQueue persists a message to the application's message queue.
 //
-// n indicates when the next attempt at handling the message is to be made.
+// If the message is already on the queue its meta-data is updated.
+//
+// m.Revision is incremented on success.
+//
+// m.Revision must be the revision of the message as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the message
+// is not saved and ErrConflict is returned.
 func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
-	env *envelopespec.Envelope,
-	n time.Time,
+	m *queuestore.Message,
 ) (err error) {
 	defer bboltx.Recover(&err)
 
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
-
-	order := bboltx.CreateBucketIfNotExists(
-		t.actual,
-		t.appKey,
-		queueBucketKey,
-		orderBucketKey,
-	)
 
 	messages := bboltx.CreateBucketIfNotExists(
 		t.actual,
@@ -41,19 +38,45 @@ func (t *transaction) SaveMessageToQueue(
 		messagesBucketKey,
 	)
 
-	id := []byte(env.MetaData.MessageId)
+	id := []byte(m.Envelope.MetaData.MessageId)
+	var old *pb.QueueMessage
 
-	if messages.Get(id) != nil {
-		return nil
+	if data := messages.Get(id); data != nil {
+		old = &pb.QueueMessage{}
+		err := proto.Unmarshal(data, old)
+		bboltx.Must(err)
 	}
 
-	m, data := marshalEnvelopeAsQueueMessage(env, n)
+	if uint64(m.Revision) != old.GetRevision() {
+		return queuestore.ErrConflict
+	}
 
+	new, data := marshalQueueMessage(m, old)
 	bboltx.Put(messages, id, data)
-	bboltx.CreateBucketIfNotExists(
-		order,
-		[]byte(m.NextAttemptAt),
-	).Put(id, nil)
+
+	newNext := new.GetNextAttemptAt()
+	oldNext := old.GetNextAttemptAt()
+
+	if newNext != oldNext {
+		order := bboltx.CreateBucketIfNotExists(
+			t.actual,
+			t.appKey,
+			queueBucketKey,
+			orderBucketKey,
+		)
+
+		if oldNext != "" {
+			bboltx.Bucket(
+				order,
+				[]byte(oldNext),
+			).Delete(id)
+		}
+
+		bboltx.CreateBucketIfNotExists(
+			order,
+			[]byte(newNext),
+		).Put(id, nil)
+	}
 
 	return nil
 }
@@ -63,12 +86,12 @@ func (t *transaction) SaveMessageToQueue(
 //
 // m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
-// remains on the queue and ok is false.
+// remains on the queue and ErrConflict is returned.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queuestore.Message,
-) (ok bool, err error) {
-	return false, errors.New("not implemented")
+) (err error) {
+	return errors.New("not implemented")
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that
@@ -157,20 +180,25 @@ func unmarshalQueueMessage(data []byte) *queuestore.Message {
 	}
 }
 
-// marshalEnvelopeAsQueueMessage marshals an envelope to its binary
-// representation as a queuestore.Message.
-func marshalEnvelopeAsQueueMessage(
-	env *envelopespec.Envelope,
-	n time.Time,
+// marshalQueueMessage marshals a queue message to its binary representation.
+func marshalQueueMessage(
+	m *queuestore.Message,
+	old *pb.QueueMessage,
 ) (*pb.QueueMessage, []byte) {
-	m := &pb.QueueMessage{
-		Revision:      1,
-		NextAttemptAt: n.Format(time.RFC3339Nano),
-		Envelope:      env,
+	new := &pb.QueueMessage{
+		Revision:      uint64(m.Revision + 1),
+		NextAttemptAt: m.NextAttemptAt.Format(time.RFC3339Nano),
+		Envelope:      old.GetEnvelope(),
 	}
 
-	data, err := proto.Marshal(m)
+	// Only use user-supplied envelope if there's no old one.
+	// This satisfies the requirement that updates only modify meta-data.
+	if new.Envelope == nil {
+		new.Envelope = m.Envelope
+	}
+
+	data, err := proto.Marshal(new)
 	bboltx.Must(err)
 
-	return m, data
+	return new, data
 }

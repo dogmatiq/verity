@@ -34,11 +34,7 @@ func (q *Queue) Enqueue(ctx context.Context, env *envelope.Envelope) error {
 	}
 	defer tx.Rollback()
 
-	if err := tx.SaveMessageToQueue(
-		ctx,
-		it.message.Envelope,
-		it.message.NextAttemptAt,
-	); err != nil {
+	if err := tx.SaveMessageToQueue(ctx, it.message); err != nil {
 		return err
 	}
 

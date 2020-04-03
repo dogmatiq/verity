@@ -10,7 +10,6 @@ import (
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
-	"github.com/golang/protobuf/proto"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -29,17 +28,33 @@ func declareQueueTests(
 			dataStore     persistence.DataStore
 			repository    queuestore.Repository
 
-			now = time.Now()
+			env0, env1, env2             *envelopespec.Envelope
+			message0, message1, message2 *queuestore.Message
+		)
 
+		ginkgo.BeforeEach(func() {
 			// Note, we use generated UUIDs for the message IDs to avoid them
 			// having any predictable effect on the queue order. Likewise, we
 			// don't use the fixture messages in order.
 			env0 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA3)
 			env1 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA1)
 			env2 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA2)
-		)
 
-		ginkgo.BeforeEach(func() {
+			message0 = &queuestore.Message{
+				NextAttemptAt: time.Now(),
+				Envelope:      env0,
+			}
+
+			message1 = &queuestore.Message{
+				NextAttemptAt: time.Now(),
+				Envelope:      env1,
+			}
+
+			message2 = &queuestore.Message{
+				NextAttemptAt: time.Now(),
+				Envelope:      env2,
+			}
+
 			provider, closeProvider = out.NewProvider()
 
 			var err error
@@ -61,100 +76,294 @@ func declareQueueTests(
 
 		ginkgo.Describe("type Transaction (interface)", func() {
 			ginkgo.Describe("func SaveMessageToQueue()", func() {
-				ginkgo.It("sets the initial revision to 1", func() {
-					err := saveMessageToQueue(
-						*ctx,
-						dataStore,
-						env0,
-						now,
-					)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				ginkgo.When("the message is already on the queue", func() {
+					ginkgo.BeforeEach(func() {
+						err := saveMessageToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						message0.Revision++
+					})
 
-					m, err := loadQueueMessage(*ctx, repository)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m.Revision).To(
-						gomega.Equal(queuestore.Revision(1)),
+					ginkgo.It("increments the revision even if no meta-data has changed", func() {
+						err := saveMessageToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(m.Revision).To(
+							gomega.Equal(queuestore.Revision(2)),
+						)
+					})
+
+					ginkgo.It("increments the revision when the meta-data has changed", func() {
+						message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
+
+						err := saveMessageToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(m.Revision).To(
+							gomega.Equal(queuestore.Revision(2)),
+						)
+					})
+
+					ginkgo.It("updates the message meta-data", func() {
+						message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
+
+						err := saveMessageToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						expectQueueMessageToEqual(m, message0)
+					})
+
+					ginkgo.XIt("sorts by the updated next-attempt time", func() {
+
+					})
+
+					ginkgo.It("does not update the envelope", func() {
+						// Use the env0 message ID on env1 so that they collide.
+						env1.MetaData.MessageId = env0.MetaData.MessageId
+						message1.Revision++
+
+						err := saveMessageToQueue(*ctx, dataStore, message1)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						// Then we ensure we still have the envelope data from
+						// env0, not env1.
+						expectProtoToEqual(
+							m.Envelope,
+							env0,
+							"message envelope was updated, not just the meta-data",
+						)
+					})
+
+					table.DescribeTable(
+						"it does not update the message when an OCC conflict occurs",
+						func(conflictingRevision int) {
+							// Update the message once more so that it's up to
+							// revision 2. This lets us test for both 0 (the
+							// special case) and 1 as incorrect revisions.
+							err := saveMessageToQueue(*ctx, dataStore, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							// Now try the save with a revision that we expect
+							// to fail. Note that we change the meta-data so we
+							// can detect whether any change was persisted.
+							err = saveMessageToQueue(
+								*ctx,
+								dataStore,
+								&queuestore.Message{
+									Revision:      queuestore.Revision(conflictingRevision),
+									NextAttemptAt: time.Now().Add(5 * time.Minute),
+									Envelope:      env0, // same env as message already on queue
+								},
+							)
+							gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+
+							m, err := loadQueueMessage(*ctx, repository)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							gomega.Expect(m.Revision).To(
+								gomega.Equal(queuestore.Revision(2)),
+							)
+							expectQueueMessageToEqual(m, message0)
+						},
+						table.Entry("zero", 0),
+						table.Entry("too low", 1),
+						table.Entry("too high", 100),
 					)
+
+					ginkgo.When("the message has already been modified in the same transaction", func() {
+						var tx persistence.Transaction
+
+						ginkgo.BeforeEach(func() {
+							var err error
+							tx, err = dataStore.Begin(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
+							err = tx.SaveMessageToQueue(*ctx, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							message0.Revision++
+						})
+
+						ginkgo.AfterEach(func() {
+							if tx != nil {
+								tx.Rollback()
+							}
+						})
+
+						ginkgo.It("saves the data from the most recent call", func() {
+							message0.NextAttemptAt = time.Now().Add(2 * time.Hour)
+							err := tx.SaveMessageToQueue(*ctx, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							err = tx.Commit(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							m, err := loadQueueMessage(*ctx, repository)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							gomega.Expect(m.Revision).To(
+								gomega.Equal(queuestore.Revision(3)),
+							)
+							expectQueueMessageToEqual(m, message0)
+						})
+
+						ginkgo.It("returns an error when an OCC conflict occurs (based on the uncommitted revision)", func() {
+							message0.Revision = 1 // as before tx was begun
+							err := tx.SaveMessageToQueue(*ctx, message0)
+							gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+						})
+					})
+
+					ginkgo.When("the transaction is rolled-back", func() {
+						ginkgo.BeforeEach(func() {
+							tx, err := dataStore.Begin(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							defer tx.Rollback()
+
+							// Note that we change the meta-data so we
+							// can detect whether any change was persisted.
+							err = tx.SaveMessageToQueue(
+								*ctx,
+								&queuestore.Message{
+									Revision:      1,
+									NextAttemptAt: time.Now().Add(5 * time.Minute),
+									Envelope:      env0, // same env as message already on queue
+								},
+							)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							err = tx.Rollback()
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						})
+
+						ginkgo.It("does not persist the changes", func() {
+							m, err := loadQueueMessage(*ctx, repository)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							gomega.Expect(m.Revision).To(
+								gomega.Equal(queuestore.Revision(1)),
+							)
+							expectQueueMessageToEqual(m, message0)
+						})
+					})
 				})
 
-				ginkgo.It("stores the correct next-attempt time", func() {
-					t := now.Add(1 * time.Hour)
+				ginkgo.When("the message is not yet on the queue", func() {
+					ginkgo.It("sets the initial revision to 1", func() {
+						err := saveMessageToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					err := saveMessageToQueue(
-						*ctx,
-						dataStore,
-						env0,
-						t,
-					)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(m.Revision).To(
+							gomega.Equal(queuestore.Revision(1)),
+						)
+					})
 
-					m, err := loadQueueMessage(*ctx, repository)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(m.NextAttemptAt).To(
-						gomega.BeTemporally("~", t),
-					)
+					ginkgo.It("stores the message meta-data", func() {
+						err := saveMessageToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						expectQueueMessageToEqual(m, message0)
+					})
+
+					ginkgo.It("does not persist the message when an OCC conflict occurs", func() {
+						message0.Revision = 123
+
+						err := saveMessageToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+
+						messages, err := repository.LoadQueueMessages(*ctx, 1)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(messages).To(gomega.BeEmpty())
+					})
+
+					ginkgo.When("the message has already been modified in the same transaction", func() {
+						var tx persistence.Transaction
+
+						ginkgo.BeforeEach(func() {
+							var err error
+							tx, err = dataStore.Begin(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							err = tx.SaveMessageToQueue(*ctx, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							message0.Revision++
+						})
+
+						ginkgo.AfterEach(func() {
+							if tx != nil {
+								tx.Rollback()
+							}
+						})
+
+						ginkgo.It("saves the data from the most recent call", func() {
+							message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
+							err := tx.SaveMessageToQueue(*ctx, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							err = tx.Commit(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							m, err := loadQueueMessage(*ctx, repository)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							gomega.Expect(m.Revision).To(
+								gomega.Equal(queuestore.Revision(2)),
+							)
+							expectQueueMessageToEqual(m, message0)
+						})
+
+						ginkgo.It("returns an error when an OCC conflict occurs (based on the uncommitted revision)", func() {
+							message0.Revision = 0 // as before tx was begun
+							err := tx.SaveMessageToQueue(*ctx, message0)
+							gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+						})
+					})
+
+					ginkgo.When("the transaction is rolled-back", func() {
+						ginkgo.BeforeEach(func() {
+							tx, err := dataStore.Begin(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							defer tx.Rollback()
+
+							err = tx.SaveMessageToQueue(*ctx, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							err = tx.Rollback()
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						})
+
+						ginkgo.It("does not persist any messages", func() {
+							messages, err := repository.LoadQueueMessages(*ctx, 10)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							gomega.Expect(messages).To(gomega.BeEmpty())
+						})
+					})
 				})
 
-				ginkgo.It("ignores messages that are already on the queue", func() {
-					t := now.Add(1 * time.Hour)
-
-					err := saveMessageToQueue(
-						*ctx,
-						dataStore,
-						env0,
-						t,
-					)
+				ginkgo.It("does not update the revision field of the passed value", func() {
+					err := saveMessageToQueue(*ctx, dataStore, message0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-					// conflict has the same message ID as env0, but a different
-					// message type.
-					conflict := infixfixtures.NewEnvelopeProto(
-						env0.MetaData.MessageId,
-						dogmafixtures.MessageX1,
-					)
-
-					err = saveMessageToQueue(
-						*ctx,
-						dataStore,
-						conflict,
-						time.Now(), // note: not t
-					)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-					messages, err := repository.LoadQueueMessages(*ctx, 2)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(messages).To(gomega.HaveLen(1))
-
-					m := messages[0]
-
-					gomega.Expect(m.Envelope.PortableName).To(
-						gomega.Equal(env0.PortableName),
-					)
-
-					gomega.Expect(m.Revision).To(
-						gomega.Equal(queuestore.Revision(1)),
-					)
-
-					gomega.Expect(m.NextAttemptAt).To(
-						gomega.BeTemporally("~", t),
+					gomega.Expect(message0.Revision).To(
+						gomega.Equal(queuestore.Revision(0)),
 					)
 				})
 
 				ginkgo.It("saves messages that were not created by a handler", func() {
-					env := infixfixtures.NewEnvelopeProto(
-						env0.MetaData.MessageId,
-						dogmafixtures.MessageX1,
-					)
+					message0.Envelope.MetaData.Source.Handler = nil
+					message0.Envelope.MetaData.Source.InstanceId = ""
 
-					env.MetaData.Source.Handler = nil
-					env.MetaData.Source.InstanceId = ""
-
-					err := saveMessageToQueue(
-						*ctx,
-						dataStore,
-						env,
-						time.Now(),
-					)
+					err := saveMessageToQueue(*ctx, dataStore, message0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					messages, err := repository.LoadQueueMessages(*ctx, 2)
@@ -168,39 +377,13 @@ func declareQueueTests(
 					g, gctx := errgroup.WithContext(*ctx)
 
 					g.Go(func() error {
-						return persistence.WithTransaction(
-							gctx,
-							dataStore,
-							func(tx persistence.ManagedTransaction) error {
-								return tx.SaveMessageToQueue(
-									gctx,
-									env0,
-									time.Now(),
-								)
-							},
-						)
+						return saveMessageToQueue(gctx, dataStore, message0)
 					})
 
 					g.Go(func() error {
-						return persistence.WithTransaction(
-							gctx,
-							dataStore,
-							func(tx persistence.ManagedTransaction) error {
-								if err := tx.SaveMessageToQueue(
-									gctx,
-									env1,
-									time.Now().Add(-1*time.Hour),
-								); err != nil {
-									return err
-								}
-
-								return tx.SaveMessageToQueue(
-									gctx,
-									env2,
-									time.Now().Add(+1*time.Hour),
-								)
-							},
-						)
+						message1.NextAttemptAt = time.Now().Add(-1 * time.Hour)
+						message2.NextAttemptAt = time.Now().Add(+1 * time.Hour)
+						return saveMessageToQueue(gctx, dataStore, message1, message2)
 					})
 
 					err := g.Wait()
@@ -208,52 +391,24 @@ func declareQueueTests(
 
 					ginkgo.By("loading the messages")
 
-					// Expected is the envelopes we expect to have been queued,
+					// Expected is the messages we expect to have been queued,
 					// in the order we expect them.
-					expected := []*envelopespec.Envelope{env1, env0, env2}
+					expected := []*queuestore.Message{message1, message0, message2}
 
-					// Now we query the messages and verify that each specific
-					// envelope ended up in the order specified by the next
+					// Now we query the queue and verify that each specific
+					// message ended up in the order specified by the next
 					// attempt times.
 					messages, err := repository.LoadQueueMessages(*ctx, len(expected)+1)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(len(messages)).To(
-						gomega.Equal(len(expected)),
-						"the number of messages saved to the queue is incorrect",
-					)
+					gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
 
 					for i, m := range messages {
-						x := expected[i]
-
-						gomega.Expect(m.Envelope.MetaData.MessageId).To(
-							gomega.Equal(x.MetaData.MessageId),
-							fmt.Sprintf("message at index #%d in result is not the expected envelope", i),
+						expectQueueMessageToEqual(
+							m,
+							expected[i],
+							fmt.Sprintf("message at index #%d does not match the expected value", i),
 						)
 					}
-				})
-
-				ginkgo.When("the transaction is rolled-back", func() {
-					ginkgo.BeforeEach(func() {
-						tx, err := dataStore.Begin(*ctx)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						defer tx.Rollback()
-
-						err = tx.SaveMessageToQueue(
-							*ctx,
-							env0,
-							time.Now(),
-						)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-						err = tx.Rollback()
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					})
-
-					ginkgo.It("does not enqueue any messages", func() {
-						messages, err := repository.LoadQueueMessages(*ctx, 10)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(messages).To(gomega.BeEmpty())
-					})
 				})
 			})
 		})
@@ -268,31 +423,20 @@ func declareQueueTests(
 
 				table.DescribeTable(
 					"it returns messages from the queue, ordered by their next attempt time",
-					func(n int, expected ...*envelopespec.Envelope) {
+					func(n int, expected ...**queuestore.Message) {
 						ginkgo.By("enqueuing some messages out of order")
 
 						// The expected order is env1, env2, env0.
+						message0.NextAttemptAt = time.Now().Add(3 * time.Hour)
+						message1.NextAttemptAt = time.Now().Add(-10 * time.Hour)
+						message2.NextAttemptAt = time.Now().Add(2 * time.Hour)
+
 						err := saveMessageToQueue(
 							*ctx,
 							dataStore,
-							env0,
-							time.Now().Add(3*time.Hour),
-						)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-						err = saveMessageToQueue(
-							*ctx,
-							dataStore,
-							env1,
-							time.Now().Add(-10*time.Hour),
-						)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-						err = saveMessageToQueue(
-							*ctx,
-							dataStore,
-							env2,
-							time.Now().Add(2*time.Hour),
+							message0,
+							message1,
+							message2,
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
@@ -305,35 +449,27 @@ func declareQueueTests(
 						ginkgo.By("iterating through the result")
 
 						for i, m := range messages {
-							x := expected[i]
-
-							if !proto.Equal(m.Envelope, x) {
-								gomega.Expect(m.Envelope).To(
-									gomega.Equal(x),
-									fmt.Sprintf("message at index #%d in result does not match the expected envelope", i),
-								)
-							}
+							expectQueueMessageToEqual(
+								m,
+								*expected[i],
+								fmt.Sprintf("message at index #%d in does not match the expected value", i),
+							)
 						}
 					},
 					table.Entry(
 						"it returns all the messages if the limit is equal the length of the queue",
 						3,
-						env1,
-						env2,
-						env0,
+						&message1, &message2, &message0,
 					),
 					table.Entry(
 						"it returns all the messages if the limit is larger than the length of the queue",
 						10,
-						env1,
-						env2,
-						env0,
+						&message1, &message2, &message0,
 					),
 					table.Entry(
 						"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
 						2,
-						env1,
-						env2,
+						&message1, &message2,
 					),
 				)
 			})

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -13,14 +12,26 @@ import (
 // queueDriver is the subset of the Driver interface that is concerned with the
 // message queue subsystem.
 type queueDriver interface {
-	// InsertQueueMessage saves a message to the queue.
+	// InsertQueueMessage inserts a message in the queue.
+	//
+	// It returns false if the row already exists.
 	InsertQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		env *envelopespec.Envelope,
-		n time.Time,
-	) error
+		m *queuestore.Message,
+	) (bool, error)
+
+	// UpdateQueueMessage updates meta-data about a message that is already on
+	// the queue.
+	//
+	// It returns false if the row does not exists or m.Revision is not current.
+	UpdateQueueMessage(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak string,
+		m *queuestore.Message,
+	) (bool, error)
 
 	// SelectQueueMessages selects up to n messages from the queue.
 	SelectQueueMessages(
@@ -40,23 +51,35 @@ type queueDriver interface {
 
 // SaveMessageToQueue persists a message to the application's message queue.
 //
-// n indicates when the next attempt at handling the message is to be made.
+// If the message is already on the queue its meta-data is updated.
+//
+// m.Revision must be the revision of the message as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the message
+// is not saved and ErrConflict is returned.
 func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
-	env *envelopespec.Envelope,
-	n time.Time,
+	m *queuestore.Message,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	return t.ds.driver.InsertQueueMessage(
+	op := t.ds.driver.InsertQueueMessage
+	if m.Revision > 0 {
+		op = t.ds.driver.UpdateQueueMessage
+	}
+
+	ok, err := op(
 		ctx,
 		t.actual,
 		t.ds.appKey,
-		env,
-		n,
+		m,
 	)
+	if ok || err != nil {
+		return err
+	}
+
+	return queuestore.ErrConflict
 }
 
 // RemoveMessageFromQueue removes a specific message from the application's
@@ -64,12 +87,12 @@ func (t *transaction) SaveMessageToQueue(
 //
 // m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
-// remains on the queue and ok is false.
+// remains on the queue and ErrConflict is returned.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queuestore.Message,
-) (ok bool, err error) {
-	return false, errors.New("not implemented")
+) (err error) {
+	return errors.New("not implemented")
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

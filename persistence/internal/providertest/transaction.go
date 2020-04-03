@@ -2,9 +2,10 @@ package providertest
 
 import (
 	"context"
-	"time"
 
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
@@ -55,14 +56,14 @@ func declareTransactionTests(
 
 			ginkgo.Describe("func SaveEvent()", func() {
 				ginkgo.It("returns an error", func() {
-					_, err := transaction.SaveEvent(*ctx, nil)
+					_, err := transaction.SaveEvent(*ctx, &envelopespec.Envelope{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
 
 			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.SaveMessageToQueue(*ctx, nil, time.Now())
+					err := transaction.SaveMessageToQueue(*ctx, &queuestore.Message{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
@@ -90,14 +91,14 @@ func declareTransactionTests(
 
 			ginkgo.Describe("func SaveEvent()", func() {
 				ginkgo.It("returns an error", func() {
-					_, err := transaction.SaveEvent(*ctx, nil)
+					_, err := transaction.SaveEvent(*ctx, &envelopespec.Envelope{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
 
 			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.SaveMessageToQueue(*ctx, nil, time.Now())
+					err := transaction.SaveMessageToQueue(*ctx, &queuestore.Message{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
