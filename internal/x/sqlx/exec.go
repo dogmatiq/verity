@@ -89,3 +89,22 @@ func UpdateRow(
 		Must(fmt.Errorf("%d rows updated", n))
 	}
 }
+
+// TryUpdateRow executes an update statement on the given DB.
+//
+// It returns false if the update does not affect exactly one row. Note that
+// MySQL requires an actual change to occur to consider the row updated.
+func TryUpdateRow(
+	ctx context.Context,
+	db DB,
+	query string,
+	args ...interface{},
+) bool {
+	res, err := db.ExecContext(ctx, query, args...)
+	Must(err)
+
+	n, err := res.RowsAffected()
+	Must(err)
+
+	return n == 1
+}

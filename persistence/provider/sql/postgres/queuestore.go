@@ -3,24 +3,24 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"time"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
-// InsertQueueMessage saves a messages to the queue.
+// InsertQueueMessage inserts a message in the queue.
+//
+// It returns false if the row already exists.
 func (driver) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	env *envelopespec.Envelope,
-	n time.Time,
-) (err error) {
+	m *queuestore.Message,
+) (_ bool, err error) {
+
 	defer sqlx.Recover(&err)
 
-	sqlx.Exec(
+	res := sqlx.Exec(
 		ctx,
 		tx,
 		`INSERT INTO infix.queue (
@@ -43,23 +43,52 @@ func (driver) InsertQueueMessage(
 				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
 			) ON CONFLICT (app_key, message_id) DO NOTHING`,
 		ak,
-		n,
-		env.GetMetaData().GetMessageId(),
-		env.GetMetaData().GetCausationId(),
-		env.GetMetaData().GetCorrelationId(),
-		env.GetMetaData().GetSource().GetApplication().GetName(),
-		env.GetMetaData().GetSource().GetApplication().GetKey(),
-		env.GetMetaData().GetSource().GetHandler().GetName(),
-		env.GetMetaData().GetSource().GetHandler().GetKey(),
-		env.GetMetaData().GetSource().GetInstanceId(),
-		env.GetMetaData().GetCreatedAt(),
-		env.GetMetaData().GetScheduledFor(),
-		env.GetPortableName(),
-		env.GetMediaType(),
-		env.GetData(),
+		m.NextAttemptAt,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Envelope.GetMetaData().GetCausationId(),
+		m.Envelope.GetMetaData().GetCorrelationId(),
+		m.Envelope.GetMetaData().GetSource().GetApplication().GetName(),
+		m.Envelope.GetMetaData().GetSource().GetApplication().GetKey(),
+		m.Envelope.GetMetaData().GetSource().GetHandler().GetName(),
+		m.Envelope.GetMetaData().GetSource().GetHandler().GetKey(),
+		m.Envelope.GetMetaData().GetSource().GetInstanceId(),
+		m.Envelope.GetMetaData().GetCreatedAt(),
+		m.Envelope.GetMetaData().GetScheduledFor(),
+		m.Envelope.GetPortableName(),
+		m.Envelope.GetMediaType(),
+		m.Envelope.GetData(),
 	)
 
-	return nil
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+// UpdateQueueMessage updates meta-data about a message that is already on
+// the queue.
+//
+// It returns false if the row does not exists or m.Revision is not current.
+func (driver) UpdateQueueMessage(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	m *queuestore.Message,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryUpdateRow(
+		ctx,
+		tx,
+		`UPDATE infix.queue SET
+			revision = revision + 1,
+			next_attempt_at = $1
+		WHERE app_key = $2
+		AND message_id = $3
+		AND revision = $4`,
+		m.NextAttemptAt,
+		ak,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Revision,
+	), nil
 }
 
 // SelectQueueMessages selects up to n messages from the queue.

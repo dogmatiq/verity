@@ -5,24 +5,24 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
-// InsertQueueMessage saves a messages to the queue.
+// InsertQueueMessage inserts a message in the queue.
+//
+// It returns false if the row already exists.
 func (driver) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	env *envelopespec.Envelope,
-	n time.Time,
-) (err error) {
+	m *queuestore.Message,
+) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
 	// Note: ON DUPLICATE KEY UPDATE is used because INSERT IGNORE ignores
 	// more than just key conflicts.
-	sqlx.Exec(
+	res := sqlx.Exec(
 		ctx,
 		tx,
 		`INSERT INTO queue SET
@@ -44,23 +44,60 @@ func (driver) InsertQueueMessage(
 			ON DUPLICATE KEY UPDATE
 				app_key = VALUES(app_key)`,
 		ak,
-		n,
-		env.GetMetaData().GetMessageId(),
-		env.GetMetaData().GetCausationId(),
-		env.GetMetaData().GetCorrelationId(),
-		env.GetMetaData().GetSource().GetApplication().GetName(),
-		env.GetMetaData().GetSource().GetApplication().GetKey(),
-		env.GetMetaData().GetSource().GetHandler().GetName(),
-		env.GetMetaData().GetSource().GetHandler().GetKey(),
-		env.GetMetaData().GetSource().GetInstanceId(),
-		env.GetMetaData().GetCreatedAt(),
-		env.GetMetaData().GetScheduledFor(),
-		env.GetPortableName(),
-		env.GetMediaType(),
-		env.GetData(),
+		m.NextAttemptAt,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Envelope.GetMetaData().GetCausationId(),
+		m.Envelope.GetMetaData().GetCorrelationId(),
+		m.Envelope.GetMetaData().GetSource().GetApplication().GetName(),
+		m.Envelope.GetMetaData().GetSource().GetApplication().GetKey(),
+		m.Envelope.GetMetaData().GetSource().GetHandler().GetName(),
+		m.Envelope.GetMetaData().GetSource().GetHandler().GetKey(),
+		m.Envelope.GetMetaData().GetSource().GetInstanceId(),
+		m.Envelope.GetMetaData().GetCreatedAt(),
+		m.Envelope.GetMetaData().GetScheduledFor(),
+		m.Envelope.GetPortableName(),
+		m.Envelope.GetMediaType(),
+		m.Envelope.GetData(),
 	)
 
-	return nil
+	// We use the affected count to check if the row was actually inserted.
+	//
+	// If the row count isn't exactly 1, our insert was ignored.
+	//
+	// Note that MySQL will report 2 affected rows if a single row is actually
+	// changed by ON DUPLICATE KEY UPDATE, though in this case we expect the
+	// failure case to return a 0 because our ON DUPLICATE KEY UPDATE clause
+	// doesn't actually cause any changes.
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+// UpdateQueueMessage updates meta-data about a message that is already on
+// the queue.
+//
+// It returns false if the row does not exists or m.Revision is not current.
+func (driver) UpdateQueueMessage(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	m *queuestore.Message,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryUpdateRow(
+		ctx,
+		tx,
+		`UPDATE queue SET
+			revision = revision + 1,
+			next_attempt_at = ?
+		WHERE app_key = ?
+		AND message_id = ?
+		AND revision = ?`,
+		m.NextAttemptAt,
+		ak,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Revision,
+	), nil
 }
 
 // SelectQueueMessages selects up to n messages from the queue.

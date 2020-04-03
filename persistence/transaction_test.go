@@ -9,6 +9,7 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -46,7 +47,13 @@ var _ = Describe("func WithTransaction", func() {
 			ctx,
 			dataStore,
 			func(tx ManagedTransaction) error {
-				return tx.SaveMessageToQueue(ctx, env, time.Now())
+				return tx.SaveMessageToQueue(
+					ctx,
+					&queuestore.Message{
+						NextAttemptAt: time.Now(),
+						Envelope:      env,
+					},
+				)
 			},
 		)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -56,14 +63,20 @@ var _ = Describe("func WithTransaction", func() {
 		Expect(messages).NotTo(BeEmpty())
 	})
 
-	It("rolls the transaction back fn returns an error", func() {
+	It("rolls the transaction back if fn returns an error", func() {
 		env := NewEnvelopeProto("<id>", MessageA1)
 
 		err := WithTransaction(
 			ctx,
 			dataStore,
 			func(tx ManagedTransaction) error {
-				err := tx.SaveMessageToQueue(ctx, env, time.Now())
+				err := tx.SaveMessageToQueue(
+					ctx,
+					&queuestore.Message{
+						NextAttemptAt: time.Now(),
+						Envelope:      env,
+					},
+				)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				return errors.New("<error>")

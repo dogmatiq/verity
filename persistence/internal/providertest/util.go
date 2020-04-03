@@ -3,12 +3,13 @@ package providertest
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/golang/protobuf/proto"
+	"github.com/onsi/gomega"
 )
 
 // saveEvent persists an events to the store.
@@ -77,18 +78,22 @@ func queryEvents(
 	}
 }
 
-// saveMessageToQueue persists the given message to the queue.
-func saveMessageToQueue(
+// saveMessagesToQueue persists the given message to the queue.
+func saveMessagesToQueue(
 	ctx context.Context,
 	ds persistence.DataStore,
-	env *envelopespec.Envelope,
-	t time.Time,
+	messages ...*queuestore.Message,
 ) error {
 	return persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, env, t)
+			for _, m := range messages {
+				if err := tx.SaveMessageToQueue(ctx, m); err != nil {
+					return err
+				}
+			}
+			return nil
 		},
 	)
 }
@@ -108,4 +113,27 @@ func loadQueueMessage(
 	}
 
 	return messages[0], nil
+}
+
+// expectQueueMessageToEqual asserts that a queue message equals an expected
+// value. It does not compare the revisions.
+func expectQueueMessageToEqual(check, expect *queuestore.Message, desc ...interface{}) {
+	gomega.Expect(check.NextAttemptAt).To(
+		gomega.BeTemporally("~", expect.NextAttemptAt),
+	)
+
+	expectProtoToEqual(check.Envelope, expect.Envelope, desc...)
+}
+
+// expectProtoToEqual asserts that a protobuf message equals an expected value.
+//
+// TODO: https://github.com/dogmatiq/infix/issues/100
+// Use helpers like this and expectQueueMessageToEqual() in eventstore tests.
+func expectProtoToEqual(check, expect proto.Message, desc ...interface{}) {
+	if !proto.Equal(check, expect) {
+		gomega.Expect(check).To(
+			gomega.Equal(expect),
+			desc...,
+		)
+	}
 }
