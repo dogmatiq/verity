@@ -2,6 +2,7 @@ package queue_test
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
@@ -84,6 +85,28 @@ var _ = Describe("type Queue", func() {
 
 			tx := sess.Tx()
 			Expect(tx).NotTo(BeNil())
+		})
+
+		It("leaves the message on the queue if the transaction can not be started", func() {
+			err := queue.Push(ctx, env)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			dataStore.BeginFunc = func(
+				ctx context.Context,
+			) (persistence.Transaction, error) {
+				dataStore.BeginFunc = nil
+				return nil, errors.New("<error>")
+			}
+
+			sess, err := queue.Pop(ctx)
+			if sess != nil {
+				sess.Close()
+			}
+			Expect(err).To(MatchError("<error>"))
+
+			sess, err = queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
 		})
 	})
 
