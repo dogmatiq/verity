@@ -43,28 +43,13 @@ type Queue struct {
 
 // Pop removes the first message from the queue.
 //
-// It blocks until a message is ready to be handled or ctx is canceled.
 // It returns a session within which the message is to be handled.
+//
+// It blocks until a message is ready to be handled or ctx is canceled.
 func (q *Queue) Pop(ctx context.Context) (_ *Session, err error) {
-	e, ready, _ := q.peekAndPopIfReady()
-
-	// We didn't get an element, so wait until one becomes ready.
-	if !ready {
-		// Avoid starting the deliverer goroutine only to stop it again
-		// immediately.
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		q.start()
-		defer q.stop()
-
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case e = <-q.deliver:
-			break // keep to see coverage
-		}
+	e, err := q.pop(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	// Return e to the buffer if it's not returned to the caller.
@@ -83,6 +68,31 @@ func (q *Queue) Pop(ctx context.Context) (_ *Session, err error) {
 		tx:   tx,
 		elem: e,
 	}, nil
+}
+
+// pop removes the first element from the queue.
+//
+// It blocks until a message is ready to be handled or ctx is canceled.
+func (q *Queue) pop(ctx context.Context) (*elem, error) {
+	if e, ok, _ := q.peekAndPopIfReady(); ok {
+		return e, nil
+	}
+
+	// Avoid starting the deliverer goroutine only to stop it again
+	// immediately.
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
+	q.start()
+	defer q.stop()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case e := <-q.deliver:
+		return e, nil
+	}
 }
 
 // Push adds a message to the queue.
