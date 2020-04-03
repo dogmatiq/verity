@@ -118,8 +118,26 @@ func declareQueueTests(
 						expectQueueMessageToEqual(m, message0)
 					})
 
-					ginkgo.XIt("sorts by the updated next-attempt time", func() {
+					ginkgo.It("sorts by the updated next-attempt time", func() {
+						ginkgo.By("placing message1 before message0 on the queue")
 
+						message1.NextAttemptAt = time.Now().Add(-1 * time.Hour)
+						err := saveMessagesToQueue(*ctx, dataStore, message1)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						message1.Revision++
+
+						ginkgo.By("updating message0 to be before message1")
+
+						message0.NextAttemptAt = time.Now().Add(-10 * time.Hour)
+						err = saveMessagesToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						message0.Revision++
+
+						ginkgo.By("checking that message0 appears at the front of the queue")
+
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						expectQueueMessageToEqual(m, message0)
 					})
 
 					ginkgo.It("does not update the envelope", func() {
