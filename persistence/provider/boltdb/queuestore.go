@@ -16,8 +16,6 @@ import (
 //
 // If the message is already on the queue its meta-data is updated.
 //
-// m.Revision is incremented on success.
-//
 // m.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // is not saved and ErrConflict is returned.
