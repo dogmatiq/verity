@@ -42,8 +42,8 @@ type Queue struct {
 func (q *Queue) Pop(ctx context.Context) (_ *Session, err error) {
 	q.m.Lock()
 	defer q.m.Unlock()
+	x, ok := q.buffer.PeekFront()
 
-	x, ok := q.buffer.PopFront()
 	if !ok {
 		return nil, errors.New("not implemented")
 	}
@@ -54,7 +54,15 @@ func (q *Queue) Pop(ctx context.Context) (_ *Session, err error) {
 		return nil, errors.New("not implemented")
 	}
 
+	tx, err := q.DataStore.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	q.buffer.PopFront()
+
 	return &Session{
+		tx:   tx,
 		elem: e,
 	}, nil
 }

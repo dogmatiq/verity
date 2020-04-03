@@ -73,6 +73,18 @@ var _ = Describe("type Queue", func() {
 
 			Expect(sess.Envelope()).To(Equal(env))
 		})
+
+		It("starts a transaction", func() {
+			err := queue.Push(ctx, env)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			tx := sess.Tx()
+			Expect(tx).NotTo(BeNil())
+		})
 	})
 
 	Describe("func Push()", func() {

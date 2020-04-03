@@ -12,12 +12,13 @@ import (
 // A Session encapsulates an atomic application state change brought about by a
 // single queued message.
 type Session struct {
+	tx   persistence.Transaction
 	elem *elem
 }
 
 // Tx returns the transaction under which the message must be handled.
 func (m *Session) Tx() persistence.ManagedTransaction {
-	panic("not impl")
+	return m.tx
 }
 
 // Envelope returns the envelope containing the message to be handled.
@@ -40,5 +41,5 @@ func (m *Session) Rollback(ctx context.Context, n time.Time) error {
 //
 // It must be called regardless of whether Ack() or Nack() are called.
 func (m *Session) Close() error {
-	return nil
+	return m.tx.Rollback()
 }
