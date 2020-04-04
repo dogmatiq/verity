@@ -343,6 +343,14 @@ func (q *Queue) popPendingOrLockForLoading() (e *elem, ok bool, load bool) {
 	return nil, false, true
 }
 
+// discard removes e from the buffer.
+func (q *Queue) discard(e *elem) {
+	q.bufferM.Lock()
+	defer q.bufferM.Unlock()
+
+	delete(q.buffered, e.message.ID())
+}
+
 // startMonitor starts the monitoring goroutine if it's not already running.
 func (q *Queue) startMonitor() {
 	q.monitorM.Lock()

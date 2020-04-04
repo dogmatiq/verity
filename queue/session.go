@@ -73,7 +73,7 @@ func (s *Session) Close() error {
 	}
 
 	if s.commit {
-		// TODO: s.queue.discard(s.elem)
+		s.queue.discard(s.elem)
 	} else {
 		s.queue.pushPending(false, s.elem)
 	}
