@@ -2,6 +2,7 @@ package eventstore
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -90,7 +91,11 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					gomega.Expect(events).To(gomega.HaveLen(len(expected)))
 
 					for i, ev := range events {
-						expectEventToEqual(ev, *expected[i])
+						expectEventToEqual(
+							ev,
+							*expected[i],
+							fmt.Sprintf("event at index #%d of slice", i),
+						)
 					}
 				},
 				table.Entry(

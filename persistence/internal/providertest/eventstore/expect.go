@@ -25,7 +25,8 @@ func expectEventToEqual(
 	)
 }
 
-// expectEventsToEqual asserts that an eventstore.Event equals an expected value.
+// expectEventsToEqual asserts that a slice of eventstore.Event equals an
+// expected value.
 func expectEventsToEqual(
 	check, expect []*eventstore.Event,
 	desc ...interface{},

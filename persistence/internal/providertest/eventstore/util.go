@@ -39,8 +39,7 @@ func saveEvents(
 		ds,
 		func(tx persistence.ManagedTransaction) error {
 			for _, env := range envelopes {
-				_, err := tx.SaveEvent(ctx, env)
-				if err != nil {
+				if _, err := tx.SaveEvent(ctx, env); err != nil {
 					return err
 				}
 			}
