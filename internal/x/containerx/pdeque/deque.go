@@ -1,4 +1,4 @@
-package deque
+package pdeque
 
 import (
 	"container/heap"
@@ -29,7 +29,7 @@ func (q *Deque) Len() int {
 
 // Push adds an element to the queue.
 //
-// It returns true e is at the front of the queue.
+// It returns true if e is at the front of the queue.
 func (q *Deque) Push(e Elem) bool {
 	n := q.min.Len()
 	it := &item{
@@ -80,30 +80,6 @@ func (q *Deque) PeekBack() (Elem, bool) {
 	}
 
 	return q.max.items[0].elem, true
-}
-
-// Placement returns a value indicating which end of the queue e would appear if
-// it were pushed to the queue.
-//
-// If p < 0, e would be the highest priority element, or the only element.
-//
-// If p > 0, e would be the lowest priority element.
-//
-// If p == 0, e would be neither the highest nor lowest priority element.
-func (q *Deque) Placement(e Elem) (p int) {
-	if len(q.min.items) == 0 {
-		return -1
-	}
-
-	if e.Less(q.min.items[0].elem) {
-		return -1
-	}
-
-	if !e.Less(q.max.items[0].elem) {
-		return +1
-	}
-
-	return 0
 }
 
 // PopBack removes the element with the lowest priority and returns it.

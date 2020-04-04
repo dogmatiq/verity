@@ -1,7 +1,7 @@
-package deque_test
+package pdeque_test
 
 import (
-	. "github.com/dogmatiq/infix/internal/x/deque"
+	. "github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +12,7 @@ func (e elem) Less(v Elem) bool {
 	return e < v.(elem)
 }
 
-var _ = Describe("type deque", func() {
+var _ = Describe("type Deque", func() {
 	const (
 		elem0 elem = iota
 		elem1
@@ -126,32 +126,6 @@ var _ = Describe("type deque", func() {
 		It("returns false if the queue is empty", func() {
 			_, ok := deq.PopBack()
 			Expect(ok).To(BeFalse())
-		})
-	})
-
-	Describe("func Placement()", func() {
-		It("returns a negative value if the queue is empty", func() {
-			p := deq.Placement(elem0)
-			Expect(p).To(BeNumerically("<", 0))
-		})
-
-		It("returns a negative value if the element would become the highest priority", func() {
-			deq.Push(elem1)
-			p := deq.Placement(elem0)
-			Expect(p).To(BeNumerically("<", 0))
-		})
-
-		It("returns a positive value if the element would become the lowest priority", func() {
-			deq.Push(elem1)
-			p := deq.Placement(elem2)
-			Expect(p).To(BeNumerically(">", 0))
-		})
-
-		It("returns zero if the element would be somewhere in the middle of the queue", func() {
-			deq.Push(elem0)
-			deq.Push(elem2)
-			p := deq.Placement(elem1)
-			Expect(p).To(BeNumerically("==", 0))
 		})
 	})
 })

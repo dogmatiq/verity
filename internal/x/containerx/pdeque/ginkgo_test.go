@@ -1,4 +1,4 @@
-package deque_test
+package pdeque_test
 
 import (
 	"reflect"
