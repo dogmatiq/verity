@@ -62,3 +62,9 @@ func Put(b *bbolt.Bucket, k, v []byte) {
 	err := b.Put(k, v)
 	Must(err)
 }
+
+// Delete removes a value from a bucket.
+func Delete(b *bbolt.Bucket, k []byte) {
+	err := b.Delete(k)
+	Must(err)
+}
