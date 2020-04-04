@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"sort"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -56,12 +55,12 @@ func (t *transaction) SaveMessageToQueue(
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queuestore.Message,
-) (err error) {
+) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	return errors.New("not implemented")
+	return nil
 }
 
 // commitQueue commits staged queue items to the database.

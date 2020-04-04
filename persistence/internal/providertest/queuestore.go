@@ -429,6 +429,38 @@ func declareQueueTests(
 					}
 				})
 			})
+
+			ginkgo.Describe("func RemoveMessageFromQueue()", func() {
+				ginkgo.BeforeEach(func() {
+					err := saveMessagesToQueue(*ctx, dataStore, message0)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					message0.Revision++
+				})
+
+				ginkgo.When("the transaction is rolled-back", func() {
+					ginkgo.BeforeEach(func() {
+						tx, err := dataStore.Begin(*ctx)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						defer tx.Rollback()
+
+						err = tx.RemoveMessageFromQueue(*ctx, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						err = tx.Rollback()
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					})
+
+					ginkgo.It("does not remove the message", func() {
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						gomega.Expect(m.Revision).To(
+							gomega.Equal(queuestore.Revision(1)),
+						)
+						expectQueueMessageToEqual(m, message0)
+					})
+				})
+			})
 		})
 
 		ginkgo.Describe("type Repository (interface)", func() {

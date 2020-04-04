@@ -2,7 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
@@ -95,7 +94,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		return err
 	}
 
-	return errors.New("not implemented")
+	return nil
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

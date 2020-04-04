@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -96,7 +95,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		return err
 	}
 
-	return errors.New("not implemented")
+	return nil
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that
