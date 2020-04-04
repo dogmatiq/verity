@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/internal/x/deque"
+	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/marshalkit"
@@ -48,7 +48,7 @@ type Queue struct {
 	// it's in the "pending" queue.
 	bufferM    sync.Mutex
 	buffered   map[string]struct{} // set of all buffered messages, key == message ID
-	pending    deque.Deque         // priority queue of messages that aren't being handled
+	pending    pdeque.Deque        // priority queue of messages that aren't being handled
 	exhaustive bool                // true if all persisted messages are buffered in memory
 	loading    bool                // true if some goroutine is already loading messages
 
@@ -73,7 +73,7 @@ type elem struct {
 	message *queuestore.Message
 }
 
-func (e *elem) Less(v deque.Elem) bool {
+func (e *elem) Less(v pdeque.Elem) bool {
 	return e.message.NextAttemptAt.Before(
 		v.(*elem).message.NextAttemptAt,
 	)

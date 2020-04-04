@@ -8,6 +8,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
@@ -96,23 +97,6 @@ var _ = Describe("type Queue", func() {
 					sess, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
 					defer sess.Close()
-				})
-
-				It("provides the unmarshaled message envelope", func() {
-					sess, err := queue.Pop(ctx)
-					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
-
-					Expect(sess.Envelope()).To(Equal(env))
-				})
-
-				It("starts a transaction", func() {
-					sess, err := queue.Pop(ctx)
-					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
-
-					tx := sess.Tx()
-					Expect(tx).NotTo(BeNil())
 				})
 
 				It("leaves the message on the queue if the transaction can not be started", func() {
@@ -222,7 +206,7 @@ var _ = Describe("type Queue", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 
-		XIt("shrinks the buffer if becomes oversized", func() {
+		XIt("discards an element if the buffer is full", func() {
 
 		})
 	})

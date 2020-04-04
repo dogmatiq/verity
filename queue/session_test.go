@@ -53,6 +53,27 @@ var _ = Describe("type Session", func() {
 		cancel()
 	})
 
+	Describe("func Envelope()", func() {
+		It("returns the unmarshaled message envelope", func() {
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			Expect(sess.Envelope()).To(Equal(env))
+		})
+	})
+
+	Describe("func Transaction()", func() {
+		It("returns the transaction", func() {
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			tx := sess.Tx()
+			Expect(tx).NotTo(BeNil())
+		})
+	})
+
 	Describe("func Close()", func() {
 		It("rolls the transaction back", func() {
 			sess, err := queue.Pop(ctx)
