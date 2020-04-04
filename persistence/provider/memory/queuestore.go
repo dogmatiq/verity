@@ -47,6 +47,23 @@ func (t *transaction) SaveMessageToQueue(
 	return nil
 }
 
+// RemoveMessageFromQueue removes a specific message from the application's
+// message queue.
+//
+// m.Revision must be the revision of the message as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the message
+// remains on the queue and ErrConflict is returned.
+func (t *transaction) RemoveMessageFromQueue(
+	ctx context.Context,
+	m *queuestore.Message,
+) (err error) {
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
+	return errors.New("not implemented")
+}
+
 // commitQueue commits staged queue items to the database.
 func (t *transaction) commitQueue() {
 	q := &t.ds.db.queue
@@ -115,19 +132,6 @@ func (t *transaction) commitQueueUpdate(id string, m, existing *queuestore.Messa
 			)
 		},
 	)
-}
-
-// RemoveMessageFromQueue removes a specific message from the application's
-// message queue.
-//
-// m.Revision must be the revision of the message as currently persisted,
-// otherwise an optimistic concurrency conflict has occurred, the message
-// remains on the queue and ErrConflict is returned.
-func (t *transaction) RemoveMessageFromQueue(
-	ctx context.Context,
-	m *queuestore.Message,
-) (err error) {
-	return errors.New("not implemented")
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

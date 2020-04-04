@@ -92,6 +92,10 @@ func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queuestore.Message,
 ) (err error) {
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
 	return errors.New("not implemented")
 }
 
