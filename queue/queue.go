@@ -18,9 +18,15 @@ var DefaultBufferSize = runtime.GOMAXPROCS(0) * 10
 
 // A Queue is an prioritized collection of messages.
 //
+// It exposes an application's message queue to multiple consumers, ensuring
+// each consumer receives a different message.
+//
 // It implements the dogma.CommandExecutor interface.
 type Queue struct {
 	// DataStore is the data-store that stores the queued messages.
+	//
+	// It is expected that no messages will be saved to the queue for this
+	// data-store, other than via this Queue.
 	DataStore persistence.DataStore
 
 	// Marshaler is used to unmarshal messages read from the queue store.
@@ -28,245 +34,40 @@ type Queue struct {
 
 	// BufferSize is the maximum number of messages to buffer in memory.
 	// If it is non-positive, DefaultBufferSize is used.
+	//
+	// It should be larger than the number of concurrent consumers.
 	BufferSize int
 
-	bufferM sync.Mutex
-	buffer  deque.Deque
+	// A "buffered" message is a message persisted on the queue that has been
+	// loaded into memory.
+	//
+	// The buffered messages are always those with the highest-priority, that
+	// is, those that are scheduled to be handled the soonest.
+	//
+	// Every buffered message is either being handled now (within a Session), or
+	// it's in the "pending" queue.
+	bufferM    sync.Mutex
+	buffered   map[string]struct{} // set of all buffered messages, key == message ID
+	pending    deque.Deque         // priority queue of messages that aren't being handled
+	exhaustive bool                // true if all persisted messages are buffered in memory
+	loading    bool                // true if some goroutine is already loading messages
 
-	deliverM sync.Mutex
-	refs     int
-	deliver  chan *elem
-	reset    chan struct{}
-	halt     chan struct{}
-	done     chan struct{}
-}
-
-// Pop removes the first message from the queue.
-//
-// It returns a session within which the message is to be handled.
-//
-// It blocks until a message is ready to be handled or ctx is canceled.
-func (q *Queue) Pop(ctx context.Context) (_ *Session, err error) {
-	e, err := q.pop(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Return e to the buffer if it's not returned to the caller.
-	defer func() {
-		if err != nil {
-			q.push(e)
-		}
-	}()
-
-	tx, err := q.DataStore.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Session{
-		tx:   tx,
-		elem: e,
-	}, nil
-}
-
-// pop removes the first element from the queue.
-//
-// It blocks until a message is ready to be handled or ctx is canceled.
-func (q *Queue) pop(ctx context.Context) (*elem, error) {
-	if e, ok, _ := q.peekAndPopIfReady(); ok {
-		return e, nil
-	}
-
-	// Avoid starting the deliverer goroutine only to stop it again
-	// immediately.
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
-	}
-
-	q.start()
-	defer q.stop()
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case e := <-q.deliver:
-		return e, nil
-	}
-}
-
-// Push adds a message to the queue.
-func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
-	e := &elem{
-		env: env,
-		message: &queuestore.Message{
-			NextAttemptAt: time.Now(),
-			Envelope:      envelope.MustMarshal(q.Marshaler, env),
-		},
-	}
-
-	return q.save(ctx, e)
-}
-
-// save persists a message and adds it to the buffer.
-func (q *Queue) save(ctx context.Context, e *elem) error {
-	err := persistence.WithTransaction(
-		ctx,
-		q.DataStore,
-		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, e.message)
-		},
-	)
-
-	if err == nil {
-		q.push(e)
-	}
-
-	return err
-}
-
-// push adds e to the buffer, and wakes the deliverer if q becomes the highest
-// priority message.
-func (q *Queue) push(e *elem) {
-	q.bufferM.Lock()
-	defer q.bufferM.Unlock()
-
-	if q.buffer.Push(e) {
-		// e is now at the front of the queue, try to reset the deliverer.
-		select {
-		case q.reset <- struct{}{}:
-		default:
-		}
-	}
-
-	size := q.BufferSize
-	if size <= 0 {
-		size = DefaultBufferSize
-	}
-
-	if q.buffer.Len() > size {
-		// The buffer is oversized, drop the lowest priority element.
-		q.buffer.PopBack()
-	}
-}
-
-// peekAndPopIfReady returns the first element in the queue, popping it if it is
-// ready to be handled now.
-//
-// If the queue is empty, ok is false. If the message was popped r is true.
-func (q *Queue) peekAndPopIfReady() (e *elem, r bool, ok bool) {
-	q.bufferM.Lock()
-	defer q.bufferM.Unlock()
-
-	x, ok := q.buffer.PeekFront()
-	if !ok {
-		return nil, false, false
-	}
-
-	e = x.(*elem)
-	now := time.Now()
-
-	if e.message.NextAttemptAt.After(now) {
-		return e, false, true
-	}
-
-	q.buffer.PopFront()
-
-	return e, true, true
-}
-
-// start runs the deliverer, if it is not already running.
-func (q *Queue) start() {
-	q.deliverM.Lock()
-	defer q.deliverM.Unlock()
-
-	if q.deliver == nil {
-		q.deliver = make(chan *elem)
-	}
-
-	if q.refs == 0 {
-		q.halt = make(chan struct{})
-		q.reset = make(chan struct{}, 1)
-		q.done = make(chan struct{})
-
-		go q.deliverMany()
-	}
-
-	q.refs++
-}
-
-// stop halts the deliverer, if there are not more pending Acquire() calls.
-func (q *Queue) stop() {
-	q.deliverM.Lock()
-	defer q.deliverM.Unlock()
-
-	q.refs--
-
-	if q.refs == 0 {
-		close(q.halt)
-		<-q.done
-
-		q.halt = nil
-		q.reset = nil
-		q.done = nil
-	}
-}
-
-// deliverMany repeatedly attempts to deliver the message at the front of the
-// queue to a waiting Acquire() call.
-func (q *Queue) deliverMany() {
-	defer func() {
-		close(q.done)
-	}()
-
-	for {
-		if !q.deliverOne() {
-			return
-		}
-	}
-}
-
-// deliverOne attempts to deliver the message at the front of the queue to a
-// waiting Acquire() call.
-//
-// It returns false if q.halt is closed.
-func (q *Queue) deliverOne() bool {
-	var (
-		deliver chan<- *elem
-		elapsed <-chan time.Time
-	)
-
-	e, ready, ok := q.peekAndPopIfReady()
-
-	if ok {
-		if ready {
-			deliver = q.deliver
-		} else {
-			timer := time.NewTimer(
-				time.Until(e.message.NextAttemptAt),
-			)
-			defer timer.Stop()
-
-			elapsed = timer.C
-		}
-	}
-
-	select {
-	case deliver <- e: // nil if not ready
-		return true
-	case <-elapsed: // nil if no timer
-		return true
-	case <-q.reset:
-		return true
-	case <-q.halt:
-		return false
-	}
+	// The "monitor" is a goroutine that is started whenever there's at least
+	// one call to Pop() that is blocking.
+	monitorM sync.Mutex
+	blocked  int           // number of blocked calls to Pop()
+	ready    chan *elem    // recv by blocked call to Pop()
+	wake     chan struct{} // recv by monitor, send when the head of the pending list changes
+	halt     chan struct{} // recv by monitor, closed when the last blocking call to Pop() gives up
+	done     chan struct{} // closed when the monitor goroutine actually finishes
 }
 
 // elem is a container for a queued message that is buffered in memory.
 //
 // It keeps the in-memory envelope representation alongside the protocol buffers
 // representation to avoid excess marshaling/unmarshaling.
+//
+// It implements the deque.Elem interface.
 type elem struct {
 	env     *envelope.Envelope
 	message *queuestore.Message
@@ -276,4 +77,362 @@ func (e *elem) Less(v deque.Elem) bool {
 	return e.message.NextAttemptAt.Before(
 		v.(*elem).message.NextAttemptAt,
 	)
+}
+
+// Pop removes the message at the front of the queue.
+//
+// It returns a session within which the message is to be handled.
+//
+// It blocks until a message is ready to be handled or ctx is canceled.
+func (q *Queue) Pop(ctx context.Context) (*Session, error) {
+	e, err := q.popPending(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := q.DataStore.Begin(ctx)
+	if err != nil {
+		q.pushPending(false, e)
+		return nil, err
+	}
+
+	return &Session{
+		queue: q,
+		tx:    tx,
+		elem:  e,
+	}, nil
+}
+
+// Push adds a message to the queue.
+func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
+	m := &queuestore.Message{
+		NextAttemptAt: time.Now(),
+		Envelope:      envelope.MustMarshal(q.Marshaler, env),
+	}
+
+	if err := persistence.WithTransaction(
+		ctx,
+		q.DataStore,
+		func(tx persistence.ManagedTransaction) error {
+			return tx.SaveMessageToQueue(ctx, m)
+		},
+	); err != nil {
+		return err
+	}
+
+	q.pushPending(true, &elem{
+		env:     env,
+		message: m,
+	})
+
+	return nil
+}
+
+// peekOrPopIfReady returns the element at the front of the pending list.
+//
+// Additionally, if that element's message is ready to be handled now, the
+// element is popped. In which case d <= 0.
+//
+// If the pending list is empty, e is nil, d is meaningless and ok is false.
+func (q *Queue) peekOrPopIfReady() (e *elem, d time.Duration, ok bool) {
+	q.bufferM.Lock()
+	defer q.bufferM.Unlock()
+
+	x, ok := q.pending.PeekFront()
+	if !ok {
+		return nil, 0, false
+	}
+
+	e = x.(*elem)
+	d = time.Until(e.message.NextAttemptAt)
+
+	if d <= 0 {
+		q.pending.PopFront()
+	}
+
+	return e, d, true
+}
+
+// popPending pops the element at the front of the pending list.
+//
+// If the highest-priority message is not yet ready for handling, it blocks
+// until it is.
+//
+// If the there are no buffered messages it loads messages from the data-store.
+func (q *Queue) popPending(ctx context.Context) (*elem, error) {
+	e, ok, load := q.popPendingOrLockForLoading()
+	if ok {
+		return e, nil
+	}
+
+	if load {
+		e, ok, err := q.loadMessages(ctx)
+		if ok || err != nil {
+			return e, err
+		}
+	}
+
+	q.startMonitor()
+	defer q.stopMonitor()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case e, _ := <-q.ready:
+		return e, nil
+	}
+}
+
+// pushPending adds e to the pending list.
+//
+// It wakes the monitoring goroutine if e.message has the highest priority of
+// all pending messages.
+func (q *Queue) pushPending(new bool, e *elem) {
+	q.bufferM.Lock()
+	defer q.bufferM.Unlock()
+
+	oversize := false
+
+	// If the message is "new" it's not in the buffer yet.
+	if new {
+		if q.buffered == nil {
+			q.buffered = map[string]struct{}{}
+		}
+
+		q.buffered[e.message.ID()] = struct{}{}
+
+		size := q.BufferSize
+		if size <= 0 {
+			size = DefaultBufferSize
+		}
+
+		if len(q.buffered) > size {
+			// The buffer has exceeded tis size limit, we need to discard the
+			// lowest priority element.
+			oversize = true
+		}
+	}
+
+	if q.pending.Push(e) {
+		q.wakeMonitor()
+	}
+
+	if oversize {
+		// We've got more messages in memory than the limit allows, drop the
+		// lowest-priority element.
+		//
+		// Note: There's a chance this is the message we just pushed. That would
+		// mean that all buffered messages are in active sessions, which should
+		// not occur if BufferSize is larger than the number of consumers as
+		// suggested by its documentation.
+		drop, _ := q.pending.PopBack()
+		delete(q.buffered, drop.(*elem).message.ID())
+
+		// There are now persisted messages that are not in the buffer.
+		q.exhaustive = false
+	}
+}
+
+// loadMessages reads queued messages from the data-store into the buffer.
+//
+// If messages are loaded, and the highest-priority message is ready to be
+// handled now, e is an element containing that message and ok is true.
+func (q *Queue) loadMessages(ctx context.Context) (e *elem, ok bool, err error) {
+	size := q.BufferSize
+	if size <= 0 {
+		size = DefaultBufferSize
+	}
+
+	// Load just enough messages to fill the buffer.
+	messages, err := q.DataStore.QueueStoreRepository().LoadQueueMessages(ctx, size)
+
+	q.bufferM.Lock()
+	defer q.bufferM.Unlock()
+
+	// Clear the loading flag regardless of whether there was an error.
+	q.loading = false
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if len(messages) < size {
+		// We didn't get enough messages to fill the buffer, so we know we have
+		// everything in memory.
+		q.exhaustive = true
+	}
+
+	// In fact, we got nothing at all!
+	if len(messages) == 0 {
+		return nil, false, nil
+	}
+
+	// If the message at the front of the queue is ready now we are going to
+	// return it to our caller directly to avoid starting the monitor goroutine.
+	//
+	// We remove it from the slice so that it's not added to the pending list.
+	m := messages[0]
+	if !m.NextAttemptAt.After(time.Now()) {
+		e = &elem{message: m}
+		messages = messages[1:]
+	}
+
+	// Add an element to the buffer for each message that we won't be returning
+	// to the caller, then wake the monitoring goroutine.
+	if len(messages) > 0 {
+		for _, m := range messages {
+			if q.buffered == nil {
+				q.buffered = map[string]struct{}{}
+			}
+			q.buffered[m.ID()] = struct{}{}
+			q.pending.Push(&elem{message: m})
+		}
+
+		q.wakeMonitor()
+	}
+
+	return e, e != nil, nil
+}
+
+// popPendingOrLockForLoading pops a message from the front of the pending list
+// if it is ready to be handled.
+//
+// If the message is ready, ok is true.
+//
+// Otherwise, if load is true, the m.loading flag has been set and the caller
+// should attempt to load messages.
+func (q *Queue) popPendingOrLockForLoading() (e *elem, ok bool, load bool) {
+	q.bufferM.Lock()
+	defer q.bufferM.Unlock()
+
+	if x, ok := q.pending.PeekFront(); ok {
+		e = x.(*elem)
+
+		if e.message.NextAttemptAt.After(time.Now()) {
+			return nil, false, false
+		}
+
+		q.pending.PopFront()
+
+		return e, true, false
+	}
+
+	if q.exhaustive {
+		// All messages are known to be buffered in memory. The pending list may
+		// be empty right now, but that just means that there are active
+		// sessions for every message still on the queue or that the queue is
+		// truly empty.
+		return nil, false, false
+	}
+
+	if q.loading {
+		// Another goroutine is already loading messages. We don't want to block
+		// waiting for it specifically, because we might get a message from a
+		// rolled-back session first.
+		return nil, false, false
+	}
+
+	if len(q.buffered) > 0 {
+		// We can only load the highest-priority messages from the data-store,
+		// so if there's anything in the buffer at all they will just collide.
+		return nil, false, false
+	}
+
+	q.loading = true
+
+	return nil, false, true
+}
+
+// startMonitor starts the monitoring goroutine if it's not already running.
+func (q *Queue) startMonitor() {
+	q.monitorM.Lock()
+	defer q.monitorM.Unlock()
+
+	if q.ready == nil {
+		q.ready = make(chan *elem)
+	}
+
+	if q.blocked == 0 {
+		q.halt = make(chan struct{})
+		q.wake = make(chan struct{}, 1)
+		q.done = make(chan struct{})
+
+		go q.monitor()
+	}
+
+	q.blocked++
+}
+
+// stopMonitor stops the monitoring goroutine if there are no more blocking
+// Pop() calls.
+func (q *Queue) stopMonitor() {
+	q.monitorM.Lock()
+	defer q.monitorM.Unlock()
+
+	q.blocked--
+
+	if q.blocked == 0 {
+		close(q.halt)
+		<-q.done
+
+		q.halt = nil
+		q.wake = nil
+		q.done = nil
+	}
+}
+
+// wakeMonitor signals the monitoring goroutine to check the pending list again.
+func (q *Queue) wakeMonitor() {
+	select {
+	case q.wake <- struct{}{}:
+	default:
+	}
+}
+
+// monitor watches the pending list in order to send a message via q.ready when
+// the message at the front becomes ready for handling.
+func (q *Queue) monitor() {
+	defer func() {
+		close(q.done)
+	}()
+
+	for {
+		if !q.deliver() {
+			return
+		}
+	}
+}
+
+// deliver blocks until the message at the head of the queue is ready to be
+// handled, then sends it via q.ready in order to wake a blocked Pop() call.
+//
+// It returns false if q.halt is closed.
+func (q *Queue) deliver() bool {
+	var (
+		ready   chan<- *elem
+		elapsed <-chan time.Time
+	)
+
+	e, d, exists := q.peekOrPopIfReady()
+
+	if exists {
+		if d <= 0 {
+			ready = q.ready
+		} else {
+			timer := time.NewTimer(d)
+			defer timer.Stop()
+			elapsed = timer.C
+		}
+	}
+
+	select {
+	case ready <- e: // ready is nil (and will block forever) if e not ready now
+		return true
+	case <-elapsed: // elapses is nil (and will block forever) if e is ready now
+		return true
+	case <-q.wake:
+		return true
+	case <-q.halt:
+		return false
+	}
 }
