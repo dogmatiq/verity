@@ -16,10 +16,10 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// DeclareRepositoryTests tests declares a functional test-suite for specific a
+// DeclareRepositoryTests declares a functional test-suite for a specific
 // eventstore.Repository implementation.
 func DeclareRepositoryTests(tc *common.TestContext) {
-	ginkgo.Context("type eventstore.Repository", func() {
+	ginkgo.Describe("type eventstore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
 			repository eventstore.Repository
@@ -156,11 +156,9 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				}
 
 				g.Add(3)
-
 				go fn()
 				go fn()
 				go fn()
-
 				g.Wait()
 			})
 

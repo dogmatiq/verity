@@ -20,7 +20,7 @@ type (
 	Out = common.Out
 )
 
-// Declare declares generic behavioral tests for a specific persistence provider
+// Declare declares a functional test-suite for a specific persistence.Provider
 // implementation.
 func Declare(
 	before func(context.Context, In) Out,
@@ -58,12 +58,11 @@ func Declare(
 		})
 
 		eventstore.DeclareRepositoryTests(&tc)
+		eventstore.DeclareTransactionTests(&tc)
 
 		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
 		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
 		declareTransactionTests(&tc.Context, &tc.In, &tc.Out)
-
-		declareEventStoreTransactionTests(&tc.Context, &tc.In, &tc.Out)
 
 		declareQueueStoreRepositoryTests(&tc.Context, &tc.In, &tc.Out)
 		declareQueueStoreTransactionTests(&tc.Context, &tc.In, &tc.Out)
