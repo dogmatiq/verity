@@ -10,3 +10,8 @@ type Event struct {
 	Offset   Offset
 	Envelope *envelopespec.Envelope
 }
+
+// ID returns the message ID from the envelope.
+func (ev *Event) ID() string {
+	return ev.Envelope.MetaData.MessageId
+}

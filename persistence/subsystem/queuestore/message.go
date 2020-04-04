@@ -16,3 +16,8 @@ type Message struct {
 	NextAttemptAt time.Time
 	Envelope      *envelopespec.Envelope
 }
+
+// ID returns the message ID from the envelope.
+func (m *Message) ID() string {
+	return m.Envelope.MetaData.MessageId
+}

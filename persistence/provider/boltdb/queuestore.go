@@ -36,7 +36,7 @@ func (t *transaction) SaveMessageToQueue(
 		messagesBucketKey,
 	)
 
-	id := []byte(m.Envelope.MetaData.MessageId)
+	id := []byte(m.ID())
 	var old *pb.QueueMessage
 
 	if data := messages.Get(id); data != nil {

@@ -189,7 +189,7 @@ func declareEventStoreTests(
 						ev := events[o]
 						env := envelopes[i]
 
-						gomega.Expect(ev.Envelope.MetaData.MessageId).To(
+						gomega.Expect(ev.ID()).To(
 							gomega.Equal(env.MetaData.MessageId),
 						)
 					}
