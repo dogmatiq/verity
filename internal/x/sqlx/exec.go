@@ -69,11 +69,14 @@ func TryInsert(
 	return id, true
 }
 
-// UpdateRow executes an update statement on the given DB.
+// ExecRow executes a statement on the given DB.
 //
-// It panics if the update does not affect exactly one row. Note that MySQL
-// requires an actual change to occur to consider the row updated.
-func UpdateRow(
+// It panics if the statement does not affect exactly one row.
+//
+// Note that for MySQL an column value must actually change to consider the row
+// updated. Further, it returns a value of 2 for an INSERT .. ON DUPLICATE KEY
+// UPDATE that results in a change to an existing row.
+func ExecRow(
 	ctx context.Context,
 	db DB,
 	query string,
@@ -90,11 +93,14 @@ func UpdateRow(
 	}
 }
 
-// TryUpdateRow executes an update statement on the given DB.
+// TryExecRow executes a statement on the given DB.
 //
-// It returns false if the update does not affect exactly one row. Note that
-// MySQL requires an actual change to occur to consider the row updated.
-func TryUpdateRow(
+// It returns false if the update does not affect exactly one row.
+//
+// Note that for MySQL an column value must actually change to consider the row
+// updated. Further, it returns a value of 2 for an INSERT .. ON DUPLICATE KEY
+// UPDATE that results in a change to an existing row.
+func TryExecRow(
 	ctx context.Context,
 	db DB,
 	query string,

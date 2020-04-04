@@ -32,6 +32,16 @@ type queueDriver interface {
 		m *queuestore.Message,
 	) (bool, error)
 
+	// DeleteQueueMessage deletes a message from the queue.
+	//
+	// It returns false if the row does not exists or m.Revision is not current.
+	DeleteQueueMessage(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak string,
+		m *queuestore.Message,
+	) (bool, error)
+
 	// SelectQueueMessages selects up to n messages from the queue.
 	SelectQueueMessages(
 		ctx context.Context,
@@ -95,7 +105,17 @@ func (t *transaction) RemoveMessageFromQueue(
 		return err
 	}
 
-	return nil
+	ok, err := t.ds.driver.DeleteQueueMessage(
+		ctx,
+		t.actual,
+		t.ds.appKey,
+		m,
+	)
+	if ok || err != nil {
+		return err
+	}
+
+	return queuestore.ErrConflict
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

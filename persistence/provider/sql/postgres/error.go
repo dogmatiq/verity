@@ -160,6 +160,16 @@ func (d errorConverter) UpdateQueueMessage(
 	return ok, convertContextErrors(ctx, err)
 }
 
+func (d errorConverter) DeleteQueueMessage(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	m *queuestore.Message,
+) (bool, error) {
+	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, m)
+	return ok, convertContextErrors(ctx, err)
+}
+
 func (d errorConverter) SelectQueueMessages(
 	ctx context.Context,
 	db *sql.DB,
