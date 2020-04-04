@@ -437,6 +437,29 @@ func declareQueueTests(
 					message0.Revision++
 				})
 
+				ginkgo.It("removes the message from the queue", func() {
+					err := removeMessagesFromQueue(*ctx, dataStore, message0)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					messages, err := repository.LoadQueueMessages(*ctx, 10)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(messages).To(gomega.BeEmpty())
+				})
+
+				ginkgo.It("removes the message when it's at the front of the queue", func() {
+					message1.NextAttemptAt = time.Now().Add(1 * time.Hour)
+					err := saveMessagesToQueue(*ctx, dataStore, message1)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					message1.Revision++
+
+					err = removeMessagesFromQueue(*ctx, dataStore, message0)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					m, err := loadQueueMessage(*ctx, repository)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					expectQueueMessageToEqual(m, message1)
+				})
+
 				ginkgo.When("the transaction is rolled-back", func() {
 					ginkgo.BeforeEach(func() {
 						tx, err := dataStore.Begin(*ctx)
