@@ -4,37 +4,19 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
 )
 
-// In is a container for values that are provided to the provider-specific
-// "before" function.
-type In struct {
-	// Marshaler marshals and unmarshals the test message types, aggregate roots
-	// and process roots.
-	Marshaler marshalkit.Marshaler
-}
+type (
+	// In is a container for values provided by the test suite to the
+	// provider-specific initialization code.
+	In = common.In
 
-// Out is a container for values that are provided by the provider-specific
-// "before" function.
-type Out struct {
-	// NewProvider is a function that creates a new provider.
-	NewProvider func() (p persistence.Provider, close func())
-
-	// IsShared returns true if multiple instances of the same provider access
-	// the same data.
-	IsShared bool
-
-	// TestTimeout is the maximum duration allowed for each test.
-	TestTimeout time.Duration
-}
-
-const (
-	// DefaultTestTimeout is the default test timeout.
-	DefaultTestTimeout = 3 * time.Second
+	// Out is a container for values that are provided by the provider-specific
+	// initialization code to the test suite.
+	Out = common.Out
 )
 
 // Declare declares generic behavioral tests for a specific persistence provider
@@ -44,28 +26,26 @@ func Declare(
 	after func(),
 ) {
 	var (
-		ctx    context.Context
+		tc     common.TestContext
 		cancel func()
-		in     In
-		out    Out
 	)
 
-	ginkgo.Context("standard provider test suite", func() {
+	ginkgo.Context("persistance provider", func() {
 		ginkgo.BeforeEach(func() {
 			setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancelSetup()
 
-			in = In{
+			tc.In = In{
 				Marshaler: marshalkitfixtures.Marshaler,
 			}
 
-			out = before(setupCtx, in)
+			tc.Out = before(setupCtx, tc.In)
 
-			if out.TestTimeout <= 0 {
-				out.TestTimeout = DefaultTestTimeout
+			if tc.Out.TestTimeout <= 0 {
+				tc.Out.TestTimeout = common.DefaultTestTimeout
 			}
 
-			ctx, cancel = context.WithTimeout(context.Background(), out.TestTimeout)
+			tc.Context, cancel = context.WithTimeout(context.Background(), tc.Out.TestTimeout)
 		})
 
 		ginkgo.AfterEach(func() {
@@ -76,14 +56,14 @@ func Declare(
 			cancel()
 		})
 
-		declareProviderTests(&ctx, &in, &out)
-		declareDataStoreTests(&ctx, &in, &out)
-		declareTransactionTests(&ctx, &in, &out)
+		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
+		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
+		declareTransactionTests(&tc.Context, &tc.In, &tc.Out)
 
-		declareEventStoreRepositoryTests(&ctx, &in, &out)
-		declareEventStoreTransactionTests(&ctx, &in, &out)
+		declareEventStoreRepositoryTests(&tc.Context, &tc.In, &tc.Out)
+		declareEventStoreTransactionTests(&tc.Context, &tc.In, &tc.Out)
 
-		declareQueueStoreRepositoryTests(&ctx, &in, &out)
-		declareQueueStoreTransactionTests(&ctx, &in, &out)
+		declareQueueStoreRepositoryTests(&tc.Context, &tc.In, &tc.Out)
+		declareQueueStoreTransactionTests(&tc.Context, &tc.In, &tc.Out)
 	})
 }
