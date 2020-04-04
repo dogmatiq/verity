@@ -64,5 +64,9 @@ var _ = Describe("type Session", func() {
 			err = sess.Tx().(persistence.Transaction).Rollback()
 			Expect(err).To(Equal(persistence.ErrTransactionClosed))
 		})
+
+		XIt("removes the session from the queue's active session list", func() {
+
+		})
 	})
 })

@@ -84,15 +84,66 @@ var _ = Describe("type Queue", func() {
 
 		When("the queue is not empty", func() {
 			When("the message at the front of the queue is ready for handling", func() {
+				BeforeEach(func() {
+					err := queue.Push(ctx, env)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
 
+				It("returns immediately", func() {
+					ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
+					defer cancel()
+
+					sess, err := queue.Pop(ctx)
+					Expect(err).ShouldNot(HaveOccurred())
+					defer sess.Close()
+				})
+
+				It("provides the unmarshaled message envelope", func() {
+					sess, err := queue.Pop(ctx)
+					Expect(err).ShouldNot(HaveOccurred())
+					defer sess.Close()
+
+					Expect(sess.Envelope()).To(Equal(env))
+				})
+
+				It("starts a transaction", func() {
+					sess, err := queue.Pop(ctx)
+					Expect(err).ShouldNot(HaveOccurred())
+					defer sess.Close()
+
+					tx := sess.Tx()
+					Expect(tx).NotTo(BeNil())
+				})
+
+				It("leaves the message on the queue if the transaction can not be started", func() {
+					dataStore.BeginFunc = func(
+						ctx context.Context,
+					) (persistence.Transaction, error) {
+						dataStore.BeginFunc = nil
+						return nil, errors.New("<error>")
+					}
+
+					sess, err := queue.Pop(ctx)
+					if sess != nil {
+						sess.Close()
+					}
+					Expect(err).To(MatchError("<error>"))
+
+					sess, err = queue.Pop(ctx)
+					Expect(err).ShouldNot(HaveOccurred())
+					defer sess.Close()
+				})
 			})
 
 			When("the message at the front of the queue is not-ready for handling", func() {
+				var next time.Time
+
 				BeforeEach(func() {
+					next = time.Now().Add(10 * time.Millisecond)
+
 					// It's not possible to push a message with a future
 					// next-attempt time via Queue's interface, so we need to
-					// persist something directly, then tell the queue that it's
-					// buffer is stale.
+					// persist something directly.
 					err := persistence.WithTransaction(
 						ctx,
 						dataStore,
@@ -100,7 +151,7 @@ var _ = Describe("type Queue", func() {
 							return tx.SaveMessageToQueue(
 								ctx,
 								&queuestore.Message{
-									NextAttemptAt: time.Now().Add(10 * time.Millisecond),
+									NextAttemptAt: next,
 									Envelope:      envelope.MustMarshal(Marshaler, env),
 								},
 							)
@@ -109,7 +160,12 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				XIt("blocks until the message is ready", func() {
+				It("blocks until the message becomes ready", func() {
+					sess, err := queue.Pop(ctx)
+					Expect(err).ShouldNot(HaveOccurred())
+					defer sess.Close()
+
+					Expect(time.Now()).To(BeTemporally(">=", next))
 				})
 
 				XIt("unblocks if a new message jumps the queue", func() {
@@ -126,72 +182,6 @@ var _ = Describe("type Queue", func() {
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
 			})
-		})
-
-		It("returns a non-nil session", func() {
-			err := queue.Push(ctx, env)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			sess, err := queue.Pop(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			err = sess.Close()
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("provides the unmarshaled message envelope", func() {
-			err := queue.Push(ctx, env)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			sess, err := queue.Pop(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer sess.Close()
-
-			Expect(sess.Envelope()).To(Equal(env))
-		})
-
-		It("returns an error if the context is canceled", func() {
-			cancel()
-
-			sess, err := queue.Pop(ctx)
-			if sess != nil {
-				sess.Close()
-			}
-			Expect(err).To(Equal(context.Canceled))
-		})
-
-		It("starts a transaction", func() {
-			err := queue.Push(ctx, env)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			sess, err := queue.Pop(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer sess.Close()
-
-			tx := sess.Tx()
-			Expect(tx).NotTo(BeNil())
-		})
-
-		It("leaves the message on the queue if the transaction can not be started", func() {
-			err := queue.Push(ctx, env)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			dataStore.BeginFunc = func(
-				ctx context.Context,
-			) (persistence.Transaction, error) {
-				dataStore.BeginFunc = nil
-				return nil, errors.New("<error>")
-			}
-
-			sess, err := queue.Pop(ctx)
-			if sess != nil {
-				sess.Close()
-			}
-			Expect(err).To(MatchError("<error>"))
-
-			sess, err = queue.Pop(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer sess.Close()
 		})
 	})
 
