@@ -79,7 +79,11 @@ func Declare(
 		declareProviderTests(&ctx, &in, &out)
 		declareDataStoreTests(&ctx, &in, &out)
 		declareTransactionTests(&ctx, &in, &out)
-		declareEventStoreTests(&ctx, &in, &out)
-		declareQueueTests(&ctx, &in, &out)
+
+		declareEventStoreRepositoryTests(&ctx, &in, &out)
+		declareEventStoreTransactionTests(&ctx, &in, &out)
+
+		declareQueueStoreRepositoryTests(&ctx, &in, &out)
+		declareQueueStoreTransactionTests(&ctx, &in, &out)
 	})
 }

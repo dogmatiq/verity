@@ -159,7 +159,7 @@ func (d driver) updateLock(
 ) (err error) {
 	defer sqlx.Recover(&err)
 
-	sqlx.UpdateRow(
+	sqlx.ExecRow(
 		ctx,
 		db,
 		`UPDATE app_lock SET

@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -27,6 +26,16 @@ type queueDriver interface {
 	//
 	// It returns false if the row does not exists or m.Revision is not current.
 	UpdateQueueMessage(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak string,
+		m *queuestore.Message,
+	) (bool, error)
+
+	// DeleteQueueMessage deletes a message from the queue.
+	//
+	// It returns false if the row does not exists or m.Revision is not current.
+	DeleteQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
@@ -92,7 +101,21 @@ func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queuestore.Message,
 ) (err error) {
-	return errors.New("not implemented")
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
+	ok, err := t.ds.driver.DeleteQueueMessage(
+		ctx,
+		t.actual,
+		t.ds.appKey,
+		m,
+	)
+	if ok || err != nil {
+		return err
+	}
+
+	return queuestore.ErrConflict
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"sort"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -27,7 +26,9 @@ func (t *transaction) SaveMessageToQueue(
 
 	var rev queuestore.Revision
 	if x, ok := t.uncommitted.queue[id]; ok {
-		rev = x.Revision
+		if x != nil {
+			rev = x.Revision
+		}
 	} else if x, ok := t.ds.db.queue.uniq[id]; ok {
 		rev = x.Revision
 	}
@@ -47,15 +48,85 @@ func (t *transaction) SaveMessageToQueue(
 	return nil
 }
 
+// RemoveMessageFromQueue removes a specific message from the application's
+// message queue.
+//
+// m.Revision must be the revision of the message as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the message
+// remains on the queue and ErrConflict is returned.
+func (t *transaction) RemoveMessageFromQueue(
+	ctx context.Context,
+	m *queuestore.Message,
+) error {
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
+	id := m.Envelope.GetMetaData().GetMessageId()
+
+	var rev queuestore.Revision
+	if x, ok := t.uncommitted.queue[id]; ok {
+		if x != nil {
+			rev = x.Revision
+		}
+	} else if x, ok := t.ds.db.queue.uniq[id]; ok {
+		rev = x.Revision
+	}
+
+	if m.Revision != rev {
+		return queuestore.ErrConflict
+	}
+
+	if t.uncommitted.queue == nil {
+		t.uncommitted.queue = map[string]*queuestore.Message{}
+	}
+	t.uncommitted.queue[id] = nil
+
+	return nil
+}
+
 // commitQueue commits staged queue items to the database.
 func (t *transaction) commitQueue() {
 	q := &t.ds.db.queue
 
+	needsSort := false
+	hasDeletes := false
+
 	for id, m := range t.uncommitted.queue {
 		if x, ok := q.uniq[id]; ok {
-			t.commitQueueUpdate(id, m, x)
+			if m == nil {
+				x.Revision = 0 // mark for deletion
+				needsSort = true
+				hasDeletes = true
+			} else {
+				if t.commitQueueUpdate(id, m, x) {
+					needsSort = true
+				}
+			}
 		} else {
 			t.commitQueueInsert(id, m)
+		}
+	}
+
+	if needsSort {
+		sort.Slice(
+			q.order,
+			func(i, j int) bool {
+				a := q.order[i]
+				b := q.order[j]
+
+				// If a message has a revision of 0 that means it's being
+				// deleted, always sort it AFTER anything that's being kept.
+				if a.Revision == 0 || b.Revision == 0 {
+					return a.Revision > b.Revision
+				}
+
+				return a.NextAttemptAt.Before(b.NextAttemptAt)
+			},
+		)
+
+		if hasDeletes {
+			t.commitQueueRemovals()
 		}
 	}
 }
@@ -92,42 +163,43 @@ func (t *transaction) commitQueueInsert(id string, m *queuestore.Message) {
 }
 
 // commitQueueUpdate updates an existing message as part of a commit.
-func (t *transaction) commitQueueUpdate(id string, m, existing *queuestore.Message) {
-	q := &t.ds.db.queue
-
-	// This message is already on the queue, we don't insert it, only
-	// update its meta-data.
+func (t *transaction) commitQueueUpdate(id string, m, existing *queuestore.Message) bool {
 	existing.Revision = m.Revision
 
 	if m.NextAttemptAt.Equal(existing.NextAttemptAt) {
-		// Bail early if the next-attempt time has not change to avoid sorting
-		// the queue unnecessarily.
-		return
+		// Bail early and return false if the next-attempt time has not change
+		// to avoid sorting the queue unnecessarily.
+		return false
 	}
 
 	existing.NextAttemptAt = m.NextAttemptAt
 
-	sort.Slice(
-		q.order,
-		func(i, j int) bool {
-			return q.order[i].NextAttemptAt.Before(
-				q.order[j].NextAttemptAt,
-			)
-		},
-	)
+	return true
 }
 
-// RemoveMessageFromQueue removes a specific message from the application's
-// message queue.
-//
-// m.Revision must be the revision of the message as currently persisted,
-// otherwise an optimistic concurrency conflict has occurred, the message
-// remains on the queue and ErrConflict is returned.
-func (t *transaction) RemoveMessageFromQueue(
-	ctx context.Context,
-	m *queuestore.Message,
-) (err error) {
-	return errors.New("not implemented")
+// commitQueueRemovals removes existing messages as part of a commit.
+func (t *transaction) commitQueueRemovals() {
+	q := &t.ds.db.queue
+
+	i := len(q.order) - 1
+
+	for i >= 0 {
+		m := q.order[i]
+
+		if m.Revision > 0 {
+			// All deleted messages have a revision of 0 and have been sorted to
+			// the end, so once we find a real revision, we're done.
+			break
+		}
+
+		q.order[i] = nil // prevent memory leak
+		delete(q.uniq, m.ID())
+
+		i--
+	}
+
+	// Trim the slice to the new length.
+	q.order = q.order[:i+1]
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

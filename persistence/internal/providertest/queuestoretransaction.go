@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func declareQueueTests(
+func declareQueueStoreTransactionTests(
 	ctx *context.Context,
 	in *In,
 	out *Out,
@@ -429,75 +429,105 @@ func declareQueueTests(
 					}
 				})
 			})
-		})
 
-		ginkgo.Describe("type Repository (interface)", func() {
-			ginkgo.Describe("func LoadQueueMessages()", func() {
-				ginkgo.It("returns an empty result if the queue is empty", func() {
-					messages, err := repository.LoadQueueMessages(*ctx, 10)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(messages).To(gomega.BeEmpty())
+			ginkgo.Describe("func RemoveMessageFromQueue()", func() {
+				ginkgo.When("the message is on the queue", func() {
+					ginkgo.BeforeEach(func() {
+						err := saveMessagesToQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						message0.Revision++
+					})
+
+					ginkgo.It("removes the message from the queue", func() {
+						err := removeMessagesFromQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						messages, err := repository.LoadQueueMessages(*ctx, 10)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						gomega.Expect(messages).To(gomega.BeEmpty())
+					})
+
+					ginkgo.It("removes the message when it's at the front of the queue", func() {
+						message1.NextAttemptAt = time.Now().Add(1 * time.Hour)
+						err := saveMessagesToQueue(*ctx, dataStore, message1)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						message1.Revision++
+
+						err = removeMessagesFromQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+						m, err := loadQueueMessage(*ctx, repository)
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						expectQueueMessageToEqual(m, message1)
+					})
+
+					table.DescribeTable(
+						"it does not remove the message when an OCC conflict occurs",
+						func(conflictingRevision int) {
+							// Update the message once more so that it's up to
+							// revision 2. This lets us test for both 0 (the
+							// special case) and 1 as incorrect revisions.
+							err := saveMessagesToQueue(*ctx, dataStore, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							// Now try to remove with a revision that we expect to
+							// fail.
+							err = removeMessagesFromQueue(
+								*ctx,
+								dataStore,
+								&queuestore.Message{
+									Revision:      queuestore.Revision(conflictingRevision),
+									NextAttemptAt: message0.NextAttemptAt,
+									Envelope:      env0, // same env as message already on queue
+								},
+							)
+							gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+
+							m, err := loadQueueMessage(*ctx, repository)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							gomega.Expect(m.Revision).To(
+								gomega.Equal(queuestore.Revision(2)),
+							)
+							expectQueueMessageToEqual(m, message0)
+						},
+						table.Entry("zero", 0),
+						table.Entry("too low", 1),
+						table.Entry("too high", 100),
+					)
+
+					ginkgo.When("the transaction is rolled-back", func() {
+						ginkgo.BeforeEach(func() {
+							tx, err := dataStore.Begin(*ctx)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+							defer tx.Rollback()
+
+							err = tx.RemoveMessageFromQueue(*ctx, message0)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							err = tx.Rollback()
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+						})
+
+						ginkgo.It("does not remove the message", func() {
+							m, err := loadQueueMessage(*ctx, repository)
+							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+							gomega.Expect(m.Revision).To(
+								gomega.Equal(queuestore.Revision(1)),
+							)
+							expectQueueMessageToEqual(m, message0)
+						})
+					})
 				})
 
-				table.DescribeTable(
-					"it returns messages from the queue, ordered by their next attempt time",
-					func(n int, expected ...**queuestore.Message) {
-						ginkgo.By("enqueuing some messages out of order")
+				ginkgo.When("the message is not on the queue", func() {
+					ginkgo.It("returns an OCC conflict error", func() {
+						message0.Revision = 123
 
-						// The expected order is env1, env2, env0.
-						message0.NextAttemptAt = time.Now().Add(3 * time.Hour)
-						message1.NextAttemptAt = time.Now().Add(-10 * time.Hour)
-						message2.NextAttemptAt = time.Now().Add(2 * time.Hour)
-
-						err := saveMessagesToQueue(
-							*ctx,
-							dataStore,
-							message0,
-							message1,
-							message2,
-						)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-						ginkgo.By("loading the messages")
-
-						messages, err := repository.LoadQueueMessages(*ctx, n)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
-
-						ginkgo.By("iterating through the result")
-
-						for i, m := range messages {
-							expectQueueMessageToEqual(
-								m,
-								*expected[i],
-								fmt.Sprintf("message at index #%d in does not match the expected value", i),
-							)
-						}
-					},
-					table.Entry(
-						"it returns all the messages if the limit is equal the length of the queue",
-						3,
-						&message1, &message2, &message0,
-					),
-					table.Entry(
-						"it returns all the messages if the limit is larger than the length of the queue",
-						10,
-						&message1, &message2, &message0,
-					),
-					table.Entry(
-						"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
-						2,
-						&message1, &message2,
-					),
-				)
-			})
-
-			ginkgo.It("returns an error if the context is canceled", func() {
-				ctx, cancel := context.WithCancel(*ctx)
-				cancel()
-
-				_, err := repository.LoadQueueMessages(ctx, 1)
-				gomega.Expect(err).To(gomega.Equal(context.Canceled))
+						err := removeMessagesFromQueue(*ctx, dataStore, message0)
+						gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+					})
+				})
 			})
 		})
 	})

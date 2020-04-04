@@ -2,7 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
@@ -36,26 +35,16 @@ func (t *transaction) SaveMessageToQueue(
 		messagesBucketKey,
 	)
 
-	id := []byte(m.ID())
-	var old *pb.QueueMessage
-
-	if data := messages.Get(id); data != nil {
-		old = &pb.QueueMessage{}
-		err := proto.Unmarshal(data, old)
-		bboltx.Must(err)
-	}
+	old := loadQueueMessage(messages, m.ID())
 
 	if uint64(m.Revision) != old.GetRevision() {
 		return queuestore.ErrConflict
 	}
 
 	new, data := marshalQueueMessage(m, old)
-	bboltx.Put(messages, id, data)
+	bboltx.Put(messages, []byte(m.ID()), data)
 
-	newNext := new.GetNextAttemptAt()
-	oldNext := old.GetNextAttemptAt()
-
-	if newNext != oldNext {
+	if new.GetNextAttemptAt() != old.GetNextAttemptAt() {
 		order := bboltx.CreateBucketIfNotExists(
 			t.actual,
 			t.appKey,
@@ -63,17 +52,11 @@ func (t *transaction) SaveMessageToQueue(
 			orderBucketKey,
 		)
 
-		if oldNext != "" {
-			bboltx.Bucket(
-				order,
-				[]byte(oldNext),
-			).Delete(id)
+		if old != nil {
+			removeQueueOrder(order, old)
 		}
 
-		bboltx.CreateBucketIfNotExists(
-			order,
-			[]byte(newNext),
-		).Put(id, nil)
+		saveQueueOrder(order, new)
 	}
 
 	return nil
@@ -89,7 +72,39 @@ func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
 	m *queuestore.Message,
 ) (err error) {
-	return errors.New("not implemented")
+	defer bboltx.Recover(&err)
+
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
+	messages, ok := bboltx.TryBucket(
+		t.actual,
+		t.appKey,
+		queueBucketKey,
+		messagesBucketKey,
+	)
+	if !ok {
+		return queuestore.ErrConflict
+	}
+
+	old := loadQueueMessage(messages, m.ID())
+
+	if uint64(m.Revision) != old.GetRevision() {
+		return queuestore.ErrConflict
+	}
+
+	order := bboltx.Bucket(
+		t.actual,
+		t.appKey,
+		queueBucketKey,
+		orderBucketKey,
+	)
+
+	bboltx.Delete(messages, []byte(m.ID()))
+	removeQueueOrder(order, old)
+
+	return nil
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that
@@ -199,4 +214,45 @@ func marshalQueueMessage(
 	bboltx.Must(err)
 
 	return new, data
+}
+
+// loadQueueMessage loads the protobuf representation of a queue message.
+func loadQueueMessage(messages *bbolt.Bucket, id string) *pb.QueueMessage {
+	data := messages.Get([]byte(id))
+	if data == nil {
+		return nil
+	}
+
+	m := &pb.QueueMessage{}
+	err := proto.Unmarshal(data, m)
+	bboltx.Must(err)
+
+	return m
+}
+
+// saveQueueOrder adds a record for m to the order bucket.
+func saveQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
+	id := m.GetEnvelope().GetMetaData().GetMessageId()
+
+	bboltx.Put(
+		bboltx.CreateBucketIfNotExists(
+			order,
+			[]byte(m.NextAttemptAt),
+		),
+		[]byte(id),
+		nil,
+	)
+}
+
+// removeQueueOrder removes the record for m from the order bucket.
+func removeQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
+	id := m.GetEnvelope().GetMetaData().GetMessageId()
+
+	bboltx.Delete(
+		bboltx.Bucket(
+			order,
+			[]byte(m.NextAttemptAt),
+		),
+		[]byte(id),
+	)
 }

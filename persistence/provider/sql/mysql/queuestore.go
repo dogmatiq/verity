@@ -84,7 +84,7 @@ func (driver) UpdateQueueMessage(
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
-	return sqlx.TryUpdateRow(
+	return sqlx.TryExecRow(
 		ctx,
 		tx,
 		`UPDATE queue SET
@@ -94,6 +94,30 @@ func (driver) UpdateQueueMessage(
 		AND message_id = ?
 		AND revision = ?`,
 		m.NextAttemptAt,
+		ak,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Revision,
+	), nil
+}
+
+// DeleteQueueMessage deletes a message from the queue.
+//
+// It returns false if the row does not exists or m.Revision is not current.
+func (driver) DeleteQueueMessage(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	m *queuestore.Message,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
+		ctx,
+		tx,
+		`DELETE FROM queue
+		WHERE app_key = ?
+		AND message_id = ?
+		AND revision = ?`,
 		ak,
 		m.Envelope.GetMetaData().GetMessageId(),
 		m.Revision,

@@ -98,6 +98,26 @@ func saveMessagesToQueue(
 	)
 }
 
+// removeMessagesFromQueue removes the given message from the queue.
+func removeMessagesFromQueue(
+	ctx context.Context,
+	ds persistence.DataStore,
+	messages ...*queuestore.Message,
+) error {
+	return persistence.WithTransaction(
+		ctx,
+		ds,
+		func(tx persistence.ManagedTransaction) error {
+			for _, m := range messages {
+				if err := tx.RemoveMessageFromQueue(ctx, m); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	)
+}
+
 // loadQueueMessage loads the next message from the queue.
 func loadQueueMessage(
 	ctx context.Context,
