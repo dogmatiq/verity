@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
+	"github.com/dogmatiq/infix/persistence/internal/providertest/eventstore"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
 )
@@ -56,11 +57,12 @@ func Declare(
 			cancel()
 		})
 
+		eventstore.DeclareRepositoryTests(&tc)
+
 		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
 		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
 		declareTransactionTests(&tc.Context, &tc.In, &tc.Out)
 
-		declareEventStoreRepositoryTests(&tc.Context, &tc.In, &tc.Out)
 		declareEventStoreTransactionTests(&tc.Context, &tc.In, &tc.Out)
 
 		declareQueueStoreRepositoryTests(&tc.Context, &tc.In, &tc.Out)

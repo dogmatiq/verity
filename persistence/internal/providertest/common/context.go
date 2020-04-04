@@ -48,12 +48,18 @@ func (tc *TestContext) SetupDataStore() (persistence.DataStore, func()) {
 
 	ds, err := p.Open(tc.Context, "<app-key>")
 	if err != nil {
-		close()
+		if close != nil {
+			close()
+		}
+
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	}
 
 	return ds, func() {
 		ds.Close()
-		close()
+
+		if close != nil {
+			close()
+		}
 	}
 }
