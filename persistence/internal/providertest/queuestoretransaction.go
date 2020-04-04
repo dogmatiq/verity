@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func declareQueueTests(
+func declareQueueStoreTransactionTests(
 	ctx *context.Context,
 	in *In,
 	out *Out,
@@ -528,76 +528,6 @@ func declareQueueTests(
 						gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
 					})
 				})
-			})
-		})
-
-		ginkgo.Describe("type Repository (interface)", func() {
-			ginkgo.Describe("func LoadQueueMessages()", func() {
-				ginkgo.It("returns an empty result if the queue is empty", func() {
-					messages, err := repository.LoadQueueMessages(*ctx, 10)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(messages).To(gomega.BeEmpty())
-				})
-
-				table.DescribeTable(
-					"it returns messages from the queue, ordered by their next attempt time",
-					func(n int, expected ...**queuestore.Message) {
-						ginkgo.By("enqueuing some messages out of order")
-
-						// The expected order is env1, env2, env0.
-						message0.NextAttemptAt = time.Now().Add(3 * time.Hour)
-						message1.NextAttemptAt = time.Now().Add(-10 * time.Hour)
-						message2.NextAttemptAt = time.Now().Add(2 * time.Hour)
-
-						err := saveMessagesToQueue(
-							*ctx,
-							dataStore,
-							message0,
-							message1,
-							message2,
-						)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-						ginkgo.By("loading the messages")
-
-						messages, err := repository.LoadQueueMessages(*ctx, n)
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
-
-						ginkgo.By("iterating through the result")
-
-						for i, m := range messages {
-							expectQueueMessageToEqual(
-								m,
-								*expected[i],
-								fmt.Sprintf("message at index #%d in does not match the expected value", i),
-							)
-						}
-					},
-					table.Entry(
-						"it returns all the messages if the limit is equal the length of the queue",
-						3,
-						&message1, &message2, &message0,
-					),
-					table.Entry(
-						"it returns all the messages if the limit is larger than the length of the queue",
-						10,
-						&message1, &message2, &message0,
-					),
-					table.Entry(
-						"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
-						2,
-						&message1, &message2,
-					),
-				)
-			})
-
-			ginkgo.It("returns an error if the context is canceled", func() {
-				ctx, cancel := context.WithCancel(*ctx)
-				cancel()
-
-				_, err := repository.LoadQueueMessages(ctx, 1)
-				gomega.Expect(err).To(gomega.Equal(context.Canceled))
 			})
 		})
 	})
