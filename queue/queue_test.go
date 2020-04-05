@@ -214,6 +214,16 @@ var _ = Describe("type Queue", func() {
 
 				Expect(sess.Envelope()).To(Equal(env0))
 			})
+
+			It("returns an error if messages can not be loaded from the repository", func() {
+				dataStore.Close()
+
+				sess, err := queue.Pop(ctx)
+				if sess != nil {
+					sess.Close()
+				}
+				Expect(err).Should(HaveOccurred())
+			})
 		})
 	})
 
