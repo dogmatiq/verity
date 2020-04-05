@@ -62,11 +62,10 @@ func Declare(
 		eventstore.DeclareTransactionTests(&tc)
 
 		queuestore.DeclareRepositoryTests(&tc)
+		queuestore.DeclareTransactionTests(&tc)
 
 		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
 		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
 		declareTransactionTests(&tc.Context, &tc.In, &tc.Out)
-
-		declareQueueStoreTransactionTests(&tc.Context, &tc.In, &tc.Out)
 	})
 }

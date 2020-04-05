@@ -1,6 +1,7 @@
 package queuestore
 
 import (
+	"sync"
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -23,8 +24,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			repository queuestore.Repository
 			tearDown   func()
 
-			env0, env1/*, env2*/ *envelopespec.Envelope
-			message0, message1/*, message2*/ *queuestore.Message
+			env0, env1, env2             *envelopespec.Envelope
+			message0, message1, message2 *queuestore.Message
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -33,7 +34,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageA2)
-			//env2 = infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageA3)
+			env2 = infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageA3)
 
 			message0 = &queuestore.Message{
 				NextAttemptAt: time.Now(),
@@ -45,10 +46,10 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				Envelope:      env1,
 			}
 
-			// message2 = &queuestore.Message{
-			// 	NextAttemptAt: time.Now(),
-			// 	Envelope:      env2,
-			// }
+			message2 = &queuestore.Message{
+				NextAttemptAt: time.Now(),
+				Envelope:      env2,
+			}
 		})
 
 		ginkgo.AfterEach(func() {
@@ -75,7 +76,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
 							clone := *message0
-							clone.NextAttemptAt = time.Unix(0, 0)
+							clone.NextAttemptAt = clone.NextAttemptAt.Add(1 * time.Hour)
 							return tx.SaveMessageToQueue(tc.Context, &clone)
 						},
 					)
@@ -131,7 +132,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							func(tx persistence.ManagedTransaction) error {
 								clone := *message0
 								clone.Revision = queuestore.Revision(conflictingRevision)
-								clone.NextAttemptAt = time.Unix(0, 0)
+								clone.NextAttemptAt = clone.NextAttemptAt.Add(1 * time.Hour)
 
 								err := tx.SaveMessageToQueue(tc.Context, &clone)
 								gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
@@ -165,7 +166,14 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					saveMessages(tc.Context, dataStore, message0)
 
 					m := loadMessage(tc.Context, repository)
-					expectMessageToEqual(m, message0)
+
+					// We can't use the regular protobuf comparison methods,
+					// because even proto.Equal() treats a nil proto.Message
+					// differently to a zero-value.
+					src := m.Envelope.GetMetaData().GetSource()
+					gomega.Expect(src.GetHandler().GetName()).To(gomega.Equal(""))
+					gomega.Expect(src.GetHandler().GetKey()).To(gomega.Equal(""))
+					gomega.Expect(src.GetInstanceId()).To(gomega.Equal(""))
 				})
 
 				ginkgo.It("does not save the message if the transaction is rolled back", func() {
@@ -202,10 +210,22 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			})
 
+			ginkgo.XWhen("the a message is saved more than once in the same transaction", func() {
+			})
+
 			ginkgo.It("does not update the revision field of the argument", func() {
-				before := message0.Revision
-				saveMessages(tc.Context, dataStore, message0)
-				gomega.Expect(message0.Revision).To(gomega.Equal(before))
+				err := persistence.WithTransaction(
+					tc.Context,
+					dataStore,
+					func(tx persistence.ManagedTransaction) error {
+						before := message0.Revision
+						err := tx.SaveMessageToQueue(tc.Context, message0)
+						gomega.Expect(message0.Revision).To(gomega.Equal(before))
+
+						return err
+					},
+				)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 		})
 
@@ -304,10 +324,54 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						)
 					},
 					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					table.Entry("non-zero", 100),
 				)
 			})
+
+			ginkgo.XWhen("the a message is saved then deleted in the same transaction", func() {
+			})
+
+			ginkgo.XWhen("the a message is deleted then saved in the same transaction", func() {
+			})
+		})
+
+		ginkgo.It("serializes operations from competing transactions", func() {
+			ginkgo.By("running several transactions in parallel")
+
+			saveMessages(tc.Context, dataStore, message0, message1)
+
+			var g sync.WaitGroup
+			g.Add(3)
+
+			// save
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				defer g.Done()
+				saveMessages(tc.Context, dataStore, message2)
+			}()
+
+			// update
+			message1.NextAttemptAt = time.Now().Add(+1 * time.Hour)
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				defer g.Done()
+				saveMessages(tc.Context, dataStore, message1)
+			}()
+
+			// remove
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				defer g.Done()
+				removeMessages(tc.Context, dataStore, message0)
+			}()
+
+			g.Wait()
+
+			ginkgo.By("loading the messages")
+
+			expected := []*queuestore.Message{message2, message1}
+			messages := loadMessages(tc.Context, repository, len(expected)+1)
+			expectMessagesToEqual(messages, expected)
 		})
 	})
 }

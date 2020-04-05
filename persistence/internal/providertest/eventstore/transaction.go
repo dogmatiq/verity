@@ -97,8 +97,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				)
 
 				fn := func(env *envelopespec.Envelope) {
-					defer g.Done()
 					defer ginkgo.GinkgoRecover()
+					defer g.Done()
 					o := saveEvent(tc.Context, dataStore, env)
 
 					m.Lock()
