@@ -10,6 +10,7 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -165,6 +166,53 @@ var _ = Describe("type Queue", func() {
 					}
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
+			})
+		})
+
+		When("messages are persisted but not in memory", func() {
+			var env0, env1, env2 *envelope.Envelope
+
+			BeforeEach(func() {
+				env0 = NewEnvelope("<message-0>", MessageA1)
+				env1 = NewEnvelope("<message-1>", MessageA2)
+				env2 = NewEnvelope("<message-2>", MessageA3)
+
+				messages := []*queuestore.Message{
+					&queuestore.Message{
+						NextAttemptAt: time.Now(),
+						Envelope:      envelope.MustMarshal(Marshaler, env0),
+					},
+					&queuestore.Message{
+						NextAttemptAt: time.Now().Add(10 * time.Millisecond),
+						Envelope:      envelope.MustMarshal(Marshaler, env1),
+					},
+					&queuestore.Message{
+						NextAttemptAt: time.Now().Add(5 * time.Millisecond),
+						Envelope:      envelope.MustMarshal(Marshaler, env2),
+					},
+				}
+
+				err := persistence.WithTransaction(
+					ctx,
+					dataStore,
+					func(tx persistence.ManagedTransaction) error {
+						for _, m := range messages {
+							if err := tx.SaveMessageToQueue(ctx, m); err != nil {
+								return err
+							}
+						}
+						return nil
+					},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("loads the messages from the store", func() {
+				sess, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				defer sess.Close()
+
+				Expect(sess.Envelope()).To(Equal(env0))
 			})
 		})
 	})
