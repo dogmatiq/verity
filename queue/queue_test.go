@@ -10,7 +10,6 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -58,7 +57,8 @@ var _ = Describe("type Queue", func() {
 		When("the queue is empty", func() {
 			It("blocks until a message is pushed", func() {
 				go func() {
-					time.Sleep(50 * time.Millisecond)
+					defer GinkgoRecover()
+					time.Sleep(20 * time.Millisecond)
 					err := queue.Push(ctx, env)
 					Expect(err).ShouldNot(HaveOccurred())
 				}()
@@ -66,9 +66,6 @@ var _ = Describe("type Queue", func() {
 				sess, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
 				defer sess.Close()
-			})
-
-			XIt("does not unblock if a non-ready message is returned to the queue", func() {
 			})
 
 			It("returns an error if the context deadline is exceeded", func() {
@@ -84,12 +81,12 @@ var _ = Describe("type Queue", func() {
 		})
 
 		When("the queue is not empty", func() {
-			When("the message at the front of the queue is ready for handling", func() {
-				BeforeEach(func() {
-					err := queue.Push(ctx, env)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
+			BeforeEach(func() {
+				err := queue.Push(ctx, env)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
 
+			When("the message at the front of the queue is ready for handling", func() {
 				It("returns immediately", func() {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 					defer cancel()
@@ -125,22 +122,11 @@ var _ = Describe("type Queue", func() {
 				BeforeEach(func() {
 					next = time.Now().Add(10 * time.Millisecond)
 
-					// It's not possible to push a message with a future
-					// next-attempt time via Queue's interface, so we need to
-					// persist something directly.
-					err := persistence.WithTransaction(
-						ctx,
-						dataStore,
-						func(tx persistence.ManagedTransaction) error {
-							return tx.SaveMessageToQueue(
-								ctx,
-								&queuestore.Message{
-									NextAttemptAt: next,
-									Envelope:      envelope.MustMarshal(Marshaler, env),
-								},
-							)
-						},
-					)
+					sess, err := queue.Pop(ctx)
+					Expect(err).ShouldNot(HaveOccurred())
+					defer sess.Close()
+
+					err = sess.Rollback(ctx, next)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -152,7 +138,21 @@ var _ = Describe("type Queue", func() {
 					Expect(time.Now()).To(BeTemporally(">=", next))
 				})
 
-				XIt("unblocks if a new message jumps the queue", func() {
+				It("unblocks if a new message jumps the queue", func() {
+					new := NewEnvelope("<new>", MessageX1)
+
+					go func() {
+						defer GinkgoRecover()
+						time.Sleep(5 * time.Millisecond)
+						err := queue.Push(ctx, new)
+						Expect(err).ShouldNot(HaveOccurred())
+					}()
+
+					sess, err := queue.Pop(ctx)
+					Expect(err).ShouldNot(HaveOccurred())
+					defer sess.Close()
+
+					Expect(sess.Envelope()).To(Equal(new))
 				})
 
 				It("returns an error if the context deadline is exceeded", func() {
