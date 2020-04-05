@@ -209,7 +209,7 @@ func (q *Queue) pushPending(new bool, e *elem) {
 		}
 
 		if len(q.buffered) > size {
-			// The buffer has exceeded tis size limit, we need to discard the
+			// The buffer has exceeded its size limit, we need to discard the
 			// lowest priority element.
 			oversize = true
 		}

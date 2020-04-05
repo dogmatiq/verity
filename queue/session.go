@@ -23,11 +23,14 @@ func (s *Session) Tx() persistence.ManagedTransaction {
 }
 
 // Envelope returns the envelope containing the message to be handled.
-//
-// TODO: defer unmarshaling to the session so that a failure is visible to the
-// logic that has access to the backoff strategy.
-func (s *Session) Envelope() *envelope.Envelope {
-	return s.elem.env
+func (s *Session) Envelope() (*envelope.Envelope, error) {
+	var err error
+
+	if s.elem.env == nil {
+		s.elem.env, err = envelope.Unmarshal(s.queue.Marshaler, s.elem.message.Envelope)
+	}
+
+	return s.elem.env, err
 }
 
 // Commit commits the changes performed in the session.
