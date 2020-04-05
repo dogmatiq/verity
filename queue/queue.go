@@ -120,6 +120,8 @@ func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
 		return err
 	}
 
+	m.Revision++
+
 	q.pushPending(true, &elem{
 		env:     env,
 		message: m,

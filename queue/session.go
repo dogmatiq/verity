@@ -41,7 +41,7 @@ func (s *Session) Commit(ctx context.Context) error {
 		return err
 	}
 
-	s.commit = true
+	s.queue.discard(s.elem)
 
 	return nil
 }
@@ -55,13 +55,20 @@ func (s *Session) Rollback(ctx context.Context, n time.Time) error {
 
 	s.elem.message.NextAttemptAt = n
 
-	return persistence.WithTransaction(
+	if err := persistence.WithTransaction(
 		ctx,
 		s.queue.DataStore,
 		func(tx persistence.ManagedTransaction) error {
 			return tx.SaveMessageToQueue(ctx, s.elem.message)
 		},
-	)
+	); err != nil {
+		return err
+	}
+
+	s.elem.message.Revision++
+	s.queue.pushPending(false, s.elem)
+
+	return nil
 }
 
 // Close releases the message.
@@ -72,11 +79,7 @@ func (s *Session) Close() error {
 		return err
 	}
 
-	if s.commit {
-		s.queue.discard(s.elem)
-	} else {
-		s.queue.pushPending(false, s.elem)
-	}
+	s.queue.pushPending(false, s.elem)
 
 	return nil
 }
