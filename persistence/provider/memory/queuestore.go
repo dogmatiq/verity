@@ -71,6 +71,8 @@ func (t *transaction) RemoveMessageFromQueue(
 		}
 	} else if x, ok := t.ds.db.queue.uniq[id]; ok {
 		rev = x.Revision
+	} else {
+		return queuestore.ErrConflict
 	}
 
 	if m.Revision != rev {
