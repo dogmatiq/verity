@@ -43,10 +43,10 @@ func DeclareTransactionTests(tc *common.TestContext) {
 		ginkgo.Describe("func SaveEvent()", func() {
 			ginkgo.It("returns the offset of the event", func() {
 				o := saveEvent(tc.Context, dataStore, env0)
-				gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
+				gomega.Expect(o).To(gomega.BeEquivalentTo(0))
 
 				o = saveEvent(tc.Context, dataStore, env1)
-				gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
+				gomega.Expect(o).To(gomega.BeEquivalentTo(1))
 			})
 
 			ginkgo.It("returns the offset of the event for subsequent calls in the same transaction", func() {
@@ -56,11 +56,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					func(tx persistence.ManagedTransaction) error {
 						o, err := tx.SaveEvent(tc.Context, env0)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
+						gomega.Expect(o).To(gomega.BeEquivalentTo(0))
 
 						o, err = tx.SaveEvent(tc.Context, env1)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(o).To(gomega.Equal(eventstore.Offset(1)))
+						gomega.Expect(o).To(gomega.BeEquivalentTo(1))
 
 						return nil
 					},
@@ -127,7 +127,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			ginkgo.When("the transaction is rolled-back", func() {
 				ginkgo.It("does not save any events", func() {
-					common.WithTransactionRollback(
+					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -135,13 +135,14 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							return err
 						},
 					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					events := queryEvents(tc.Context, repository, eventstore.Query{})
 					gomega.Expect(events).To(gomega.BeEmpty())
 				})
 
 				ginkgo.It("does not increment the offset", func() {
-					common.WithTransactionRollback(
+					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -149,9 +150,10 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							return err
 						},
 					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					o := saveEvent(tc.Context, dataStore, env0)
-					gomega.Expect(o).To(gomega.Equal(eventstore.Offset(0)))
+					gomega.Expect(o).To(gomega.BeEquivalentTo(0))
 				})
 			})
 		})

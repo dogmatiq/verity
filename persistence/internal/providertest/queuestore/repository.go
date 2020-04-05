@@ -80,10 +80,6 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						message2,
 					)
 
-					message0.Revision++
-					message1.Revision++
-					message2.Revision++
-
 					messages := loadMessages(tc.Context, repository, n)
 					gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
 

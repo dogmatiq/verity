@@ -28,7 +28,13 @@ func saveMessages(
 		},
 	)
 
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	if err != nil {
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	}
+
+	for _, m := range messages {
+		m.Revision++
+	}
 }
 
 // removeMessages removes the given messages from the queue.
@@ -50,7 +56,13 @@ func removeMessages(
 		},
 	)
 
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	if err != nil {
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	}
+
+	for _, m := range messages {
+		m.Revision = 0
+	}
 }
 
 // loadMessage loads the message at the head of the queue.
