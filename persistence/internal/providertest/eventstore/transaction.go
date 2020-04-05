@@ -2,6 +2,7 @@ package eventstore
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"time"
 
@@ -120,6 +121,15 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				g.Wait()
 
 				ginkgo.By("querying the events")
+
+				// Sort the expected slice, as the appends in each goroutine
+				// could be out-of-sync with the saves.
+				sort.Slice(
+					expect,
+					func(i, j int) bool {
+						return expect[i].Offset < expect[j].Offset
+					},
+				)
 
 				events := queryEvents(tc.Context, repository, eventstore.Query{})
 				expectEventsToEqual(events, expect)
