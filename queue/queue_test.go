@@ -212,13 +212,26 @@ var _ = Describe("type Queue", func() {
 			})
 
 			It("returns an error if messages can not be loaded from the repository", func() {
-				dataStore.Close()
+				// Start a transaction and hold it open for the duration of the
+				// test. Because we are using the "memory" persistence driver,
+				// this will acquire an exclusive lock on the in-memory data
+				// that will cause the loading of messages to timeout.
+				tx, err := dataStore.Begin(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				defer tx.Rollback()
+
+				// We need to perform some transaction operation to actually
+				// acquire the persitence lock.
+				tx.RemoveMessageFromQueue(ctx, &queuestore.Message{})
+
+				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
+				defer cancel()
 
 				sess, err := queue.Pop(ctx)
 				if sess != nil {
 					sess.Close()
 				}
-				Expect(err).Should(HaveOccurred())
+				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
 		})
 	})
