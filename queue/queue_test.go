@@ -260,8 +260,32 @@ var _ = Describe("type Queue", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 
-		XIt("discards an element if the buffer is full", func() {
+		It("discards an element if the buffer is full", func() {
+			queue.BufferSize = 1
 
+			err := queue.Push(ctx, env0)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// This push exceeds the limit so env1 should not be buffered.
+			err = queue.Push(ctx, env1)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Acquire a session for env0, but don't commit it.
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			// Nothing will new will be loaded from the store while there is
+			// anything at all in the buffer (this is why its important to
+			// configure the buffer size larger than the number of consumers).
+			ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
+			defer cancel()
+
+			sess, err = queue.Pop(ctx)
+			if sess != nil {
+				sess.Close()
+			}
+			Expect(err).To(Equal(context.DeadlineExceeded))
 		})
 	})
 })

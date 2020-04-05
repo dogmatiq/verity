@@ -124,6 +124,9 @@ var _ = Describe("type Session", func() {
 
 			Expect(time.Now()).To(BeTemporally(">=", next))
 		})
+
+		XIt("discards the lowest-priority element if the buffer is full", func() {
+		})
 	})
 
 	Describe("func Close()", func() {
