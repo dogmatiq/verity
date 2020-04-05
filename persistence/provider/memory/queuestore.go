@@ -23,27 +23,36 @@ func (t *transaction) SaveMessageToQueue(
 	}
 
 	id := m.Envelope.GetMetaData().GetMessageId()
+	committed := t.ds.db.queue.uniq[id]
+	uncommitted, changed := t.uncommitted.queue[id]
+
+	effective := committed
+
+	if changed {
+		effective = uncommitted
+	}
 
 	var rev queuestore.Revision
-	if x, ok := t.uncommitted.queue[id]; ok {
-		if x != nil {
-			rev = x.Revision
-		}
-	} else if x, ok := t.ds.db.queue.uniq[id]; ok {
-		rev = x.Revision
+	if effective != nil {
+		rev = effective.Revision
 	}
 
 	if m.Revision != rev {
 		return queuestore.ErrConflict
 	}
 
-	m = cloneQueueMessage(m)
-	m.Revision++
+	if uncommitted == nil {
+		uncommitted = cloneQueueMessage(m)
+	} else {
+		uncommitted.NextAttemptAt = m.NextAttemptAt
+	}
+
+	uncommitted.Revision++
 
 	if t.uncommitted.queue == nil {
 		t.uncommitted.queue = map[string]*queuestore.Message{}
 	}
-	t.uncommitted.queue[id] = m
+	t.uncommitted.queue[id] = uncommitted
 
 	return nil
 }
@@ -63,18 +72,23 @@ func (t *transaction) RemoveMessageFromQueue(
 	}
 
 	id := m.Envelope.GetMetaData().GetMessageId()
+	committed, exists := t.ds.db.queue.uniq[id]
+	uncommitted, changed := t.uncommitted.queue[id]
 
-	var rev queuestore.Revision
-	if x, ok := t.uncommitted.queue[id]; ok {
-		if x != nil {
-			rev = x.Revision
-		}
-	} else if x, ok := t.ds.db.queue.uniq[id]; ok {
-		rev = x.Revision
+	effective := committed
+	if changed {
+		effective = uncommitted
 	}
 
-	if m.Revision != rev {
+	if effective == nil || m.Revision != effective.Revision {
 		return queuestore.ErrConflict
+	}
+
+	if !exists {
+		// The message has been saved in this transaction, is now being deleted,
+		// and never existed before this transaction.
+		delete(t.uncommitted.queue, id)
+		return nil
 	}
 
 	if t.uncommitted.queue == nil {
@@ -92,19 +106,19 @@ func (t *transaction) commitQueue() {
 	needsSort := false
 	hasDeletes := false
 
-	for id, m := range t.uncommitted.queue {
-		if x, ok := q.uniq[id]; ok {
-			if m == nil {
-				x.Revision = 0 // mark for deletion
+	for id, uncommitted := range t.uncommitted.queue {
+		committed, exists := q.uniq[id]
+
+		if !exists {
+			t.commitQueueInsert(id, uncommitted)
+		} else if uncommitted != nil {
+			if t.commitQueueUpdate(id, committed, uncommitted) {
 				needsSort = true
-				hasDeletes = true
-			} else {
-				if t.commitQueueUpdate(id, m, x) {
-					needsSort = true
-				}
 			}
 		} else {
-			t.commitQueueInsert(id, m)
+			committed.Revision = 0 // mark for deletion
+			needsSort = true
+			hasDeletes = true
 		}
 	}
 
@@ -132,21 +146,24 @@ func (t *transaction) commitQueue() {
 }
 
 // commitQueueInsert inserts a new message into the queue as part of a commit.
-func (t *transaction) commitQueueInsert(id string, m *queuestore.Message) {
+func (t *transaction) commitQueueInsert(
+	id string,
+	uncommitted *queuestore.Message,
+) {
 	q := &t.ds.db.queue
 
 	// Add the message to the unique index.
 	if q.uniq == nil {
 		q.uniq = map[string]*queuestore.Message{}
 	}
-	q.uniq[id] = m
+	q.uniq[id] = uncommitted
 
 	// Find the index where we'll insert our event. It's the index of the
 	// first message that has a NextAttemptedAt greater than m's.
 	index := sort.Search(
 		len(q.order),
 		func(i int) bool {
-			return m.NextAttemptAt.Before(
+			return uncommitted.NextAttemptAt.Before(
 				q.order[i].NextAttemptAt,
 			)
 		},
@@ -159,20 +176,24 @@ func (t *transaction) commitQueueInsert(id string, m *queuestore.Message) {
 	copy(q.order[index+1:], q.order[index:])
 
 	// Insert m at the index.
-	q.order[index] = m
+	q.order[index] = uncommitted
 }
 
 // commitQueueUpdate updates an existing message as part of a commit.
-func (t *transaction) commitQueueUpdate(id string, m, existing *queuestore.Message) bool {
-	existing.Revision = m.Revision
+func (t *transaction) commitQueueUpdate(
+	id string,
+	committed *queuestore.Message,
+	uncommitted *queuestore.Message,
+) bool {
+	committed.Revision = uncommitted.Revision
 
-	if m.NextAttemptAt.Equal(existing.NextAttemptAt) {
+	if uncommitted.NextAttemptAt.Equal(committed.NextAttemptAt) {
 		// Bail early and return false if the next-attempt time has not change
 		// to avoid sorting the queue unnecessarily.
 		return false
 	}
 
-	existing.NextAttemptAt = m.NextAttemptAt
+	committed.NextAttemptAt = uncommitted.NextAttemptAt
 
 	return true
 }
