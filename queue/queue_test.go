@@ -20,15 +20,19 @@ import (
 
 var _ = Describe("type Queue", func() {
 	var (
-		ctx       context.Context
-		cancel    context.CancelFunc
-		provider  *ProviderStub
-		dataStore *DataStoreStub
-		queue     *Queue
-		env       = NewEnvelope("<id>", MessageA1)
+		ctx              context.Context
+		cancel           context.CancelFunc
+		provider         *ProviderStub
+		dataStore        *DataStoreStub
+		queue            *Queue
+		env0, env1, env2 *envelope.Envelope
 	)
 
 	BeforeEach(func() {
+		env0 = NewEnvelope("<message-0>", MessageA1)
+		env1 = NewEnvelope("<message-1>", MessageA2)
+		env2 = NewEnvelope("<message-2>", MessageA3)
+
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		provider = &ProviderStub{
@@ -60,7 +64,7 @@ var _ = Describe("type Queue", func() {
 				go func() {
 					defer GinkgoRecover()
 					time.Sleep(20 * time.Millisecond)
-					err := queue.Push(ctx, env)
+					err := queue.Push(ctx, env0)
 					Expect(err).ShouldNot(HaveOccurred())
 				}()
 
@@ -83,7 +87,7 @@ var _ = Describe("type Queue", func() {
 
 		When("the queue is not empty", func() {
 			BeforeEach(func() {
-				err := queue.Push(ctx, env)
+				err := queue.Push(ctx, env0)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -140,12 +144,10 @@ var _ = Describe("type Queue", func() {
 				})
 
 				It("unblocks if a new message jumps the queue", func() {
-					new := NewEnvelope("<new>", MessageX1)
-
 					go func() {
 						defer GinkgoRecover()
 						time.Sleep(5 * time.Millisecond)
-						err := queue.Push(ctx, new)
+						err := queue.Push(ctx, env1)
 						Expect(err).ShouldNot(HaveOccurred())
 					}()
 
@@ -153,7 +155,7 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer sess.Close()
 
-					Expect(sess.Envelope()).To(Equal(new))
+					Expect(sess.Envelope()).To(Equal(env1))
 				})
 
 				It("returns an error if the context deadline is exceeded", func() {
@@ -170,13 +172,7 @@ var _ = Describe("type Queue", func() {
 		})
 
 		When("messages are persisted but not in memory", func() {
-			var env0, env1, env2 *envelope.Envelope
-
 			BeforeEach(func() {
-				env0 = NewEnvelope("<message-0>", MessageA1)
-				env1 = NewEnvelope("<message-1>", MessageA2)
-				env2 = NewEnvelope("<message-2>", MessageA3)
-
 				messages := []*queuestore.Message{
 					&queuestore.Message{
 						NextAttemptAt: time.Now(),
@@ -229,7 +225,7 @@ var _ = Describe("type Queue", func() {
 
 	Describe("func Push()", func() {
 		It("persists the message in the queue store", func() {
-			err := queue.Push(ctx, env)
+			err := queue.Push(ctx, env0)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
@@ -237,12 +233,12 @@ var _ = Describe("type Queue", func() {
 			Expect(messages).To(HaveLen(1))
 
 			m := messages[0]
-			penv := envelope.MustMarshal(Marshaler, env)
+			penv := envelope.MustMarshal(Marshaler, env0)
 			Expect(proto.Equal(m.Envelope, penv)).To(BeTrue())
 		})
 
 		It("schedules the message for immediate handling", func() {
-			err := queue.Push(ctx, env)
+			err := queue.Push(ctx, env0)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
@@ -260,7 +256,7 @@ var _ = Describe("type Queue", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := queue.Push(ctx, env)
+			err := queue.Push(ctx, env0)
 			Expect(err).Should(HaveOccurred())
 		})
 
