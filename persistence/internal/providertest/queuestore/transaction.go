@@ -210,7 +210,46 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			})
 
-			ginkgo.XWhen("the a message is saved more than once in the same transaction", func() {
+			ginkgo.When("a message is saved more than once in the same transaction", func() {
+				ginkgo.It("saves the meta-data from the most recent call", func() {
+					err := persistence.WithTransaction(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							if err := tx.SaveMessageToQueue(tc.Context, message0); err != nil {
+								return err
+							}
+
+							message0.Revision++
+							message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
+
+							return tx.SaveMessageToQueue(tc.Context, message0)
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					m := loadMessage(tc.Context, repository)
+
+					message0.Revision++
+					expectMessageToEqual(m, message0)
+				})
+
+				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
+					err := common.WithTransactionRollback(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							if err := tx.SaveMessageToQueue(tc.Context, message0); err != nil {
+								return err
+							}
+
+							// Note that we did not increment message0.Revision
+							// after the first save.
+							return tx.SaveMessageToQueue(tc.Context, message0)
+						},
+					)
+					gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+				})
 			})
 
 			ginkgo.It("does not update the revision field of the argument", func() {
@@ -328,10 +367,89 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				)
 			})
 
-			ginkgo.XWhen("the a message is saved then deleted in the same transaction", func() {
+			ginkgo.When("a message is saved then deleted in the same transaction", func() {
+				ginkgo.It("does not save the new message", func() {
+					err := persistence.WithTransaction(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							if err := tx.SaveMessageToQueue(tc.Context, message0); err != nil {
+								return err
+							}
+
+							message0.Revision++
+
+							return tx.RemoveMessageFromQueue(tc.Context, message0)
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					messages := loadMessages(tc.Context, repository, 1)
+					gomega.Expect(messages).To(gomega.BeEmpty())
+				})
+
+				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
+					err := common.WithTransactionRollback(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							if err := tx.SaveMessageToQueue(tc.Context, message0); err != nil {
+								return err
+							}
+
+							// Note that we did not increment message0.Revision
+							// after the save.
+							return tx.RemoveMessageFromQueue(tc.Context, message0)
+						},
+					)
+					gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+				})
 			})
 
-			ginkgo.XWhen("the a message is deleted then saved in the same transaction", func() {
+			ginkgo.When("a message is deleted then saved in the same transaction", func() {
+				ginkgo.BeforeEach(func() {
+					saveMessages(tc.Context, dataStore, message0)
+				})
+
+				ginkgo.It("saves the new message", func() {
+					err := persistence.WithTransaction(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							if err := tx.RemoveMessageFromQueue(tc.Context, message0); err != nil {
+								return err
+							}
+
+							message0.Revision = 0
+							message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
+
+							return tx.SaveMessageToQueue(tc.Context, message0)
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					m := loadMessage(tc.Context, repository)
+
+					message0.Revision++
+					expectMessageToEqual(m, message0)
+				})
+
+				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
+					err := common.WithTransactionRollback(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							if err := tx.RemoveMessageFromQueue(tc.Context, message0); err != nil {
+								return err
+							}
+
+							// Note that we did set message0.Revision back to
+							// zero after the remove.
+							return tx.SaveMessageToQueue(tc.Context, message0)
+						},
+					)
+					gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+				})
 			})
 		})
 
@@ -375,130 +493,3 @@ func DeclareTransactionTests(tc *common.TestContext) {
 		})
 	})
 }
-
-// 	ginkgo.When("the message has already been modified in the same transaction", func() {
-// 		var tx persistence.Transaction
-
-// 		ginkgo.BeforeEach(func() {
-// 			var err error
-// 			tx, err = dataStore.Begin(tc.Context)
-// 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 			err = tx.SaveMessageToQueue(tc.Context, message0)
-// 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-// 			message0.Revision++
-// 		})
-
-// 		ginkgo.AfterEach(func() {
-// 			if tx != nil {
-// 				tx.Rollback()
-// 			}
-// 		})
-
-// 		ginkgo.It("saves the data from the most recent call", func() {
-// 			message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
-// 			err := tx.SaveMessageToQueue(tc.Context, message0)
-// 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 			err = tx.Commit(tc.Context)
-// 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 			m, err := loadMessage(tc.Context, repository)
-// 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 			gomega.Expect(m.Revision).To(
-// 				gomega.Equal(queuestore.Revision(2)),
-// 			)
-// 			expectMessageToEqual(m, message0)
-// 		})
-
-// 		ginkgo.It("returns an error when an OCC conflict occurs (based on the uncommitted revision)", func() {
-// 			message0.Revision = 0 // as before tx was begun
-// 			err := tx.SaveMessageToQueue(tc.Context, message0)
-// 			gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
-// 		})
-// 	})
-
-// ginkgo.When("the message has already been modified in the same transaction", func() {
-// 	var tx persistence.Transaction
-
-// 	ginkgo.BeforeEach(func() {
-// 		var err error
-// 		tx, err = dataStore.Begin(tc.Context)
-// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 		message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
-// 		err = tx.SaveMessageToQueue(tc.Context, message0)
-// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-// 		message0.Revision++
-// 	})
-
-// 	ginkgo.AfterEach(func() {
-// 		if tx != nil {
-// 			tx.Rollback()
-// 		}
-// 	})
-
-// 	ginkgo.It("saves the data from the most recent call", func() {
-// 		message0.NextAttemptAt = time.Now().Add(2 * time.Hour)
-// 		err := tx.SaveMessageToQueue(tc.Context, message0)
-// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 		err = tx.Commit(tc.Context)
-// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 		m, err := loadMessage(tc.Context, repository)
-// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 		gomega.Expect(m.Revision).To(
-// 			gomega.Equal(queuestore.Revision(3)),
-// 		)
-// 		expectMessageToEqual(m, message0)
-// 	})
-
-// 	ginkgo.It("returns an error when an OCC conflict occurs (based on the uncommitted revision)", func() {
-// 		message0.Revision = 1 // as before tx was begun
-// 		err := tx.SaveMessageToQueue(tc.Context, message0)
-// 		gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
-// 	})
-// })
-
-// ginkgo.It("serializes operations from competing transactions", func() {
-// 	ginkgo.By("running several transactions in parallel")
-
-// 	g, gctx := errgroup.WithContext(tc.Context)
-
-// 	g.Go(func() error {
-// 		return saveMessages(gctx, dataStore, message0)
-// 	})
-
-// 	g.Go(func() error {
-// 		message1.NextAttemptAt = time.Now().Add(-1 * time.Hour)
-// 		message2.NextAttemptAt = time.Now().Add(+1 * time.Hour)
-// 		return saveMessages(gctx, dataStore, message1, message2)
-// 	})
-
-// 	err := g.Wait()
-// 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-// 	ginkgo.By("loading the messages")
-
-// 	// Expected is the messages we expect to have been queued,
-// 	// in the order we expect them.
-// 	expected := []*queuestore.Message{message1, message0, message2}
-
-// 	// Now we query the queue and verify that each specific
-// 	// message ended up in the order specified by the next
-// 	// attempt times.
-// 	messages, err := repository.LoadQueueMessages(tc.Context, len(expected)+1)
-// 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-// 	gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
-
-// 	for i, m := range messages {
-// 		expectMessageToEqual(
-// 			m,
-// 			expected[i],
-// 			fmt.Sprintf("message at index #%d does not match the expected value", i),
-// 		)
-// 	}
-// })

@@ -63,20 +63,23 @@ func (t *transaction) RemoveMessageFromQueue(
 	}
 
 	id := m.Envelope.GetMetaData().GetMessageId()
+	committed := t.ds.db.queue.uniq[id]
+	uncommitted, ok := t.uncommitted.queue[id]
 
-	var rev queuestore.Revision
-	if x, ok := t.uncommitted.queue[id]; ok {
-		if x != nil {
-			rev = x.Revision
-		}
-	} else if x, ok := t.ds.db.queue.uniq[id]; ok {
-		rev = x.Revision
-	} else {
+	effective := committed
+	if ok {
+		effective = uncommitted
+	}
+
+	if effective == nil || m.Revision != effective.Revision {
 		return queuestore.ErrConflict
 	}
 
-	if m.Revision != rev {
-		return queuestore.ErrConflict
+	if committed == nil {
+		// The message has been saved in this transaction, is now being deleted,
+		// and never existed before this transaction.
+		delete(t.uncommitted.queue, id)
+		return nil
 	}
 
 	if t.uncommitted.queue == nil {
