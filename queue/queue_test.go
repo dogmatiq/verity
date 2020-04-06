@@ -232,6 +232,33 @@ var _ = Describe("type Queue", func() {
 				Expect(err).To(MatchError("<error>"))
 			})
 		})
+
+		When("a message is pushed while loading from the store", func() {
+			It("does not duplicate the message", func() {
+				repository.LoadQueueMessagesFunc = func(
+					ctx context.Context,
+					n int,
+				) ([]*queuestore.Message, error) {
+					queue.Push(ctx, env0)
+					return repository.Repository.LoadQueueMessages(ctx, n)
+				}
+
+				// We expect to get the pushed message once.
+				sess, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				defer sess.Close()
+
+				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
+				defer cancel()
+
+				// But not twice.
+				sess, err = queue.Pop(ctx)
+				if sess != nil {
+					sess.Close()
+				}
+				Expect(err).To(Equal(context.DeadlineExceeded))
+			})
+		})
 	})
 
 	Describe("func Push()", func() {

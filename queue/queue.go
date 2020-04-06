@@ -196,13 +196,7 @@ func (q *Queue) pushPending(new bool, e *elem) {
 	oversize := false
 
 	// If the message is "new" it's not in the buffer yet.
-	if new {
-		if q.buffered == nil {
-			q.buffered = map[string]struct{}{}
-		}
-
-		q.buffered[e.message.ID()] = struct{}{}
-
+	if new && q.track(e) {
 		size := q.BufferSize
 		if size <= 0 {
 			size = DefaultBufferSize
@@ -269,31 +263,61 @@ func (q *Queue) loadMessages(ctx context.Context) (e *elem, ok bool, err error) 
 		return nil, false, nil
 	}
 
-	// If the message at the front of the queue is ready now we are going to
-	// return it to our caller directly to avoid starting the monitor goroutine.
-	//
-	// We remove it from the slice so that it's not added to the pending list.
-	m := messages[0]
-	if !m.NextAttemptAt.After(time.Now()) {
-		e = &elem{message: m}
-		messages = messages[1:]
+	wake := false
+
+	for i, m := range messages {
+		x := &elem{message: m}
+
+		if q.track(x) {
+			if i == 0 && !m.NextAttemptAt.After(time.Now()) {
+				// If the message at the front of the queue is ready now we are
+				// going to return it to our caller directly to avoid starting
+				// the monitor goroutine.
+				e = x
+				ok = true
+			} else if q.pending.Push(x) {
+				// Add an element to the buffer for each message that we won't
+				// be returning to the caller, then wake the monitoring
+				// goroutine.
+				wake = true
+			}
+		}
 	}
 
-	// Add an element to the buffer for each message that we won't be returning
-	// to the caller, then wake the monitoring goroutine.
-	if len(messages) > 0 {
-		for _, m := range messages {
-			if q.buffered == nil {
-				q.buffered = map[string]struct{}{}
-			}
-			q.buffered[m.ID()] = struct{}{}
-			q.pending.Push(&elem{message: m})
-		}
-
+	if wake {
 		q.wakeMonitor()
 	}
 
-	return e, e != nil, nil
+	return e, ok, nil
+}
+
+// track adds e to the buffered list, or returns false if it is already present.
+//
+// It assumes q.bufferM is already locked.
+func (q *Queue) track(e *elem) bool {
+	id := e.message.ID()
+
+	if q.buffered == nil {
+		q.buffered = map[string]struct{}{
+			id: struct{}{},
+		}
+
+		return true
+	}
+
+	before := len(q.buffered)
+	q.buffered[id] = struct{}{}
+	after := len(q.buffered)
+
+	return before < after
+}
+
+// discard removes e from the buffer.
+func (q *Queue) discard(e *elem) {
+	q.bufferM.Lock()
+	defer q.bufferM.Unlock()
+
+	delete(q.buffered, e.message.ID())
 }
 
 // popPendingOrLockForLoading pops a message from the front of the pending list
@@ -343,14 +367,6 @@ func (q *Queue) popPendingOrLockForLoading() (e *elem, ok bool, load bool) {
 	q.loading = true
 
 	return nil, false, true
-}
-
-// discard removes e from the buffer.
-func (q *Queue) discard(e *elem) {
-	q.bufferM.Lock()
-	defer q.bufferM.Unlock()
-
-	delete(q.buffered, e.message.ID())
 }
 
 // startMonitor starts the monitoring goroutine if it's not already running.
