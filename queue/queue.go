@@ -258,29 +258,31 @@ func (q *Queue) loadMessages(ctx context.Context) (e *elem, ok bool, err error) 
 		q.exhaustive = true
 	}
 
-	// In fact, we got nothing at all!
-	if len(messages) == 0 {
-		return nil, false, nil
-	}
-
 	wake := false
 
-	for i, m := range messages {
+	for _, m := range messages {
 		x := &elem{message: m}
 
-		if q.track(x) {
-			if i == 0 && !m.NextAttemptAt.After(time.Now()) {
-				// If the message at the front of the queue is ready now we are
-				// going to return it to our caller directly to avoid starting
-				// the monitor goroutine.
-				e = x
-				ok = true
-			} else if q.pending.Push(x) {
-				// Add an element to the buffer for each message that we won't
-				// be returning to the caller, then wake the monitoring
-				// goroutine.
+		if !q.track(x) {
+			// This element is already in the buffer. It must have been pushed
+			// while we were loading messages.
+			continue
+		}
+
+		if ok || m.NextAttemptAt.After(time.Now()) {
+			// We we have already found ourselves a message, or this one is
+			// not ready yet. Push this message into the pending list and
+			// wake the monitor goroutine.
+
+			if q.pending.Push(x) {
 				wake = true
 			}
+		} else {
+			// If the message at the front of the queue is ready now we are going to
+			// return it to our caller directly to avoid starting the monitor
+			// goroutine.
+			e = x
+			ok = true
 		}
 	}
 
