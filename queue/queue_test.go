@@ -24,6 +24,7 @@ var _ = Describe("type Queue", func() {
 		cancel           context.CancelFunc
 		provider         *ProviderStub
 		dataStore        *DataStoreStub
+		repository       *QueueStoreRepositoryStub
 		queue            *Queue
 		env0, env1, env2 *envelope.Envelope
 	)
@@ -43,6 +44,11 @@ var _ = Describe("type Queue", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		dataStore = ds.(*DataStoreStub)
+
+		repository = ds.QueueStoreRepository().(*QueueStoreRepositoryStub)
+		dataStore.QueueStoreRepositoryFunc = func() queuestore.Repository {
+			return repository
+		}
 
 		queue = &Queue{
 			DataStore: dataStore,
@@ -212,26 +218,18 @@ var _ = Describe("type Queue", func() {
 			})
 
 			It("returns an error if messages can not be loaded from the repository", func() {
-				// Start a transaction and hold it open for the duration of the
-				// test. Because we are using the "memory" persistence driver,
-				// this will acquire an exclusive lock on the in-memory data
-				// that will cause the loading of messages to timeout.
-				tx, err := dataStore.Begin(ctx)
-				Expect(err).ShouldNot(HaveOccurred())
-				defer tx.Rollback()
-
-				// We need to perform some transaction operation to actually
-				// acquire the persitence lock.
-				tx.RemoveMessageFromQueue(ctx, &queuestore.Message{})
-
-				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
-				defer cancel()
+				repository.LoadQueueMessagesFunc = func(
+					context.Context,
+					int,
+				) ([]*queuestore.Message, error) {
+					return nil, errors.New("<error>")
+				}
 
 				sess, err := queue.Pop(ctx)
 				if sess != nil {
 					sess.Close()
 				}
-				Expect(err).To(Equal(context.DeadlineExceeded))
+				Expect(err).To(MatchError("<error>"))
 			})
 		})
 	})

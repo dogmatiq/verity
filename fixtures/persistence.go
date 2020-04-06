@@ -49,7 +49,13 @@ func (ds *DataStoreStub) EventStoreRepository() eventstore.Repository {
 	}
 
 	if ds.DataStore != nil {
-		return ds.DataStore.EventStoreRepository()
+		r := ds.DataStore.EventStoreRepository()
+
+		if r != nil {
+			r = &EventStoreRepositoryStub{Repository: r}
+		}
+
+		return r
 	}
 
 	return nil
@@ -62,7 +68,13 @@ func (ds *DataStoreStub) QueueStoreRepository() queuestore.Repository {
 	}
 
 	if ds.DataStore != nil {
-		return ds.DataStore.QueueStoreRepository()
+		r := ds.DataStore.QueueStoreRepository()
+
+		if r != nil {
+			r = &QueueStoreRepositoryStub{Repository: r}
+		}
+
+		return r
 	}
 
 	return nil
