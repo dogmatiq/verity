@@ -67,7 +67,7 @@ type Queue struct {
 // It keeps the in-memory envelope representation alongside the protocol buffers
 // representation to avoid excess marshaling/unmarshaling.
 //
-// It implements the deque.Elem interface.
+// It implements the pdeque.Elem interface.
 type elem struct {
 	env     *envelope.Envelope
 	message *queuestore.Message
