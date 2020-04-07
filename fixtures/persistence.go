@@ -3,6 +3,7 @@ package fixtures
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -87,7 +88,13 @@ func (ds *DataStoreStub) Begin(ctx context.Context) (persistence.Transaction, er
 	}
 
 	if ds.DataStore != nil {
-		return ds.DataStore.Begin(ctx)
+		tx, err := ds.DataStore.Begin(ctx)
+
+		if tx != nil {
+			tx = &TransactionStub{Transaction: tx}
+		}
+
+		return tx, err
 	}
 
 	return nil, nil
@@ -101,6 +108,85 @@ func (ds *DataStoreStub) Close() error {
 
 	if ds.DataStore != nil {
 		return ds.DataStore.Close()
+	}
+
+	return nil
+}
+
+// TransactionStub is a test implementation of the persistence.Transaction
+// interface.
+type TransactionStub struct {
+	persistence.Transaction
+
+	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
+	SaveMessageToQueueFunc     func(context.Context, *queuestore.Message) error
+	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Message) error
+
+	CommitFunc   func(context.Context) error
+	RollbackFunc func() error
+}
+
+// SaveEvent persists an event in the application's event store.
+func (t *TransactionStub) SaveEvent(ctx context.Context, env *envelopespec.Envelope) (eventstore.Offset, error) {
+	if t.SaveEventFunc != nil {
+		return t.SaveEventFunc(ctx, env)
+	}
+
+	if t.Transaction != nil {
+		return t.Transaction.SaveEvent(ctx, env)
+	}
+
+	return 0, nil
+}
+
+// SaveMessageToQueue persists a message to the application's message queue.
+func (t *TransactionStub) SaveMessageToQueue(ctx context.Context, m *queuestore.Message) error {
+	if t.SaveMessageToQueueFunc != nil {
+		return t.SaveMessageToQueueFunc(ctx, m)
+	}
+
+	if t.Transaction != nil {
+		return t.Transaction.SaveMessageToQueue(ctx, m)
+	}
+
+	return nil
+}
+
+// RemoveMessageFromQueue removes a specific message from the application's
+// message queue.
+func (t *TransactionStub) RemoveMessageFromQueue(ctx context.Context, m *queuestore.Message) error {
+	if t.RemoveMessageFromQueueFunc != nil {
+		return t.RemoveMessageFromQueueFunc(ctx, m)
+	}
+
+	if t.Transaction != nil {
+		return t.Transaction.RemoveMessageFromQueue(ctx, m)
+	}
+
+	return nil
+}
+
+// Commit applies the changes from the transaction.
+func (t *TransactionStub) Commit(ctx context.Context) error {
+	if t.CommitFunc != nil {
+		return t.CommitFunc(ctx)
+	}
+
+	if t.Transaction != nil {
+		return t.Transaction.Commit(ctx)
+	}
+
+	return nil
+}
+
+// Rollback aborts the transaction.
+func (t *TransactionStub) Rollback() error {
+	if t.RollbackFunc != nil {
+		return t.RollbackFunc()
+	}
+
+	if t.Transaction != nil {
+		return t.Transaction.Rollback()
 	}
 
 	return nil
