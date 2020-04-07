@@ -11,15 +11,25 @@ import (
 // A Session encapsulates an atomic application state change brought about by a
 // single queued message.
 type Session struct {
-	queue  *Queue
-	tx     persistence.Transaction
-	elem   *elem
-	commit bool
+	queue *Queue
+	elem  *elem
+	tx    persistence.Transaction
+	done  bool
 }
 
-// Tx returns the transaction under which the message must be handled.
-func (s *Session) Tx() persistence.ManagedTransaction {
-	return s.tx
+// Tx returns the transaction under which the message must be handled, starting
+// it if necessary.
+func (s *Session) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {
+	if s.tx == nil {
+		tx, err := s.queue.DataStore.Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		s.tx = tx
+	}
+
+	return s.tx, nil
 }
 
 // Envelope returns the envelope containing the message to be handled.
@@ -35,16 +45,20 @@ func (s *Session) Envelope() (*envelope.Envelope, error) {
 
 // Commit commits the changes performed in the session.
 func (s *Session) Commit(ctx context.Context) error {
-	// TODO:
-	// if err := s.tx.RemoveMessageFromQueue(ctx, s.elem.message); err != nil {
-	// 	return err
-	// }
+	_, err := s.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := s.tx.RemoveMessageFromQueue(ctx, s.elem.message); err != nil {
+		return err
+	}
 
 	if err := s.tx.Commit(ctx); err != nil {
 		return err
 	}
 
-	s.queue.discard(s.elem)
+	s.elem.message.Revision = 0
 
 	return nil
 }
@@ -52,8 +66,10 @@ func (s *Session) Commit(ctx context.Context) error {
 // Rollback finalizes the session after a failure handling the message.
 // The message is re-queued for be attempted at n.
 func (s *Session) Rollback(ctx context.Context, n time.Time) error {
-	if err := s.tx.Rollback(); err != nil {
-		return err
+	if s.tx != nil {
+		if err := s.tx.Rollback(); err != nil {
+			return err
+		}
 	}
 
 	s.elem.message.NextAttemptAt = n
@@ -69,7 +85,6 @@ func (s *Session) Rollback(ctx context.Context, n time.Time) error {
 	}
 
 	s.elem.message.Revision++
-	s.queue.pushPending(false, s.elem)
 
 	return nil
 }
@@ -78,11 +93,16 @@ func (s *Session) Rollback(ctx context.Context, n time.Time) error {
 //
 // It must be called regardless of whether Ack() or Nack() are called.
 func (s *Session) Close() error {
-	if err := s.tx.Rollback(); err != nil {
-		return err
+	if s.elem == nil {
+		return nil
 	}
 
-	s.queue.pushPending(false, s.elem)
+	s.queue.update(s.elem)
+	s.elem = nil
+
+	if s.tx != nil {
+		return s.tx.Rollback()
+	}
 
 	return nil
 }
