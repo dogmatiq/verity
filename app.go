@@ -61,6 +61,7 @@ func (e *Engine) initApp(
 			// TODO: https://github.com/dogmatiq/infix/issues/102
 			// Make buffer size configurable.
 			BufferSize: 0,
+			Logger:     e.logger,
 		},
 		InternalPacker: &envelope.Packer{
 			Application: id,
