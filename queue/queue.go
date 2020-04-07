@@ -139,17 +139,18 @@ func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
 		// Set the exhaustive state to NO so that Run() knows to try loading
 		// messages from the store again.
 		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
-
+		logging.Debug(q.Logger, "%s pushed, but canceled before notify (exhaustive: no)", e.message.ID())
 		return ctx.Err()
 
 	case q.in <- e:
-		// We successfully handed off the element for tracking.
+		logging.Debug(q.Logger, "%s pushed", e.message.ID())
 		return nil
 
 	case <-q.done:
 		// Run() has stopped, so nothing will be tracked, but the message has
 		// been persisted so from the perspective of the caller the message has
 		// been queued successfully.
+		logging.Debug(q.Logger, "%s pushed, but the queue is not running", e.message.ID())
 		return nil
 	}
 }
@@ -169,21 +170,26 @@ func (q *Queue) Run(ctx context.Context) error {
 	}
 }
 
-// tick performs one "step" of Run().
-func (q *Queue) tick(ctx context.Context) error {
-	e, d, ok := q.peekOrPopIfReady()
-
-	if !ok {
-		loaded, err := q.load(ctx)
-		if err != nil {
-			return err
-		}
-
-		if loaded {
-			e, d, ok = q.peekOrPopIfReady()
-		}
+// peek returns the element at the front of the queue, loading messages from the
+// store if none are currently tracked.
+func (q *Queue) peek(ctx context.Context) (*elem, bool, error) {
+	if x, ok := q.pending.PeekFront(); ok {
+		return x.(*elem), true, nil
 	}
 
+	if err := q.load(ctx); err != nil {
+		return nil, false, err
+	}
+
+	if x, ok := q.pending.PeekFront(); ok {
+		return x.(*elem), true, nil
+	}
+
+	return nil, false, nil
+}
+
+// tick performs one "step" of Run().
+func (q *Queue) tick(ctx context.Context) error {
 	var (
 		// Setup channel variables that we only populate if we want to use
 		// them. Otherwise we leave them nil, causing them to block forever,
@@ -192,13 +198,22 @@ func (q *Queue) tick(ctx context.Context) error {
 		wait <-chan time.Time
 	)
 
+	e, ok, err := q.peek(ctx)
+	if err != nil {
+		return err
+	}
+
 	if ok {
+		d := time.Until(e.message.NextAttemptAt)
+
 		if d <= 0 {
 			out = q.out
+			logging.Debug(q.Logger, "%s is ready to be handled immediately", e.message.ID())
 		} else {
 			timer := time.NewTimer(d)
 			defer timer.Stop()
 			wait = timer.C
+			logging.Debug(q.Logger, "%s will not be ready for another %s", e.message.ID(), d)
 		}
 	}
 
@@ -208,61 +223,39 @@ func (q *Queue) tick(ctx context.Context) error {
 			return ctx.Err()
 
 		case <-wait:
-			wait = nil
+			logging.Debug(q.Logger, "%s is now ready to be handled", e.message.ID())
 			out = q.out
+			wait = nil
 
 		case out <- e:
+			q.pending.PopFront()
+			logging.Debug(q.Logger, "%s was sent to a consumer", e.message.ID())
 			return nil
 
 		case e := <-q.in:
 			if q.update(e) {
-				// If message became the head of the queue, return to
-				// re-evaluate the timer, etc.
 				return nil
 			}
 		}
 	}
 }
 
-// peekOrPopIfReady returns the element at the front of the pending queue and
-// the duration until its message is ready to be handled.
-//
-// If the message is ready to be handled now, the element is popped from the
-// pending queue, in which case d <= 0.
-//
-// ok is false if the pending queue is empty.
-func (q *Queue) peekOrPopIfReady() (e *elem, d time.Duration, ok bool) {
-	x, ok := q.pending.PeekFront()
-	if !ok {
-		return nil, 0, false
-	}
-
-	e = x.(*elem)
-	d = time.Until(e.message.NextAttemptAt)
-
-	if d <= 0 {
-		q.pending.PopFront()
-	}
-
-	return e, d, true
-}
-
 // load reads queued messages and starts tracking them.
-//
-// It returns true if the head of the pending queue changed.
-func (q *Queue) load(ctx context.Context) (bool, error) {
-	if len(q.tracked) > 0 {
+func (q *Queue) load(ctx context.Context) error {
+	if n := len(q.tracked); n != 0 {
 		// We can only load the highest-priority messages from the data-store,
 		// so if there's anything already tracked that is exactly what we would
 		// be loading.
-		return false, nil
+		logging.Debug(q.Logger, "not loading messages, %d message(s) already tracked", n)
+		return nil
 	}
 
 	if atomic.LoadUint32(&q.exhaustive) == exhaustiveYes {
 		// All messages are known to be tracked. The pending queue may be empty
 		// right now, but that just means that there are active sessions for
 		// every message still on the queue or that the queue is truly empty.
-		return false, nil
+		logging.DebugString(q.Logger, "not loading messages (exhaustive: yes)")
+		return nil
 	}
 
 	// We set the status to UNKNOWN while we are loading. If a call to Push()
@@ -271,108 +264,134 @@ func (q *Queue) load(ctx context.Context) (bool, error) {
 	// particular message in the result of the load.
 	atomic.StoreUint32(&q.exhaustive, exhaustiveUnknown)
 
-	size := q.BufferSize
-	if size <= 0 {
-		size = DefaultBufferSize
+	limit := q.BufferSize
+	if limit <= 0 {
+		limit = DefaultBufferSize
 	}
 
 	// Load messages up to our configured limit.
-	messages, err := q.DataStore.QueueStoreRepository().LoadQueueMessages(ctx, size)
+	logging.Debug(q.Logger, "loading up to %d message(s)", limit)
+	messages, err := q.DataStore.QueueStoreRepository().LoadQueueMessages(ctx, limit)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	if len(messages) < size {
+	n := len(messages)
+
+	if n < limit && atomic.CompareAndSwapUint32(
+		&q.exhaustive,
+		exhaustiveUnknown,
+		exhaustiveYes,
+	) {
 		// We didn't get as many messages as we requested, so we know we have
 		// everything in memory.
 		//
 		// Only set the exhaustive status back to YES if a Push() call did not
 		// set it to NO while we were loading.
-		atomic.CompareAndSwapUint32(&q.exhaustive, exhaustiveUnknown, exhaustiveYes)
+		logging.Debug(q.Logger, "loaded %d message(s) from store (exhaustive: yes)", n)
+	} else {
+		logging.Debug(q.Logger, "loaded %d message(s) from store (exhaustive: unknown)", n)
 	}
 
-	ok := false
 	for _, m := range messages {
-		if q.update(&elem{message: m}) {
-			ok = true
-		}
+		e := &elem{message: m}
+		q.update(e)
 	}
 
-	return ok, nil
+	return nil
 }
 
 // update updates the tracked list and pending queue to reflect changes to e.
 //
-// It returns true if e became the head of the pending queue.
+// It returns true if a new peek() should be performed.
 func (q *Queue) update(e *elem) bool {
+	limit := q.BufferSize
+
+	if limit <= 0 {
+		limit = DefaultBufferSize
+	}
+
 	if e.message.Revision == 0 {
 		// The message has been handled successfully and removed from the queue
 		// store, stop tracking it.
 		delete(q.tracked, e.message.ID())
+		logging.Debug(q.Logger, "%s is no longer tracked, handled successfully (pending: %d, tracked: %d/%d)", e.message.ID(), q.pending.Len(), len(q.tracked), limit)
+		return len(q.tracked) == 0
+	}
+
+	if e.tracked {
+		// The message is already tracked, just put it back in the pending
+		// queue to be re-attempted.
+		logging.Debug(q.Logger, "%s has been returned to the pending queue (pending: %d, tracked: %d/%d)", e.message.ID(), q.pending.Len(), len(q.tracked), limit)
+		return q.pending.Push(e)
+	}
+
+	// Start tracking the message.
+	before := len(q.tracked)
+	q.tracked[e.message.ID()] = struct{}{}
+	after := len(q.tracked)
+
+	if before == after {
+		// The message was already be in the tracked list, which can occur if it was
+		// pushed just before we loaded form the store so we see the message both in
+		// the load result and on the q.in channel.
+		logging.Debug(q.Logger, "%s is already tracked (pending: %d, tracked: %d/%d)", e.message.ID(), q.pending.Len(), len(q.tracked), limit)
 		return false
 	}
 
-	if !e.tracked {
-		// Start tracking the message.
-		//
-		// The message may already be in the tracked list if it was pushed just
-		// before we loaded form the store so we see the message both in the load
-		// result and on the q.in channel.
-		before := len(q.tracked)
-		q.tracked[e.message.ID()] = struct{}{}
-		after := len(q.tracked)
+	e.tracked = true
+	head := q.pending.Push(e)
 
-		if before == after {
-			return false
-		}
-
-		e.tracked = true
-	}
-
-	front := q.pending.Push(e)
-
-	size := q.BufferSize
-	if size <= 0 {
-		size = DefaultBufferSize
-	}
-
-	if len(q.tracked) > size {
+	if after > limit {
 		// We're tracking more messages than the limit allows, drop the
 		// lowest-priority element.
-		//
-		// Note: There's a chance this is the message we just pushed. That would
-		// mean that all buffered messages are in active sessions, which should
-		// not occur if BufferSize is larger than the number of consumers as
-		// suggested by its documentation.
 		drop, _ := q.pending.PopBack()
 		delete(q.tracked, drop.(*elem).message.ID())
 
 		// There are now persisted messages that are not in the buffer.
 		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
+
+		if drop == e {
+			// This is the message we just pushed. That would mean that all
+			// buffered messages are in active sessions, which should not occur
+			// if BufferSize is larger than the number of consumers as suggested
+			// by its documentation.
+			logging.Debug(q.Logger, "%s will not be tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.message.ID(), q.pending.Len(), len(q.tracked), limit)
+			return false
+		}
+
+		logging.Debug(q.Logger, "%s is no longer tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.message.ID(), q.pending.Len(), len(q.tracked), limit)
 	}
 
-	return front
+	logging.Debug(q.Logger, "%s is now tracked (pending: %d, tracked: %d/%d)", e.message.ID(), q.pending.Len(), len(q.tracked), limit)
+	return head
 }
 
 // notify informs the queue that the state of e has changed.
 func (q *Queue) notify(e *elem) {
 	select {
 	case q.in <- e:
+		return // keep to see coverage
 	case <-q.done:
+		return // keep to see coverage
 	}
 }
 
 // init initializes the queue's internal state.
 func (q *Queue) init() {
 	q.once.Do(func() {
-		size := q.BufferSize
-		if size <= 0 {
-			size = DefaultBufferSize
+		limit := q.BufferSize
+		if limit <= 0 {
+			limit = DefaultBufferSize
 		}
 
-		q.tracked = make(map[string]struct{}, size)
+		// Allocate capcity for our limit +1 element used to detect overflow.
+		q.tracked = make(map[string]struct{}, limit+1)
+
+		// Buffered to avoid blocking in Push(), doesn't *need* to be == limit.
+		q.in = make(chan *elem, limit)
+
 		q.done = make(chan struct{})
-		q.in = make(chan *elem, size)
 		q.out = make(chan *elem)
 	})
 }
