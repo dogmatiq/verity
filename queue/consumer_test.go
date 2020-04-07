@@ -190,5 +190,23 @@ var _ = Describe("type Consumer", func() {
 			}
 		})
 
+		It("returns if the context is canceled while waiting for the sempahore", func() {
+			consumer.Semaphore = semaphore.New(1)
+
+			err := consumer.Semaphore.Acquire(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer consumer.Semaphore.Release()
+
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				cancel()
+			}()
+
+			err = queue.Push(ctx, env0)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
 	})
 })

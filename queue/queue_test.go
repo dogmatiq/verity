@@ -195,7 +195,7 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				It("return a session for a message loaded from the store", func() {
+				It("returns a session for a message loaded from the store", func() {
 					sess, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
 					defer sess.Close()
