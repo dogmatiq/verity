@@ -2,6 +2,7 @@ package queue_test
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
@@ -102,7 +103,7 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("commits the session if the handler succeeds", func() {
-			// Configure the consumer was single-threaded with no backoff.
+			// Configure the consumer as single-threaded with no backoff.
 			consumer.Semaphore = semaphore.New(1)
 			consumer.BackoffStrategy = backoff.Constant(0)
 
@@ -127,12 +128,13 @@ var _ = Describe("type Consumer", func() {
 			) error {
 				defer GinkgoRecover()
 
-				if count == 0 {
+				switch count {
+				case 0:
 					Expect(env).To(Equal(env0))
-				} else if count == 1 {
+				case 1:
 					Expect(env).To(Equal(env1))
 					cancel()
-				} else {
+				default:
 					Fail("too many calls")
 				}
 
@@ -144,5 +146,49 @@ var _ = Describe("type Consumer", func() {
 			err = consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
+
+		It("rolls the session back if the handler fails", func() {
+			// Configure the consumer with a short backoff.
+			delay := 5 * time.Millisecond
+			consumer.BackoffStrategy = backoff.Constant(delay)
+
+			err := queue.Push(ctx, env0)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Then setup a handler that expects to see env0 twice. If the
+			// session for env0 is not rolled back we it will not be retried.
+			var first time.Time
+			handler.HandleMessageFunc = func(
+				ctx context.Context,
+				tx persistence.ManagedTransaction,
+				env *envelope.Envelope,
+			) error {
+				defer GinkgoRecover()
+
+				if first.IsZero() {
+					first = time.Now()
+					return errors.New("<error>")
+				}
+
+				// The message should be retried after the delay configured by
+				// the backoff.
+				Expect(time.Now()).To(BeTemporally(">=", first.Add(delay)))
+				cancel()
+
+				return nil
+			}
+
+			err = consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+
+			handler.HandleMessageFunc = func(
+				ctx context.Context,
+				tx persistence.ManagedTransaction,
+				env *envelope.Envelope,
+			) error {
+				return errors.New("<error>")
+			}
+		})
+
 	})
 })
