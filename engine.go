@@ -108,6 +108,10 @@ func (e *Engine) run(ctx context.Context) error {
 		})
 
 		g.Go(func() error {
+			return e.runQueueConsumerForApp(ctx, a.Queue, a.Config)
+		})
+
+		g.Go(func() error {
 			return e.runStreamConsumersForEachApp(ctx, a.Stream)
 		})
 	}

@@ -17,6 +17,11 @@ type Session struct {
 	done  bool
 }
 
+// MessageID returns the ID of the message that is handled within the session.
+func (s *Session) MessageID() string {
+	return s.elem.message.ID()
+}
+
 // Tx returns the transaction under which the message must be handled, starting
 // it if necessary.
 func (s *Session) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {

@@ -68,6 +68,12 @@ var _ = Describe("type Session", func() {
 		cancel()
 	})
 
+	Describe("func MessageID()", func() {
+		It("returns the message ID", func() {
+			Expect(sess.MessageID()).To(Equal("<message-0>"))
+		})
+	})
+
 	Describe("func Envelope()", func() {
 		It("returns the unmarshaled message envelope", func() {
 			e, err := sess.Envelope()
