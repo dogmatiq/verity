@@ -104,8 +104,7 @@ func (e *Engine) run(ctx context.Context) error {
 		a := a // capture loop variable
 
 		g.Go(func() error {
-			// TODO: start queue consumer
-			return nil
+			return a.Queue.Run(ctx)
 		})
 
 		g.Go(func() error {
