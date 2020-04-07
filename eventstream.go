@@ -7,8 +7,8 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/handler/projection"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
-	"github.com/dogmatiq/infix/projection"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	. "github.com/dogmatiq/infix/semaphore"
+	. "github.com/dogmatiq/infix/handler/semaphore"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

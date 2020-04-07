@@ -6,8 +6,8 @@ import (
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/handler/semaphore"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/semaphore"
 	"github.com/dogmatiq/linger/backoff"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"

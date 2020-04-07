@@ -11,7 +11,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
-	. "github.com/dogmatiq/infix/projection"
+	. "github.com/dogmatiq/infix/handler/projection"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

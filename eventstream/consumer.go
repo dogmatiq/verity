@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/semaphore"
+	"github.com/dogmatiq/infix/handler/semaphore"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 )
