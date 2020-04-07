@@ -2,32 +2,38 @@ package queue_test
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = XDescribe("type Session", func() {
+var _ = Describe("type Session", func() {
 	var (
-		ctx       context.Context
-		cancel    context.CancelFunc
-		provider  *ProviderStub
-		dataStore *DataStoreStub
-		queue     *Queue
-		sess      *Session
-		env       = NewEnvelope("<id>", MessageA1)
+		ctx        context.Context
+		cancel     context.CancelFunc
+		provider   *ProviderStub
+		dataStore  *DataStoreStub
+		queue      *Queue
+		sess       *Session
+		env0, env1 *envelope.Envelope
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
+		env0 = NewEnvelope("<message-0>", MessageA1)
+		env1 = NewEnvelope("<message-1>", MessageA2)
 
 		provider = &ProviderStub{
 			Provider: &memory.Provider{},
@@ -43,7 +49,9 @@ var _ = XDescribe("type Session", func() {
 			Marshaler: Marshaler,
 		}
 
-		err = queue.Push(ctx, env)
+		go queue.Run(ctx)
+
+		err = queue.Push(ctx, env0)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		sess, err = queue.Pop(ctx)
@@ -62,7 +70,35 @@ var _ = XDescribe("type Session", func() {
 
 	Describe("func Envelope()", func() {
 		It("returns the unmarshaled message envelope", func() {
-			Expect(sess.Envelope()).To(Equal(env))
+			e, err := sess.Envelope()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(e).To(Equal(env0))
+		})
+
+		It("unmarshals the envelope if necessary", func() {
+			// Push a new envelope, which will get discarded from memory due to
+			// the buffer size limit.
+			queue.BufferSize = 1
+			err := queue.Push(ctx, env1)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Commit and close the existing session for env0, freeing us to
+			// load again.
+			err = sess.Commit(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = sess.Close()
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Start the session for env1.
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			// Finally, verify that the message is unpacked.
+			e, err := sess.Envelope()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(e).To(Equal(env1))
 		})
 	})
 
@@ -82,15 +118,95 @@ var _ = XDescribe("type Session", func() {
 
 			Expect(tx1).To(BeIdenticalTo(tx2))
 		})
+
+		It("returns an error if the transaction cannot be begun", func() {
+			dataStore.BeginFunc = func(
+				ctx context.Context,
+			) (persistence.Transaction, error) {
+				return nil, errors.New("<error>")
+			}
+
+			_, err := sess.Tx(ctx)
+			Expect(err).To(MatchError("<error>"))
+		})
 	})
 
 	Describe("func Commit()", func() {
-		XIt("commits the underlying transaction", func() {
+		It("commits the underlying transaction", func() {
+			tx, err := sess.Tx(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
 
+			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = sess.Commit(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			repo := dataStore.EventStoreRepository()
+			res, err := repo.QueryEvents(ctx, eventstore.Query{})
+			Expect(err).ShouldNot(HaveOccurred())
+
+			_, ok, err := res.Next(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
 		})
 
-		XIt("removes the message from the queue store within the same transaction", func() {
+		It("removes the message from the queue store within the same transaction", func() {
+			// Make sure the transaction is started.
+			_, err := sess.Tx(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
 
+			// Ensure no new transactions can be started.
+			dataStore.BeginFunc = func(
+				ctx context.Context,
+			) (persistence.Transaction, error) {
+				return nil, errors.New("<error>")
+			}
+
+			err = sess.Commit(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(messages).To(BeEmpty())
+		})
+
+		It("returns an error if the transaction cannot be begun", func() {
+			dataStore.BeginFunc = func(
+				ctx context.Context,
+			) (persistence.Transaction, error) {
+				return nil, errors.New("<error>")
+			}
+
+			err := sess.Commit(ctx)
+			Expect(err).To(MatchError("<error>"))
+		})
+
+		It("returns an error if the message can not be removed from the queue store", func() {
+			tx, err := sess.Tx(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			tx.(*TransactionStub).RemoveMessageFromQueueFunc = func(
+				context.Context,
+				*queuestore.Message,
+			) error {
+				return errors.New("<error>")
+			}
+
+			err = sess.Commit(ctx)
+			Expect(err).To(MatchError("<error>"))
+		})
+
+		It("returns an error if the transaction can not be committed", func() {
+			tx, err := sess.Tx(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			tx.(*TransactionStub).CommitFunc = func(context.Context) error {
+				return errors.New("<error>")
+			}
+
+			err = sess.Commit(ctx)
+			Expect(err).To(MatchError("<error>"))
 		})
 	})
 
@@ -127,10 +243,13 @@ var _ = XDescribe("type Session", func() {
 			Expect(m.NextAttemptAt).To(BeTemporally("~", next))
 		})
 
-		It("returns the message to the pending list", func() {
+		It("returns the message to the in-memory queue when closed", func() {
 			next := time.Now().Add(10 * time.Millisecond)
 
 			err := sess.Rollback(ctx, next)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = sess.Close()
 			Expect(err).ShouldNot(HaveOccurred())
 
 			sess, err := queue.Pop(ctx)
@@ -140,20 +259,51 @@ var _ = XDescribe("type Session", func() {
 			Expect(time.Now()).To(BeTemporally(">=", next))
 		})
 
-		XIt("discards the lowest-priority element if the buffer is full", func() {
+		It("returns an error if the message can not be updated in the queue store", func() {
+			// Stop the begin of the transaction that is started to update the
+			// message.
+			dataStore.BeginFunc = func(
+				ctx context.Context,
+			) (persistence.Transaction, error) {
+				return nil, errors.New("<error>")
+			}
+
+			err := sess.Rollback(ctx, time.Now())
+			Expect(err).To(MatchError("<error>"))
+		})
+
+		It("returns an error if the transaction can not be rolled-back", func() {
+			tx, err := sess.Tx(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			tx.(*TransactionStub).RollbackFunc = func() error {
+				return errors.New("<error>")
+			}
+
+			err = sess.Rollback(ctx, time.Now())
+			Expect(err).To(MatchError("<error>"))
 		})
 	})
 
 	Describe("func Close()", func() {
 		It("rolls the transaction back", func() {
-			err := sess.Close()
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			tx, err := sess.Tx(ctx)
+			err = sess.Close()
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = tx.(persistence.Transaction).Rollback()
 			Expect(err).To(Equal(persistence.ErrTransactionClosed))
+		})
+
+		It("returns the message to the in-memory queue for immediate handling", func() {
+			err := sess.Close()
+			Expect(err).ShouldNot(HaveOccurred())
+
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
 		})
 	})
 })

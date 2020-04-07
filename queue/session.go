@@ -58,6 +58,7 @@ func (s *Session) Commit(ctx context.Context) error {
 		return err
 	}
 
+	s.done = true
 	s.elem.message.Revision = 0
 
 	return nil
@@ -72,6 +73,7 @@ func (s *Session) Rollback(ctx context.Context, n time.Time) error {
 		}
 	}
 
+	s.done = true
 	s.elem.message.NextAttemptAt = n
 
 	if err := persistence.WithTransaction(
@@ -97,10 +99,10 @@ func (s *Session) Close() error {
 		return nil
 	}
 
-	s.queue.update(s.elem)
+	s.queue.notify(s.elem)
 	s.elem = nil
 
-	if s.tx != nil {
+	if s.tx != nil && !s.done {
 		return s.tx.Rollback()
 	}
 
