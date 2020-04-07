@@ -11,6 +11,8 @@ import (
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
+	"github.com/dogmatiq/infix/semaphore"
+	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,11 +28,12 @@ var _ = Describe("type Consumer", func() {
 		queue      *Queue
 		handler    *QueueHandlerStub
 		consumer   *Consumer
-		env0       *envelope.Envelope
+		env0, env1 *envelope.Envelope
 	)
 
 	BeforeEach(func() {
 		env0 = NewEnvelope("<message-0>", MessageA1)
+		env1 = NewEnvelope("<message-1>", MessageA2)
 
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
@@ -83,16 +86,58 @@ var _ = Describe("type Consumer", func() {
 			err := queue.Push(ctx, env0)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ctx, cancel := context.WithCancel(ctx)
-			defer cancel()
-
 			handler.HandleMessageFunc = func(
 				ctx context.Context,
 				tx persistence.ManagedTransaction,
 				env *envelope.Envelope,
 			) error {
+				defer GinkgoRecover()
 				defer cancel()
 				Expect(env).To(Equal(env0))
+				return nil
+			}
+
+			err = consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
+
+		It("commits the session if the handler succeeds", func() {
+			// Configure the consumer was single-threaded with no backoff.
+			consumer.Semaphore = semaphore.New(1)
+			consumer.BackoffStrategy = backoff.Constant(0)
+
+			// Push a message.
+			err := queue.Push(ctx, env0)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Push another message after a delay guaranteeing that they don't
+			// have the same next-attempt time.
+			time.Sleep(5 * time.Millisecond)
+			err = queue.Push(ctx, env1)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Then setup a handler that expects to see env0 then env1. If the
+			// session for env0 is not committed we will see it twice before we
+			// see env1.
+			count := 0
+			handler.HandleMessageFunc = func(
+				ctx context.Context,
+				tx persistence.ManagedTransaction,
+				env *envelope.Envelope,
+			) error {
+				defer GinkgoRecover()
+
+				if count == 0 {
+					Expect(env).To(Equal(env0))
+				} else if count == 1 {
+					Expect(env).To(Equal(env1))
+					cancel()
+				} else {
+					Fail("too many calls")
+				}
+
+				count++
+
 				return nil
 			}
 
