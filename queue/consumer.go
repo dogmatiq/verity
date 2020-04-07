@@ -96,7 +96,9 @@ func (c *Consumer) process(ctx context.Context, sess *Session) error {
 			s = backoff.DefaultStrategy
 		}
 
-		delay := s(err, 0 /* TODO: get failure count from queue */)
+		// TODO: https://github.com/dogmatiq/infix/issues/110
+		// Get failure count from queue.
+		delay := s(err, 0)
 
 		logging.Log(
 			c.Logger,
