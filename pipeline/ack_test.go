@@ -20,6 +20,7 @@ var _ = Describe("func Acknowledge()", func() {
 
 	BeforeEach(func() {
 		session = &SessionStub{}
+
 		scope = &Scope{
 			Session: session,
 		}

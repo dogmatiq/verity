@@ -32,5 +32,4 @@ var _ = Describe("func LimitConcurrency()", func() {
 		err = stage(ctx, &Scope{}, fail)
 		Expect(err).To(Equal(context.DeadlineExceeded))
 	})
-
 })
