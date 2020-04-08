@@ -84,8 +84,7 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("passes messages to the handler", func() {
-			err := queue.Push(ctx, env0)
-			Expect(err).ShouldNot(HaveOccurred())
+			push(ctx, queue, env0)
 
 			handler.HandleMessageFunc = func(
 				ctx context.Context,
@@ -98,7 +97,7 @@ var _ = Describe("type Consumer", func() {
 				return nil
 			}
 
-			err = consumer.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 
@@ -108,14 +107,12 @@ var _ = Describe("type Consumer", func() {
 			consumer.BackoffStrategy = backoff.Constant(0)
 
 			// Push a message.
-			err := queue.Push(ctx, env0)
-			Expect(err).ShouldNot(HaveOccurred())
+			push(ctx, queue, env0)
 
 			// Push another message after a delay guaranteeing that they don't
 			// have the same next-attempt time.
 			time.Sleep(5 * time.Millisecond)
-			err = queue.Push(ctx, env1)
-			Expect(err).ShouldNot(HaveOccurred())
+			push(ctx, queue, env1)
 
 			// Then setup a handler that expects to see env0 then env1. If the
 			// session for env0 is not committed we will see it twice before we
@@ -143,7 +140,7 @@ var _ = Describe("type Consumer", func() {
 				return nil
 			}
 
-			err = consumer.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 
@@ -152,8 +149,7 @@ var _ = Describe("type Consumer", func() {
 			delay := 5 * time.Millisecond
 			consumer.BackoffStrategy = backoff.Constant(delay)
 
-			err := queue.Push(ctx, env0)
-			Expect(err).ShouldNot(HaveOccurred())
+			push(ctx, queue, env0)
 
 			// Then setup a handler that expects to see env0 twice. If the
 			// session for env0 is not rolled back we it will not be retried.
@@ -178,7 +174,7 @@ var _ = Describe("type Consumer", func() {
 				return nil
 			}
 
-			err = consumer.Run(ctx)
+			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 
 			handler.HandleMessageFunc = func(
@@ -202,8 +198,7 @@ var _ = Describe("type Consumer", func() {
 				cancel()
 			}()
 
-			err = queue.Push(ctx, env0)
-			Expect(err).ShouldNot(HaveOccurred())
+			push(ctx, queue, env0)
 
 			err = consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
