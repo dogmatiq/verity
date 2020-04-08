@@ -8,7 +8,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/handler/semaphore"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -27,7 +27,7 @@ var _ = Describe("type Consumer", func() {
 		dataStore  *DataStoreStub
 		repository *QueueStoreRepositoryStub
 		queue      *Queue
-		handler    *QueueHandlerStub
+		qhandler   *QueueHandlerStub
 		consumer   *Consumer
 		env0, env1 *envelope.Envelope
 	)
@@ -57,11 +57,11 @@ var _ = Describe("type Consumer", func() {
 			Marshaler: Marshaler,
 		}
 
-		handler = &QueueHandlerStub{}
+		qhandler = &QueueHandlerStub{}
 
 		consumer = &Consumer{
 			Queue:   queue,
-			Handler: handler,
+			Handler: qhandler,
 		}
 	})
 
@@ -88,7 +88,7 @@ var _ = Describe("type Consumer", func() {
 		It("passes messages to the handler", func() {
 			push(ctx, queue, env0)
 
-			handler.HandleMessageFunc = func(
+			qhandler.HandleMessageFunc = func(
 				ctx context.Context,
 				tx persistence.ManagedTransaction,
 				env *envelope.Envelope,
@@ -105,7 +105,7 @@ var _ = Describe("type Consumer", func() {
 
 		It("commits the session if the handler succeeds", func() {
 			// Configure the consumer as single-threaded with no backoff.
-			consumer.Semaphore = semaphore.New(1)
+			consumer.Semaphore = handler.NewSemaphore(1)
 			consumer.BackoffStrategy = backoff.Constant(0)
 
 			// Push a message.
@@ -120,7 +120,7 @@ var _ = Describe("type Consumer", func() {
 			// session for env0 is not committed we will see it twice before we
 			// see env1.
 			count := 0
-			handler.HandleMessageFunc = func(
+			qhandler.HandleMessageFunc = func(
 				ctx context.Context,
 				tx persistence.ManagedTransaction,
 				env *envelope.Envelope,
@@ -156,7 +156,7 @@ var _ = Describe("type Consumer", func() {
 			// Then setup a handler that expects to see env0 twice. If the
 			// session for env0 is not rolled back we it will not be retried.
 			var first time.Time
-			handler.HandleMessageFunc = func(
+			qhandler.HandleMessageFunc = func(
 				ctx context.Context,
 				tx persistence.ManagedTransaction,
 				env *envelope.Envelope,
@@ -179,7 +179,7 @@ var _ = Describe("type Consumer", func() {
 			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 
-			handler.HandleMessageFunc = func(
+			qhandler.HandleMessageFunc = func(
 				ctx context.Context,
 				tx persistence.ManagedTransaction,
 				env *envelope.Envelope,
@@ -189,7 +189,7 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("returns if the context is canceled while waiting for the sempahore", func() {
-			consumer.Semaphore = semaphore.New(1)
+			consumer.Semaphore = handler.NewSemaphore(1)
 
 			err := consumer.Semaphore.Acquire(ctx)
 			Expect(err).ShouldNot(HaveOccurred())

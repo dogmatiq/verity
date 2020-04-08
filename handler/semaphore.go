@@ -1,4 +1,4 @@
-package semaphore
+package handler
 
 import (
 	"context"
@@ -12,8 +12,8 @@ type Semaphore struct {
 	sem *semaphore.Weighted
 }
 
-// New returns a semaphore that allows n messages to be handled concurrently.
-func New(n int) Semaphore {
+// NewSemaphore returns a semaphore that allows n messages to be handled concurrently.
+func NewSemaphore(n int) Semaphore {
 	return Semaphore{
 		n,
 		semaphore.NewWeighted(int64(n)),

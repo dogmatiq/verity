@@ -13,7 +13,7 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/handler/semaphore"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,12 +21,12 @@ import (
 
 var _ = Describe("type Consumer", func() {
 	var (
-		ctx      context.Context
-		cancel   func()
-		mstream  *MemoryStream
-		stream   *EventStreamStub
-		handler  *EventStreamHandlerStub
-		consumer *Consumer
+		ctx       context.Context
+		cancel    func()
+		mstream   *MemoryStream
+		stream    *EventStreamStub
+		eshandler *EventStreamHandlerStub
+		consumer  *Consumer
 
 		env0 = NewEnvelope("<message-0>", MessageA1)
 		env1 = NewEnvelope("<message-1>", MessageB1)
@@ -64,14 +64,14 @@ var _ = Describe("type Consumer", func() {
 			env5,
 		)
 
-		handler = &EventStreamHandlerStub{}
+		eshandler = &EventStreamHandlerStub{}
 
 		consumer = &Consumer{
 			Stream: stream,
 			EventTypes: message.NewTypeSet(
 				MessageAType,
 			),
-			Handler:         handler,
+			Handler:         eshandler,
 			BackoffStrategy: backoff.Constant(10 * time.Millisecond),
 			Logger:          logging.DiscardLogger{},
 		}
@@ -84,7 +84,7 @@ var _ = Describe("type Consumer", func() {
 	Describe("func Run()", func() {
 		It("passes the filtered events to the handler in order", func() {
 			var events []*Event
-			handler.HandleEventFunc = func(
+			eshandler.HandleEventFunc = func(
 				_ context.Context,
 				_ eventstream.Offset,
 				ev *Event,
@@ -128,7 +128,7 @@ var _ = Describe("type Consumer", func() {
 			) (Cursor, error) {
 				stream.OpenFunc = nil
 
-				handler.HandleEventFunc = func(
+				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
 					ev *Event,
@@ -151,7 +151,7 @@ var _ = Describe("type Consumer", func() {
 			) (message.TypeCollection, error) {
 				stream.EventTypesFunc = nil
 
-				handler.HandleEventFunc = func(
+				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
 					ev *Event,
@@ -169,12 +169,12 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("restarts the consumer when the handler returns an error", func() {
-			handler.HandleEventFunc = func(
+			eshandler.HandleEventFunc = func(
 				context.Context,
 				eventstream.Offset,
 				*Event,
 			) error {
-				handler.HandleEventFunc = func(
+				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
 					ev *Event,
@@ -198,7 +198,7 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("returns if the context is canceled while backing off", func() {
-			handler.NextOffsetFunc = func(
+			eshandler.NextOffsetFunc = func(
 				context.Context,
 				configkit.Identity,
 			) (eventstream.Offset, error) {
@@ -217,7 +217,7 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("returns if the context is canceled while waiting for the sempahore", func() {
-			consumer.Semaphore = semaphore.New(1)
+			consumer.Semaphore = handler.NewSemaphore(1)
 
 			err := consumer.Semaphore.Acquire(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -234,7 +234,7 @@ var _ = Describe("type Consumer", func() {
 
 		Context("optimistic concurrency control", func() {
 			It("starts consuming from the next offset", func() {
-				handler.NextOffsetFunc = func(
+				eshandler.NextOffsetFunc = func(
 					_ context.Context,
 					id configkit.Identity,
 				) (eventstream.Offset, error) {
@@ -244,7 +244,7 @@ var _ = Describe("type Consumer", func() {
 					return 2, nil
 				}
 
-				handler.HandleEventFunc = func(
+				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
 					ev *Event,
@@ -259,14 +259,14 @@ var _ = Describe("type Consumer", func() {
 			})
 
 			It("passes the correct offset to the handler", func() {
-				handler.NextOffsetFunc = func(
+				eshandler.NextOffsetFunc = func(
 					context.Context,
 					configkit.Identity,
 				) (eventstream.Offset, error) {
 					return 2, nil
 				}
 
-				handler.HandleEventFunc = func(
+				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					o eventstream.Offset,
 					_ *Event,
@@ -281,19 +281,19 @@ var _ = Describe("type Consumer", func() {
 			})
 
 			It("restarts the consumer when a conflict occurs", func() {
-				handler.HandleEventFunc = func(
+				eshandler.HandleEventFunc = func(
 					context.Context,
 					eventstream.Offset,
 					*Event,
 				) error {
-					handler.NextOffsetFunc = func(
+					eshandler.NextOffsetFunc = func(
 						context.Context,
 						configkit.Identity,
 					) (eventstream.Offset, error) {
 						return 2, nil
 					}
 
-					handler.HandleEventFunc = func(
+					eshandler.HandleEventFunc = func(
 						_ context.Context,
 						_ eventstream.Offset,
 						ev *Event,
@@ -311,15 +311,15 @@ var _ = Describe("type Consumer", func() {
 			})
 
 			It("restarts the consumer when the current offset can not be read", func() {
-				handler.NextOffsetFunc = func(
+				eshandler.NextOffsetFunc = func(
 					context.Context,
 					configkit.Identity,
 				) (eventstream.Offset, error) {
-					handler.NextOffsetFunc = nil
+					eshandler.NextOffsetFunc = nil
 					return 0, errors.New("<error>")
 				}
 
-				handler.HandleEventFunc = func(
+				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
 					ev *Event,

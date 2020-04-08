@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/handler/semaphore"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 )
@@ -39,7 +39,7 @@ type Consumer struct {
 
 	// Semaphore is used to limit the number of messages being handled
 	// concurrently.
-	Semaphore semaphore.Semaphore
+	Semaphore handler.Semaphore
 
 	// BackoffStrategy is the strategy used to delay restarting the consumer
 	// after a failure. If it is nil, backoff.DefaultStrategy is used.

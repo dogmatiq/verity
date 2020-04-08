@@ -1,10 +1,10 @@
-package semaphore_test
+package handler_test
 
 import (
 	"context"
 	"time"
 
-	. "github.com/dogmatiq/infix/handler/semaphore"
+	. "github.com/dogmatiq/infix/handler"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -32,7 +32,7 @@ var _ = Describe("type Semaphore", func() {
 		var sem Semaphore
 
 		BeforeEach(func() {
-			sem = New(1)
+			sem = NewSemaphore(1)
 		})
 
 		Describe("func Limit()", func() {

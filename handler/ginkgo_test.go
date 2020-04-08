@@ -1,4 +1,4 @@
-package semaphore_test
+package handler_test
 
 import (
 	"reflect"

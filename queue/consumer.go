@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/handler/semaphore"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/linger/backoff"
 	"go.uber.org/multierr"
@@ -33,7 +33,7 @@ type Consumer struct {
 
 	// Semaphore is used to limit the number of messages being handled
 	// concurrently.
-	Semaphore semaphore.Semaphore
+	Semaphore handler.Semaphore
 
 	// BackoffStrategy is the strategy used to delay individual messages after a
 	// failure. If it is nil, backoff.DefaultStrategy is used.

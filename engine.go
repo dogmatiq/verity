@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/handler/semaphore"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
 	"golang.org/x/sync/errgroup"
@@ -19,7 +19,7 @@ type Engine struct {
 	dataStores *persistence.DataStoreSet
 	// TODO: https://github.com/dogmatiq/infix/issues/103
 	// Make semaphore size configurable.
-	semaphore semaphore.Semaphore
+	semaphore handler.Semaphore
 	logger    logging.Logger
 
 	appsByKey     map[string]*app
