@@ -56,7 +56,9 @@ var _ = Describe("type Executor", func() {
 				},
 			),
 		}
+	})
 
+	JustBeforeEach(func() {
 		go queue.Run(ctx)
 	})
 

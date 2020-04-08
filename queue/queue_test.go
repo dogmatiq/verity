@@ -95,14 +95,8 @@ var _ = Describe("type Queue", func() {
 	})
 
 	When("the queue is running", func() {
-		BeforeEach(func() {
-			q := queue
-
-			go func() {
-				defer GinkgoRecover()
-				err := q.Run(ctx)
-				Expect(err).To(Equal(context.Canceled))
-			}()
+		JustBeforeEach(func() {
+			go queue.Run(ctx)
 		})
 
 		Describe("func Pop()", func() {

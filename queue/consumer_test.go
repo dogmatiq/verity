@@ -57,14 +57,16 @@ var _ = Describe("type Consumer", func() {
 			Marshaler: Marshaler,
 		}
 
-		go queue.Run(ctx)
-
 		handler = &QueueHandlerStub{}
 
 		consumer = &Consumer{
 			Queue:   queue,
 			Handler: handler,
 		}
+	})
+
+	JustBeforeEach(func() {
+		go queue.Run(ctx)
 	})
 
 	AfterEach(func() {

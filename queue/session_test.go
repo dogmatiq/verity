@@ -48,11 +48,14 @@ var _ = Describe("type Session", func() {
 			DataStore: dataStore,
 			Marshaler: Marshaler,
 		}
+	})
 
+	JustBeforeEach(func() {
 		go queue.Run(ctx)
 
 		push(ctx, queue, env0)
 
+		var err error
 		sess, err = queue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
