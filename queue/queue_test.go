@@ -11,12 +11,15 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+var _ pipeline.Source = (*Queue)(nil).Pop
 
 // push is a helper function for testing the queue that persists a message to
 // the queue then begins tracking it.

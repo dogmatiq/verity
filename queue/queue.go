@@ -12,6 +12,7 @@ import (
 	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -59,7 +60,7 @@ type Queue struct {
 	once sync.Once
 	done chan struct{} // closed when Run() exits
 	in   chan *elem    // delivers elements to Run() for tracking
-	out  chan *elem    // delivers messages to Pop() for handling
+	out  chan *elem    // delivers elements to Pop() for handling
 }
 
 const (
@@ -92,18 +93,17 @@ func (e *elem) Less(v pdeque.Elem) bool {
 	)
 }
 
-// Pop removes the message at the front of the queue.
+// Pop returns a session for a message popped from the front of the queue.
 //
-// It returns a session within which the message is to be handled.
 // It blocks until a message is ready to be handled or ctx is canceled.
-func (q *Queue) Pop(ctx context.Context) (*Session, error) {
+func (q *Queue) Pop(ctx context.Context) (pipeline.Session, error) {
 	q.init()
 
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case e := <-q.out:
-		return &Session{
+		return &session{
 			queue: q,
 			elem:  e,
 		}, nil
