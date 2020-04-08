@@ -48,12 +48,14 @@ var _ = Describe("type Session", func() {
 			DataStore: dataStore,
 			Marshaler: Marshaler,
 		}
+	})
 
+	JustBeforeEach(func() {
 		go queue.Run(ctx)
 
-		err = queue.Push(ctx, env0)
-		Expect(err).ShouldNot(HaveOccurred())
+		push(ctx, queue, env0)
 
+		var err error
 		sess, err = queue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -85,12 +87,11 @@ var _ = Describe("type Session", func() {
 			// Push a new envelope, which will get discarded from memory due to
 			// the buffer size limit.
 			queue.BufferSize = 1
-			err := queue.Push(ctx, env1)
-			Expect(err).ShouldNot(HaveOccurred())
+			push(ctx, queue, env1)
 
 			// Commit and close the existing session for env0, freeing us to
 			// load again.
-			err = sess.Commit(ctx)
+			err := sess.Commit(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = sess.Close()

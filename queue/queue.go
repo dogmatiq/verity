@@ -110,24 +110,24 @@ func (q *Queue) Pop(ctx context.Context) (*Session, error) {
 	}
 }
 
-// Push adds a message to the queue.
-func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
-	m := &queuestore.Message{
-		NextAttemptAt: time.Now(),
+// NewMessage returns a new queue store message containing the given envelope.
+func (q *Queue) NewMessage(env *envelope.Envelope, n time.Time) *queuestore.Message {
+	return &queuestore.Message{
+		NextAttemptAt: n,
 		Envelope:      envelope.MustMarshal(q.Marshaler, env),
 	}
+}
 
-	if err := persistence.WithTransaction(
-		ctx,
-		q.DataStore,
-		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, m)
-		},
-	); err != nil {
-		return err
+// Track begins tracking a message that has been persisted to the queue store.
+func (q *Queue) Track(
+	ctx context.Context,
+	env *envelope.Envelope,
+	m *queuestore.Message,
+) error {
+	if m.Revision == 0 {
+		panic("message must be persisted")
 	}
 
-	m.Revision++
 	e := &elem{env: env, message: m}
 
 	q.init()
@@ -139,18 +139,18 @@ func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
 		// Set the exhaustive state to NO so that Run() knows to try loading
 		// messages from the store again.
 		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
-		logging.Debug(q.Logger, "%s pushed, but canceled before notify (exhaustive: no)", e.message.ID())
+		logging.Debug(q.Logger, "%s requested tracking, but canceled or timed-out(exhaustive: no)", e.message.ID())
 		return ctx.Err()
 
 	case q.in <- e:
-		logging.Debug(q.Logger, "%s pushed", e.message.ID())
+		logging.Debug(q.Logger, "%s requested tracking successfully", e.message.ID())
 		return nil
 
 	case <-q.done:
 		// Run() has stopped, so nothing will be tracked, but the message has
 		// been persisted so from the perspective of the caller the message has
 		// been queued successfully.
-		logging.Debug(q.Logger, "%s pushed, but the queue is not running", e.message.ID())
+		logging.Debug(q.Logger, "%s requested tracking, but the queue is not running", e.message.ID())
 		return nil
 	}
 }
@@ -158,7 +158,7 @@ func (q *Queue) Push(ctx context.Context, env *envelope.Envelope) error {
 // Run starts the queue.
 //
 // It coordinates the tracking of messages that are loaded from the queue store,
-// or added to the queue by Push() or as part of handling another message.
+// or manually added to the queue by Track().
 func (q *Queue) Run(ctx context.Context) error {
 	q.init()
 	defer close(q.done)
@@ -258,7 +258,7 @@ func (q *Queue) load(ctx context.Context) error {
 		return nil
 	}
 
-	// We set the status to UNKNOWN while we are loading. If a call to Push()
+	// We set the status to UNKNOWN while we are loading. If a call to Track()
 	// comes along and sets it to NO in the mean-time, we know not to set it
 	// back to YES after we finish loading as we may or may not have that
 	// particular message in the result of the load.
@@ -286,7 +286,7 @@ func (q *Queue) load(ctx context.Context) error {
 		// We didn't get as many messages as we requested, so we know we have
 		// everything in memory.
 		//
-		// Only set the exhaustive status back to YES if a Push() call did not
+		// Only set the exhaustive status back to YES if a Track() call did not
 		// set it to NO while we were loading.
 		logging.Debug(q.Logger, "loaded %d message(s) from store (exhaustive: yes)", n)
 	} else {
@@ -332,9 +332,9 @@ func (q *Queue) update(e *elem) bool {
 	after := len(q.tracked)
 
 	if before == after {
-		// The message was already be in the tracked list, which can occur if it was
-		// pushed just before we loaded form the store so we see the message both in
-		// the load result and on the q.in channel.
+		// The message was already be in the tracked list, which can occur if it
+		// was persisted just before we loaded form the store so we see the
+		// message both in the load result and on the q.in channel.
 		logging.Debug(q.Logger, "%s is already tracked (pending: %d, tracked: %d/%d)", e.message.ID(), q.pending.Len(), len(q.tracked), limit)
 		return false
 	}
@@ -388,7 +388,7 @@ func (q *Queue) init() {
 		// Allocate capcity for our limit +1 element used to detect overflow.
 		q.tracked = make(map[string]struct{}, limit+1)
 
-		// Buffered to avoid blocking in Push(), doesn't *need* to be == limit.
+		// Buffered to avoid blocking in Track(), doesn't *need* to be == limit.
 		q.in = make(chan *elem, limit)
 
 		q.done = make(chan struct{})

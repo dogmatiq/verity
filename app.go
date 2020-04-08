@@ -13,11 +13,11 @@ import (
 )
 
 type app struct {
-	Config         configkit.RichApplication
-	Stream         *eventstream.PersistedStream
-	Queue          *queue.Queue
-	InternalPacker *envelope.Packer
-	ExternalPacker *envelope.Packer
+	Config   configkit.RichApplication
+	Stream   *eventstream.PersistedStream
+	Queue    *queue.Queue
+	Executor *queue.CommandExecutor
+	Packer   *envelope.Packer
 }
 
 func (e *Engine) initApp(
@@ -44,6 +44,15 @@ func (e *Engine) initApp(
 
 	commands := cfg.MessageTypes().Consumed.FilterByRole(message.CommandRole)
 
+	q := &queue.Queue{
+		DataStore: ds,
+		Marshaler: e.opts.Marshaler,
+		// TODO: https://github.com/dogmatiq/infix/issues/102
+		// Make buffer size configurable.
+		BufferSize: 0,
+		Logger:     e.logger,
+	}
+
 	a := &app{
 		Config: cfg,
 		Stream: &eventstream.PersistedStream{
@@ -55,21 +64,17 @@ func (e *Engine) initApp(
 			// Make pre-fetch buffer size configurable.
 			PreFetch: 10,
 		},
-		Queue: &queue.Queue{
-			DataStore: ds,
-			Marshaler: e.opts.Marshaler,
-			// TODO: https://github.com/dogmatiq/infix/issues/102
-			// Make buffer size configurable.
-			BufferSize: 0,
-			Logger:     e.logger,
+		Queue: q,
+		Executor: &queue.CommandExecutor{
+			Queue: q,
+			Packer: &envelope.Packer{
+				Application: id,
+				Roles:       commands,
+			},
 		},
-		InternalPacker: &envelope.Packer{
+		Packer: &envelope.Packer{
 			Application: id,
 			Roles:       cfg.MessageTypes().Produced,
-		},
-		ExternalPacker: &envelope.Packer{
-			Application: id,
-			Roles:       commands,
 		},
 	}
 

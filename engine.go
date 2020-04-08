@@ -66,9 +66,7 @@ func (e *Engine) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 		return fmt.Errorf("no application accepts %s commands", mt)
 	}
 
-	env := a.ExternalPacker.PackCommand(m)
-
-	return a.Queue.Push(ctx, env)
+	return a.Executor.ExecuteCommand(ctx, m)
 }
 
 // Run hosts the given application until ctx is canceled or an error occurs.
