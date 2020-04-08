@@ -15,6 +15,10 @@ type Stage func(context.Context, *Scope, Sink) error
 
 // New returns a new pipeline.
 func New(stages ...Stage) Sink {
+	if len(stages) == 0 {
+		panic("there must be at least one pipeline stage")
+	}
+
 	return pipeline(stages).Do
 }
 
@@ -36,6 +40,8 @@ func (p pipeline) Do(ctx context.Context, sc *Scope) error {
 
 // Terminate returns a stage that uses a sink to end a pipeline.
 func Terminate(end Sink) Stage {
+	// Note this just wraps the sink in a function that matches the signature of
+	// Stage, while guaranteeing to never call next().
 	return func(ctx context.Context, sc *Scope, _ Sink) error {
 		return end(ctx, sc)
 	}

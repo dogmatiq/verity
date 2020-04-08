@@ -16,7 +16,7 @@ var _ = Describe("func LimitConcurrency()", func() {
 
 		stage := LimitConcurrency(sem)
 		err := stage(context.Background(), &Scope{}, fail)
-		Expect(err).To(MatchError("sink called"))
+		Expect(err).To(MatchError("<error: fail() called>"))
 	})
 
 	It("returns an error if the context is canceled while waiting for the semaphore", func() {
