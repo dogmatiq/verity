@@ -2,10 +2,14 @@ package infix
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
+	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/infix/queue"
 )
 
@@ -15,19 +19,43 @@ func (e *Engine) runQueueConsumerForApp(
 	q *queue.Queue,
 	a configkit.RichApplication,
 ) error {
-	c := &queue.Consumer{
-		Queue:           q,
-		Handler:         nil,
-		Semaphore:       e.semaphore,
-		BackoffStrategy: e.opts.MessageBackoff,
-		Logger: loggingx.WithPrefix(
+	pl := pipeline.New(
+		pipeline.LimitConcurrency(e.semaphore),
+		pipeline.WhenMessageEnqueued(
+			func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
+				for _, m := range messages {
+					if err := q.Track(ctx, m.Memory, m.Persisted); err != nil {
+						return err
+					}
+				}
+
+				return nil
+			},
+		),
+		pipeline.Acknowledge(e.opts.MessageBackoff),
+		pipeline.Terminate(
+			pipeline.Handle(
+				func(ctx context.Context, sc handler.Scope, env *envelope.Envelope) error {
+					// TODO: we need real handlers!
+					return errors.New("the truth is, there is no handler")
+				},
+			),
+		),
+	)
+
+	err := pipeline.Pump(
+		ctx,
+		e.opts.Marshaler,
+		loggingx.WithPrefix(
 			e.opts.Logger,
 			"@%s | queue | ",
 			a.Identity().Name,
 		),
-	}
+		q.Pop,
+		pl,
+	)
 
-	if err := c.Run(ctx); err != nil {
+	if err != nil {
 		return fmt.Errorf(
 			"stopped consuming from the queue: %w",
 			err,
