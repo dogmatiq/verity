@@ -56,8 +56,6 @@ type Queue struct {
 	pending    pdeque.Deque        // priority queue of messages without active sessions
 	exhaustive uint32              // atomic tri-bool, see exhaustiveXXX consts.
 
-	started uint32 // atomic bool
-
 	once sync.Once
 	done chan struct{} // closed when Run() exits
 	in   chan *elem    // delivers elements to Run() for tracking
@@ -163,11 +161,6 @@ func (q *Queue) Track(
 // or manually added to the queue by Track().
 func (q *Queue) Run(ctx context.Context) error {
 	q.init()
-
-	if !atomic.CompareAndSwapUint32(&q.started, 0, 1) {
-		panic("queue already started")
-	}
-
 	defer close(q.done)
 
 	for {
