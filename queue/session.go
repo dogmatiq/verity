@@ -8,9 +8,9 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// A Session encapsulates an atomic application state change brought about by a
-// single queued message.
-type Session struct {
+// session is an implementation of pipeline.Session for messages obtained from
+// the queue.
+type session struct {
 	queue *Queue
 	elem  *elem
 	tx    persistence.Transaction
@@ -18,13 +18,30 @@ type Session struct {
 }
 
 // MessageID returns the ID of the message that is handled within the session.
-func (s *Session) MessageID() string {
+func (s *session) MessageID() string {
 	return s.elem.message.ID()
+}
+
+// FailureCount returns the number of times this message has already been
+// attempted, not including this attempt.
+func (s *session) FailureCount() uint {
+	return s.elem.message.FailureCount
+}
+
+// Envelope returns the envelope containing the message to be handled.
+func (s *session) Envelope() (*envelope.Envelope, error) {
+	var err error
+
+	if s.elem.env == nil {
+		s.elem.env, err = envelope.Unmarshal(s.queue.Marshaler, s.elem.message.Envelope)
+	}
+
+	return s.elem.env, err
 }
 
 // Tx returns the transaction under which the message must be handled, starting
 // it if necessary.
-func (s *Session) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {
+func (s *session) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {
 	if s.tx == nil {
 		tx, err := s.queue.DataStore.Begin(ctx)
 		if err != nil {
@@ -37,19 +54,10 @@ func (s *Session) Tx(ctx context.Context) (persistence.ManagedTransaction, error
 	return s.tx, nil
 }
 
-// Envelope returns the envelope containing the message to be handled.
-func (s *Session) Envelope() (*envelope.Envelope, error) {
-	var err error
-
-	if s.elem.env == nil {
-		s.elem.env, err = envelope.Unmarshal(s.queue.Marshaler, s.elem.message.Envelope)
-	}
-
-	return s.elem.env, err
-}
-
-// Commit commits the changes performed in the session.
-func (s *Session) Commit(ctx context.Context) error {
+// Ack acknowledges successful handling of the message.
+//
+// It commits the changes performed in the session's transaction.
+func (s *session) Ack(ctx context.Context) error {
 	_, err := s.Tx(ctx)
 	if err != nil {
 		return err
@@ -69,9 +77,11 @@ func (s *Session) Commit(ctx context.Context) error {
 	return nil
 }
 
-// Rollback finalizes the session after a failure handling the message.
-// The message is re-queued for be attempted at n.
-func (s *Session) Rollback(ctx context.Context, n time.Time) error {
+// Nack indicates an error while handling the message.
+//
+// It discards the changes performed in the session's transaction and defers
+// handling of the message until n.
+func (s *session) Nack(ctx context.Context, n time.Time) error {
 	if s.tx != nil {
 		if err := s.tx.Rollback(); err != nil {
 			return err
@@ -79,6 +89,7 @@ func (s *Session) Rollback(ctx context.Context, n time.Time) error {
 	}
 
 	s.done = true
+	s.elem.message.FailureCount++
 	s.elem.message.NextAttemptAt = n
 
 	if err := persistence.WithTransaction(
@@ -96,10 +107,10 @@ func (s *Session) Rollback(ctx context.Context, n time.Time) error {
 	return nil
 }
 
-// Close releases the message.
+// Close releases the session.
 //
 // It must be called regardless of whether Ack() or Nack() are called.
-func (s *Session) Close() error {
+func (s *session) Close() error {
 	if s.elem == nil {
 		return nil
 	}

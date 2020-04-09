@@ -12,20 +12,21 @@ import (
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Session", func() {
+var _ = Describe("type session", func() {
 	var (
 		ctx        context.Context
 		cancel     context.CancelFunc
 		provider   *ProviderStub
 		dataStore  *DataStoreStub
 		queue      *Queue
-		sess       *Session
+		sess       pipeline.Session
 		env0, env1 *envelope.Envelope
 	)
 
@@ -76,6 +77,20 @@ var _ = Describe("type Session", func() {
 		})
 	})
 
+	Describe("func FailureCount()", func() {
+		It("returns the number of times the message has failed handling", func() {
+			err := sess.Nack(ctx, time.Now())
+			Expect(err).ShouldNot(HaveOccurred())
+			sess.Close()
+
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			Expect(sess.FailureCount()).To(BeEquivalentTo(1))
+		})
+	})
+
 	Describe("func Envelope()", func() {
 		It("returns the unmarshaled message envelope", func() {
 			e, err := sess.Envelope()
@@ -91,7 +106,7 @@ var _ = Describe("type Session", func() {
 
 			// Commit and close the existing session for env0, freeing us to
 			// load again.
-			err := sess.Commit(ctx)
+			err := sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = sess.Close()
@@ -138,7 +153,7 @@ var _ = Describe("type Session", func() {
 		})
 	})
 
-	Describe("func Commit()", func() {
+	Describe("func Ack()", func() {
 		It("commits the underlying transaction", func() {
 			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -146,7 +161,7 @@ var _ = Describe("type Session", func() {
 			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = sess.Commit(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			repo := dataStore.EventStoreRepository()
@@ -170,7 +185,7 @@ var _ = Describe("type Session", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err = sess.Commit(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
@@ -185,7 +200,7 @@ var _ = Describe("type Session", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := sess.Commit(ctx)
+			err := sess.Ack(ctx)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -200,7 +215,7 @@ var _ = Describe("type Session", func() {
 				return errors.New("<error>")
 			}
 
-			err = sess.Commit(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -212,12 +227,12 @@ var _ = Describe("type Session", func() {
 				return errors.New("<error>")
 			}
 
-			err = sess.Commit(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
 
-	Describe("func Rollback()", func() {
+	Describe("func Nack()", func() {
 		It("rolls the underlying transaction back", func() {
 			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -225,7 +240,7 @@ var _ = Describe("type Session", func() {
 			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = sess.Rollback(ctx, time.Now().Add(1*time.Hour))
+			err = sess.Nack(ctx, time.Now().Add(1*time.Hour))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			repo := dataStore.EventStoreRepository()
@@ -237,9 +252,9 @@ var _ = Describe("type Session", func() {
 			Expect(ok).To(BeFalse())
 		})
 
-		It("updates the next-attempt time in the queue store", func() {
+		It("updates the failure count and next-attempt time in the queue store", func() {
 			next := time.Now().Add(1 * time.Hour)
-			err := sess.Rollback(ctx, next)
+			err := sess.Nack(ctx, next)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
@@ -247,13 +262,14 @@ var _ = Describe("type Session", func() {
 			Expect(messages).To(HaveLen(1))
 
 			m := messages[0]
+			Expect(m.FailureCount).To(BeEquivalentTo(1))
 			Expect(m.NextAttemptAt).To(BeTemporally("~", next))
 		})
 
 		It("returns the message to the in-memory queue when closed", func() {
 			next := time.Now().Add(10 * time.Millisecond)
 
-			err := sess.Rollback(ctx, next)
+			err := sess.Nack(ctx, next)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = sess.Close()
@@ -275,7 +291,7 @@ var _ = Describe("type Session", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := sess.Rollback(ctx, time.Now())
+			err := sess.Nack(ctx, time.Now())
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -287,7 +303,7 @@ var _ = Describe("type Session", func() {
 				return errors.New("<error>")
 			}
 
-			err = sess.Rollback(ctx, time.Now())
+			err = sess.Nack(ctx, time.Now())
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
