@@ -25,8 +25,7 @@ func (s *session) MessageID() string {
 // FailureCount returns the number of times this message has already been
 // attempted, not including this attempt.
 func (s *session) FailureCount() uint {
-	// TODO: https://github.com/dogmatiq/infix/issues/110
-	return 0
+	return s.elem.message.FailureCount
 }
 
 // Envelope returns the envelope containing the message to be handled.
@@ -90,6 +89,7 @@ func (s *session) Nack(ctx context.Context, n time.Time) error {
 	}
 
 	s.done = true
+	s.elem.message.FailureCount++
 	s.elem.message.NextAttemptAt = n
 
 	if err := persistence.WithTransaction(

@@ -77,6 +77,20 @@ var _ = Describe("type session", func() {
 		})
 	})
 
+	Describe("func FailureCount()", func() {
+		It("returns the number of times the message has failed handling", func() {
+			err := sess.Nack(ctx, time.Now())
+			Expect(err).ShouldNot(HaveOccurred())
+			sess.Close()
+
+			sess, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer sess.Close()
+
+			Expect(sess.FailureCount()).To(BeEquivalentTo(1))
+		})
+	})
+
 	Describe("func Envelope()", func() {
 		It("returns the unmarshaled message envelope", func() {
 			e, err := sess.Envelope()
@@ -238,7 +252,7 @@ var _ = Describe("type session", func() {
 			Expect(ok).To(BeFalse())
 		})
 
-		It("updates the next-attempt time in the queue store", func() {
+		It("updates the failure count and next-attempt time in the queue store", func() {
 			next := time.Now().Add(1 * time.Hour)
 			err := sess.Nack(ctx, next)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -248,6 +262,7 @@ var _ = Describe("type session", func() {
 			Expect(messages).To(HaveLen(1))
 
 			m := messages[0]
+			Expect(m.FailureCount).To(BeEquivalentTo(1))
 			Expect(m.NextAttemptAt).To(BeTemporally("~", next))
 		})
 
