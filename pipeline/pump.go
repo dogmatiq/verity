@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Pump obtains sessions a source and feeds them to a sink.
+// Pump obtains sessions from a source and feeds them to a sink.
 func Pump(
 	ctx context.Context,
 	m marshalkit.Marshaler,

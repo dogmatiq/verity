@@ -64,7 +64,7 @@ var _ = Describe("func Handle", func() {
 		Expect(called).To(BeTrue())
 	})
 
-	It("returns an error if the envelope can not be unpacked", func() {
+	It("returns an error if the envelope cannot be unpacked", func() {
 		session.EnvelopeFunc = func() (*envelope.Envelope, error) {
 			return nil, errors.New("<error>")
 		}

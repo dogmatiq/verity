@@ -19,7 +19,7 @@ func fail(context.Context, *Scope) error {
 	return errors.New("<error: fail() called>")
 }
 
-// noop is stage that forwards to the next stage without doing anything.
+// noop is a stage that forwards to the next stage without doing anything.
 func noop(ctx context.Context, sc *Scope, next Sink) error {
 	return next(ctx, sc)
 }
