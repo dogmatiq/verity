@@ -13,7 +13,6 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -213,22 +212,6 @@ var _ = Describe("type Consumer", func() {
 			}()
 
 			err := consumer.Run(ctx)
-			Expect(err).To(Equal(context.Canceled))
-		})
-
-		It("returns if the context is canceled while waiting for the sempahore", func() {
-			consumer.Semaphore = handler.NewSemaphore(1)
-
-			err := consumer.Semaphore.Acquire(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer consumer.Semaphore.Release()
-
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				cancel()
-			}()
-
-			err = consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 

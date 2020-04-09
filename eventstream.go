@@ -83,7 +83,6 @@ func (e *Engine) runStreamConsumerForProjection(
 			DefaultTimeout: e.opts.MessageTimeout,
 			Logger:         logger,
 		},
-		Semaphore:       e.semaphore,
 		BackoffStrategy: e.opts.MessageBackoff,
 		Logger:          logger,
 	}
