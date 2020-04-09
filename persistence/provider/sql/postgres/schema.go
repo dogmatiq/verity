@@ -113,6 +113,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 		`CREATE TABLE infix.queue (
 			app_key             TEXT NOT NULL,
 			revision            BIGINT NOT NULL DEFAULT 1,
+			failure_count       BIGINT NOT NULL DEFAULT 0,
 			next_attempt_at     TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 			message_id          TEXT NOT NULL,
 			causation_id        TEXT NOT NULL,

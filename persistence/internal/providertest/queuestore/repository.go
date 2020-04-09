@@ -44,16 +44,19 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			env2 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA2)
 
 			message0 = &queuestore.Message{
+				FailureCount:  1,
 				NextAttemptAt: time.Now().Add(3 * time.Hour),
 				Envelope:      env0,
 			}
 
 			message1 = &queuestore.Message{
+				FailureCount:  2,
 				NextAttemptAt: time.Now().Add(-10 * time.Hour),
 				Envelope:      env1,
 			}
 
 			message2 = &queuestore.Message{
+				FailureCount:  3,
 				NextAttemptAt: time.Now().Add(2 * time.Hour),
 				Envelope:      env2,
 			}

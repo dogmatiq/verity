@@ -16,12 +16,11 @@ func expectMessageToEqual(check, expect *queuestore.Message, desc ...interface{}
 		common.ExpandDescription(desc, "revision does not match"),
 	)
 
-	expectMessageToEqualNoRev(check, expect, desc...)
-}
+	gomega.Expect(check.FailureCount).To(
+		gomega.Equal(expect.FailureCount),
+		common.ExpandDescription(desc, "failure count time does not match"),
+	)
 
-// expectMessageToEqualNoRev asserts that an queuestore.Message equals an expected
-// value. It does not compare the revisions.
-func expectMessageToEqualNoRev(check, expect *queuestore.Message, desc ...interface{}) {
 	gomega.Expect(check.NextAttemptAt).To(
 		gomega.BeTemporally("~", expect.NextAttemptAt),
 		common.ExpandDescription(desc, "next-attempt time does not match"),
@@ -41,22 +40,6 @@ func expectMessagesToEqual(check, expect []*queuestore.Message, desc ...interfac
 
 	for i, ev := range check {
 		expectMessageToEqual(
-			ev, expect[i],
-			common.ExpandDescription(
-				desc,
-				fmt.Sprintf("message at index #%d of slice", i),
-			),
-		)
-	}
-}
-
-// expectMessagesToEqualNoRev asserts that a slice of queuestore.Message equals
-// an expected value. It does not compare the revisions.
-func expectMessagesToEqualNoRev(check, expect []*queuestore.Message, desc ...interface{}) {
-	gomega.Expect(check).To(gomega.HaveLen(len(expect)))
-
-	for i, ev := range check {
-		expectMessageToEqualNoRev(
 			ev, expect[i],
 			common.ExpandDescription(
 				desc,

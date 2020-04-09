@@ -188,6 +188,7 @@ func unmarshalQueueMessage(data []byte) *queuestore.Message {
 
 	return &queuestore.Message{
 		Revision:      queuestore.Revision(m.Revision),
+		FailureCount:  uint(m.FailureCount),
 		NextAttemptAt: next,
 		Envelope:      m.Envelope,
 	}
@@ -200,6 +201,7 @@ func marshalQueueMessage(
 ) (*pb.QueueMessage, []byte) {
 	new := &pb.QueueMessage{
 		Revision:      uint64(m.Revision + 1),
+		FailureCount:  uint64(m.FailureCount),
 		NextAttemptAt: m.NextAttemptAt.Format(time.RFC3339Nano),
 		Envelope:      old.GetEnvelope(),
 	}

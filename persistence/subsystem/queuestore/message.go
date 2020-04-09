@@ -13,6 +13,7 @@ type Revision uint64
 // Message is a message persisted on the queue.
 type Message struct {
 	Revision      Revision
+	FailureCount  uint
 	NextAttemptAt time.Time
 	Envelope      *envelopespec.Envelope
 }

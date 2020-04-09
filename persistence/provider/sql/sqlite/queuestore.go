@@ -24,6 +24,7 @@ func (driver) InsertQueueMessage(
 		tx,
 		`INSERT INTO queue (
 				app_key,
+				failure_count,
 				next_attempt_at,
 				message_id,
 				causation_id,
@@ -39,9 +40,10 @@ func (driver) InsertQueueMessage(
 				media_type,
 				data
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
 			) ON CONFLICT (app_key, message_id) DO NOTHING`,
 		ak,
+		m.FailureCount,
 		m.NextAttemptAt,
 		m.Envelope.GetMetaData().GetMessageId(),
 		m.Envelope.GetMetaData().GetCausationId(),
@@ -79,10 +81,12 @@ func (driver) UpdateQueueMessage(
 		tx,
 		`UPDATE queue SET
 			revision = revision + 1,
-			next_attempt_at = $1
-		WHERE app_key = $2
-		AND message_id = $3
-		AND revision = $4`,
+			failure_count = $1,
+			next_attempt_at = $2
+		WHERE app_key = $3
+		AND message_id = $4
+		AND revision = $5`,
+		m.FailureCount,
 		m.NextAttemptAt,
 		ak,
 		m.Envelope.GetMetaData().GetMessageId(),
@@ -125,6 +129,7 @@ func (driver) SelectQueueMessages(
 		ctx,
 		`SELECT
 			q.revision,
+			q.failure_count,
 			q.next_attempt_at,
 			q.message_id,
 			q.causation_id,
@@ -156,6 +161,7 @@ func (driver) ScanQueueMessage(
 ) error {
 	return rows.Scan(
 		&m.Revision,
+		&m.FailureCount,
 		&m.NextAttemptAt,
 		&m.Envelope.MetaData.MessageId,
 		&m.Envelope.MetaData.CausationId,
