@@ -27,6 +27,7 @@ func (driver) InsertQueueMessage(
 		tx,
 		`INSERT INTO queue SET
 				app_key = ?,
+				failure_count = ?,
 				next_attempt_at = ?,
 				message_id = ?,
 				causation_id = ?,
@@ -44,6 +45,7 @@ func (driver) InsertQueueMessage(
 			ON DUPLICATE KEY UPDATE
 				app_key = VALUES(app_key)`,
 		ak,
+		m.FailureCount,
 		m.NextAttemptAt,
 		m.Envelope.GetMetaData().GetMessageId(),
 		m.Envelope.GetMetaData().GetCausationId(),
@@ -89,10 +91,12 @@ func (driver) UpdateQueueMessage(
 		tx,
 		`UPDATE queue SET
 			revision = revision + 1,
+			failure_count = ?,
 			next_attempt_at = ?
 		WHERE app_key = ?
 		AND message_id = ?
 		AND revision = ?`,
+		m.FailureCount,
 		m.NextAttemptAt,
 		ak,
 		m.Envelope.GetMetaData().GetMessageId(),
@@ -135,6 +139,7 @@ func (driver) SelectQueueMessages(
 		ctx,
 		`SELECT
 			q.revision,
+			q.failure_count,
 			q.next_attempt_at,
 			q.message_id,
 			q.causation_id,
@@ -168,6 +173,7 @@ func (driver) ScanQueueMessage(
 
 	err := rows.Scan(
 		&m.Revision,
+		&m.FailureCount,
 		&next,
 		&m.Envelope.MetaData.MessageId,
 		&m.Envelope.MetaData.CausationId,

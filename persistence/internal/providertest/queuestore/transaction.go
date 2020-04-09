@@ -64,6 +64,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 				ginkgo.It("updates the message", func() {
 					message0.NextAttemptAt = time.Now().Add(1 * time.Hour)
+					message0.FailureCount = 123
+
 					saveMessages(tc.Context, dataStore, message0)
 
 					m := loadMessage(tc.Context, repository)

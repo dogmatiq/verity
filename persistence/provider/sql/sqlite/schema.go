@@ -120,8 +120,9 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE queue (
 			app_key             TEXT NOT NULL,
-			next_attempt_at     DATETIME NOT NULL,
 			revision            INTEGER NOT NULL DEFAULT 1,
+			failure_count       INTEGER NOT NULL DEFAULT 0,
+			next_attempt_at     DATETIME NOT NULL,
 			message_id          TEXT NOT NULL,
 			causation_id        TEXT NOT NULL,
 			correlation_id      TEXT NOT NULL,

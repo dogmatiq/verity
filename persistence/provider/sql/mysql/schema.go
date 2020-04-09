@@ -103,6 +103,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 		`CREATE TABLE queue (
 			app_key             VARBINARY(255) NOT NULL,
 			revision            BIGINT UNSIGNED NOT NULL DEFAULT 1,
+			failure_count       BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			next_attempt_at     TIMESTAMP(6) NOT NULL,
 			message_id          VARBINARY(255) NOT NULL,
 			causation_id        VARBINARY(255) NOT NULL,

@@ -44,7 +44,7 @@ func (t *transaction) SaveMessageToQueue(
 	if uncommitted == nil {
 		uncommitted = cloneQueueMessage(m)
 	} else {
-		uncommitted.NextAttemptAt = m.NextAttemptAt
+		assignMetaData(uncommitted, m)
 	}
 
 	uncommitted.Revision++
@@ -185,17 +185,9 @@ func (t *transaction) commitQueueUpdate(
 	committed *queuestore.Message,
 	uncommitted *queuestore.Message,
 ) bool {
-	committed.Revision = uncommitted.Revision
-
-	if uncommitted.NextAttemptAt.Equal(committed.NextAttemptAt) {
-		// Bail early and return false if the next-attempt time has not change
-		// to avoid sorting the queue unnecessarily.
-		return false
-	}
-
-	committed.NextAttemptAt = uncommitted.NextAttemptAt
-
-	return true
+	needsSort := !uncommitted.NextAttemptAt.Equal(committed.NextAttemptAt)
+	assignMetaData(committed, uncommitted)
+	return needsSort
 }
 
 // commitQueueRemovals removes existing messages as part of a commit.
@@ -221,6 +213,14 @@ func (t *transaction) commitQueueRemovals() {
 
 	// Trim the slice to the new length.
 	q.order = q.order[:i+1]
+}
+
+// assignMetaData assigns meta-data from src to dest, retaining dest's original
+// envelope.
+func assignMetaData(dest, src *queuestore.Message) {
+	env := dest.Envelope
+	*dest = *src
+	dest.Envelope = env
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that
