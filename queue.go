@@ -14,10 +14,9 @@ func (e *Engine) runQueueConsumerForApp(
 ) error {
 	err := pipeline.Pump(
 		ctx,
-		e.opts.Marshaler,
-		a.Logger,
+		a.NewScope,
 		a.Queue.Pop,
-		a.Pipeline,
+		a.Pipeline.Accept,
 	)
 
 	if err != nil {

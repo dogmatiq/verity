@@ -11,7 +11,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
@@ -22,7 +21,8 @@ type app struct {
 	Config   configkit.RichApplication
 	Stream   *eventstream.PersistedStream
 	Queue    *queue.Queue
-	Pipeline pipeline.Sink
+	Pipeline pipeline.Pipeline
+	NewScope pipeline.ScopeFactory
 	Logger   logging.Logger
 }
 
@@ -58,11 +58,21 @@ func (e *Engine) initApp(
 		cfg.Identity().Name,
 	)
 
+	n := func(sess pipeline.Session) *pipeline.Scope {
+		return &pipeline.Scope{
+			Session:               sess,
+			Marshaler:             e.opts.Marshaler,
+			DefaultHandlerTimeout: e.opts.MessageTimeout,
+			Logger:                l,
+		}
+	}
+
 	a := &app{
 		Config:   cfg,
 		Stream:   s,
 		Queue:    q,
 		Pipeline: p,
+		NewScope: n,
 		Logger:   l,
 	}
 
@@ -138,8 +148,8 @@ func (e *Engine) newCommandExecutor(
 // newPipeline returns a new pipeline for a specific app.
 func (e *Engine) newPipeline(
 	q *queue.Queue,
-) pipeline.Sink {
-	return pipeline.New(
+) pipeline.Pipeline {
+	return pipeline.Pipeline{
 		pipeline.LimitConcurrency(e.semaphore),
 		pipeline.WhenMessageEnqueued(
 			func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
@@ -153,11 +163,11 @@ func (e *Engine) newPipeline(
 			},
 		),
 		pipeline.Acknowledge(e.opts.MessageBackoff),
-		pipeline.Terminate(pipeline.Handle(
-			func(ctx context.Context, sc handler.Scope, env *envelope.Envelope) error {
+		pipeline.Terminate(
+			func(ctx context.Context, sc *pipeline.Scope) error {
 				// TODO: we need real handlers!
 				return errors.New("the truth is, there is no handler")
 			},
-		)),
-	)
+		),
+	}
 }

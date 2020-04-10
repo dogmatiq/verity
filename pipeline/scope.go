@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/envelope"
@@ -22,8 +23,12 @@ type Scope struct {
 	// Marshaler is the application's marshaler.
 	Marshaler marshalkit.Marshaler
 
-	// Logger is the logger to use for informational messages within the context of
-	// the message that is being handled.
+	// DefaultHandlerTimeout is the default timeout for the Dogma handler if the
+	// handler does not provide a timeout hint.
+	DefaultHandlerTimeout time.Duration
+
+	// Logger is the logger to use for informational messages within the context
+	// of the message that is being handled.
 	Logger logging.Logger
 
 	// enqueued is a slice of all messages enqueued via the scope.

@@ -24,46 +24,48 @@ func noop(ctx context.Context, sc *Scope, next Sink) error {
 	return next(ctx, sc)
 }
 
-var _ = Describe("func New()", func() {
-	It("invokes the stages in order", func() {
-		var order int
+var _ = Describe("type Pipeline", func() {
+	Describe("func Accept()", func() {
 
-		stage0 := func(ctx context.Context, sc *Scope, next Sink) error {
-			Expect(order).To(Equal(0))
-			order++
-			return next(ctx, sc)
-		}
+		It("invokes the stages in order", func() {
+			var order int
 
-		stage1 := func(ctx context.Context, sc *Scope) error {
-			Expect(order).To(Equal(1))
-			order++
-			return nil
-		}
+			stage0 := func(ctx context.Context, sc *Scope, next Sink) error {
+				Expect(order).To(Equal(0))
+				order++
+				return next(ctx, sc)
+			}
 
-		p := New(stage0, Terminate(stage1))
+			stage1 := func(ctx context.Context, sc *Scope) error {
+				Expect(order).To(Equal(1))
+				order++
+				return nil
+			}
 
-		err := p(context.Background(), &Scope{})
-		Expect(err).ShouldNot(HaveOccurred())
-	})
+			p := Pipeline{
+				stage0,
+				Terminate(stage1),
+			}
 
-	It("returns the error from the first stage", func() {
-		p := New(Terminate(fail))
+			err := p.Accept(context.Background(), &Scope{})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
 
-		err := p(context.Background(), &Scope{})
-		Expect(err).To(MatchError("<error: fail() called>"))
-	})
+		It("returns the error from the first stage", func() {
+			p := Pipeline{
+				Terminate(fail),
+			}
 
-	It("panics if the end of the pipeline is traversed", func() {
-		p := New(noop)
+			err := p.Accept(context.Background(), &Scope{})
+			Expect(err).To(MatchError("<error: fail() called>"))
+		})
 
-		Expect(func() {
-			p(context.Background(), &Scope{})
-		}).To(Panic())
-	})
+		It("panics if the end of the pipeline is traversed", func() {
+			p := Pipeline{}
 
-	It("panics if no stages are given", func() {
-		Expect(func() {
-			New()
-		}).To(Panic())
+			Expect(func() {
+				p.Accept(context.Background(), &Scope{})
+			}).To(Panic())
+		})
 	})
 })

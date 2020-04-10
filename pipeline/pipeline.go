@@ -13,29 +13,20 @@ type Sink func(context.Context, *Scope) error
 // Stage is a segment of a pipeline.
 type Stage func(context.Context, *Scope, Sink) error
 
-// New returns a new pipeline.
-func New(stages ...Stage) Sink {
-	if len(stages) == 0 {
-		panic("there must be at least one pipeline stage")
-	}
+// Pipeline is a message processing pipeline.
+type Pipeline []Stage
 
-	return pipeline(stages).Do
-}
-
-// pipeline is a message processing pipeline.
-type pipeline []Stage
-
-// Do processes a message using a pipeline.
+// Accept processes a message using a pipeline.
 // It conforms to the Sink signature.
-func (p pipeline) Do(ctx context.Context, sc *Scope) error {
+func (p Pipeline) Accept(ctx context.Context, sc *Scope) error {
 	if len(p) == 0 {
-		panic("traversed the end of the pipeline, the last stage should always use Terminate()")
+		panic("traversed the end of the pipeline")
 	}
 
 	head := p[0]
 	tail := p[1:]
 
-	return head(ctx, sc, tail.Do)
+	return head(ctx, sc, tail.Accept)
 }
 
 // Terminate returns a stage that uses a sink to end a pipeline.
