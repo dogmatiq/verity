@@ -60,9 +60,10 @@ func (e *Engine) initApp(
 
 	n := func(sess pipeline.Session) *pipeline.Scope {
 		return &pipeline.Scope{
-			Session:   sess,
-			Marshaler: e.opts.Marshaler,
-			Logger:    l,
+			Session:               sess,
+			Marshaler:             e.opts.Marshaler,
+			DefaultHandlerTimeout: e.opts.MessageTimeout,
+			Logger:                l,
 		}
 	}
 
