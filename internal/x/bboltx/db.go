@@ -24,6 +24,13 @@ func Open(
 		mode = 0600
 	}
 
+	if ctx.Err() != nil {
+		// Bail early if the context is already ended. This is necessary because
+		// if we put a non-positive timeout in the BoltDB options it will just
+		// use the default timeout.
+		return nil, ctx.Err()
+	}
+
 	if timeout, ok := linger.FromContextDeadline(ctx); ok {
 		if opts == nil {
 			clone := *bbolt.DefaultOptions
