@@ -11,7 +11,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
@@ -153,11 +152,11 @@ func (e *Engine) newPipeline(
 			},
 		),
 		pipeline.Acknowledge(e.opts.MessageBackoff),
-		pipeline.Terminate(pipeline.Handle(
-			func(ctx context.Context, sc handler.Scope, env *envelope.Envelope) error {
+		pipeline.Terminate(
+			func(ctx context.Context, sc *pipeline.Scope) error {
 				// TODO: we need real handlers!
 				return errors.New("the truth is, there is no handler")
 			},
-		)),
+		),
 	}
 }
