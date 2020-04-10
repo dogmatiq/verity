@@ -26,7 +26,8 @@ var (
 		Path: "/var/run/infix.boltdb",
 	}
 
-	// DefaultMessageTimeout is the default duration the engine allows for the handling a single message.
+	// DefaultMessageTimeout is the default duration the engine allows for the
+	// handling a single message by a Dogma handler.
 	//
 	// It is overridden by the WithMessageTimeout() option.
 	DefaultMessageTimeout = 5 * time.Second
@@ -41,7 +42,8 @@ var (
 		linger.Limiter(0, 1*time.Hour),
 	)
 
-	// DefaultLogger is the default target for log messages produced by the engine.
+	// DefaultLogger is the default target for log messages produced by the
+	// engine.
 	//
 	// It is overridden by the WithLogger() option.
 	DefaultLogger = logging.DefaultLogger
@@ -84,7 +86,7 @@ func WithPersistence(p persistence.Provider) EngineOption {
 }
 
 // WithMessageTimeout returns an engine option that sets the duration the engine
-// allows for the handling of a single message.
+// allows for the handling of a single message by a Dogma handler.
 //
 // If this option is omitted or d is zero DefaultMessageTimeout is used.
 //
