@@ -55,7 +55,7 @@ func (ui *UI) appendLog(s string) {
 	ui.log = append(
 		ui.log,
 		fmt.Sprintf(
-			"%s   %s",
+			"%s  %s",
 			time.Now().Format("3:04:05 PM"),
 			s,
 		),
