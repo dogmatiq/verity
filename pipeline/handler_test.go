@@ -121,7 +121,7 @@ var _ = Describe("func Handle", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(logger.Messages()).To(ConsistOf(
 			logging.BufferedLogMessage{
-				Message: "<format 1>",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ⨝  fixtures.MessageA ● <format 1>",
 			},
 		))
 	})
