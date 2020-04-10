@@ -22,6 +22,7 @@ type app struct {
 	Stream   *eventstream.PersistedStream
 	Queue    *queue.Queue
 	Pipeline pipeline.Pipeline
+	NewScope pipeline.ScopeFactory
 	Logger   logging.Logger
 }
 
@@ -57,11 +58,20 @@ func (e *Engine) initApp(
 		cfg.Identity().Name,
 	)
 
+	n := func(sess pipeline.Session) *pipeline.Scope {
+		return &pipeline.Scope{
+			Session:   sess,
+			Marshaler: e.opts.Marshaler,
+			Logger:    l,
+		}
+	}
+
 	a := &app{
 		Config:   cfg,
 		Stream:   s,
 		Queue:    q,
 		Pipeline: p,
+		NewScope: n,
 		Logger:   l,
 	}
 

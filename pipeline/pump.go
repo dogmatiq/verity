@@ -3,16 +3,16 @@ package pipeline
 import (
 	"context"
 
-	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/marshalkit"
 	"golang.org/x/sync/errgroup"
 )
+
+// ScopeFactory creates a scope for a session.
+type ScopeFactory func(Session) *Scope
 
 // Pump obtains sessions from a source and feeds them to a sink.
 func Pump(
 	ctx context.Context,
-	m marshalkit.Marshaler,
-	l logging.Logger,
+	new ScopeFactory,
 	from Source, to Sink,
 ) error {
 	g, ctx := errgroup.WithContext(ctx)
@@ -26,13 +26,7 @@ func Pump(
 
 			g.Go(func() error {
 				defer sess.Close()
-
-				sc := &Scope{
-					Session:   sess,
-					Marshaler: m,
-					Logger:    l,
-				}
-
+				sc := new(sess)
 				return to(ctx, sc)
 			})
 		}
