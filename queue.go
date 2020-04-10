@@ -17,7 +17,7 @@ func (e *Engine) runQueueConsumerForApp(
 		e.opts.Marshaler,
 		a.Logger,
 		a.Queue.Pop,
-		a.Pipeline,
+		a.Pipeline.Accept,
 	)
 
 	if err != nil {

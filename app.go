@@ -22,7 +22,7 @@ type app struct {
 	Config   configkit.RichApplication
 	Stream   *eventstream.PersistedStream
 	Queue    *queue.Queue
-	Pipeline pipeline.Sink
+	Pipeline pipeline.Pipeline
 	Logger   logging.Logger
 }
 
@@ -138,8 +138,8 @@ func (e *Engine) newCommandExecutor(
 // newPipeline returns a new pipeline for a specific app.
 func (e *Engine) newPipeline(
 	q *queue.Queue,
-) pipeline.Sink {
-	return pipeline.New(
+) pipeline.Pipeline {
+	return pipeline.Pipeline{
 		pipeline.LimitConcurrency(e.semaphore),
 		pipeline.WhenMessageEnqueued(
 			func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
@@ -159,5 +159,5 @@ func (e *Engine) newPipeline(
 				return errors.New("the truth is, there is no handler")
 			},
 		)),
-	)
+	}
 }
