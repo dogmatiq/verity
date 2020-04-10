@@ -27,6 +27,13 @@ type Engine struct {
 	ready     chan struct{}
 }
 
+// Run creates and runs a new engine that hosts the given application.
+//
+// It runs until ctx is canceled or an error occurs.
+func Run(ctx context.Context, app dogma.Application, options ...EngineOption) error {
+	return New(app, options...).Run(ctx)
+}
+
 // New returns a new engine that hosts the given application.
 //
 // app is the Dogma application to host on the engine. It may be nil, in which

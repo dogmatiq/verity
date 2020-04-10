@@ -100,7 +100,8 @@ func run(ctx context.Context) error {
 	delete(addresses, appName)
 	discoverer := newDiscoverer(addresses)
 
-	e := infix.New(
+	return infix.Run(
+		ctx,
 		app,
 		infix.WithPersistence(
 			&infixsql.Provider{
@@ -113,8 +114,6 @@ func run(ctx context.Context) error {
 		),
 		infix.WithLogger(logging.DebugLogger),
 	)
-
-	return e.Run(ctx)
 }
 
 // newApp constructs a new application by name.
