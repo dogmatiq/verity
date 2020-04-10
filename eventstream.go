@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/handler/projection"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
@@ -20,10 +19,10 @@ func (e *Engine) runStreamConsumersForEachApp(
 ) error {
 	g, ctx := errgroup.WithContext(ctx)
 
-	for _, a := range e.appsByKey {
+	for _, a := range e.apps {
 		a := a // capture loop variable
 		g.Go(func() error {
-			return e.runStreamConsumersForApp(ctx, s, a.Config)
+			return e.runStreamConsumersForApp(ctx, s, a)
 		})
 	}
 
@@ -35,11 +34,11 @@ func (e *Engine) runStreamConsumersForEachApp(
 func (e *Engine) runStreamConsumersForApp(
 	ctx context.Context,
 	s eventstream.Stream,
-	a configkit.RichApplication,
+	a *app,
 ) error {
 	g, ctx := errgroup.WithContext(ctx)
 
-	for _, h := range a.RichHandlers().Projections() {
+	for _, h := range a.Config.RichHandlers().Projections() {
 		h := h // capture loop variable
 		g.Go(func() error {
 			return e.runStreamConsumerForProjection(ctx, s, a, h)
@@ -53,39 +52,26 @@ func (e *Engine) runStreamConsumersForApp(
 func (e *Engine) runStreamConsumerForProjection(
 	ctx context.Context,
 	s eventstream.Stream,
-	a configkit.RichApplication,
+	a *app,
 	h configkit.RichProjection,
 ) error {
-	var logger logging.Logger
-
-	if a.Identity() == s.Application() {
-		logger = loggingx.WithPrefix(
-			e.opts.Logger,
-			"@%s | stream -> %s | ",
-			a.Identity().Name,
-			h.Identity().Name,
-		)
-	} else {
-		logger = loggingx.WithPrefix(
-			e.opts.Logger,
-			"@%s | stream@%s -> %s | ",
-			a.Identity().Name,
-			s.Application().Name,
-			h.Identity().Name,
-		)
-	}
-
 	c := &eventstream.Consumer{
 		Stream:     s,
 		EventTypes: h.MessageTypes().Consumed,
 		Handler: &projection.StreamAdaptor{
 			Handler:        h.Handler(),
 			DefaultTimeout: e.opts.MessageTimeout,
-			Logger:         logger,
+			Logger:         a.Logger,
 		},
 		Semaphore:       e.semaphore,
 		BackoffStrategy: e.opts.MessageBackoff,
-		Logger:          logger,
+		Logger: loggingx.WithPrefix(
+			e.logger,
+			"[stream@%s -> %s@%s] ",
+			s.Application().Name,
+			h.Identity().Name,
+			a.Config.Identity().Name,
+		),
 	}
 
 	if err := c.Run(ctx); err != nil {

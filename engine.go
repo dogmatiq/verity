@@ -22,9 +22,9 @@ type Engine struct {
 	semaphore handler.Semaphore
 	logger    logging.Logger
 
-	appsByKey     map[string]*app
-	appsByCommand map[message.Type]*app
-	ready         chan struct{}
+	apps      map[string]*app
+	executors map[message.Type]dogma.CommandExecutor
+	ready     chan struct{}
 }
 
 // New returns a new engine that hosts the given application.
@@ -45,7 +45,7 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 		},
 		logger: loggingx.WithPrefix(
 			opts.Logger,
-			"engine | ",
+			"engine  ",
 		),
 		ready: make(chan struct{}),
 	}
@@ -61,12 +61,11 @@ func (e *Engine) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 
 	mt := message.TypeOf(m)
 
-	a, ok := e.appsByCommand[mt]
-	if !ok {
-		return fmt.Errorf("no application accepts %s commands", mt)
+	if x, ok := e.executors[mt]; ok {
+		return x.ExecuteCommand(ctx, m)
 	}
 
-	return a.Executor.ExecuteCommand(ctx, m)
+	return fmt.Errorf("no application accepts %s commands", mt)
 }
 
 // Run hosts the given application until ctx is canceled or an error occurs.
@@ -98,7 +97,7 @@ func (e *Engine) run(ctx context.Context) error {
 		})
 	}
 
-	for _, a := range e.appsByKey {
+	for _, a := range e.apps {
 		a := a // capture loop variable
 
 		g.Go(func() error {
@@ -106,7 +105,7 @@ func (e *Engine) run(ctx context.Context) error {
 		})
 
 		g.Go(func() error {
-			return e.runQueueConsumerForApp(ctx, a.Queue, a.Config)
+			return e.runQueueConsumerForApp(ctx, a)
 		})
 
 		g.Go(func() error {

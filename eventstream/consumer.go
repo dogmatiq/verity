@@ -73,7 +73,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 
 		delay := c.backoff.Fail(err)
 
-		logging.Log(
+		logging.Debug(
 			c.Logger,
 			"delaying next attempt for %s: %s",
 			delay,
@@ -139,7 +139,7 @@ func (c *Consumer) open(
 		return nil, err
 	}
 
-	logging.Log(
+	logging.Debug(
 		c.Logger,
 		"consuming %d event type(s), beginning at offset %d",
 		len(types),

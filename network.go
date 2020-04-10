@@ -61,7 +61,7 @@ func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error
 func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) error {
 	streams := map[string]eventstream.Stream{}
 
-	for k, a := range e.appsByKey {
+	for k, a := range e.apps {
 		streams[k] = a.Stream
 	}
 
@@ -125,7 +125,7 @@ func (e *Engine) runDiscoverer(ctx context.Context) error {
 // ignoreDiscoveredApp returns true if the discovered application should be
 // ignored because it is hosted by this engine.
 func (e *Engine) ignoreDiscoveredApp(a *discovery.Application) bool {
-	if _, ok := e.appsByKey[a.Identity().Key]; !ok {
+	if _, ok := e.apps[a.Identity().Key]; !ok {
 		return false
 	}
 
@@ -205,4 +205,11 @@ func (l discoveryLogger) ApplicationAvailable(a *discovery.Application) {
 }
 
 func (l discoveryLogger) ApplicationUnavailable(a *discovery.Application) {
+	logging.Log(
+		l.Logger,
+		"lost @%s application at %s, identity key was %s",
+		a.Identity().Name,
+		a.Client.Target.Name,
+		a.Identity().Key,
+	)
 }
