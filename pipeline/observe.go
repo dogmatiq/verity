@@ -14,18 +14,19 @@ type EnqueuedMessage struct {
 	Persisted *queuestore.Message
 }
 
-// RecordedEvent contains an event that was recorded via a scope.
-type RecordedEvent struct {
-	Memory    *envelope.Envelope
-	Persisted *eventstore.Event
-}
+// EnqueuedMessageObserver is a function that is notified when messages are
+// enqueued.
+type EnqueuedMessageObserver func(context.Context, []EnqueuedMessage) error
 
-// WhenMessageEnqueued returns a pipeline stage that calls fn() when messages
+// WhenMessageEnqueued returns a pipeline stage that calls fn when messages
 // are enqueued by any subsequent pipeline stage, and that stage is successful.
-func WhenMessageEnqueued(
-	fn func(context.Context, []EnqueuedMessage) error,
-) Stage {
-	return func(ctx context.Context, sc *Scope, env *envelope.Envelope, next Sink) error {
+func WhenMessageEnqueued(fn EnqueuedMessageObserver) Stage {
+	return func(
+		ctx context.Context,
+		sc *Scope,
+		env *envelope.Envelope,
+		next Sink,
+	) error {
 		if err := next(ctx, sc, env); err != nil {
 			return err
 		}
@@ -38,12 +39,25 @@ func WhenMessageEnqueued(
 	}
 }
 
-// WhenEventRecorded returns a pipeline stage that calls fn() when events are
+// RecordedEvent contains an event that was recorded via a scope.
+type RecordedEvent struct {
+	Memory    *envelope.Envelope
+	Persisted *eventstore.Event
+}
+
+// RecordedEventObserver is a function that is notified when events are
+// recorded.
+type RecordedEventObserver func(context.Context, []RecordedEvent) error
+
+// WhenEventRecorded returns a pipeline stage that calls fn when events are
 // recorded by any subsequent pipeline stage, and that state is successful.
-func WhenEventRecorded(
-	fn func(context.Context, []RecordedEvent) error,
-) Stage {
-	return func(ctx context.Context, sc *Scope, env *envelope.Envelope, next Sink) error {
+func WhenEventRecorded(fn RecordedEventObserver) Stage {
+	return func(
+		ctx context.Context,
+		sc *Scope,
+		env *envelope.Envelope,
+		next Sink,
+	) error {
 		if err := next(ctx, sc, env); err != nil {
 			return err
 		}

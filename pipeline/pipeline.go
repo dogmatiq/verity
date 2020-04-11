@@ -17,7 +17,11 @@ type Pipeline []Stage
 
 // Accept processes a message using a pipeline.
 // It conforms to the Sink signature.
-func (p Pipeline) Accept(ctx context.Context, sc *Scope, env *envelope.Envelope) error {
+func (p Pipeline) Accept(
+	ctx context.Context,
+	sc *Scope,
+	env *envelope.Envelope,
+) error {
 	if len(p) == 0 {
 		panic("traversed the end of the pipeline")
 	}
@@ -32,7 +36,12 @@ func (p Pipeline) Accept(ctx context.Context, sc *Scope, env *envelope.Envelope)
 func Terminate(end Sink) Stage {
 	// Note this just wraps the sink in a function that matches the signature of
 	// Stage, while guaranteeing to never call next().
-	return func(ctx context.Context, sc *Scope, env *envelope.Envelope, _ Sink) error {
+	return func(
+		ctx context.Context,
+		sc *Scope,
+		env *envelope.Envelope,
+		_ Sink,
+	) error {
 		return end(ctx, sc, env)
 	}
 }

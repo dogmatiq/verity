@@ -143,15 +143,7 @@ func (e *Engine) newPipeline(
 		e.opts.Marshaler,
 		l,
 		pipeline.WhenMessageEnqueued(
-			func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
-				for _, m := range messages {
-					if err := q.Track(ctx, m.Memory, m.Persisted); err != nil {
-						return err
-					}
-				}
-
-				return nil
-			},
+			queue.TrackEnqueuedCommands(q),
 		),
 		pipeline.Terminate(
 			func(ctx context.Context, sc *pipeline.Scope, env *envelope.Envelope) error {

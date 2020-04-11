@@ -138,7 +138,7 @@ func (q *Queue) Track(
 		// Set the exhaustive state to NO so that Run() knows to try loading
 		// messages from the store again.
 		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
-		logging.Debug(q.Logger, "%s requested tracking, but canceled or timed-out(exhaustive: no)", e.persisted.ID())
+		logging.Debug(q.Logger, "%s requested tracking, but canceled or timed-out (exhaustive: no)", e.persisted.ID())
 		return ctx.Err()
 
 	case q.in <- e:

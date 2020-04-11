@@ -114,3 +114,17 @@ func (p *PipelinePump) backoff(m *Message, cause error) (time.Duration, time.Tim
 
 	return delay, next
 }
+
+// TrackEnqueuedCommands returns a pipeline observer that calls q.Track() for
+// each message that is enqueued.
+func TrackEnqueuedCommands(q *Queue) pipeline.EnqueuedMessageObserver {
+	return func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
+		for _, m := range messages {
+			if err := q.Track(ctx, m.Memory, m.Persisted); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}

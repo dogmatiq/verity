@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
-
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
@@ -14,6 +13,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/infix/queue"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -27,7 +27,6 @@ var _ = Describe("type PipelinePump", func() {
 		cancel     context.CancelFunc
 		provider   *ProviderStub
 		dataStore  *DataStoreStub
-		repository *QueueStoreRepositoryStub
 		queue      *Queue
 		logger     *logging.BufferedLogger
 		pump       *PipelinePump
@@ -48,11 +47,6 @@ var _ = Describe("type PipelinePump", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		dataStore = ds.(*DataStoreStub)
-
-		repository = ds.QueueStoreRepository().(*QueueStoreRepositoryStub)
-		dataStore.QueueStoreRepositoryFunc = func() queuestore.Repository {
-			return repository
-		}
 
 		queue = &Queue{
 			DataStore: dataStore,
@@ -288,5 +282,82 @@ var _ = Describe("type PipelinePump", func() {
 				))
 			})
 		})
+	})
+})
+
+var _ = Describe("func TrackEnqueuedMessages()", func() {
+	var (
+		ctx       context.Context
+		cancel    context.CancelFunc
+		provider  *ProviderStub
+		dataStore persistence.DataStore
+		queue     *Queue
+		env       *envelope.Envelope
+	)
+
+	BeforeEach(func() {
+		env = NewEnvelope("<id>", MessageA1)
+
+		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
+		provider = &ProviderStub{
+			Provider: &memory.Provider{},
+		}
+
+		var err error
+		dataStore, err = provider.Open(context.Background(), "<app-key>")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		queue = &Queue{
+			DataStore: dataStore,
+			Marshaler: Marshaler,
+		}
+	})
+
+	JustBeforeEach(func() {
+		go queue.Run(ctx)
+	})
+
+	AfterEach(func() {
+		if dataStore != nil {
+			dataStore.Close()
+		}
+
+		cancel()
+	})
+
+	It("tracks messages when they are enqueued", func() {
+		m := &queuestore.Message{
+			NextAttemptAt: time.Now(),
+			Envelope:      envelope.MustMarshal(Marshaler, env),
+		}
+
+		err := persistence.WithTransaction(
+			ctx,
+			dataStore,
+			func(tx persistence.ManagedTransaction) error {
+				return tx.SaveMessageToQueue(ctx, m)
+			},
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+		m.Revision++
+
+		obs := TrackEnqueuedCommands(queue)
+
+		err = obs(
+			ctx,
+			[]pipeline.EnqueuedMessage{
+				{
+					Memory:    env,
+					Persisted: m,
+				},
+			},
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		qm, err := queue.Pop(ctx)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(qm.ID()).To(Equal("<id>"))
+		qm.Close()
 	})
 })
