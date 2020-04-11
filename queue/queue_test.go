@@ -11,15 +11,12 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
-	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-var _ pipeline.Source = (*Queue)(nil).Pop
 
 // push is a helper function for testing the queue that persists a message to
 // the queue then begins tracking it.
@@ -111,18 +108,18 @@ var _ = Describe("type Queue", func() {
 						push(ctx, queue, env0)
 					}()
 
-					sess, err := queue.Pop(ctx)
+					m, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
+					defer m.Close()
 				})
 
 				It("returns an error if the context deadline is exceeded", func() {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 					defer cancel()
 
-					sess, err := queue.Pop(ctx)
-					if sess != nil {
-						sess.Close()
+					m, err := queue.Pop(ctx)
+					if m != nil {
+						m.Close()
 					}
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
@@ -134,13 +131,13 @@ var _ = Describe("type Queue", func() {
 						push(ctx, queue, env0)
 					})
 
-					It("returns a session immediately", func() {
+					It("returns a message immediately", func() {
 						ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 						defer cancel()
 
-						sess, err := queue.Pop(ctx)
+						m, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer sess.Close()
+						defer m.Close()
 					})
 				})
 
@@ -153,9 +150,9 @@ var _ = Describe("type Queue", func() {
 					})
 
 					It("blocks until the message becomes ready", func() {
-						sess, err := queue.Pop(ctx)
+						m, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer sess.Close()
+						defer m.Close()
 
 						Expect(time.Now()).To(BeTemporally(">=", next))
 					})
@@ -167,20 +164,20 @@ var _ = Describe("type Queue", func() {
 							push(ctx, queue, env1)
 						}()
 
-						sess, err := queue.Pop(ctx)
+						m, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer sess.Close()
+						defer m.Close()
 
-						Expect(sess.Envelope()).To(Equal(env1))
+						Expect(m.Envelope()).To(Equal(env1))
 					})
 
 					It("returns an error if the context deadline is exceeded", func() {
 						ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 						defer cancel()
 
-						sess, err := queue.Pop(ctx)
-						if sess != nil {
-							sess.Close()
+						m, err := queue.Pop(ctx)
+						if m != nil {
+							m.Close()
 						}
 						Expect(err).To(Equal(context.DeadlineExceeded))
 					})
@@ -219,12 +216,12 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				It("returns a session for a message loaded from the store", func() {
-					sess, err := queue.Pop(ctx)
+				It("loads a message from the store", func() {
+					m, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
+					defer m.Close()
 
-					Expect(sess.Envelope()).To(Equal(env0))
+					Expect(m.Envelope()).To(Equal(env0))
 				})
 			})
 		})
@@ -251,10 +248,10 @@ var _ = Describe("type Queue", func() {
 				// This push exceeds the limit so env1 should not be buffered.
 				push(ctx, queue, env1)
 
-				// Acquire a session for env0, but don't commit it.
-				sess, err := queue.Pop(ctx)
+				// Pop the message for env0, but don't commit it.
+				m, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
-				defer sess.Close()
+				defer m.Close()
 
 				// Nothing new will be loaded from the store while there is
 				// anything tracked at all (this is why its important to
@@ -263,9 +260,9 @@ var _ = Describe("type Queue", func() {
 				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 				defer cancel()
 
-				sess, err = queue.Pop(ctx)
-				if sess != nil {
-					sess.Close()
+				m, err = queue.Pop(ctx)
+				if m != nil {
+					m.Close()
 				}
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
@@ -281,17 +278,17 @@ var _ = Describe("type Queue", func() {
 					}
 
 					// We expect to get the pushed message once.
-					sess, err := queue.Pop(ctx)
+					m, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
+					defer m.Close()
 
 					ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 					defer cancel()
 
 					// But not twice.
-					sess, err = queue.Pop(ctx)
-					if sess != nil {
-						sess.Close()
+					m, err = queue.Pop(ctx)
+					if m != nil {
+						m.Close()
 					}
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
