@@ -70,9 +70,9 @@ var _ = Describe("type Message", func() {
 		cancel()
 	})
 
-	Describe("func MessageID()", func() {
+	Describe("func ID()", func() {
 		It("returns the message ID", func() {
-			Expect(message.MessageID()).To(Equal("<message-0>"))
+			Expect(message.ID()).To(Equal("<message-0>"))
 		})
 	})
 

@@ -16,8 +16,11 @@ type Message struct {
 	done  bool
 }
 
-// MessageID returns the ID of the message.
-func (m *Message) MessageID() string {
+// ID returns the ID of the message.
+//
+// The ID is available even if the complete message envelope can not be
+// unmarshaled.
+func (m *Message) ID() string {
 	return m.elem.persisted.ID()
 }
 
