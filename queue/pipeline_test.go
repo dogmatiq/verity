@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dogmatiq/dodeca/logging"
+
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
@@ -27,6 +29,7 @@ var _ = Describe("type PipelinePump", func() {
 		dataStore  *DataStoreStub
 		repository *QueueStoreRepositoryStub
 		queue      *Queue
+		logger     *logging.BufferedLogger
 		pump       *PipelinePump
 		env0, env1 *envelope.Envelope
 	)
@@ -56,11 +59,18 @@ var _ = Describe("type PipelinePump", func() {
 			Marshaler: Marshaler,
 		}
 
-		go queue.Run(ctx)
+		logger = &logging.BufferedLogger{}
 
 		pump = &PipelinePump{
-			Queue: queue,
+			Queue:           queue,
+			Semaphore:       handler.NewSemaphore(1),
+			BackoffStrategy: backoff.Constant(5 * time.Millisecond),
+			Logger:          logger,
 		}
+	})
+
+	JustBeforeEach(func() {
+		go queue.Run(ctx)
 	})
 
 	AfterEach(func() {
@@ -79,116 +89,204 @@ var _ = Describe("type PipelinePump", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		It("pushes messages down the pipeline", func() {
-			push(ctx, queue, env0)
+		When("there is a valid message on the queue", func() {
+			BeforeEach(func() {
+				push(ctx, queue, env0)
+			})
 
-			pump.Pipeline = func(
-				ctx context.Context,
-				tx persistence.ManagedTransaction,
-				env *envelope.Envelope,
-			) error {
-				defer GinkgoRecover()
-				defer cancel()
-				Expect(env).To(Equal(env0))
-				return nil
-			}
-
-			err := pump.Run(ctx)
-			Expect(err).To(Equal(context.Canceled))
-		})
-
-		It("acks the message if the pipeline succeeds", func() {
-			// Configure the pump as single-threaded with no backoff.
-			pump.Semaphore = handler.NewSemaphore(1)
-			pump.BackoffStrategy = backoff.Constant(0)
-
-			// Push a message.
-			push(ctx, queue, env0)
-
-			// Push another message after a delay guaranteeing that they don't
-			// have the same next-attempt time.
-			time.Sleep(5 * time.Millisecond)
-			push(ctx, queue, env1)
-
-			// Then setup a pipeline that expects to see env0 then env1. If the
-			// env0 is not ack'd we will see it twice before we see env1.
-			count := 0
-			pump.Pipeline = func(
-				ctx context.Context,
-				tx persistence.ManagedTransaction,
-				env *envelope.Envelope,
-			) error {
-				defer GinkgoRecover()
-
-				switch count {
-				case 0:
+			It("pushes messages down the pipeline", func() {
+				pump.Pipeline = func(
+					ctx context.Context,
+					tx persistence.ManagedTransaction,
+					env *envelope.Envelope,
+				) error {
+					defer GinkgoRecover()
+					defer cancel()
 					Expect(env).To(Equal(env0))
-				case 1:
-					Expect(env).To(Equal(env1))
-					cancel()
-				default:
-					Fail("too many calls")
+					return nil
 				}
 
-				count++
+				err := pump.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
+			})
 
-				return nil
-			}
+			It("acks the message if the pipeline succeeds", func() {
+				// Push another message after a delay guaranteeing that it doesn't
+				// have the same next-attempt time as env0.
+				time.Sleep(5 * time.Millisecond)
+				push(ctx, queue, env1)
 
-			err := pump.Run(ctx)
-			Expect(err).To(Equal(context.Canceled))
-		})
+				// Then setup a pipeline that expects to see env0 then env1. If the
+				// env0 is not ack'd we will see it twice before we see env1.
+				count := 0
+				pump.Pipeline = func(
+					ctx context.Context,
+					tx persistence.ManagedTransaction,
+					env *envelope.Envelope,
+				) error {
+					defer GinkgoRecover()
 
-		It("nacks the message if the pipeline fails", func() {
-			// Configure the pump with a short backoff.
-			delay := 5 * time.Millisecond
-			pump.BackoffStrategy = backoff.Constant(delay)
+					switch count {
+					case 0:
+						Expect(env).To(Equal(env0))
+					case 1:
+						Expect(env).To(Equal(env1))
+						cancel()
+					default:
+						Fail("too many calls")
+					}
 
-			push(ctx, queue, env0)
+					count++
 
-			// Then setup a pipeline that expects to see env0 twice. If the env0
-			// is not nack'd it will not be retried.
-			var first time.Time
-			pump.Pipeline = func(
-				ctx context.Context,
-				tx persistence.ManagedTransaction,
-				env *envelope.Envelope,
-			) error {
-				defer GinkgoRecover()
+					return nil
+				}
 
-				if first.IsZero() {
-					first = time.Now()
+				err := pump.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
+			})
+
+			It("uses the backoff strategy to compute the delay time", func() {
+				var first time.Time
+				pump.Pipeline = func(
+					ctx context.Context,
+					tx persistence.ManagedTransaction,
+					env *envelope.Envelope,
+				) error {
+					defer GinkgoRecover()
+
+					if first.IsZero() {
+						first = time.Now()
+						return errors.New("<error>")
+					}
+
+					// The message should be retried after the delay configured by
+					// the backoff.
+					Expect(time.Now()).To(
+						BeTemporally(">=", first.Add(5*time.Millisecond)),
+					)
+
+					cancel()
+
+					return nil
+				}
+
+				err := pump.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
+			})
+
+			It("logs when the message is ack'd", func() {
+				pump.Pipeline = func(
+					context.Context,
+					persistence.ManagedTransaction,
+					*envelope.Envelope,
+				) error {
+					cancel()
+					return nil
+				}
+
+				err := pump.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
+				Expect(logger.Messages()).To(ContainElement(
+					logging.BufferedLogMessage{
+						Message: "= <message-0>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● {A1}",
+					},
+				))
+			})
+
+			It("logs when the message is nack'd", func() {
+				pump.Pipeline = func(
+					context.Context,
+					persistence.ManagedTransaction,
+					*envelope.Envelope,
+				) error {
+					cancel()
 					return errors.New("<error>")
 				}
 
-				// The message should be retried after the delay configured by
-				// the backoff.
-				Expect(time.Now()).To(BeTemporally(">=", first.Add(delay)))
-				cancel()
+				err := pump.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
+				Expect(logger.Messages()).To(ContainElement(
+					logging.BufferedLogMessage{
+						Message: "= <message-0>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <error> ● next retry in 5ms ● {A1}",
+					},
+				))
+			})
 
-				return nil
-			}
+			It("nacks the message if the transaction can not be started", func() {
+				dataStore.BeginFunc = func(ctx context.Context) (persistence.Transaction, error) {
+					cancel()
+					dataStore.BeginFunc = nil
+					return nil, errors.New("<error>")
+				}
 
-			err := pump.Run(ctx)
-			Expect(err).To(Equal(context.Canceled))
+				err := pump.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
+				Expect(logger.Messages()).To(ContainElement(
+					logging.BufferedLogMessage{
+						Message: "= <message-0>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <error> ● next retry in 5ms ● {A1}",
+					},
+				))
+			})
+
+			It("returns an error if the context is canceled while waiting for the sempahore", func() {
+				err := pump.Semaphore.Acquire(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				defer pump.Semaphore.Release()
+
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					cancel()
+				}()
+
+				err = pump.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
+			})
 		})
 
-		It("returns if the context is canceled while waiting for the sempahore", func() {
-			pump.Semaphore = handler.NewSemaphore(1)
+		When("there is an invalid message on the queue", func() {
+			BeforeEach(func() {
+				// Persist env0 with malformed data.
+				err := persistence.WithTransaction(
+					ctx,
+					dataStore,
+					func(tx persistence.ManagedTransaction) error {
+						env := envelope.MustMarshal(Marshaler, env0)
+						env.MetaData.CorrelationId = ""
 
-			err := pump.Semaphore.Acquire(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer pump.Semaphore.Release()
+						m := &queuestore.Message{
+							NextAttemptAt: time.Now(),
+							Envelope:      env,
+						}
 
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				cancel()
-			}()
+						return tx.SaveMessageToQueue(ctx, m)
+					},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
 
-			push(ctx, queue, env0)
+			It("nacks the message", func() {
+				pump.Pipeline = func(
+					context.Context,
+					persistence.ManagedTransaction,
+					*envelope.Envelope,
+				) error {
+					defer GinkgoRecover()
+					Fail("message unexpected sent via the pipeline")
+					return nil
+				}
 
-			err = pump.Run(ctx)
-			Expect(err).To(Equal(context.Canceled))
+				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
+				defer cancel()
+
+				err := pump.Run(ctx)
+				Expect(err).To(Equal(context.DeadlineExceeded))
+
+				Expect(logger.Messages()).To(ContainElement(
+					logging.BufferedLogMessage{
+						Message: "= <message-0>  ∵ -  ⋲ -  ▽ ✖  correlation ID must not be empty ● next retry in 5ms",
+					},
+				))
+			})
 		})
 	})
 })

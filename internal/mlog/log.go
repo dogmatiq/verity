@@ -87,7 +87,6 @@ func LogFailureWithoutEnvelope(
 				InboundErrorIcon,
 				ErrorIcon,
 			},
-			"(unknown)",
 			cause.Error(),
 			fmt.Sprintf("next retry in %s", delay),
 		),
