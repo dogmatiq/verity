@@ -4,22 +4,22 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/infix/pipeline"
+	"github.com/dogmatiq/infix/queue"
 )
 
-// runQueueConsumerForApp starts a consumer for the message queue.
-func (e *Engine) runQueueConsumerForApp(
+// runQueuePumpForApp starts a pipeline pump for the message queue.
+func (e *Engine) runQueuePumpForApp(
 	ctx context.Context,
 	a *app,
 ) error {
-	err := pipeline.Pump(
-		ctx,
-		a.NewScope,
-		a.Queue.Pop,
-		a.Pipeline.Accept,
-	)
+	p := &queue.PipelinePump{
+		Queue:           a.Queue,
+		Pipeline:        a.Pipeline,
+		Semaphore:       e.semaphore,
+		BackoffStrategy: e.opts.MessageBackoff,
+	}
 
-	if err != nil {
+	if err := p.Run(ctx); err != nil {
 		return fmt.Errorf(
 			"stopped consuming from the queue for %s: %w",
 			a.Config.Identity(),

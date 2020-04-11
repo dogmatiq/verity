@@ -21,8 +21,7 @@ type app struct {
 	Config   configkit.RichApplication
 	Stream   *eventstream.PersistedStream
 	Queue    *queue.Queue
-	Pipeline pipeline.Pipeline
-	NewScope pipeline.ScopeFactory
+	Pipeline pipeline.EntryPoint
 	Logger   logging.Logger
 }
 
@@ -51,28 +50,18 @@ func (e *Engine) initApp(
 	q := e.newQueue(cfg, ds)
 	s := e.newEventStream(cfg, ds)
 	x := e.newCommandExecutor(cfg, q)
-	p := e.newPipeline(q)
 	l := loggingx.WithPrefix(
 		e.opts.Logger,
 		"@%s  ",
 		cfg.Identity().Name,
 	)
-
-	n := func(sess pipeline.Session) *pipeline.Scope {
-		return &pipeline.Scope{
-			Session:               sess,
-			Marshaler:             e.opts.Marshaler,
-			DefaultHandlerTimeout: e.opts.MessageTimeout,
-			Logger:                l,
-		}
-	}
+	p := e.newPipeline(q, l)
 
 	a := &app{
 		Config:   cfg,
 		Stream:   s,
 		Queue:    q,
 		Pipeline: p,
-		NewScope: n,
 		Logger:   l,
 	}
 
@@ -148,9 +137,11 @@ func (e *Engine) newCommandExecutor(
 // newPipeline returns a new pipeline for a specific app.
 func (e *Engine) newPipeline(
 	q *queue.Queue,
-) pipeline.Pipeline {
-	return pipeline.Pipeline{
-		pipeline.LimitConcurrency(e.semaphore),
+	l logging.Logger,
+) pipeline.EntryPoint {
+	return pipeline.New(
+		e.opts.Marshaler,
+		l,
 		pipeline.WhenMessageEnqueued(
 			func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
 				for _, m := range messages {
@@ -162,12 +153,11 @@ func (e *Engine) newPipeline(
 				return nil
 			},
 		),
-		pipeline.Acknowledge(e.opts.MessageBackoff),
 		pipeline.Terminate(
-			func(ctx context.Context, sc *pipeline.Scope) error {
+			func(ctx context.Context, sc *pipeline.Scope, env *envelope.Envelope) error {
 				// TODO: we need real handlers!
 				return errors.New("the truth is, there is no handler")
 			},
 		),
-	}
+	)
 }
