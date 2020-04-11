@@ -7,7 +7,6 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -17,27 +16,21 @@ import (
 
 var _ = Context("observer stages", func() {
 	var (
-		tx      *TransactionStub
-		session *SessionStub
-		scope   *Scope
-		env     *envelope.Envelope
+		tx            *TransactionStub
+		scope         *Scope
+		cause, effect *envelope.Envelope
 	)
 
 	BeforeEach(func() {
-		env = NewEnvelope("<id>", MessageA1)
-
 		tx = &TransactionStub{}
 
-		session = &SessionStub{
-			TxFunc: func(ctx context.Context) (persistence.ManagedTransaction, error) {
-				return tx, nil
-			},
-		}
-
 		scope = &Scope{
-			Session:   session,
+			Tx:        tx,
 			Marshaler: Marshaler,
 		}
+
+		cause = NewEnvelope("<cause>", MessageC1)
+		effect = NewEnvelope("<effect>", MessageE1)
 	})
 
 	Describe("func WhenMessageEnqueued()", func() {
@@ -54,14 +47,14 @@ var _ = Context("observer stages", func() {
 
 				m := messages[0]
 
-				Expect(m.Memory).To(Equal(env))
+				Expect(m.Memory).To(Equal(effect))
 				Expect(m.Persisted.Revision).To(BeEquivalentTo(1))
-				Expect(m.Persisted.NextAttemptAt).To(BeTemporally("==", env.CreatedAt))
+				Expect(m.Persisted.NextAttemptAt).To(BeTemporally("==", effect.CreatedAt))
 
 				Expect(
 					proto.Equal(
 						m.Persisted.Envelope,
-						envelope.MustMarshal(Marshaler, env),
+						envelope.MustMarshal(Marshaler, effect),
 					),
 				).To(
 					BeTrue(),
@@ -72,11 +65,11 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenMessageEnqueued(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				return sc.EnqueueMessage(ctx, env)
+			next := func(ctx context.Context, sc *Scope, _ *envelope.Envelope) error {
+				return sc.EnqueueMessage(ctx, effect)
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), scope, cause, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue(), "fn was not called")
 		})
@@ -92,7 +85,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenMessageEnqueued(fn)
 
-			err := stage(context.Background(), scope, pass)
+			err := stage(context.Background(), scope, cause, pass)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -106,15 +99,15 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenMessageEnqueued(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				if err := sc.EnqueueMessage(ctx, env); err != nil {
+			next := func(ctx context.Context, sc *Scope, _ *envelope.Envelope) error {
+				if err := sc.EnqueueMessage(ctx, effect); err != nil {
 					return err
 				}
 
 				return errors.New("<error>")
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), scope, cause, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -127,11 +120,11 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenMessageEnqueued(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				return sc.EnqueueMessage(ctx, env)
+			next := func(ctx context.Context, sc *Scope, _ *envelope.Envelope) error {
+				return sc.EnqueueMessage(ctx, effect)
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), scope, cause, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
@@ -150,13 +143,13 @@ var _ = Context("observer stages", func() {
 
 				m := messages[0]
 
-				Expect(m.Memory).To(Equal(env))
+				Expect(m.Memory).To(Equal(effect))
 				Expect(m.Persisted.Offset).To(BeEquivalentTo(0))
 
 				Expect(
 					proto.Equal(
 						m.Persisted.Envelope,
-						envelope.MustMarshal(Marshaler, env),
+						envelope.MustMarshal(Marshaler, effect),
 					),
 				).To(
 					BeTrue(),
@@ -167,12 +160,12 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenEventRecorded(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				_, err := sc.RecordEvent(ctx, env)
+			next := func(ctx context.Context, sc *Scope, _ *envelope.Envelope) error {
+				_, err := sc.RecordEvent(ctx, effect)
 				return err
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), scope, cause, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue(), "fn was not called")
 		})
@@ -188,7 +181,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenEventRecorded(fn)
 
-			err := stage(context.Background(), scope, pass)
+			err := stage(context.Background(), scope, cause, pass)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -202,15 +195,15 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenEventRecorded(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				if _, err := sc.RecordEvent(ctx, env); err != nil {
+			next := func(ctx context.Context, sc *Scope, _ *envelope.Envelope) error {
+				if _, err := sc.RecordEvent(ctx, effect); err != nil {
 					return err
 				}
 
 				return errors.New("<error>")
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), scope, cause, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -223,12 +216,12 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenEventRecorded(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				_, err := sc.RecordEvent(ctx, env)
+			next := func(ctx context.Context, sc *Scope, _ *envelope.Envelope) error {
+				_, err := sc.RecordEvent(ctx, effect)
 				return err
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), scope, cause, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})

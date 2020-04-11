@@ -25,8 +25,8 @@ type RecordedEvent struct {
 func WhenMessageEnqueued(
 	fn func(context.Context, []EnqueuedMessage) error,
 ) Stage {
-	return func(ctx context.Context, sc *Scope, next Sink) error {
-		if err := next(ctx, sc); err != nil {
+	return func(ctx context.Context, sc *Scope, env *envelope.Envelope, next Sink) error {
+		if err := next(ctx, sc, env); err != nil {
 			return err
 		}
 
@@ -43,8 +43,8 @@ func WhenMessageEnqueued(
 func WhenEventRecorded(
 	fn func(context.Context, []RecordedEvent) error,
 ) Stage {
-	return func(ctx context.Context, sc *Scope, next Sink) error {
-		if err := next(ctx, sc); err != nil {
+	return func(ctx context.Context, sc *Scope, env *envelope.Envelope, next Sink) error {
+		if err := next(ctx, sc, env); err != nil {
 			return err
 		}
 
