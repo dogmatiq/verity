@@ -76,7 +76,7 @@ func WithApplication(app dogma.Application) EngineOption {
 }
 
 // WithPersistence returns an engine option that sets the persistence provider
-// used to store and retreive application state.
+// used to store and retrieve application state.
 //
 // If this option is omitted or p is nil, DefaultPersistenceProvider is used.
 func WithPersistence(p persistence.Provider) EngineOption {

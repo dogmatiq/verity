@@ -54,7 +54,7 @@ type DataStoreSet struct {
 //
 // If the set already contains a data-store for the given application it is
 // returned. Otherwise it is opened and added to the set. The caller is NOT
-// reponsible for closing the data store.
+// responsible for closing the data store.
 func (s *DataStoreSet) Get(ctx context.Context, k string) (DataStore, error) {
 	s.m.Lock()
 	defer s.m.Unlock()

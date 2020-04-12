@@ -7,7 +7,7 @@ import (
 )
 
 // WithTransactionRollback is a variant of persistence.WithTransaction() for
-// testing that rolls the transaction back instead of comitting.
+// testing that rolls the transaction back instead of committing.
 func WithTransactionRollback(
 	ctx context.Context,
 	ds persistence.DataStore,

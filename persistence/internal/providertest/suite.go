@@ -32,7 +32,7 @@ func Declare(
 		cancel func()
 	)
 
-	ginkgo.Context("persistance provider", func() {
+	ginkgo.Context("persistence provider", func() {
 		ginkgo.BeforeEach(func() {
 			setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancelSetup()
