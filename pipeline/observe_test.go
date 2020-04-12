@@ -7,7 +7,6 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -18,8 +17,6 @@ import (
 var _ = Context("observer stages", func() {
 	var (
 		cause, effect *envelope.Envelope
-		tx            *TransactionStub
-		sess          *SessionStub
 		scope         *Scope
 	)
 
@@ -27,21 +24,7 @@ var _ = Context("observer stages", func() {
 		cause = NewEnvelope("<cause>", MessageC1)
 		effect = NewEnvelope("<effect>", MessageE1)
 
-		tx = &TransactionStub{}
-
-		sess = &SessionStub{
-			EnvelopeFunc: func(context.Context) (*envelope.Envelope, error) {
-				return cause, nil
-			},
-			TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
-				return tx, nil
-			},
-		}
-
-		scope = &Scope{
-			Session:   sess,
-			Marshaler: Marshaler,
-		}
+		scope, _, _ = NewPipelineScope(cause, nil)
 	})
 
 	Describe("func WhenMessageEnqueued()", func() {

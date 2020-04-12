@@ -17,30 +17,17 @@ import (
 
 var _ = Describe("func Acknowledge()", func() {
 	var (
-		session *SessionStub
-		scope   *Scope
-		logger  *logging.BufferedLogger
-		ack     Stage
+		sess   *SessionStub
+		scope  *Scope
+		logger *logging.BufferedLogger
+		ack    Stage
 	)
 
 	BeforeEach(func() {
 		env := NewEnvelope("<id>", MessageA1)
+		scope, sess, _ = NewPipelineScope(env, nil)
 
-		session = &SessionStub{
-			MessageIDFunc: func() string {
-				return "<id>"
-			},
-			EnvelopeFunc: func(context.Context) (*envelope.Envelope, error) {
-				return env, nil
-			},
-		}
-
-		logger = &logging.BufferedLogger{}
-
-		scope = &Scope{
-			Session: session,
-			Logger:  logger,
-		}
+		logger = scope.Logger.(*logging.BufferedLogger)
 
 		ack = Acknowledge(
 			backoff.Constant(1 * time.Second),
@@ -52,7 +39,7 @@ var _ = Describe("func Acknowledge()", func() {
 
 		It("acknowledges the session", func() {
 			called := false
-			session.AckFunc = func(context.Context) error {
+			sess.AckFunc = func(context.Context) error {
 				called = true
 				return nil
 			}
@@ -73,7 +60,7 @@ var _ = Describe("func Acknowledge()", func() {
 		})
 
 		It("returns an error if Ack() fails", func() {
-			session.AckFunc = func(context.Context) error {
+			sess.AckFunc = func(context.Context) error {
 				return errors.New("<error>")
 			}
 
@@ -87,7 +74,7 @@ var _ = Describe("func Acknowledge()", func() {
 
 		It("negatively acknowledges the session", func() {
 			called := false
-			session.NackFunc = func(_ context.Context, n time.Time) error {
+			sess.NackFunc = func(_ context.Context, n time.Time) error {
 				called = true
 				Expect(n).To(BeTemporally("~", time.Now().Add(1*time.Second)))
 				return nil
@@ -109,7 +96,7 @@ var _ = Describe("func Acknowledge()", func() {
 		})
 
 		It("returns an error if Nack() fails", func() {
-			session.NackFunc = func(context.Context, time.Time) error {
+			sess.NackFunc = func(context.Context, time.Time) error {
 				return errors.New("<error>")
 			}
 
@@ -119,7 +106,7 @@ var _ = Describe("func Acknowledge()", func() {
 
 		It("uses the default backoff strategy", func() {
 			now := time.Now()
-			session.NackFunc = func(_ context.Context, n time.Time) error {
+			sess.NackFunc = func(_ context.Context, n time.Time) error {
 				Expect(n).To(BeTemporally(">=", now))
 				return nil
 			}
@@ -134,14 +121,14 @@ var _ = Describe("func Acknowledge()", func() {
 		next := fatal // also ensures next stage is never reached
 
 		BeforeEach(func() {
-			session.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
+			sess.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
 				return nil, errors.New("<envelope error>")
 			}
 		})
 
 		It("negatively acknowledges the session", func() {
 			called := false
-			session.NackFunc = func(_ context.Context, n time.Time) error {
+			sess.NackFunc = func(_ context.Context, n time.Time) error {
 				called = true
 				return nil
 			}
@@ -162,7 +149,7 @@ var _ = Describe("func Acknowledge()", func() {
 		})
 
 		It("returns an error if Nack() fails", func() {
-			session.NackFunc = func(context.Context, time.Time) error {
+			sess.NackFunc = func(context.Context, time.Time) error {
 				return errors.New("<error>")
 			}
 

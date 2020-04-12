@@ -12,7 +12,6 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/pipeline"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -28,18 +27,7 @@ var _ = Describe("type Scope", func() {
 	BeforeEach(func() {
 		env = NewEnvelope("<id>", MessageA1)
 
-		tx = &TransactionStub{}
-
-		sess = &SessionStub{
-			TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
-				return tx, nil
-			},
-		}
-
-		scope = &Scope{
-			Session:   sess,
-			Marshaler: Marshaler,
-		}
+		scope, sess, tx = NewPipelineScope(env, nil)
 	})
 
 	Describe("func EnqueueMessage()", func() {

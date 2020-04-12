@@ -17,22 +17,13 @@ import (
 
 var _ = Describe("func RouteByType()", func() {
 	var (
-		session *SessionStub
-		scope   *Scope
+		sess  *SessionStub
+		scope *Scope
 	)
 
 	BeforeEach(func() {
 		env := NewEnvelope("<id>", MessageA1)
-
-		session = &SessionStub{
-			EnvelopeFunc: func(context.Context) (*envelope.Envelope, error) {
-				return env, nil
-			},
-		}
-
-		scope = &Scope{
-			Session: session,
-		}
+		scope, sess, _ = NewPipelineScope(env, nil)
 	})
 
 	It("injects the stage from the table if there is a match", func() {
@@ -60,7 +51,7 @@ var _ = Describe("func RouteByType()", func() {
 	})
 
 	It("returns an error if the envelope cannot be obtained", func() {
-		session.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
+		sess.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
 			return nil, errors.New("<error>")
 		}
 
