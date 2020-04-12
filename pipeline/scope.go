@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/marshalkit"
@@ -17,13 +16,11 @@ import (
 // The operations are performed atomically, only taking effect if the handler
 // succeeds.
 type Scope struct {
-	// Tx is transaction for handling this message. All peristence operations
-	// that are performed in order to handle this message must be performed
-	// within this transaction.
-	Tx persistence.ManagedTransaction
+	// Session is the session under which the message is handled.
+	Session Session
 
 	// Marshaler is the application's marshaler, used to marshal new messages
-	// that are produced as a result of handling this scope's message.
+	// that are produced as a result of handling this message.
 	Marshaler marshalkit.Marshaler
 
 	// Logger is the logger to use for informational messages within the context
@@ -42,6 +39,11 @@ func (s *Scope) EnqueueMessage(
 	ctx context.Context,
 	env *envelope.Envelope,
 ) error {
+	tx, err := s.Session.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
 	n := env.ScheduledFor
 
 	if n.IsZero() {
@@ -53,7 +55,7 @@ func (s *Scope) EnqueueMessage(
 		Envelope:      envelope.MustMarshal(s.Marshaler, env),
 	}
 
-	if err := s.Tx.SaveMessageToQueue(ctx, m); err != nil {
+	if err := tx.SaveMessageToQueue(ctx, m); err != nil {
 		return err
 	}
 
@@ -75,9 +77,14 @@ func (s *Scope) RecordEvent(
 	ctx context.Context,
 	env *envelope.Envelope,
 ) (eventstore.Offset, error) {
+	tx, err := s.Session.Tx(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	penv := envelope.MustMarshal(s.Marshaler, env)
 
-	o, err := s.Tx.SaveEvent(ctx, penv)
+	o, err := tx.SaveEvent(ctx, penv)
 	if err != nil {
 		return 0, err
 	}

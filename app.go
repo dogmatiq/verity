@@ -21,7 +21,7 @@ type app struct {
 	Config   configkit.RichApplication
 	Stream   *eventstream.PersistedStream
 	Queue    *queue.Queue
-	Pipeline pipeline.EntryPoint
+	Pipeline pipeline.Port
 	Logger   logging.Logger
 }
 
@@ -138,15 +138,16 @@ func (e *Engine) newCommandExecutor(
 func (e *Engine) newPipeline(
 	q *queue.Queue,
 	l logging.Logger,
-) pipeline.EntryPoint {
+) pipeline.Port {
 	return pipeline.New(
 		e.opts.Marshaler,
 		l,
 		pipeline.WhenMessageEnqueued(
 			queue.TrackEnqueuedCommands(q),
 		),
+		pipeline.Acknowledge(e.opts.MessageBackoff),
 		pipeline.Terminate(
-			func(ctx context.Context, sc *pipeline.Scope, env *envelope.Envelope) error {
+			func(ctx context.Context, sc *pipeline.Scope) error {
 				// TODO: we need real handlers!
 				return errors.New("the truth is, there is no handler")
 			},

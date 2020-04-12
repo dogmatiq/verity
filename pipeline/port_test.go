@@ -5,8 +5,6 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/dodeca/logging"
-	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -16,10 +14,9 @@ import (
 
 var _ = Describe("func New()", func() {
 	It("pushes the message down the pipeline", func() {
-		tx := &TransactionStub{}
 		marshaler := Marshaler
 		logger := logging.DebugLogger
-		env := NewEnvelope("<id>", MessageA1)
+		sess := &SessionStub{}
 
 		ep := New(
 			marshaler,
@@ -27,21 +24,15 @@ var _ = Describe("func New()", func() {
 			Terminate(func(
 				ctx context.Context,
 				sc *Scope,
-				e *envelope.Envelope,
 			) error {
-				Expect(sc.Tx).To(Equal(tx))
+				Expect(sc.Session).To(BeIdenticalTo(sess))
 				Expect(sc.Marshaler).To(BeIdenticalTo(marshaler))
 				Expect(sc.Logger).To(BeIdenticalTo(logger))
-				Expect(e).To(Equal(env))
 				return errors.New("<error>")
 			}),
 		)
 
-		err := ep(
-			context.Background(),
-			tx,
-			env,
-		)
+		err := ep(context.Background(), sess)
 		Expect(err).To(MatchError("<error>"))
 	})
 })

@@ -108,18 +108,18 @@ var _ = Describe("type Queue", func() {
 						push(ctx, queue, env0)
 					}()
 
-					m, err := queue.Pop(ctx)
+					sess, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer m.Close()
+					defer sess.Close()
 				})
 
 				It("returns an error if the context deadline is exceeded", func() {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 					defer cancel()
 
-					m, err := queue.Pop(ctx)
-					if m != nil {
-						m.Close()
+					sess, err := queue.Pop(ctx)
+					if sess != nil {
+						sess.Close()
 					}
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
@@ -131,13 +131,13 @@ var _ = Describe("type Queue", func() {
 						push(ctx, queue, env0)
 					})
 
-					It("returns a message immediately", func() {
+					It("returns a session immediately", func() {
 						ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 						defer cancel()
 
-						m, err := queue.Pop(ctx)
+						sess, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer m.Close()
+						defer sess.Close()
 					})
 				})
 
@@ -150,9 +150,9 @@ var _ = Describe("type Queue", func() {
 					})
 
 					It("blocks until the message becomes ready", func() {
-						m, err := queue.Pop(ctx)
+						sess, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer m.Close()
+						defer sess.Close()
 
 						Expect(time.Now()).To(BeTemporally(">=", next))
 					})
@@ -164,20 +164,20 @@ var _ = Describe("type Queue", func() {
 							push(ctx, queue, env1)
 						}()
 
-						m, err := queue.Pop(ctx)
+						sess, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer m.Close()
+						defer sess.Close()
 
-						Expect(m.Envelope()).To(Equal(env1))
+						Expect(sess.Envelope(ctx)).To(Equal(env1))
 					})
 
 					It("returns an error if the context deadline is exceeded", func() {
 						ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 						defer cancel()
 
-						m, err := queue.Pop(ctx)
-						if m != nil {
-							m.Close()
+						sess, err := queue.Pop(ctx)
+						if sess != nil {
+							sess.Close()
 						}
 						Expect(err).To(Equal(context.DeadlineExceeded))
 					})
@@ -216,12 +216,12 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				It("loads a message from the store", func() {
-					m, err := queue.Pop(ctx)
+				It("returns a session for a message loaded from the store", func() {
+					sess, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer m.Close()
+					defer sess.Close()
 
-					Expect(m.Envelope()).To(Equal(env0))
+					Expect(sess.Envelope(ctx)).To(Equal(env0))
 				})
 			})
 		})
@@ -248,10 +248,10 @@ var _ = Describe("type Queue", func() {
 				// This push exceeds the limit so env1 should not be buffered.
 				push(ctx, queue, env1)
 
-				// Pop the message for env0, but don't commit it.
-				m, err := queue.Pop(ctx)
+				// Acquire a session for env0, but don't commit it.
+				sess, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
-				defer m.Close()
+				defer sess.Close()
 
 				// Nothing new will be loaded from the store while there is
 				// anything tracked at all (this is why its important to
@@ -260,9 +260,9 @@ var _ = Describe("type Queue", func() {
 				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 				defer cancel()
 
-				m, err = queue.Pop(ctx)
-				if m != nil {
-					m.Close()
+				sess, err = queue.Pop(ctx)
+				if sess != nil {
+					sess.Close()
 				}
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
@@ -278,17 +278,17 @@ var _ = Describe("type Queue", func() {
 					}
 
 					// We expect to get the pushed message once.
-					m, err := queue.Pop(ctx)
+					sess, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer m.Close()
+					defer sess.Close()
 
 					ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 					defer cancel()
 
 					// But not twice.
-					m, err = queue.Pop(ctx)
-					if m != nil {
-						m.Close()
+					sess, err = queue.Pop(ctx)
+					if sess != nil {
+						sess.Close()
 					}
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
@@ -304,19 +304,24 @@ var _ = Describe("type Queue", func() {
 					Envelope: envelope.MustMarshal(Marshaler, env0),
 				}
 
-				// It's an implementation detail, but the internal channel used
-				// to start tracking is buffered at the same size as the overall
-				// buffer size limit.
+				// It's an implementation detail, but the internal channel used to start
+				// tracking is buffered at the same size as the overall buffer size
+				// limit.
+				//
+				// We can't set it to zero, because that will fallback to the default.
+				// We also can't start the queue, otherwise it'll start reading from
+				// this channel and nothing will block.
+				//
+				// Instead, we set it to one, and "fill" the channel with a request to
+				// ensure that it will block.
 				queue.BufferSize = 1
-
-				// This track requuest should be pushed onto that buffered channel.
 				err := queue.Track(ctx, env0, m)
 				Expect(err).ShouldNot(HaveOccurred())
 
+				// Setup a short deadline for the test.
 				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 				defer cancel()
 
-				// But this one should block.
 				err = queue.Track(ctx, env0, m)
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
