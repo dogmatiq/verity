@@ -46,6 +46,23 @@ var _ = Describe("func LogConsume()", func() {
 	})
 })
 
+var _ = Describe("func LogProduce()", func() {
+	It("logs in the correct format", func() {
+		logger := &logging.BufferedLogger{}
+
+		LogProduce(
+			logger,
+			NewEnvelope("<id>", MessageA1),
+		)
+
+		Expect(logger.Messages()).To(ContainElement(
+			logging.BufferedLogMessage{
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▲    fixtures.MessageA ● {A1}",
+			},
+		))
+	})
+})
+
 var _ = Describe("func LogNack()", func() {
 	It("logs in the correct format", func() {
 		logger := &logging.BufferedLogger{}
