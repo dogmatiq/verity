@@ -15,11 +15,11 @@ type Session interface {
 	MessageID() string
 
 	// FailureCount returns the number of times this message has already been
-	// attempted, not including this attempt.
+	// attempted without success, not including this attempt.
 	FailureCount() uint
 
 	// Envelope returns the envelope containing the message to be handled.
-	Envelope() (*envelope.Envelope, error)
+	Envelope(ctx context.Context) (*envelope.Envelope, error)
 
 	// Tx returns the transaction used to persist data within this session.
 	Tx(ctx context.Context) (persistence.ManagedTransaction, error)

@@ -12,11 +12,14 @@ import (
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+var _ pipeline.Session = (*Session)(nil)
 
 var _ = Describe("type Session", func() {
 	var (
@@ -92,7 +95,7 @@ var _ = Describe("type Session", func() {
 
 	Describe("func Envelope()", func() {
 		It("returns the unmarshaled message envelope", func() {
-			e, err := sess.Envelope()
+			e, err := sess.Envelope(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(e).To(Equal(env0))
 		})
@@ -117,7 +120,7 @@ var _ = Describe("type Session", func() {
 			defer sess.Close()
 
 			// Finally, verify that the message is unpacked.
-			e, err := sess.Envelope()
+			e, err := sess.Envelope(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(e).To(Equal(env1))
 		})

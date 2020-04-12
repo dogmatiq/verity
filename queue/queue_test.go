@@ -168,7 +168,7 @@ var _ = Describe("type Queue", func() {
 						Expect(err).ShouldNot(HaveOccurred())
 						defer sess.Close()
 
-						Expect(sess.Envelope()).To(Equal(env1))
+						Expect(sess.Envelope(ctx)).To(Equal(env1))
 					})
 
 					It("returns an error if the context deadline is exceeded", func() {
@@ -221,7 +221,7 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer sess.Close()
 
-					Expect(sess.Envelope()).To(Equal(env0))
+					Expect(sess.Envelope(ctx)).To(Equal(env0))
 				})
 			})
 		})

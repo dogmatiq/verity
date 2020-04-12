@@ -15,7 +15,7 @@ type SessionStub struct {
 
 	MessageIDFunc    func() string
 	FailureCountFunc func() uint
-	EnvelopeFunc     func() (*envelope.Envelope, error)
+	EnvelopeFunc     func(context.Context) (*envelope.Envelope, error)
 	TxFunc           func(context.Context) (persistence.ManagedTransaction, error)
 	AckFunc          func(context.Context) error
 	NackFunc         func(context.Context, time.Time) error
@@ -50,13 +50,13 @@ func (s *SessionStub) FailureCount() uint {
 }
 
 // Envelope returns the envelope containing the message to be handled.
-func (s *SessionStub) Envelope() (*envelope.Envelope, error) {
+func (s *SessionStub) Envelope(ctx context.Context) (*envelope.Envelope, error) {
 	if s.EnvelopeFunc != nil {
-		return s.EnvelopeFunc()
+		return s.EnvelopeFunc(ctx)
 	}
 
 	if s.Session != nil {
-		return s.Session.Envelope()
+		return s.Session.Envelope(ctx)
 	}
 
 	return nil, nil

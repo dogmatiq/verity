@@ -33,7 +33,7 @@ func (s *Session) FailureCount() uint {
 }
 
 // Envelope returns the envelope containing the message to be handled.
-func (s *Session) Envelope() (*envelope.Envelope, error) {
+func (s *Session) Envelope(context.Context) (*envelope.Envelope, error) {
 	var err error
 
 	if s.elem.memory == nil {
