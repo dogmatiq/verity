@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
+	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 )
 
 // SessionStub is a test implementation of the pipeline.Session interface.
@@ -20,6 +22,47 @@ type SessionStub struct {
 	AckFunc          func(context.Context) error
 	NackFunc         func(context.Context, time.Time) error
 	CloseFunc        func() error
+}
+
+// NewPipelineScope returns a new pipeline scope that uses a session stub with
+// pre-configured Envelope() and Tx() methods.
+func NewPipelineScope(
+	env *envelope.Envelope,
+	ds *DataStoreStub,
+) (
+	*pipeline.Scope,
+	*SessionStub,
+	*TransactionStub,
+) {
+	var tx *TransactionStub
+
+	if ds == nil {
+		tx = &TransactionStub{}
+	} else {
+		t, err := ds.Begin(context.Background())
+		if err != nil {
+			panic(err)
+		}
+
+		tx = t.(*TransactionStub)
+	}
+
+	sess := &SessionStub{
+		EnvelopeFunc: func(context.Context) (*envelope.Envelope, error) {
+			return env, nil
+		},
+		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
+			return tx, nil
+		},
+	}
+
+	sc := &pipeline.Scope{
+		Session:   sess,
+		Marshaler: marshalfixtures.Marshaler,
+		Logger:    &logging.BufferedLogger{},
+	}
+
+	return sc, sess, tx
 }
 
 // MessageID returns the ID of the message that started the session.

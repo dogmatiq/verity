@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
@@ -41,6 +42,21 @@ type DataStoreStub struct {
 	QueueStoreRepositoryFunc func() queuestore.Repository
 	BeginFunc                func(context.Context) (persistence.Transaction, error)
 	CloseFunc                func() error
+}
+
+// NewDataStoreStub returns a new data-store stub that uses an in-memory
+// persistence provider.
+func NewDataStoreStub() *DataStoreStub {
+	p := &ProviderStub{
+		Provider: &memory.Provider{},
+	}
+
+	ds, err := p.Open(context.Background(), "<app-key>")
+	if err != nil {
+		panic(err)
+	}
+
+	return ds.(*DataStoreStub)
 }
 
 // EventStoreRepository returns the application's event store repository.

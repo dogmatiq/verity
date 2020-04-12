@@ -2,7 +2,6 @@ package infix
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/dogmatiq/configkit"
@@ -11,6 +10,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
@@ -25,6 +25,7 @@ type app struct {
 	Logger   logging.Logger
 }
 
+// initApp initializes the engine to handle the app represented by cfg.
 func (e *Engine) initApp(
 	ctx context.Context,
 	cfg configkit.RichApplication,
@@ -55,7 +56,7 @@ func (e *Engine) initApp(
 		"@%s  ",
 		cfg.Identity().Name,
 	)
-	p := e.newPipeline(q, l)
+	p := e.newPipeline(cfg, q, l)
 
 	a := &app{
 		Config:   cfg,
@@ -136,9 +137,20 @@ func (e *Engine) newCommandExecutor(
 
 // newPipeline returns a new pipeline for a specific app.
 func (e *Engine) newPipeline(
+	cfg configkit.RichApplication,
 	q *queue.Queue,
 	l logging.Logger,
 ) pipeline.Port {
+	rf := &routeFactory{
+		opts: e.opts,
+		packer: &envelope.Packer{
+			Application: cfg.Identity(),
+			Roles:       cfg.MessageTypes().All(),
+		},
+	}
+
+	cfg.AcceptRichVisitor(nil, rf)
+
 	return pipeline.New(
 		e.opts.Marshaler,
 		l,
@@ -146,11 +158,46 @@ func (e *Engine) newPipeline(
 			queue.TrackEnqueuedCommands(q),
 		),
 		pipeline.Acknowledge(e.opts.MessageBackoff),
-		pipeline.Terminate(
-			func(ctx context.Context, sc *pipeline.Scope) error {
-				// TODO: we need real handlers!
-				return errors.New("the truth is, there is no handler")
-			},
-		),
+		pipeline.RouteByType(rf.routes),
 	)
+}
+
+// routeFactory is a configkit.RichVisitor that constructs the messaging
+// pipeline.
+type routeFactory struct {
+	packer *envelope.Packer
+	opts   *engineOptions
+	routes map[message.Type]pipeline.Stage
+}
+
+func (f *routeFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
+	f.routes = map[message.Type]pipeline.Stage{}
+	return cfg.RichHandlers().AcceptRichVisitor(ctx, f)
+}
+
+func (f *routeFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
+	return nil
+}
+
+func (f *routeFactory) VisitRichProcess(_ context.Context, cfg configkit.RichProcess) error {
+	return nil
+}
+
+func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
+	s := &integration.Sink{
+		Identity:       cfg.Identity(),
+		Handler:        cfg.Handler(),
+		Packer:         f.packer,
+		DefaultTimeout: f.opts.MessageTimeout,
+	}
+
+	for mt := range cfg.MessageTypes().Consumed {
+		f.routes[mt] = pipeline.Terminate(s.Accept)
+	}
+
+	return nil
+}
+
+func (f *routeFactory) VisitRichProjection(_ context.Context, cfg configkit.RichProjection) error {
+	return nil
 }
