@@ -195,5 +195,5 @@ func (driver) ScanQueueMessage(
 
 	m.NextAttemptAt, err = time.Parse(timeLayout, next)
 
-	return nil
+	return err
 }
