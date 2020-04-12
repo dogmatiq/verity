@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/envelope"
 	"github.com/google/uuid"
@@ -307,88 +306,6 @@ var _ = Describe("type Packer", func() {
 					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
 					"<instance>",
 				)
-			}).To(Panic())
-		})
-	})
-
-	Describe("func Bind()", func() {
-		It("returns a bound packer", func() {
-			cfg := configkit.FromAggregate(&AggregateMessageHandler{
-				ConfigureFunc: func(c dogma.AggregateConfigurer) {
-					c.Identity("<aggregate-name>", "<aggregate-key>")
-					c.ConsumesCommandType(MessageC{})
-					c.ProducesEventType(MessageE{})
-				},
-			})
-
-			env := &Envelope{}
-			bound := packer.Bind(env, cfg, "<instance>")
-
-			Expect(bound).To(Equal(
-				&BoundPacker{
-					Packer:      packer,
-					Cause:       env,
-					Handler:     configkit.MustNewIdentity("<aggregate-name>", "<aggregate-key>"),
-					HandlerType: configkit.AggregateHandlerType,
-					Types: message.TypeRoles{
-						MessageEType: message.EventRole,
-					},
-					InstanceID: "<instance>",
-				},
-			))
-		})
-		It("panics if the handler is an aggregate and the instance ID is empty", func() {
-			cfg := configkit.FromAggregate(&AggregateMessageHandler{
-				ConfigureFunc: func(c dogma.AggregateConfigurer) {
-					c.Identity("<aggregate-name>", "<aggregate-key>")
-					c.ConsumesCommandType(MessageC{})
-					c.ProducesEventType(MessageE{})
-				},
-			})
-
-			Expect(func() {
-				packer.Bind(&Envelope{}, cfg, "")
-			}).To(Panic())
-		})
-
-		It("panics if the handler is a process and the instance ID is empty", func() {
-			cfg := configkit.FromProcess(&ProcessMessageHandler{
-				ConfigureFunc: func(c dogma.ProcessConfigurer) {
-					c.Identity("<process-name>", "<process-key>")
-					c.ConsumesEventType(MessageE{})
-					c.ProducesCommandType(MessageC{})
-				},
-			})
-
-			Expect(func() {
-				packer.Bind(&Envelope{}, cfg, "")
-			}).To(Panic())
-		})
-
-		It("panics if the handler is an integration and the instance ID is not empty", func() {
-			cfg := configkit.FromIntegration(&IntegrationMessageHandler{
-				ConfigureFunc: func(c dogma.IntegrationConfigurer) {
-					c.Identity("<integration-name>", "<integration-key>")
-					c.ConsumesCommandType(MessageC{})
-					c.ProducesEventType(MessageE{})
-				},
-			})
-
-			Expect(func() {
-				packer.Bind(&Envelope{}, cfg, "<instance>")
-			}).To(Panic())
-		})
-
-		It("panics if the handler is a projection", func() {
-			cfg := configkit.FromProjection(&ProjectionMessageHandler{
-				ConfigureFunc: func(c dogma.ProjectionConfigurer) {
-					c.Identity("<projection-name>", "<projection-key>")
-					c.ConsumesEventType(MessageE{})
-				},
-			})
-
-			Expect(func() {
-				packer.Bind(&Envelope{}, cfg, "")
 			}).To(Panic())
 		})
 	})

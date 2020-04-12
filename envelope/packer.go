@@ -134,28 +134,6 @@ func (p *Packer) PackChildTimeout(
 	return env
 }
 
-// Bind returns a packer bound to the given handler.
-func (p *Packer) Bind(
-	cause *Envelope,
-	cfg configkit.RichHandler,
-	instanceID string,
-) *BoundPacker {
-	if instanceID == "" {
-		cfg.HandlerType().MustBe(configkit.IntegrationHandlerType)
-	} else {
-		cfg.HandlerType().MustBe(configkit.AggregateHandlerType, configkit.ProcessHandlerType)
-	}
-
-	return &BoundPacker{
-		Packer:      p,
-		Cause:       cause,
-		Handler:     cfg.Identity(),
-		HandlerType: cfg.HandlerType(),
-		Types:       cfg.MessageTypes().Produced,
-		InstanceID:  instanceID,
-	}
-}
-
 // new returns a new envelope, it panics if the given message type does not map
 // to the r role.
 func (p *Packer) new(
