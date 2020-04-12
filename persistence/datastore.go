@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"go.uber.org/multierr"
 )
@@ -26,6 +27,9 @@ type DataStore interface {
 
 	// QueueStoreRepository returns the application's queue store repository.
 	QueueStoreRepository() queuestore.Repository
+
+	// OffsetStoreRepository returns the application's offset repository.
+	OffsetStoreRepository() offsetstore.Repository
 
 	// Begin starts a new transaction.
 	Begin(ctx context.Context) (Transaction, error)
