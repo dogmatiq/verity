@@ -9,7 +9,6 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/infix/queue"
@@ -22,7 +21,6 @@ var _ = Describe("type PipelineSource", func() {
 	var (
 		ctx       context.Context
 		cancel    context.CancelFunc
-		provider  *ProviderStub
 		dataStore persistence.DataStore
 		queue     *Queue
 		source    *PipelineSource
@@ -30,17 +28,10 @@ var _ = Describe("type PipelineSource", func() {
 	)
 
 	BeforeEach(func() {
-		env = NewEnvelope("<id>", MessageA1)
-
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		provider = &ProviderStub{
-			Provider: &memory.Provider{},
-		}
-
-		var err error
-		dataStore, err = provider.Open(ctx, "<app-key>")
-		Expect(err).ShouldNot(HaveOccurred())
+		env = NewEnvelope("<id>", MessageA1)
+		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
 			DataStore: dataStore,
@@ -110,7 +101,6 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 	var (
 		ctx       context.Context
 		cancel    context.CancelFunc
-		provider  *ProviderStub
 		dataStore persistence.DataStore
 		queue     *Queue
 		observer  pipeline.EnqueuedMessageObserver
@@ -119,17 +109,10 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 	)
 
 	BeforeEach(func() {
-		env = NewEnvelope("<id>", MessageA1)
-
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		provider = &ProviderStub{
-			Provider: &memory.Provider{},
-		}
-
-		var err error
-		dataStore, err = provider.Open(context.Background(), "<app-key>")
-		Expect(err).ShouldNot(HaveOccurred())
+		env = NewEnvelope("<id>", MessageA1)
+		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
 			DataStore: dataStore,
@@ -143,7 +126,7 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 			Envelope:      envelope.MustMarshal(Marshaler, env),
 		}
 
-		err = persistence.WithTransaction(
+		err := persistence.WithTransaction(
 			ctx,
 			dataStore,
 			func(tx persistence.ManagedTransaction) error {

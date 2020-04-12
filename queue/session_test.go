@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/pipeline"
@@ -25,7 +24,6 @@ var _ = Describe("type Session", func() {
 	var (
 		ctx        context.Context
 		cancel     context.CancelFunc
-		provider   *ProviderStub
 		dataStore  *DataStoreStub
 		queue      *Queue
 		sess       *Session
@@ -38,14 +36,7 @@ var _ = Describe("type Session", func() {
 		env0 = NewEnvelope("<message-0>", MessageA1)
 		env1 = NewEnvelope("<message-1>", MessageA2)
 
-		provider = &ProviderStub{
-			Provider: &memory.Provider{},
-		}
-
-		ds, err := provider.Open(ctx, "<app-key>")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		dataStore = ds.(*DataStoreStub)
+		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
 			DataStore: dataStore,
