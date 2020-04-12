@@ -11,7 +11,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -25,7 +24,6 @@ var _ = Describe("type Executor", func() {
 	var (
 		ctx       context.Context
 		cancel    context.CancelFunc
-		provider  *ProviderStub
 		dataStore *DataStoreStub
 		queue     *Queue
 		executor  *CommandExecutor
@@ -34,14 +32,7 @@ var _ = Describe("type Executor", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		provider = &ProviderStub{
-			Provider: &memory.Provider{},
-		}
-
-		ds, err := provider.Open(ctx, "<app-key>")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		dataStore = ds.(*DataStoreStub)
+		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
 			DataStore: dataStore,

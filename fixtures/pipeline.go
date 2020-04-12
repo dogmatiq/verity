@@ -48,6 +48,9 @@ func NewPipelineScope(
 	}
 
 	sess := &SessionStub{
+		MessageIDFunc: func() string {
+			return env.MessageID
+		},
 		EnvelopeFunc: func(context.Context) (*envelope.Envelope, error) {
 			return env, nil
 		},

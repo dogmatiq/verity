@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/infix/queue"
@@ -52,7 +51,6 @@ var _ = Describe("type Queue", func() {
 	var (
 		ctx              context.Context
 		cancel           context.CancelFunc
-		provider         *ProviderStub
 		dataStore        *DataStoreStub
 		repository       *QueueStoreRepositoryStub
 		queue            *Queue
@@ -60,22 +58,14 @@ var _ = Describe("type Queue", func() {
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
 		env0 = NewEnvelope("<message-0>", MessageA1)
 		env1 = NewEnvelope("<message-1>", MessageA2)
 		env2 = NewEnvelope("<message-2>", MessageA3)
 
-		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-
-		provider = &ProviderStub{
-			Provider: &memory.Provider{},
-		}
-
-		ds, err := provider.Open(ctx, "<app-key>")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		dataStore = ds.(*DataStoreStub)
-
-		repository = ds.QueueStoreRepository().(*QueueStoreRepositoryStub)
+		dataStore = NewDataStoreStub()
+		repository = dataStore.QueueStoreRepository().(*QueueStoreRepositoryStub)
 		dataStore.QueueStoreRepositoryFunc = func() queuestore.Repository {
 			return repository
 		}
