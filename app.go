@@ -73,7 +73,7 @@ func (e *Engine) initApp(
 
 	e.apps[id.Key] = a
 
-	for mt := range x.Packer.Roles {
+	for mt := range x.Packer.Produced {
 		e.executors[mt] = x
 	}
 
@@ -127,7 +127,7 @@ func (e *Engine) newCommandExecutor(
 		Queue: q,
 		Packer: &envelope.Packer{
 			Application: cfg.Identity(),
-			Roles: cfg.
+			Produced: cfg.
 				MessageTypes().
 				Consumed.
 				FilterByRole(message.CommandRole),
@@ -145,7 +145,8 @@ func (e *Engine) newPipeline(
 		opts: e.opts,
 		packer: &envelope.Packer{
 			Application: cfg.Identity(),
-			Roles:       cfg.MessageTypes().All(),
+			Produced:    cfg.MessageTypes().Produced,
+			Consumed:    cfg.MessageTypes().Consumed,
 		},
 	}
 
