@@ -16,9 +16,19 @@ import (
 //
 // The Accept() method conforms to the pipeline.Sink() signature.
 type Sink struct {
-	Identity       configkit.Identity
-	Handler        dogma.IntegrationMessageHandler
-	Packer         *envelope.Packer
+	// Identity is the handler's identity.
+	Identity configkit.Identity
+
+	// Handler is the integration message handler that implements the
+	// application-specific message handling logic.
+	Handler dogma.IntegrationMessageHandler
+
+	// Packer is used to create new envelopes for events recorded by the
+	// handler.
+	Packer *envelope.Packer
+
+	// DefaultTimeout is the timeout to apply when handling the message if the
+	// handler does not provide a timeout hint.
 	DefaultTimeout time.Duration
 }
 
