@@ -177,15 +177,15 @@ var _ = Describe("type Queue", func() {
 			When("messages are persisted but not in memory", func() {
 				BeforeEach(func() {
 					messages := []*queuestore.Message{
-						&queuestore.Message{
+						{
 							NextAttemptAt: time.Now(),
 							Envelope:      envelope.MustMarshal(Marshaler, env0),
 						},
-						&queuestore.Message{
+						{
 							NextAttemptAt: time.Now().Add(10 * time.Millisecond),
 							Envelope:      envelope.MustMarshal(Marshaler, env1),
 						},
-						&queuestore.Message{
+						{
 							NextAttemptAt: time.Now().Add(5 * time.Millisecond),
 							Envelope:      envelope.MustMarshal(Marshaler, env2),
 						},
