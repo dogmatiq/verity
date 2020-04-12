@@ -27,11 +27,11 @@ type Scope struct {
 	// of the message that is being handled.
 	Logger logging.Logger
 
-	// enqueued is a slice of all messages enqueued via the scope.
-	enqueued []EnqueuedMessage
+	// Enqueued is a slice of all messages enqueued via the scope.
+	Enqueued []EnqueuedMessage
 
-	// recorded is a slice of all events recorded via the scope.
-	recorded []RecordedEvent
+	// Recorded is a slice of all events recorded via the scope.
+	Recorded []RecordedEvent
 }
 
 // EnqueueMessage adds a message to the queue.
@@ -61,8 +61,8 @@ func (s *Scope) EnqueueMessage(
 
 	m.Revision++
 
-	s.enqueued = append(
-		s.enqueued,
+	s.Enqueued = append(
+		s.Enqueued,
 		EnqueuedMessage{
 			Memory:    env,
 			Persisted: m,
@@ -89,8 +89,8 @@ func (s *Scope) RecordEvent(
 		return 0, err
 	}
 
-	s.recorded = append(
-		s.recorded,
+	s.Recorded = append(
+		s.Recorded,
 		RecordedEvent{
 			Memory: env,
 			Persisted: &eventstore.Event{

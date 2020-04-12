@@ -26,8 +26,8 @@ func WhenMessageEnqueued(fn EnqueuedMessageObserver) Stage {
 			return err
 		}
 
-		if len(sc.enqueued) > 0 {
-			return fn(ctx, sc.enqueued)
+		if len(sc.Enqueued) > 0 {
+			return fn(ctx, sc.Enqueued)
 		}
 
 		return nil
@@ -52,8 +52,8 @@ func WhenEventRecorded(fn RecordedEventObserver) Stage {
 			return err
 		}
 
-		if len(sc.recorded) > 0 {
-			return fn(ctx, sc.recorded)
+		if len(sc.Recorded) > 0 {
+			return fn(ctx, sc.Recorded)
 		}
 
 		return nil
