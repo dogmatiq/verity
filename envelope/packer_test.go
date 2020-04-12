@@ -286,7 +286,11 @@ var _ = Describe("type Packer", func() {
 		})
 
 		It("panics if the message type is not recognized", func() {
-			Expect(func() {
+			fn := func() (v interface{}) {
+				defer func() {
+					v = recover()
+				}()
+
 				packer.PackChildTimeout(
 					parent,
 					MessageA1,
@@ -294,7 +298,11 @@ var _ = Describe("type Packer", func() {
 					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
 					"<instance>",
 				)
-			}).To(Panic())
+
+				return nil
+			}
+
+			Expect(fn()).To(Equal("fixtures.MessageA is not a recognised message type"))
 		})
 
 		It("panics if the message type has a different role", func() {
