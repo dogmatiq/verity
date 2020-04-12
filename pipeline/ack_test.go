@@ -49,7 +49,7 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(called).To(BeTrue())
 		})
 
-		It("logs about acknowledgement", func() {
+		It("logs about consuming", func() {
 			err := ack(context.Background(), scope, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
@@ -85,12 +85,22 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(called).To(BeTrue())
 		})
 
+		It("logs about consuming", func() {
+			err := ack(context.Background(), scope, next)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(logger.Messages()).To(ContainElement(
+				logging.BufferedLogMessage{
+					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● {A1}",
+				},
+			))
+		})
+
 		It("logs about negative acknowledgement", func() {
 			err := ack(context.Background(), scope, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <failed> ● next retry in 1s ● {A1}",
+					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <failed> ● next retry in 1s",
 				},
 			))
 		})

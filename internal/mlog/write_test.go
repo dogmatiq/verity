@@ -18,7 +18,7 @@ var entries = []TableEntry{
 			CorrelationIDIcon.WithLabel("789"),
 		},
 		[]Icon{
-			InboundIcon,
+			ConsumeIcon,
 			RetryIcon,
 		},
 		[]string{
@@ -35,7 +35,7 @@ var entries = []TableEntry{
 			CorrelationIDIcon.WithLabel(""),
 		},
 		[]Icon{
-			InboundIcon,
+			ConsumeIcon,
 			"",
 		},
 		[]string{
@@ -52,7 +52,7 @@ var entries = []TableEntry{
 			CorrelationIDIcon.WithLabel("789"),
 		},
 		[]Icon{
-			InboundIcon,
+			ConsumeIcon,
 			"",
 		},
 		[]string{
@@ -70,7 +70,7 @@ var entries = []TableEntry{
 			CorrelationIDIcon.WithLabel("789"),
 		},
 		[]Icon{
-			InboundIcon,
+			ConsumeIcon,
 			RetryIcon,
 		},
 		[]string{

@@ -12,11 +12,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("func LogSuccess()", func() {
+var _ = Describe("func LogConsume()", func() {
 	It("logs in the correct format", func() {
 		logger := &logging.BufferedLogger{}
 
-		LogSuccess(
+		LogConsume(
 			logger,
 			NewEnvelope("<id>", MessageA1),
 			0,
@@ -32,7 +32,7 @@ var _ = Describe("func LogSuccess()", func() {
 	It("shows a retry icon if the failure count is non-zero", func() {
 		logger := &logging.BufferedLogger{}
 
-		LogSuccess(
+		LogConsume(
 			logger,
 			NewEnvelope("<id>", MessageA1),
 			1,
@@ -46,11 +46,11 @@ var _ = Describe("func LogSuccess()", func() {
 	})
 })
 
-var _ = Describe("func LogFailure()", func() {
+var _ = Describe("func LogNack()", func() {
 	It("logs in the correct format", func() {
 		logger := &logging.BufferedLogger{}
 
-		LogFailure(
+		LogNack(
 			logger,
 			NewEnvelope("<id>", MessageA1),
 			errors.New("<error>"),
@@ -59,17 +59,17 @@ var _ = Describe("func LogFailure()", func() {
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <error> ● next retry in 5s ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <error> ● next retry in 5s",
 			},
 		))
 	})
 })
 
-var _ = Describe("func LogFailureWithoutEnvelope()", func() {
+var _ = Describe("func LogNackWithoutEnvelope()", func() {
 	It("logs in the correct format", func() {
 		logger := &logging.BufferedLogger{}
 
-		LogFailureWithoutEnvelope(
+		LogNackWithoutEnvelope(
 			logger,
 			"<id>",
 			errors.New("<error>"),
@@ -79,6 +79,25 @@ var _ = Describe("func LogFailureWithoutEnvelope()", func() {
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
 				Message: "= <id>  ∵ -  ⋲ -  ▽ ✖  <error> ● next retry in 5s",
+			},
+		))
+	})
+})
+
+var _ = Describe("func LogFromHandler()", func() {
+	It("logs in the correct format", func() {
+		logger := &logging.BufferedLogger{}
+
+		LogFromHandler(
+			logger,
+			NewEnvelope("<id>", MessageA1),
+			"format %s",
+			[]interface{}{"<value>"},
+		)
+
+		Expect(logger.Messages()).To(ContainElement(
+			logging.BufferedLogMessage{
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● format <value>",
 			},
 		))
 	})
