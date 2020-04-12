@@ -5,7 +5,8 @@ import (
 	"errors"
 )
 
-// ErrConflict is returned when
+// ErrConflict is returned when the offset supplied as a parameter to method
+// Transaction.SaveOffset does not equal to the currently persisted offset.
 var ErrConflict = errors.New("optimistic concurrency conflict in the application event stream offset")
 
 // Transaction defines the primitive persistence operations for manipulating
