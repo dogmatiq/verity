@@ -355,9 +355,9 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		qm, err := queue.Pop(ctx)
+		sess, err := queue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(qm.ID()).To(Equal("<id>"))
-		qm.Close()
+		Expect(sess.MessageID()).To(Equal("<id>"))
+		sess.Close()
 	})
 })

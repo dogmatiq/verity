@@ -74,27 +74,27 @@ func (p *PipelinePump) run(ctx context.Context) error {
 
 // process pushes the message down the pipeline, and commits or rolls-back as
 // appropriate.
-func (p *PipelinePump) process(ctx context.Context, m *Message) error {
-	env, err := m.Envelope()
+func (p *PipelinePump) process(ctx context.Context, sess *Session) error {
+	env, err := sess.Envelope()
 	if err != nil {
-		delay, next := p.backoff(m, err)
-		mlog.LogFailureWithoutEnvelope(p.Logger, m.ID(), err, delay)
-		return m.Nack(ctx, next)
+		delay, next := p.backoff(sess, err)
+		mlog.LogFailureWithoutEnvelope(p.Logger, sess.MessageID(), err, delay)
+		return sess.Nack(ctx, next)
 	}
 
-	if err := p.send(ctx, m, env); err != nil {
-		delay, next := p.backoff(m, err)
+	if err := p.send(ctx, sess, env); err != nil {
+		delay, next := p.backoff(sess, err)
 		mlog.LogFailure(p.Logger, env, err, delay)
-		return m.Nack(ctx, next)
+		return sess.Nack(ctx, next)
 	}
 
-	mlog.LogSuccess(p.Logger, env, m.FailureCount())
-	return m.Ack(ctx)
+	mlog.LogSuccess(p.Logger, env, sess.FailureCount())
+	return sess.Ack(ctx)
 }
 
 // ssend pushes a message down the pipeline.
-func (p *PipelinePump) send(ctx context.Context, m *Message, env *envelope.Envelope) error {
-	tx, err := m.Tx(ctx)
+func (p *PipelinePump) send(ctx context.Context, sess *Session, env *envelope.Envelope) error {
+	tx, err := sess.Tx(ctx)
 	if err != nil {
 		return err
 	}
@@ -103,13 +103,13 @@ func (p *PipelinePump) send(ctx context.Context, m *Message, env *envelope.Envel
 }
 
 // backoff computes the backoff delay and next attempt time.
-func (p *PipelinePump) backoff(m *Message, cause error) (time.Duration, time.Time) {
+func (p *PipelinePump) backoff(sess *Session, cause error) (time.Duration, time.Time) {
 	bs := p.BackoffStrategy
 	if bs == nil {
 		bs = backoff.DefaultStrategy
 	}
 
-	delay := bs(cause, m.FailureCount())
+	delay := bs(cause, sess.FailureCount())
 	next := time.Now().Add(delay)
 
 	return delay, next

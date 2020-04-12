@@ -18,14 +18,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Message", func() {
+var _ = Describe("type Session", func() {
 	var (
 		ctx        context.Context
 		cancel     context.CancelFunc
 		provider   *ProviderStub
 		dataStore  *DataStoreStub
 		queue      *Queue
-		message    *Message
+		sess       *Session
 		env0, env1 *envelope.Envelope
 	)
 
@@ -56,12 +56,12 @@ var _ = Describe("type Message", func() {
 		push(ctx, queue, env0)
 
 		var err error
-		message, err = queue.Pop(ctx)
+		sess, err = queue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		message.Close()
+		sess.Close()
 
 		if dataStore != nil {
 			dataStore.Close()
@@ -70,29 +70,29 @@ var _ = Describe("type Message", func() {
 		cancel()
 	})
 
-	Describe("func ID()", func() {
+	Describe("func MessageID()", func() {
 		It("returns the message ID", func() {
-			Expect(message.ID()).To(Equal("<message-0>"))
+			Expect(sess.MessageID()).To(Equal("<message-0>"))
 		})
 	})
 
 	Describe("func FailureCount()", func() {
 		It("returns the number of times the message has failed handling", func() {
-			err := message.Nack(ctx, time.Now())
+			err := sess.Nack(ctx, time.Now())
 			Expect(err).ShouldNot(HaveOccurred())
-			message.Close()
+			sess.Close()
 
-			message, err := queue.Pop(ctx)
+			sess, err := queue.Pop(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			defer message.Close()
+			defer sess.Close()
 
-			Expect(message.FailureCount()).To(BeEquivalentTo(1))
+			Expect(sess.FailureCount()).To(BeEquivalentTo(1))
 		})
 	})
 
 	Describe("func Envelope()", func() {
 		It("returns the unmarshaled message envelope", func() {
-			e, err := message.Envelope()
+			e, err := sess.Envelope()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(e).To(Equal(env0))
 		})
@@ -103,21 +103,21 @@ var _ = Describe("type Message", func() {
 			queue.BufferSize = 1
 			push(ctx, queue, env1)
 
-			// Commit and close the existing message for env0, freeing us to
+			// Commit and close the existing session for env0, freeing us to
 			// load again.
-			err := message.Ack(ctx)
+			err := sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = message.Close()
+			err = sess.Close()
 			Expect(err).ShouldNot(HaveOccurred())
 
-			// Pop the message for env1.
-			message, err := queue.Pop(ctx)
+			// Start the session for env1.
+			sess, err := queue.Pop(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			defer message.Close()
+			defer sess.Close()
 
 			// Finally, verify that the message is unpacked.
-			e, err := message.Envelope()
+			e, err := sess.Envelope()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(e).To(Equal(env1))
 		})
@@ -125,16 +125,16 @@ var _ = Describe("type Message", func() {
 
 	Describe("func Transaction()", func() {
 		It("begins a transaction", func() {
-			tx, err := message.Tx(ctx)
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(tx).ShouldNot(BeNil())
 		})
 
 		It("returns the same transaction on each call", func() {
-			tx1, err := message.Tx(ctx)
+			tx1, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			tx2, err := message.Tx(ctx)
+			tx2, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(tx1).To(BeIdenticalTo(tx2))
@@ -147,20 +147,20 @@ var _ = Describe("type Message", func() {
 				return nil, errors.New("<error>")
 			}
 
-			_, err := message.Tx(ctx)
+			_, err := sess.Tx(ctx)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
 
 	Describe("func Ack()", func() {
 		It("commits the underlying transaction", func() {
-			tx, err := message.Tx(ctx)
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = message.Ack(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			repo := dataStore.EventStoreRepository()
@@ -174,7 +174,7 @@ var _ = Describe("type Message", func() {
 
 		It("removes the message from the queue store within the same transaction", func() {
 			// Make sure the transaction is started.
-			_, err := message.Tx(ctx)
+			_, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Ensure no new transactions can be started.
@@ -184,7 +184,7 @@ var _ = Describe("type Message", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err = message.Ack(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
@@ -199,12 +199,12 @@ var _ = Describe("type Message", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := message.Ack(ctx)
+			err := sess.Ack(ctx)
 			Expect(err).To(MatchError("<error>"))
 		})
 
 		It("returns an error if the message can not be removed from the queue store", func() {
-			tx, err := message.Tx(ctx)
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			tx.(*TransactionStub).RemoveMessageFromQueueFunc = func(
@@ -214,32 +214,32 @@ var _ = Describe("type Message", func() {
 				return errors.New("<error>")
 			}
 
-			err = message.Ack(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).To(MatchError("<error>"))
 		})
 
 		It("returns an error if the transaction can not be committed", func() {
-			tx, err := message.Tx(ctx)
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			tx.(*TransactionStub).CommitFunc = func(context.Context) error {
 				return errors.New("<error>")
 			}
 
-			err = message.Ack(ctx)
+			err = sess.Ack(ctx)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
 
 	Describe("func Nack()", func() {
 		It("rolls the underlying transaction back", func() {
-			tx, err := message.Tx(ctx)
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = message.Nack(ctx, time.Now().Add(1*time.Hour))
+			err = sess.Nack(ctx, time.Now().Add(1*time.Hour))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			repo := dataStore.EventStoreRepository()
@@ -253,7 +253,7 @@ var _ = Describe("type Message", func() {
 
 		It("updates the failure count and next-attempt time in the queue store", func() {
 			next := time.Now().Add(1 * time.Hour)
-			err := message.Nack(ctx, next)
+			err := sess.Nack(ctx, next)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
@@ -268,15 +268,15 @@ var _ = Describe("type Message", func() {
 		It("returns the message to the in-memory queue when closed", func() {
 			next := time.Now().Add(10 * time.Millisecond)
 
-			err := message.Nack(ctx, next)
+			err := sess.Nack(ctx, next)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = message.Close()
+			err = sess.Close()
 			Expect(err).ShouldNot(HaveOccurred())
 
-			message, err := queue.Pop(ctx)
+			sess, err := queue.Pop(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			defer message.Close()
+			defer sess.Close()
 
 			Expect(time.Now()).To(BeTemporally(">=", next))
 		})
@@ -290,29 +290,29 @@ var _ = Describe("type Message", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := message.Nack(ctx, time.Now())
+			err := sess.Nack(ctx, time.Now())
 			Expect(err).To(MatchError("<error>"))
 		})
 
 		It("returns an error if the transaction can not be rolled-back", func() {
-			tx, err := message.Tx(ctx)
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			tx.(*TransactionStub).RollbackFunc = func() error {
 				return errors.New("<error>")
 			}
 
-			err = message.Nack(ctx, time.Now())
+			err = sess.Nack(ctx, time.Now())
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
 
 	Describe("func Close()", func() {
 		It("rolls the transaction back", func() {
-			tx, err := message.Tx(ctx)
+			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = message.Close()
+			err = sess.Close()
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = tx.(persistence.Transaction).Rollback()
@@ -320,12 +320,12 @@ var _ = Describe("type Message", func() {
 		})
 
 		It("returns the message to the in-memory queue for immediate handling", func() {
-			err := message.Close()
+			err := sess.Close()
 			Expect(err).ShouldNot(HaveOccurred())
 
-			message, err := queue.Pop(ctx)
+			sess, err := queue.Pop(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			defer message.Close()
+			defer sess.Close()
 		})
 	})
 })

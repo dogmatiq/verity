@@ -50,10 +50,10 @@ type Queue struct {
 	// The tracked messages are always those with the highest-priority, that is,
 	// those that are scheduled to be handled the soonest.
 	//
-	// Every tracked message is either being handled now, that is, within a
-	// Message, as returned by Pop(), or it's in the "pending" queue.
+	// Every tracked message is either being handled now (within a Session), or
+	// it's in the "pending" queue.
 	tracked    map[string]struct{} // key == message ID
-	pending    pdeque.Deque        // priority queue of messages that have not been popped
+	pending    pdeque.Deque        // priority queue of messages without active sessions
 	exhaustive uint32              // atomic tri-bool, see exhaustiveXXX consts.
 
 	once sync.Once
@@ -92,17 +92,17 @@ func (e *elem) Less(v pdeque.Elem) bool {
 	)
 }
 
-// Pop returns a message popped from the front of the queue.
+// Pop returns a session for a message popped from the front of the queue.
 //
 // It blocks until a message is ready to be handled or ctx is canceled.
-func (q *Queue) Pop(ctx context.Context) (*Message, error) {
+func (q *Queue) Pop(ctx context.Context) (*Session, error) {
 	q.init()
 
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case e := <-q.out:
-		return &Message{
+		return &Session{
 			queue: q,
 			elem:  e,
 		}, nil
@@ -251,9 +251,8 @@ func (q *Queue) load(ctx context.Context) error {
 
 	if atomic.LoadUint32(&q.exhaustive) == exhaustiveYes {
 		// All messages are known to be tracked. The pending queue may be empty
-		// right now, but that just means that every message still in the
-		// persisted queue has been popped in memory, but not yet finished
-		// handling. Or, that the queue is truly empty.
+		// right now, but that just means that there are active sessions for
+		// every message still on the queue or that the queue is truly empty.
 		logging.DebugString(q.Logger, "not loading messages (exhaustive: yes)")
 		return nil
 	}
