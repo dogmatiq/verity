@@ -124,6 +124,27 @@ var _ = Describe("type Sink", func() {
 			Expect(scope.Recorded[0].Memory).To(Equal(effect))
 		})
 
+		It("logs about recorded events", func() {
+			handler.HandleCommandFunc = func(
+				_ context.Context,
+				s dogma.IntegrationCommandScope,
+				_ dogma.Message,
+			) error {
+				s.RecordEvent(MessageE1)
+				return nil
+			}
+
+			err := sink.Accept(context.Background(), scope)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			logger := scope.Logger.(*logging.BufferedLogger)
+			Expect(logger.Messages()).To(ContainElement(
+				logging.BufferedLogMessage{
+					Message: "= 0  ∵ <id>  ⋲ <correlation>  ▲    fixtures.MessageE ● {E1}",
+				},
+			))
+		})
+
 		It("returns an error if an event can not be recorded", func() {
 			tx.SaveEventFunc = func(
 				context.Context,
@@ -161,7 +182,7 @@ var _ = Describe("type Sink", func() {
 			logger := scope.Logger.(*logging.BufferedLogger)
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ⨝  <integration-name> ● format <value>",
+					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageC ● format <value>",
 				},
 			))
 		})

@@ -10,17 +10,12 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 )
 
-// LogSuccess returns the message to log when a message is handled successfully.
-func LogSuccess(
+// LogConsume logs a message indicating that a Dogma message is being consumed.
+func LogConsume(
 	log logging.Logger,
 	env *envelope.Envelope,
-	failures uint,
+	fc uint,
 ) {
-	var retry Icon
-	if failures > 0 {
-		retry = RetryIcon
-	}
-
 	logging.LogString(
 		log,
 		String(
@@ -30,8 +25,8 @@ func LogSuccess(
 				CorrelationIDIcon.WithID(env.CorrelationID),
 			},
 			[]Icon{
-				InboundIcon,
-				retry,
+				ConsumeIcon,
+				retryIcon(fc),
 			},
 			reflect.TypeOf(env.Message).String(),
 			dogma.DescribeMessage(env.Message),
@@ -39,9 +34,31 @@ func LogSuccess(
 	)
 }
 
-// LogFailure returns the message to log when a message is not handled
-// successfully.
-func LogFailure(
+// LogProduce logs a message indicating that Dogma message is being produced.
+func LogProduce(
+	log logging.Logger,
+	env *envelope.Envelope,
+) {
+	logging.LogString(
+		log,
+		String(
+			[]IconWithLabel{
+				MessageIDIcon.WithID(env.MessageID),
+				CausationIDIcon.WithID(env.CausationID),
+				CorrelationIDIcon.WithID(env.CorrelationID),
+			},
+			[]Icon{
+				ProduceIcon,
+				"",
+			},
+			reflect.TypeOf(env.Message).String(),
+			dogma.DescribeMessage(env.Message),
+		),
+	)
+}
+
+// LogNack logs a message indicating that a session has been Nack'd.
+func LogNack(
 	log logging.Logger,
 	env *envelope.Envelope,
 	cause error,
@@ -56,20 +73,19 @@ func LogFailure(
 				CorrelationIDIcon.WithID(env.CorrelationID),
 			},
 			[]Icon{
-				InboundErrorIcon,
+				ConsumeErrorIcon,
 				ErrorIcon,
 			},
 			reflect.TypeOf(env.Message).String(),
 			cause.Error(),
 			fmt.Sprintf("next retry in %s", delay),
-			dogma.DescribeMessage(env.Message),
 		),
 	)
 }
 
-// LogFailureWithoutEnvelope returns the message to log when a message is not
-// handled successfully because the envelope could not be unpacked.
-func LogFailureWithoutEnvelope(
+// LogNackWithoutEnvelope logs a message indicating that a session has been Nack'd when the
+// message envelope is not available.
+func LogNackWithoutEnvelope(
 	log logging.Logger,
 	id string,
 	cause error,
@@ -84,11 +100,44 @@ func LogFailureWithoutEnvelope(
 				CorrelationIDIcon.WithID(""),
 			},
 			[]Icon{
-				InboundErrorIcon,
+				ConsumeErrorIcon,
 				ErrorIcon,
 			},
 			cause.Error(),
 			fmt.Sprintf("next retry in %s", delay),
 		),
 	)
+}
+
+// LogFromHandler logs an informational message produced within a Dogma handler
+// via a scope.
+func LogFromHandler(
+	log logging.Logger,
+	env *envelope.Envelope,
+	f string, v []interface{},
+) {
+	logging.Log(
+		log,
+		String(
+			[]IconWithLabel{
+				MessageIDIcon.WithID(env.MessageID),
+				CausationIDIcon.WithID(env.CausationID),
+				CorrelationIDIcon.WithID(env.CorrelationID),
+			},
+			[]Icon{
+				ConsumeIcon,
+				"",
+			},
+			reflect.TypeOf(env.Message).String(),
+			fmt.Sprintf(f, v...),
+		),
+	)
+}
+
+func retryIcon(n uint) Icon {
+	if n == 0 {
+		return ""
+	}
+
+	return RetryIcon
 }

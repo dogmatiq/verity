@@ -29,11 +29,16 @@ func Acknowledge(bs backoff.Strategy) Stage {
 			return nack(ctx, bs, sc, nil, err)
 		}
 
+		mlog.LogConsume(
+			sc.Logger,
+			env,
+			sc.Session.FailureCount(),
+		)
+
 		if err := next(ctx, sc); err != nil {
 			return nack(ctx, bs, sc, env, err)
 		}
 
-		mlog.LogSuccess(sc.Logger, env, sc.Session.FailureCount())
 		return sc.Session.Ack(ctx)
 	}
 }
@@ -49,14 +54,14 @@ func nack(
 	delay := bs(cause, sc.Session.FailureCount())
 
 	if env == nil {
-		mlog.LogFailureWithoutEnvelope(
+		mlog.LogNackWithoutEnvelope(
 			sc.Logger,
 			sc.Session.MessageID(),
 			cause,
 			delay,
 		)
 	} else {
-		mlog.LogFailure(
+		mlog.LogNack(
 			sc.Logger,
 			env,
 			cause,

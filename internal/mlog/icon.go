@@ -26,32 +26,33 @@ const (
 	// happened "because of" the displayed ID.
 	CausationIDIcon Icon = "∵"
 
-	// CorrelationIDIcon is the icon shown directly before a message correlation ID.
-	// It is the mathematical "member of set" symbol, indicating that this message
-	// belongs to the set of messages that came about because of the displayed ID.
+	// CorrelationIDIcon is the icon shown directly before a message correlation
+	// ID. It is the mathematical "member of set" symbol, indicating that this
+	// message belongs to the set of messages that came about because of the
+	// displayed ID.
 	CorrelationIDIcon Icon = "⋲"
 
-	// InboundIcon is the icon shown to indicate that a message is "inbound" to a handler.
-	// It is a downward pointing arrow, as inbound messages could be considered as
-	// being "downloaded" from the network or queue.
-	InboundIcon Icon = "▼"
+	// ConsumeIcon is the icon shown to indicate that a message is being
+	// consumed. It is a downward pointing arrow, as such "inbound" messages
+	// could be considered as being "downloaded" from the network or queue.
+	ConsumeIcon Icon = "▼"
 
-	// InboundErrorIcon is a variant of InboundIcon used when there is an error
-	// condition. It is an hollow version of the regular inbound icon, indicating
-	// that the requirement remains "unfulfilled".
-	InboundErrorIcon Icon = "▽"
+	// ConsumeErrorIcon is a variant of ConsumeIcon used when there is an error
+	// condition. It is an hollow version of the regular consume icon,
+	// indicating that the requirement remains "unfulfilled".
+	ConsumeErrorIcon Icon = "▽"
 
-	// OutboundIcon is the icon shown to indicate that a message is "outbound" from
-	// a handler. It is an upward pointing arrow, as outbound messages could be
-	// considered as being "uploaded" to the network or queue.
-	OutboundIcon Icon = "▲"
+	// ProduceIcon is the icon shown to indicate that a message is being
+	// produce. It is an upward pointing arrow, as such "outbound" messages
+	// could be considered as being "uploaded" to the network or queue.
+	ProduceIcon Icon = "▲"
 
-	// OutboundErrorIcon is a variant of OutboundIcon used when there is an error
-	// condition. It is an hollow version of the regular inbound icon, indicating
-	// that the requirement remains "unfulfilled".
-	OutboundErrorIcon Icon = "△"
+	// ProduceErrorIcon is a variant of ProduceIcon used when there is an error
+	// condition. It is an hollow version of the regular produce icon,
+	// indicating that the requirement remains "unfulfilled".
+	ProduceErrorIcon Icon = "△"
 
-	// RetryIcon is an icon used instead of InboundIcon when a message is being
+	// RetryIcon is an icon used instead of ConsumeIcon when a message is being
 	// re-attempted. It is an open-circle with an arrow, indicating that the
 	// message has "come around again".
 	RetryIcon Icon = "↻"
