@@ -101,6 +101,8 @@ func cleanseTime(t *time.Time) {
 //
 // MessageID is a monotonically increasing integer, starting at 0. CreatedAt
 // starts at 2000-01-01 00:00:00 UTC and increases by 1 second for each message.
+//
+// The given roles are valid both as produced and consumed roles.
 func NewPacker(roles message.TypeRoles) *envelope.Packer {
 	var (
 		m   sync.Mutex
@@ -110,7 +112,8 @@ func NewPacker(roles message.TypeRoles) *envelope.Packer {
 
 	return &envelope.Packer{
 		Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-		Roles:       roles,
+		Produced:    roles,
+		Consumed:    roles,
 		GenerateID: func() string {
 			m.Lock()
 			defer m.Unlock()

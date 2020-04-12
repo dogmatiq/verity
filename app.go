@@ -73,7 +73,7 @@ func (e *Engine) initApp(
 
 	e.apps[id.Key] = a
 
-	for mt := range x.Packer.Roles {
+	for mt := range x.Packer.Produced {
 		e.executors[mt] = x
 	}
 
@@ -127,7 +127,7 @@ func (e *Engine) newCommandExecutor(
 		Queue: q,
 		Packer: &envelope.Packer{
 			Application: cfg.Identity(),
-			Roles: cfg.
+			Produced: cfg.
 				MessageTypes().
 				Consumed.
 				FilterByRole(message.CommandRole),
@@ -143,10 +143,6 @@ func (e *Engine) newPipeline(
 ) pipeline.Port {
 	rf := &routeFactory{
 		opts: e.opts,
-		packer: &envelope.Packer{
-			Application: cfg.Identity(),
-			Roles:       cfg.MessageTypes().All(),
-		},
 	}
 
 	cfg.AcceptRichVisitor(nil, rf)
@@ -165,12 +161,13 @@ func (e *Engine) newPipeline(
 // routeFactory is a configkit.RichVisitor that constructs the messaging
 // pipeline.
 type routeFactory struct {
-	packer *envelope.Packer
+	app    configkit.Identity
 	opts   *engineOptions
 	routes map[message.Type]pipeline.Stage
 }
 
 func (f *routeFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
+	f.app = cfg.Identity()
 	f.routes = map[message.Type]pipeline.Stage{}
 	return cfg.RichHandlers().AcceptRichVisitor(ctx, f)
 }
@@ -187,8 +184,12 @@ func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.Ric
 	s := &integration.Sink{
 		Identity:       cfg.Identity(),
 		Handler:        cfg.Handler(),
-		Packer:         f.packer,
 		DefaultTimeout: f.opts.MessageTimeout,
+		Packer: &envelope.Packer{
+			Application: f.app,
+			Produced:    cfg.MessageTypes().Produced,
+			Consumed:    cfg.MessageTypes().Consumed,
+		},
 	}
 
 	for mt := range cfg.MessageTypes().Consumed {

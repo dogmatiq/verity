@@ -7,10 +7,13 @@ import (
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/envelope"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
@@ -26,10 +29,15 @@ var _ = Describe("type Packer", func() {
 		now = time.Now()
 		packer = &Packer{
 			Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			Roles: message.TypeRoles{
+			Produced: message.TypeRoles{
 				MessageCType: message.CommandRole,
 				MessageEType: message.EventRole,
 				MessageTType: message.TimeoutRole,
+			},
+			Consumed: message.TypeRoles{
+				MessageDType: message.CommandRole,
+				MessageFType: message.EventRole,
+				MessageUType: message.TimeoutRole,
 			},
 			GenerateID: func() string {
 				seq++
@@ -61,17 +69,17 @@ var _ = Describe("type Packer", func() {
 			))
 		})
 
-		It("panics if the message type is not recognized", func() {
-			Expect(func() {
-				packer.PackCommand(MessageA1)
-			}).To(Panic())
-		})
-
-		It("panics if the message type has a different role", func() {
-			Expect(func() {
-				packer.PackCommand(MessageE1)
-			}).To(Panic())
-		})
+		DescribeTable(
+			"it panics if the message type is incorrect",
+			func(m dogma.Message, x string) {
+				Expect(func() {
+					packer.PackCommand(m)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
+			Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a command"),
+			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected a command"),
+		)
 	})
 
 	Describe("func PackEvent()", func() {
@@ -94,17 +102,17 @@ var _ = Describe("type Packer", func() {
 			))
 		})
 
-		It("panics if the message type is not recognized", func() {
-			Expect(func() {
-				packer.PackEvent(MessageA1)
-			}).To(Panic())
-		})
-
-		It("panics if the message type has a different role", func() {
-			Expect(func() {
-				packer.PackEvent(MessageC1)
-			}).To(Panic())
-		})
+		DescribeTable(
+			"it panics if the message type is incorrect",
+			func(m dogma.Message, x string) {
+				Expect(func() {
+					packer.PackEvent(m)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
+			Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected an event"),
+			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected an event"),
+		)
 	})
 
 	Describe("func PackChildCommand()", func() {
@@ -120,57 +128,78 @@ var _ = Describe("type Packer", func() {
 						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 					},
 				},
-				Message: MessageE1,
 			}
 		})
 
-		It("returns a new envelope", func() {
-			env := packer.PackChildCommand(
-				parent,
-				MessageC1,
-				configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-				"<instance>",
-			)
+		DescribeTable(
+			"it returns a new envelope",
+			func(p dogma.Message) {
+				parent.Message = p
 
-			Expect(env).To(Equal(
-				&Envelope{
-					MetaData: MetaData{
-						MessageID:     "00000001",
-						CausationID:   "<parent>",
-						CorrelationID: "<parent>",
-						Source: Source{
-							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-							Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-							InstanceID:  "<instance>",
+				env := packer.PackChildCommand(
+					parent,
+					MessageC1,
+					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+					"<instance>",
+				)
+
+				Expect(env).To(Equal(
+					&Envelope{
+						MetaData: MetaData{
+							MessageID:     "00000001",
+							CausationID:   "<parent>",
+							CorrelationID: "<parent>",
+							Source: Source{
+								Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+								Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+								InstanceID:  "<instance>",
+							},
+							CreatedAt: now,
 						},
-						CreatedAt: now,
+						Message: MessageC1,
 					},
-					Message: MessageC1,
-				},
-			))
-		})
+				))
+			},
+			Entry("when the parent is an event", MessageF1),
+			Entry("when the parent is a timeout", MessageU1),
+		)
 
-		It("panics if the message type is not recognized", func() {
-			Expect(func() {
-				packer.PackChildCommand(
-					parent,
-					MessageA1,
-					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-					"<instance>",
-				)
-			}).To(Panic())
-		})
+		DescribeTable(
+			"it panics if the parent message type is incorrect",
+			func(p dogma.Message, x string) {
+				parent.Message = p
 
-		It("panics if the message type has a different role", func() {
-			Expect(func() {
-				packer.PackChildCommand(
-					parent,
-					MessageE1,
-					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-					"<instance>",
-				)
-			}).To(Panic())
-		})
+				Expect(func() {
+					packer.PackChildCommand(
+						parent,
+						MessageC1,
+						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						"<instance>",
+					)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not consumed by this handler"),
+			Entry("when the message is a command", MessageD1, "fixtures.MessageD is a command, expected an event or timeout"),
+		)
+
+		DescribeTable(
+			"it panics if the message type is incorrect",
+			func(m dogma.Message, x string) {
+				parent.Message = MessageF1
+
+				Expect(func() {
+					packer.PackChildCommand(
+						parent,
+						m,
+						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						"<instance>",
+					)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
+			Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a command"),
+			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected a command"),
+		)
 	})
 
 	Describe("func PackChildEvent()", func() {
@@ -186,57 +215,78 @@ var _ = Describe("type Packer", func() {
 						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 					},
 				},
-				Message: MessageC1,
 			}
 		})
 
-		It("returns a new envelope", func() {
-			env := packer.PackChildEvent(
-				parent,
-				MessageE1,
-				configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-				"<instance>",
-			)
+		DescribeTable(
+			"it returns a new envelope",
+			func(p dogma.Message) {
+				parent.Message = p
 
-			Expect(env).To(Equal(
-				&Envelope{
-					MetaData: MetaData{
-						MessageID:     "00000001",
-						CausationID:   "<parent>",
-						CorrelationID: "<parent>",
-						Source: Source{
-							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-							Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-							InstanceID:  "<instance>",
+				env := packer.PackChildEvent(
+					parent,
+					MessageE1,
+					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+					"<instance>",
+				)
+
+				Expect(env).To(Equal(
+					&Envelope{
+						MetaData: MetaData{
+							MessageID:     "00000001",
+							CausationID:   "<parent>",
+							CorrelationID: "<parent>",
+							Source: Source{
+								Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+								Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+								InstanceID:  "<instance>",
+							},
+							CreatedAt: now,
 						},
-						CreatedAt: now,
+						Message: MessageE1,
 					},
-					Message: MessageE1,
-				},
-			))
-		})
+				))
+			},
+			Entry("when the parent is a command", MessageD1),
+		)
 
-		It("panics if the message type is not recognized", func() {
-			Expect(func() {
-				packer.PackChildEvent(
-					parent,
-					MessageA1,
-					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-					"<instance>",
-				)
-			}).To(Panic())
-		})
+		DescribeTable(
+			"it panics if the parent message type is incorrect",
+			func(p dogma.Message, x string) {
+				parent.Message = p
 
-		It("panics if the message type has a different role", func() {
-			Expect(func() {
-				packer.PackChildEvent(
-					parent,
-					MessageC1,
-					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-					"<instance>",
-				)
-			}).To(Panic())
-		})
+				Expect(func() {
+					packer.PackChildEvent(
+						parent,
+						MessageE1,
+						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						"<instance>",
+					)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not consumed by this handler"),
+			Entry("when the message is an event", MessageF1, "fixtures.MessageF is an event, expected a command"),
+			Entry("when the message is a timeout", MessageU1, "fixtures.MessageU is a timeout, expected a command"),
+		)
+
+		DescribeTable(
+			"it panics if the message type is incorrect",
+			func(m dogma.Message, x string) {
+				parent.Message = MessageD1
+
+				Expect(func() {
+					packer.PackChildEvent(
+						parent,
+						m,
+						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						"<instance>",
+					)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
+			Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected an event"),
+			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected an event"),
+		)
 	})
 
 	Describe("func PackChildTimeout()", func() {
@@ -252,62 +302,83 @@ var _ = Describe("type Packer", func() {
 						Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 					},
 				},
-				Message: MessageE1,
 			}
 		})
 
-		It("returns a new envelope", func() {
-			scheduledFor := time.Now()
-			env := packer.PackChildTimeout(
-				parent,
-				MessageT1,
-				scheduledFor,
-				configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-				"<instance>",
-			)
+		DescribeTable(
+			"it returns a new envelope",
+			func(p dogma.Message) {
+				parent.Message = p
 
-			Expect(env).To(Equal(
-				&Envelope{
-					MetaData: MetaData{
-						MessageID:     "00000001",
-						CausationID:   "<parent>",
-						CorrelationID: "<parent>",
-						Source: Source{
-							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-							Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-							InstanceID:  "<instance>",
+				scheduledFor := time.Now()
+				env := packer.PackChildTimeout(
+					parent,
+					MessageT1,
+					scheduledFor,
+					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+					"<instance>",
+				)
+
+				Expect(env).To(Equal(
+					&Envelope{
+						MetaData: MetaData{
+							MessageID:     "00000001",
+							CausationID:   "<parent>",
+							CorrelationID: "<parent>",
+							Source: Source{
+								Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+								Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+								InstanceID:  "<instance>",
+							},
+							CreatedAt:    now,
+							ScheduledFor: scheduledFor,
 						},
-						CreatedAt:    now,
-						ScheduledFor: scheduledFor,
+						Message: MessageT1,
 					},
-					Message: MessageT1,
-				},
-			))
-		})
+				))
+			},
+			Entry("when the parent is an event", MessageF1),
+			Entry("when the parent is a timeout", MessageU1),
+		)
 
-		It("panics if the message type is not recognized", func() {
-			Expect(func() {
-				packer.PackChildTimeout(
-					parent,
-					MessageA1,
-					time.Now(),
-					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-					"<instance>",
-				)
-			}).To(Panic())
-		})
+		DescribeTable(
+			"it panics if the parent message type is incorrect",
+			func(p dogma.Message, x string) {
+				parent.Message = p
 
-		It("panics if the message type has a different role", func() {
-			Expect(func() {
-				packer.PackChildTimeout(
-					parent,
-					MessageE1,
-					time.Now(),
-					configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-					"<instance>",
-				)
-			}).To(Panic())
-		})
+				Expect(func() {
+					packer.PackChildTimeout(
+						parent,
+						MessageT1,
+						time.Now(),
+						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						"<instance>",
+					)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not consumed by this handler"),
+			Entry("when the message is a command", MessageD1, "fixtures.MessageD is a command, expected an event or timeout"),
+		)
+
+		DescribeTable(
+			"it panics if the message type is incorrect",
+			func(m dogma.Message, x string) {
+				parent.Message = MessageF1
+
+				Expect(func() {
+					packer.PackChildTimeout(
+						parent,
+						m,
+						time.Now(),
+						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						"<instance>",
+					)
+				}).To(PanicWith(x))
+			},
+			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
+			Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected a timeout"),
+			Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a timeout"),
+		)
 	})
 
 	It("generates UUIDs by default", func() {

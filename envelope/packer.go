@@ -1,6 +1,8 @@
 package envelope
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dogmatiq/configkit"
@@ -14,9 +16,13 @@ type Packer struct {
 	// Application is the identity of this application.
 	Application configkit.Identity
 
-	// Roles is a map of message type to role, used to validate the messages
+	// Produced is a map of message type to role, used to validate the messages
 	// that are being packed.
-	Roles message.TypeRoles
+	Produced message.TypeRoles
+
+	// Consumed is a map of message type to role for consumed messages, which
+	// can be the cause of new messages.
+	Consumed message.TypeRoles
 
 	// GenerateID is a function used to generate new message IDs. If it is nil,
 	// a UUID is generated.
@@ -29,32 +35,14 @@ type Packer struct {
 
 // PackCommand returns a new command envelope containing the given message.
 func (p *Packer) PackCommand(m dogma.Message) *Envelope {
-	id := p.generateID()
-
-	return p.new(
-		id,
-		id,
-		id,
-		m,
-		message.CommandRole,
-		configkit.Identity{},
-		"",
-	)
+	p.checkProducedRole(m, message.CommandRole)
+	return p.new(m)
 }
 
 // PackEvent returns a new event envelope containing the given message.
 func (p *Packer) PackEvent(m dogma.Message) *Envelope {
-	id := p.generateID()
-
-	return p.new(
-		id,
-		id,
-		id,
-		m,
-		message.EventRole,
-		configkit.Identity{},
-		"",
-	)
+	p.checkProducedRole(m, message.EventRole)
+	return p.new(m)
 }
 
 // PackChildCommand returns a new command envelope containing the given message
@@ -65,17 +53,12 @@ func (p *Packer) PackChildCommand(
 	handler configkit.Identity,
 	instanceID string,
 ) *Envelope {
-	mt := message.TypeOf(cause.Message)
-	p.Roles[mt].MustBe(message.EventRole, message.TimeoutRole)
+	p.checkConsumedRole(cause.Message, message.EventRole, message.TimeoutRole)
+	p.checkProducedRole(m, message.CommandRole)
 
-	id := p.generateID()
-
-	return p.new(
-		id,
-		cause.MessageID,
-		cause.CorrelationID,
+	return p.newChild(
+		cause,
 		m,
-		message.CommandRole,
 		handler,
 		instanceID,
 	)
@@ -89,17 +72,12 @@ func (p *Packer) PackChildEvent(
 	handler configkit.Identity,
 	instanceID string,
 ) *Envelope {
-	mt := message.TypeOf(cause.Message)
-	p.Roles[mt].MustBe(message.CommandRole)
+	p.checkConsumedRole(cause.Message, message.CommandRole)
+	p.checkProducedRole(m, message.EventRole)
 
-	id := p.generateID()
-
-	return p.new(
-		id,
-		cause.MessageID,
-		cause.CorrelationID,
+	return p.newChild(
+		cause,
 		m,
-		message.EventRole,
 		handler,
 		instanceID,
 	)
@@ -114,17 +92,12 @@ func (p *Packer) PackChildTimeout(
 	handler configkit.Identity,
 	instanceID string,
 ) *Envelope {
-	mt := message.TypeOf(cause.Message)
-	p.Roles[mt].MustBe(message.EventRole, message.TimeoutRole)
+	p.checkConsumedRole(cause.Message, message.EventRole, message.TimeoutRole)
+	p.checkProducedRole(m, message.TimeoutRole)
 
-	id := p.generateID()
-
-	env := p.new(
-		id,
-		cause.MessageID,
-		cause.CorrelationID,
+	env := p.newChild(
+		cause,
 		m,
-		message.TimeoutRole,
 		handler,
 		instanceID,
 	)
@@ -134,35 +107,41 @@ func (p *Packer) PackChildTimeout(
 	return env
 }
 
-// new returns a new envelope, it panics if the given message type does not map
-// to the r role.
-func (p *Packer) new(
-	messageID string,
-	causationID string,
-	correlationID string,
-	m dogma.Message,
-	r message.Role,
-	handler configkit.Identity,
-	instanceID string,
-) *Envelope {
-	mt := message.TypeOf(m)
-	p.Roles[mt].MustBe(r)
+// new returns an envelope containing the given message.
+func (p *Packer) new(m dogma.Message) *Envelope {
+	id := p.generateID()
 
 	return &Envelope{
 		MetaData{
-			messageID,
-			causationID,
-			correlationID,
+			id,
+			id,
+			id,
 			Source{
-				p.Application,
-				handler,
-				instanceID,
+				Application: p.Application,
 			},
 			p.now(),
 			time.Time{},
 		},
 		m,
 	}
+}
+
+// newChild returns an envelope containing the given message, which was a
+// produced as a result of handling a causal message.
+func (p *Packer) newChild(
+	cause *Envelope,
+	m dogma.Message,
+	handler configkit.Identity,
+	instanceID string,
+) *Envelope {
+	env := p.new(m)
+
+	env.CausationID = cause.MessageID
+	env.CorrelationID = cause.CorrelationID
+	env.Source.Handler = handler
+	env.Source.InstanceID = instanceID
+
+	return env
 }
 
 // now returns the current time.
@@ -182,4 +161,49 @@ func (p *Packer) generateID() string {
 	}
 
 	return uuid.New().String()
+}
+
+// checkProducedRole panics if mt does not fill one of the the given roles.
+func (p *Packer) checkProducedRole(m dogma.Message, roles ...message.Role) {
+	mt := message.TypeOf(m)
+	x, ok := p.Produced[mt]
+
+	if !ok {
+		panic(fmt.Sprintf("%s is not a recognised message type", mt))
+	}
+
+	mustBeOneOf(mt, x, roles)
+}
+
+// checkConsumedRole panics if mt does not fill one of the the given roles.
+func (p *Packer) checkConsumedRole(m dogma.Message, roles ...message.Role) {
+	mt := message.TypeOf(m)
+	x, ok := p.Consumed[mt]
+
+	if !ok {
+		panic(fmt.Sprintf("%s is not consumed by this handler", mt))
+	}
+
+	mustBeOneOf(mt, x, roles)
+}
+
+// mustBe panics if x is not in roles.
+func mustBeOneOf(mt message.Type, x message.Role, roles []message.Role) {
+	if x.Is(roles...) {
+		return
+	}
+
+	var valid []string
+	for _, r := range roles {
+		valid = append(valid, r.String())
+	}
+
+	message := fmt.Sprintf(
+		"%s is a %s, expected a %s",
+		mt,
+		x,
+		strings.Join(valid, " or "),
+	)
+	message = strings.ReplaceAll(message, "a event", "an event")
+	panic(message)
 }
