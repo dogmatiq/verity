@@ -304,19 +304,24 @@ var _ = Describe("type Queue", func() {
 					Envelope: envelope.MustMarshal(Marshaler, env0),
 				}
 
-				// It's an implementation detail, but the internal channel used
-				// to start tracking is buffered at the same size as the overall
-				// buffer size limit.
+				// It's an implementation detail, but the internal channel used to start
+				// tracking is buffered at the same size as the overall buffer size
+				// limit.
+				//
+				// We can't set it to zero, because that will fallback to the default.
+				// We also can't start the queue, otherwise it'll start reading from
+				// this channel and nothing will block.
+				//
+				// Instead, we set it to one, and "fill" the channel with a request to
+				// ensure that it will block.
 				queue.BufferSize = 1
-
-				// This track requuest should be pushed onto that buffered channel.
 				err := queue.Track(ctx, env0, m)
 				Expect(err).ShouldNot(HaveOccurred())
 
+				// Setup a short deadline for the test.
 				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 				defer cancel()
 
-				// But this one should block.
 				err = queue.Track(ctx, env0, m)
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})

@@ -12,11 +12,10 @@ func (e *Engine) runQueuePumpForApp(
 	ctx context.Context,
 	a *app,
 ) error {
-	p := &queue.PipelinePump{
-		Queue:           a.Queue,
-		Pipeline:        a.Pipeline,
-		Semaphore:       e.semaphore,
-		BackoffStrategy: e.opts.MessageBackoff,
+	p := &queue.PipelineSource{
+		Queue:     a.Queue,
+		Pipeline:  a.Pipeline,
+		Semaphore: e.semaphore,
 	}
 
 	if err := p.Run(ctx); err != nil {

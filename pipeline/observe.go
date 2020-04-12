@@ -21,13 +21,8 @@ type EnqueuedMessageObserver func(context.Context, []EnqueuedMessage) error
 // WhenMessageEnqueued returns a pipeline stage that calls fn when messages
 // are enqueued by any subsequent pipeline stage, and that stage is successful.
 func WhenMessageEnqueued(fn EnqueuedMessageObserver) Stage {
-	return func(
-		ctx context.Context,
-		sc *Scope,
-		env *envelope.Envelope,
-		next Sink,
-	) error {
-		if err := next(ctx, sc, env); err != nil {
+	return func(ctx context.Context, sc *Scope, next Sink) error {
+		if err := next(ctx, sc); err != nil {
 			return err
 		}
 
@@ -52,13 +47,8 @@ type RecordedEventObserver func(context.Context, []RecordedEvent) error
 // WhenEventRecorded returns a pipeline stage that calls fn when events are
 // recorded by any subsequent pipeline stage, and that state is successful.
 func WhenEventRecorded(fn RecordedEventObserver) Stage {
-	return func(
-		ctx context.Context,
-		sc *Scope,
-		env *envelope.Envelope,
-		next Sink,
-	) error {
-		if err := next(ctx, sc, env); err != nil {
+	return func(ctx context.Context, sc *Scope, next Sink) error {
+		if err := next(ctx, sc); err != nil {
 			return err
 		}
 
