@@ -131,8 +131,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					},
 				)
 
-				events := queryEvents(tc.Context, repository, eventstore.Query{})
-				expectParcelsToEqual(events, expect)
+				parcels := queryEvents(tc.Context, repository, eventstore.Query{})
+				expectParcelsToEqual(parcels, expect)
 			})
 
 			ginkgo.When("the transaction is rolled-back", func() {
@@ -147,8 +147,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					events := queryEvents(tc.Context, repository, eventstore.Query{})
-					gomega.Expect(events).To(gomega.BeEmpty())
+					parcels := queryEvents(tc.Context, repository, eventstore.Query{})
+					gomega.Expect(parcels).To(gomega.BeEmpty())
 				})
 
 				ginkgo.It("does not increment the offset", func() {

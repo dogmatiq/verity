@@ -83,8 +83,8 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func QueryEvents()", func() {
 			ginkgo.It("returns an empty result if the store is empty", func() {
-				events := queryEvents(tc.Context, repository, eventstore.Query{})
-				gomega.Expect(events).To(gomega.BeEmpty())
+				parcels := queryEvents(tc.Context, repository, eventstore.Query{})
+				gomega.Expect(parcels).To(gomega.BeEmpty())
 			})
 
 			table.DescribeTable(
@@ -101,10 +101,10 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						parcel5.Envelope,
 					)
 
-					events := queryEvents(tc.Context, repository, q)
-					gomega.Expect(events).To(gomega.HaveLen(len(expected)))
+					parcels := queryEvents(tc.Context, repository, q)
+					gomega.Expect(parcels).To(gomega.HaveLen(len(expected)))
 
-					for i, p := range events {
+					for i, p := range parcels {
 						expectParcelToEqual(
 							p,
 							*expected[i],
@@ -170,8 +170,8 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				fn := func() {
 					defer g.Done()
 					defer ginkgo.GinkgoRecover()
-					events := queryEvents(tc.Context, repository, q)
-					gomega.Expect(events).To(gomega.HaveLen(2))
+					parcels := queryEvents(tc.Context, repository, q)
+					gomega.Expect(parcels).To(gomega.HaveLen(2))
 				}
 
 				g.Add(3)

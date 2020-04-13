@@ -61,16 +61,16 @@ func queryEvents(
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 
-	var events []*eventstore.Parcel
+	var parcels []*eventstore.Parcel
 
 	for {
 		p, ok, err := res.Next(ctx)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		if !ok {
-			return events
+			return parcels
 		}
 
-		events = append(events, p)
+		parcels = append(parcels, p)
 	}
 }
