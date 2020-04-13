@@ -23,7 +23,6 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 			repository = dataStore.OffsetStoreRepository()
-
 		})
 
 		ginkgo.AfterEach(func() {
@@ -35,6 +34,17 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				o, err := repository.LoadOffset(context.Background(), "<app-key>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(o).Should(gomega.BeNumerically("==", 0))
+			})
+
+			// TO-DO: add a test with transaction involved to test the
+			// incremented offset.
+
+			ginkgo.It("returns an error if the context is canceled", func() {
+				ctx, cancel := context.WithCancel(tc.Context)
+				cancel()
+
+				_, err := repository.LoadOffset(ctx, "<app-key>")
+				gomega.Expect(err).To(gomega.Equal(context.Canceled))
 			})
 		})
 	})
