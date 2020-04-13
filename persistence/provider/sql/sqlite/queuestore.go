@@ -36,11 +36,12 @@ func (driver) InsertQueueMessage(
 				source_instance_id,
 				created_at,
 				scheduled_for,
+				description,
 				portable_name,
 				media_type,
 				data
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
 			) ON CONFLICT (app_key, message_id) DO NOTHING`,
 		ak,
 		m.FailureCount,
@@ -55,6 +56,7 @@ func (driver) InsertQueueMessage(
 		m.Envelope.GetMetaData().GetSource().GetInstanceId(),
 		m.Envelope.GetMetaData().GetCreatedAt(),
 		m.Envelope.GetMetaData().GetScheduledFor(),
+		m.Envelope.GetMetaData().GetDescription(),
 		m.Envelope.GetPortableName(),
 		m.Envelope.GetMediaType(),
 		m.Envelope.GetData(),
@@ -141,6 +143,7 @@ func (driver) SelectQueueMessages(
 			q.source_instance_id,
 			q.created_at,
 			q.scheduled_for,
+			q.description,
 			q.portable_name,
 			q.media_type,
 			q.data
@@ -173,6 +176,7 @@ func (driver) ScanQueueMessage(
 		&m.Envelope.MetaData.Source.InstanceId,
 		&m.Envelope.MetaData.CreatedAt,
 		&m.Envelope.MetaData.ScheduledFor,
+		&m.Envelope.MetaData.Description,
 		&m.Envelope.PortableName,
 		&m.Envelope.MediaType,
 		&m.Envelope.Data,

@@ -45,6 +45,7 @@ var _ = Describe("func Marshal()", func() {
 				},
 				CreatedAt:    createdAt,
 				ScheduledFor: scheduledFor,
+				Description:  "{A1}",
 			},
 			PortableName: MessageAPortableName,
 			MediaType:    MessageA1Packet.MediaType,

@@ -55,11 +55,12 @@ func (driver) InsertEvent(
 				source_handler_key,
 				source_instance_id,
 				created_at,
+				description,
 				portable_name,
 				media_type,
 				data
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 			)`,
 		o,
 		env.GetMetaData().GetMessageId(),
@@ -71,6 +72,7 @@ func (driver) InsertEvent(
 		env.GetMetaData().GetSource().GetHandler().GetKey(),
 		env.GetMetaData().GetSource().GetInstanceId(),
 		env.GetMetaData().GetCreatedAt(),
+		env.GetMetaData().GetDescription(),
 		env.GetPortableName(),
 		env.GetMediaType(),
 		env.GetData(),
@@ -180,6 +182,7 @@ func (driver) SelectEvents(
 			e.source_handler_key,
 			e.source_instance_id,
 			e.created_at,
+			e.description,
 			e.portable_name,
 			e.media_type,
 			e.data
@@ -238,6 +241,7 @@ func (driver) ScanEvent(
 		&ev.Envelope.MetaData.Source.Handler.Key,
 		&ev.Envelope.MetaData.Source.InstanceId,
 		&ev.Envelope.MetaData.CreatedAt,
+		&ev.Envelope.MetaData.Description,
 		&ev.Envelope.PortableName,
 		&ev.Envelope.MediaType,
 		&ev.Envelope.Data,

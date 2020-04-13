@@ -51,6 +51,9 @@ message MetaData  {
   // ScheduledFor is the time at which a timeout message was scheduled, RFC-3339
   // format, with nanoseconds.
   string scheduled_for = 6;
+
+  // Description is a human-readable description of the message.
+  string description = 7;
 }
 
 // Envelope is a protocol buffers representation of the envelope.Envelope type.
