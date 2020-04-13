@@ -108,7 +108,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						expectParcelToEqual(
 							p,
 							*expected[i],
-							fmt.Sprintf("event at index #%d of slice", i),
+							fmt.Sprintf("parcel at index #%d of slice", i),
 						)
 					}
 				},

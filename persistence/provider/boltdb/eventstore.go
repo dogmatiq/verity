@@ -38,7 +38,7 @@ func (t *transaction) SaveEvent(
 	)
 
 	o := loadNextOffset(store)
-	saveEvent(events, o, env)
+	saveEventStoreParcel(events, o, env)
 	storeNextOffset(store, o+1)
 
 	return o, nil
@@ -93,7 +93,7 @@ func (r *eventStoreResult) Next(
 			for exists && !ok {
 				bboltx.Must(ctx.Err()) // Bail if we're taking too long.
 
-				p, exists = loadParcel(events, r.query.MinOffset)
+				p, exists = loadEventStoreParcel(events, r.query.MinOffset)
 				ok = exists && r.query.IsMatch(p)
 
 				r.query.MinOffset++
@@ -153,8 +153,8 @@ func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
 	bboltx.Put(b, offsetKey, data)
 }
 
-// loadParcel loads a parcel at a specific offset.
-func loadParcel(
+// loadEventStoreParcel loads an event at a specific offset.
+func loadEventStoreParcel(
 	events *bbolt.Bucket,
 	o eventstore.Offset,
 ) (*eventstore.Parcel, bool) {
@@ -174,8 +174,8 @@ func loadParcel(
 	}, true
 }
 
-// saveEvent writes an event to the store at a specific offset.
-func saveEvent(
+// saveEventStoreParcel writes an event to the store at a specific offset.
+func saveEventStoreParcel(
 	events *bbolt.Bucket,
 	o eventstore.Offset,
 	env *envelopespec.Envelope,

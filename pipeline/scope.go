@@ -50,22 +50,22 @@ func (s *Scope) EnqueueMessage(
 		n = env.CreatedAt
 	}
 
-	m := &queuestore.Message{
+	p := &queuestore.Parcel{
 		NextAttemptAt: n,
 		Envelope:      envelope.MustMarshal(s.Marshaler, env),
 	}
 
-	if err := tx.SaveMessageToQueue(ctx, m); err != nil {
+	if err := tx.SaveMessageToQueue(ctx, p); err != nil {
 		return err
 	}
 
-	m.Revision++
+	p.Revision++
 
 	s.Enqueued = append(
 		s.Enqueued,
 		EnqueuedMessage{
-			Memory:    env,
-			Persisted: m,
+			Memory: env,
+			Parcel: p,
 		},
 	)
 

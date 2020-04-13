@@ -42,12 +42,12 @@ var _ = Context("observer stages", func() {
 				m := messages[0]
 
 				Expect(m.Memory).To(Equal(effect))
-				Expect(m.Persisted.Revision).To(BeEquivalentTo(1))
-				Expect(m.Persisted.NextAttemptAt).To(BeTemporally("==", effect.CreatedAt))
+				Expect(m.Parcel.Revision).To(BeEquivalentTo(1))
+				Expect(m.Parcel.NextAttemptAt).To(BeTemporally("==", effect.CreatedAt))
 
 				Expect(
 					proto.Equal(
-						m.Persisted.Envelope,
+						m.Parcel.Envelope,
 						envelope.MustMarshal(Marshaler, effect),
 					),
 				).To(

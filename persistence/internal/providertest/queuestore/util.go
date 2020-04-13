@@ -13,14 +13,14 @@ import (
 func saveMessages(
 	ctx context.Context,
 	ds persistence.DataStore,
-	messages ...*queuestore.Message,
+	parcels ...*queuestore.Parcel,
 ) {
 	err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
-			for _, m := range messages {
-				if err := tx.SaveMessageToQueue(ctx, m); err != nil {
+			for _, p := range parcels {
+				if err := tx.SaveMessageToQueue(ctx, p); err != nil {
 					return err
 				}
 			}
@@ -32,8 +32,8 @@ func saveMessages(
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	}
 
-	for _, m := range messages {
-		m.Revision++
+	for _, p := range parcels {
+		p.Revision++
 	}
 }
 
@@ -41,14 +41,14 @@ func saveMessages(
 func removeMessages(
 	ctx context.Context,
 	ds persistence.DataStore,
-	messages ...*queuestore.Message,
+	parcels ...*queuestore.Parcel,
 ) {
 	err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
-			for _, m := range messages {
-				if err := tx.RemoveMessageFromQueue(ctx, m); err != nil {
+			for _, p := range parcels {
+				if err := tx.RemoveMessageFromQueue(ctx, p); err != nil {
 					return err
 				}
 			}
@@ -60,8 +60,8 @@ func removeMessages(
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	}
 
-	for _, m := range messages {
-		m.Revision = 0
+	for _, p := range parcels {
+		p.Revision = 0
 	}
 }
 
@@ -69,14 +69,14 @@ func removeMessages(
 func loadMessage(
 	ctx context.Context,
 	r queuestore.Repository,
-) *queuestore.Message {
-	messages := loadMessages(ctx, r, 1)
+) *queuestore.Parcel {
+	parcels := loadMessages(ctx, r, 1)
 
-	if len(messages) == 0 {
+	if len(parcels) == 0 {
 		ginkgo.Fail("no messages returned")
 	}
 
-	return messages[0]
+	return parcels[0]
 }
 
 // loadMessages loads the messages at the head of the queue.
@@ -84,8 +84,8 @@ func loadMessages(
 	ctx context.Context,
 	r queuestore.Repository,
 	n int,
-) []*queuestore.Message {
-	messages, err := r.LoadQueueMessages(ctx, n)
+) []*queuestore.Parcel {
+	parcels, err := r.LoadQueueMessages(ctx, n)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	return messages
+	return parcels
 }

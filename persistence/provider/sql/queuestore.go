@@ -18,28 +18,28 @@ type queueDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		m *queuestore.Message,
+		p *queuestore.Parcel,
 	) (bool, error)
 
 	// UpdateQueueMessage updates meta-data about a message that is already on
 	// the queue.
 	//
-	// It returns false if the row does not exists or m.Revision is not current.
+	// It returns false if the row does not exists or p.Revision is not current.
 	UpdateQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		m *queuestore.Message,
+		p *queuestore.Parcel,
 	) (bool, error)
 
 	// DeleteQueueMessage deletes a message from the queue.
 	//
-	// It returns false if the row does not exists or m.Revision is not current.
+	// It returns false if the row does not exists or p.Revision is not current.
 	DeleteQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		m *queuestore.Message,
+		p *queuestore.Parcel,
 	) (bool, error)
 
 	// SelectQueueMessages selects up to n messages from the queue.
@@ -54,7 +54,7 @@ type queueDriver interface {
 	// SelectQueueMessages().
 	ScanQueueMessage(
 		rows *sql.Rows,
-		m *queuestore.Message,
+		p *queuestore.Parcel,
 	) error
 }
 
@@ -62,19 +62,19 @@ type queueDriver interface {
 //
 // If the message is already on the queue its meta-data is updated.
 //
-// m.Revision must be the revision of the message as currently persisted,
+// p.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // is not saved and ErrConflict is returned.
 func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
-	m *queuestore.Message,
+	p *queuestore.Parcel,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
 	op := t.ds.driver.InsertQueueMessage
-	if m.Revision > 0 {
+	if p.Revision > 0 {
 		op = t.ds.driver.UpdateQueueMessage
 	}
 
@@ -82,7 +82,7 @@ func (t *transaction) SaveMessageToQueue(
 		ctx,
 		t.actual,
 		t.ds.appKey,
-		m,
+		p,
 	)
 	if ok || err != nil {
 		return err
@@ -94,12 +94,12 @@ func (t *transaction) SaveMessageToQueue(
 // RemoveMessageFromQueue removes a specific message from the application's
 // message queue.
 //
-// m.Revision must be the revision of the message as currently persisted,
+// p.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // remains on the queue and ErrConflict is returned.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
-	m *queuestore.Message,
+	p *queuestore.Parcel,
 ) (err error) {
 	if err := t.begin(ctx); err != nil {
 		return err
@@ -109,7 +109,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		ctx,
 		t.actual,
 		t.ds.appKey,
-		m,
+		p,
 	)
 	if ok || err != nil {
 		return err
@@ -130,17 +130,17 @@ type queueStoreRepository struct {
 func (r *queueStoreRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) ([]*queuestore.Message, error) {
+) ([]*queuestore.Parcel, error) {
 	rows, err := r.driver.SelectQueueMessages(ctx, r.db, r.appKey, n)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	result := make([]*queuestore.Message, 0, n)
+	result := make([]*queuestore.Parcel, 0, n)
 
 	for rows.Next() {
-		m := &queuestore.Message{
+		p := &queuestore.Parcel{
 			Envelope: &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
 					Source: &envelopespec.Source{
@@ -151,11 +151,11 @@ func (r *queueStoreRepository) LoadQueueMessages(
 			},
 		}
 
-		if err := r.driver.ScanQueueMessage(rows, m); err != nil {
+		if err := r.driver.ScanQueueMessage(rows, p); err != nil {
 			return nil, err
 		}
 
-		result = append(result, m)
+		result = append(result, p)
 	}
 
 	return result, nil

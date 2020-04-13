@@ -66,9 +66,9 @@ var _ = Describe("type Executor", func() {
 			err := executor.ExecuteCommand(ctx, MessageA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
+			parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(messages).To(HaveLen(1))
+			Expect(parcels).To(HaveLen(1))
 
 			x := &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
@@ -89,9 +89,9 @@ var _ = Describe("type Executor", func() {
 				Data:         MessageA1Packet.Data,
 			}
 
-			m := messages[0]
-			if !proto.Equal(m.Envelope, x) {
-				Expect(m.Envelope).To(Equal(x))
+			p := parcels[0]
+			if !proto.Equal(p.Envelope, x) {
+				Expect(p.Envelope).To(Equal(x))
 			}
 		})
 
@@ -99,12 +99,12 @@ var _ = Describe("type Executor", func() {
 			err := executor.ExecuteCommand(ctx, MessageA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
+			parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(messages).To(HaveLen(1))
+			Expect(parcels).To(HaveLen(1))
 
-			m := messages[0]
-			Expect(m.NextAttemptAt).To(BeTemporally("~", time.Now()))
+			p := parcels[0]
+			Expect(p.NextAttemptAt).To(BeTemporally("~", time.Now()))
 		})
 
 		It("returns an error if the transaction can not be begun", func() {

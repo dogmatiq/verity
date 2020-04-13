@@ -10,15 +10,15 @@ import (
 // concurrency control.
 type Revision uint64
 
-// Message is a message persisted on the queue.
-type Message struct {
+// Parcel is a container for an envelope and queue store specific meta-data.
+type Parcel struct {
 	Revision      Revision
 	FailureCount  uint
 	NextAttemptAt time.Time
 	Envelope      *envelopespec.Envelope
 }
 
-// ID returns the message ID from the envelope.
-func (m *Message) ID() string {
-	return m.Envelope.MetaData.MessageId
+// ID returns the ID of the message in the parcel.
+func (p *Parcel) ID() string {
+	return p.Envelope.MetaData.MessageId
 }

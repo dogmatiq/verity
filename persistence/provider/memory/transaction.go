@@ -16,7 +16,7 @@ type transaction struct {
 
 	uncommitted struct {
 		events []*eventstore.Parcel
-		queue  map[string]*queuestore.Message
+		queue  map[string]*queuestore.Parcel
 	}
 }
 

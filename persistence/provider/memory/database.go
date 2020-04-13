@@ -15,8 +15,8 @@ type database struct {
 	open   uint32 // atomic
 	events []*eventstore.Parcel
 	queue  struct {
-		order []*queuestore.Message
-		uniq  map[string]*queuestore.Message
+		order []*queuestore.Parcel
+		uniq  map[string]*queuestore.Parcel
 	}
 }
 

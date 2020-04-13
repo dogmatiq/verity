@@ -64,7 +64,7 @@ func (s *PipelineSource) Run(ctx context.Context) error {
 func TrackEnqueuedCommands(q *Queue) pipeline.EnqueuedMessageObserver {
 	return func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
 		for _, m := range messages {
-			if err := q.Track(ctx, m.Memory, m.Persisted); err != nil {
+			if err := q.Track(ctx, m.Memory, m.Parcel); err != nil {
 				return err
 			}
 		}

@@ -41,7 +41,7 @@ var _ = Describe("type Scope", func() {
 		})
 
 		It("returns an error if the message can not be persisted", func() {
-			tx.SaveMessageToQueueFunc = func(context.Context, *queuestore.Message) error {
+			tx.SaveMessageToQueueFunc = func(context.Context, *queuestore.Parcel) error {
 				return errors.New("<error>")
 			}
 

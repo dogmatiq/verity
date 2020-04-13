@@ -10,8 +10,8 @@ import (
 
 // EnqueuedMessage contains a message that was enqueued via a scope.
 type EnqueuedMessage struct {
-	Memory    *envelope.Envelope
-	Persisted *queuestore.Message
+	Memory *envelope.Envelope
+	Parcel *queuestore.Parcel
 }
 
 // EnqueuedMessageObserver is a function that is notified when messages are

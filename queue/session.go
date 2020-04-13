@@ -23,13 +23,13 @@ type Session struct {
 // The ID is available even if the complete message envelope can not be
 // unmarshaled.
 func (s *Session) MessageID() string {
-	return s.elem.persisted.ID()
+	return s.elem.parcel.ID()
 }
 
 // FailureCount returns the number of times this message has already been
 // attempted, not including this attempt.
 func (s *Session) FailureCount() uint {
-	return s.elem.persisted.FailureCount
+	return s.elem.parcel.FailureCount
 }
 
 // Envelope returns the envelope containing the message to be handled.
@@ -39,7 +39,7 @@ func (s *Session) Envelope(context.Context) (*envelope.Envelope, error) {
 	if s.elem.memory == nil {
 		s.elem.memory, err = envelope.Unmarshal(
 			s.queue.Marshaler,
-			s.elem.persisted.Envelope,
+			s.elem.parcel.Envelope,
 		)
 	}
 
@@ -70,7 +70,7 @@ func (s *Session) Ack(ctx context.Context) error {
 		return err
 	}
 
-	if err := s.tx.RemoveMessageFromQueue(ctx, s.elem.persisted); err != nil {
+	if err := s.tx.RemoveMessageFromQueue(ctx, s.elem.parcel); err != nil {
 		return err
 	}
 
@@ -79,7 +79,7 @@ func (s *Session) Ack(ctx context.Context) error {
 	}
 
 	s.done = true
-	s.elem.persisted.Revision = 0
+	s.elem.parcel.Revision = 0
 
 	return nil
 }
@@ -96,20 +96,20 @@ func (s *Session) Nack(ctx context.Context, n time.Time) error {
 	}
 
 	s.done = true
-	s.elem.persisted.FailureCount++
-	s.elem.persisted.NextAttemptAt = n
+	s.elem.parcel.FailureCount++
+	s.elem.parcel.NextAttemptAt = n
 
 	if err := persistence.WithTransaction(
 		ctx,
 		s.queue.DataStore,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, s.elem.persisted)
+			return tx.SaveMessageToQueue(ctx, s.elem.parcel)
 		},
 	); err != nil {
 		return err
 	}
 
-	s.elem.persisted.Revision++
+	s.elem.parcel.Revision++
 
 	return nil
 }

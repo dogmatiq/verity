@@ -19,19 +19,19 @@ type CommandExecutor struct {
 // ExecuteCommand enqueues a command for execution.
 func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 	env := x.Packer.PackCommand(m)
-	qm := x.Queue.NewMessage(env, time.Now())
+	p := x.Queue.NewParcel(env, time.Now())
 
 	if err := persistence.WithTransaction(
 		ctx,
 		x.Queue.DataStore,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, qm)
+			return tx.SaveMessageToQueue(ctx, p)
 		},
 	); err != nil {
 		return err
 	}
 
-	qm.Revision++
+	p.Revision++
 
-	return x.Queue.Track(ctx, env, qm)
+	return x.Queue.Track(ctx, env, p)
 }

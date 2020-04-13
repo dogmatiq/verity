@@ -105,7 +105,7 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		queue     *Queue
 		observer  pipeline.EnqueuedMessageObserver
 		env       *envelope.Envelope
-		message   *queuestore.Message
+		parcel    *queuestore.Parcel
 	)
 
 	BeforeEach(func() {
@@ -121,7 +121,7 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 
 		observer = TrackEnqueuedCommands(queue)
 
-		message = &queuestore.Message{
+		parcel = &queuestore.Parcel{
 			NextAttemptAt: time.Now(),
 			Envelope:      envelope.MustMarshal(Marshaler, env),
 		}
@@ -130,11 +130,11 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 			ctx,
 			dataStore,
 			func(tx persistence.ManagedTransaction) error {
-				return tx.SaveMessageToQueue(ctx, message)
+				return tx.SaveMessageToQueue(ctx, parcel)
 			},
 		)
 		Expect(err).ShouldNot(HaveOccurred())
-		message.Revision++
+		parcel.Revision++
 	})
 
 	AfterEach(func() {
@@ -150,8 +150,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 			ctx,
 			[]pipeline.EnqueuedMessage{
 				{
-					Memory:    env,
-					Persisted: message,
+					Memory: env,
+					Parcel: parcel,
 				},
 			},
 		)
@@ -176,7 +176,7 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		// Instead, we set it to one, and "fill" the channel with a request to
 		// ensure that it will block.
 		queue.BufferSize = 1
-		err := queue.Track(ctx, env, message)
+		err := queue.Track(ctx, env, parcel)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Setup a short deadline for the test.
@@ -187,8 +187,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 			ctx,
 			[]pipeline.EnqueuedMessage{
 				{
-					Memory:    env,
-					Persisted: message,
+					Memory: env,
+					Parcel: parcel,
 				},
 			},
 		)
