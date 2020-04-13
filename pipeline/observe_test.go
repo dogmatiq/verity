@@ -7,6 +7,8 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
@@ -33,21 +35,21 @@ var _ = Context("observer stages", func() {
 
 			fn := func(
 				ctx context.Context,
-				messages []EnqueuedMessage,
+				pairs []queuestore.Pair,
 			) error {
 				called = true
 
-				Expect(messages).To(HaveLen(1))
+				Expect(pairs).To(HaveLen(1))
 
-				m := messages[0]
+				p := pairs[0]
 
-				Expect(m.Memory).To(Equal(effect))
-				Expect(m.Parcel.Revision).To(BeEquivalentTo(1))
-				Expect(m.Parcel.NextAttemptAt).To(BeTemporally("==", effect.CreatedAt))
+				Expect(p.Original).To(Equal(effect))
+				Expect(p.Parcel.Revision).To(BeEquivalentTo(1))
+				Expect(p.Parcel.NextAttemptAt).To(BeTemporally("==", effect.CreatedAt))
 
 				Expect(
 					proto.Equal(
-						m.Parcel.Envelope,
+						p.Parcel.Envelope,
 						envelope.MustMarshal(Marshaler, effect),
 					),
 				).To(
@@ -71,7 +73,7 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if no messages were enqueued", func() {
 			fn := func(
 				context.Context,
-				[]EnqueuedMessage,
+				[]queuestore.Pair,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -86,7 +88,7 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if the next stage fails", func() {
 			fn := func(
 				context.Context,
-				[]EnqueuedMessage,
+				[]queuestore.Pair,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -108,7 +110,7 @@ var _ = Context("observer stages", func() {
 		It("returns an error if an observer function fails", func() {
 			fn := func(
 				context.Context,
-				[]EnqueuedMessage,
+				[]queuestore.Pair,
 			) error {
 				return errors.New("<error>")
 			}
@@ -129,20 +131,20 @@ var _ = Context("observer stages", func() {
 
 			fn := func(
 				ctx context.Context,
-				messages []RecordedEvent,
+				pairs []eventstore.Pair,
 			) error {
 				called = true
 
-				Expect(messages).To(HaveLen(1))
+				Expect(pairs).To(HaveLen(1))
 
-				m := messages[0]
+				p := pairs[0]
 
-				Expect(m.Memory).To(Equal(effect))
-				Expect(m.Parcel.Offset).To(BeEquivalentTo(0))
+				Expect(p.Original).To(Equal(effect))
+				Expect(p.Parcel.Offset).To(BeEquivalentTo(0))
 
 				Expect(
 					proto.Equal(
-						m.Parcel.Envelope,
+						p.Parcel.Envelope,
 						envelope.MustMarshal(Marshaler, effect),
 					),
 				).To(
@@ -167,7 +169,7 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if no messages were enqueued", func() {
 			fn := func(
 				context.Context,
-				[]RecordedEvent,
+				[]eventstore.Pair,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -182,7 +184,7 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if the next stage fails", func() {
 			fn := func(
 				context.Context,
-				[]RecordedEvent,
+				[]eventstore.Pair,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -204,7 +206,7 @@ var _ = Context("observer stages", func() {
 		It("returns an error if an observer function fails", func() {
 			fn := func(
 				context.Context,
-				[]RecordedEvent,
+				[]eventstore.Pair,
 			) error {
 				return errors.New("<error>")
 			}

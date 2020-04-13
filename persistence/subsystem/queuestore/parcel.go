@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/envelope"
 )
 
 // Revision is the revision of a message on the queue, used for optimistic
@@ -21,4 +22,10 @@ type Parcel struct {
 // ID returns the ID of the message in the parcel.
 func (p *Parcel) ID() string {
 	return p.Envelope.MetaData.MessageId
+}
+
+// Pair encapsulates a parcel and the envelope that is encoded within it.
+type Pair struct {
+	Parcel   *Parcel
+	Original *envelope.Envelope
 }

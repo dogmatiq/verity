@@ -103,7 +103,7 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		cancel    context.CancelFunc
 		dataStore persistence.DataStore
 		queue     *Queue
-		observer  pipeline.EnqueuedMessageObserver
+		observer  pipeline.QueueObserver
 		env       *envelope.Envelope
 		parcel    *queuestore.Parcel
 	)
@@ -148,10 +148,10 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 	It("tracks messages when they are enqueued", func() {
 		err := observer(
 			ctx,
-			[]pipeline.EnqueuedMessage{
+			[]queuestore.Pair{
 				{
-					Memory: env,
-					Parcel: parcel,
+					Parcel:   parcel,
+					Original: env,
 				},
 			},
 		)
@@ -165,6 +165,11 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 	})
 
 	It("returns an error if the context deadline is exceeded", func() {
+		p := queuestore.Pair{
+			Parcel:   parcel,
+			Original: env,
+		}
+
 		// It's an implementation detail, but the internal channel used to start
 		// tracking is buffered at the same size as the overall buffer size
 		// limit.
@@ -176,22 +181,14 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		// Instead, we set it to one, and "fill" the channel with a request to
 		// ensure that it will block.
 		queue.BufferSize = 1
-		err := queue.Track(ctx, env, parcel)
+		err := queue.Track(ctx, p)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Setup a short deadline for the test.
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 		defer cancel()
 
-		err = observer(
-			ctx,
-			[]pipeline.EnqueuedMessage{
-				{
-					Memory: env,
-					Parcel: parcel,
-				},
-			},
-		)
+		err = observer(ctx, []queuestore.Pair{p})
 		Expect(err).To(Equal(context.DeadlineExceeded))
 	})
 })

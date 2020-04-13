@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // CommandExecutor is an implementation of dogma.CommandExecutor that adds
@@ -33,5 +34,11 @@ func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) e
 
 	p.Revision++
 
-	return x.Queue.Track(ctx, env, p)
+	return x.Queue.Track(
+		ctx,
+		queuestore.Pair{
+			Parcel:   p,
+			Original: env,
+		},
+	)
 }

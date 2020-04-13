@@ -121,7 +121,7 @@ var _ = Describe("type Sink", func() {
 			err := sink.Accept(context.Background(), scope)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(scope.Recorded).To(HaveLen(1))
-			Expect(scope.Recorded[0].Memory).To(Equal(effect))
+			Expect(scope.Recorded[0].Original).To(Equal(effect))
 		})
 
 		It("logs about recorded events", func() {

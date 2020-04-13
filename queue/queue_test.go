@@ -43,7 +43,13 @@ func push(
 
 	p.Revision++
 
-	err = q.Track(ctx, env, p)
+	err = q.Track(
+		ctx,
+		queuestore.Pair{
+			Parcel:   p,
+			Original: env,
+		},
+	)
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
@@ -221,9 +227,11 @@ var _ = Describe("type Queue", func() {
 				Expect(func() {
 					queue.Track(
 						ctx,
-						env0,
-						&queuestore.Parcel{
-							Revision: 0,
+						queuestore.Pair{
+							Parcel: &queuestore.Parcel{
+								Revision: 0,
+							},
+							Original: env0,
 						},
 					)
 				}).To(Panic())
@@ -289,9 +297,12 @@ var _ = Describe("type Queue", func() {
 	When("the queue is not running", func() {
 		Describe("func Track()", func() {
 			It("returns an error if the deadline is exceeded", func() {
-				p := &queuestore.Parcel{
-					Revision: 1,
-					Envelope: envelope.MustMarshal(Marshaler, env0),
+				p := queuestore.Pair{
+					Parcel: &queuestore.Parcel{
+						Revision: 1,
+						Envelope: envelope.MustMarshal(Marshaler, env0),
+					},
+					Original: env0,
 				}
 
 				// It's an implementation detail, but the internal channel used to start
@@ -305,14 +316,14 @@ var _ = Describe("type Queue", func() {
 				// Instead, we set it to one, and "fill" the channel with a request to
 				// ensure that it will block.
 				queue.BufferSize = 1
-				err := queue.Track(ctx, env0, p)
+				err := queue.Track(ctx, p)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// Setup a short deadline for the test.
 				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 				defer cancel()
 
-				err = queue.Track(ctx, env0, p)
+				err = queue.Track(ctx, p)
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
 		})
@@ -342,12 +353,15 @@ var _ = Describe("type Queue", func() {
 
 		Describe("func Track()", func() {
 			It("does not block", func() {
-				p := &queuestore.Parcel{
-					Revision: 1,
-					Envelope: envelope.MustMarshal(Marshaler, env0),
+				p := queuestore.Pair{
+					Parcel: &queuestore.Parcel{
+						Revision: 1,
+						Envelope: envelope.MustMarshal(Marshaler, env0),
+					},
+					Original: env0,
 				}
 
-				err := queue.Track(ctx, env0, p)
+				err := queue.Track(ctx, p)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})
