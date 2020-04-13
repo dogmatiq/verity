@@ -31,7 +31,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func LoadOffset()", func() {
 			ginkgo.It("loads the initial offset as zero", func() {
-				o, err := repository.LoadOffset(context.Background(), "<app-key>")
+				o, err := repository.LoadOffset(context.Background(), "<source-app-key>")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(o).Should(gomega.BeNumerically("==", 0))
 			})

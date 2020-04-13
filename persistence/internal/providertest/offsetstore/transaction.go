@@ -21,7 +21,6 @@ func DeclareTransactionTests(tc *common.TestContext) {
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 			repository = dataStore.OffsetStoreRepository()
-
 		})
 
 		ginkgo.AfterEach(func() {
@@ -29,7 +28,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 		})
 
 		ginkgo.Describe("func SaveOffset()", func() {
-			ginkgo.It("safes an offset", func() {
+			ginkgo.It("saves an offset", func() {
 				o := offsetstore.Offset(0)
 				err := common.WithTransactionRollback(
 					tc.Context,

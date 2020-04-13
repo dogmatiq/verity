@@ -28,7 +28,7 @@ type DataStore interface {
 	// QueueStoreRepository returns the application's queue store repository.
 	QueueStoreRepository() queuestore.Repository
 
-	// OffsetStoreRepository returns the application's offset repository.
+	// OffsetStoreRepository returns the application's offset store repository.
 	OffsetStoreRepository() offsetstore.Repository
 
 	// Begin starts a new transaction.

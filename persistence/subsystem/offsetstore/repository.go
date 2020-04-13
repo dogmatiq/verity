@@ -4,10 +4,10 @@ import (
 	"context"
 )
 
-// Repository is an interface for reading a persisted event stream offset of the
-// application in question.
+// Repository is an interface for reading persisted offsets.
 type Repository interface {
-	// LoadOffset loads the offset of the application with the key ak from the
-	// repository.
+	// LoadOffset loads the offset associated with a specific application.
+	//
+	// ak is the application's identity key.
 	LoadOffset(ctx context.Context, ak string) (Offset, error)
 }
