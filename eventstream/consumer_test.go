@@ -21,12 +21,13 @@ import (
 
 var _ = Describe("type Consumer", func() {
 	var (
-		ctx                                                  context.Context
-		cancel                                               func()
-		mstream                                              *MemoryStream
-		stream                                               *EventStreamStub
-		eshandler                                            *EventStreamHandlerStub
-		consumer                                             *Consumer
+		ctx       context.Context
+		cancel    func()
+		mstream   *MemoryStream
+		stream    *EventStreamStub
+		eshandler *EventStreamHandlerStub
+		consumer  *Consumer
+
 		parcel0, parcel1, parcel2, parcel3, parcel4, parcel5 *Parcel
 	)
 

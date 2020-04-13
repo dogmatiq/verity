@@ -21,9 +21,10 @@ import (
 func DeclareRepositoryTests(tc *common.TestContext) {
 	ginkgo.Describe("type eventstore.Repository", func() {
 		var (
-			dataStore                                            persistence.DataStore
-			repository                                           eventstore.Repository
-			tearDown                                             func()
+			dataStore  persistence.DataStore
+			repository eventstore.Repository
+			tearDown   func()
+
 			parcel0, parcel1, parcel2, parcel3, parcel4, parcel5 *eventstore.Parcel
 		)
 

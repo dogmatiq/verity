@@ -69,10 +69,11 @@ func Declare(
 	after func(),
 ) {
 	var (
-		ctx                                         context.Context
-		cancel                                      func()
-		in                                          In
-		out                                         Out
+		ctx    context.Context
+		cancel func()
+		in     In
+		out    Out
+
 		parcel0, parcel1, parcel2, parcel3, parcel4 *eventstream.Parcel
 	)
 
