@@ -103,18 +103,18 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ev, err := stream.Recv()
+			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: envelope.MustMarshal(Marshaler, env0),
 				},
 			))
 
-			ev, err = stream.Recv()
+			res, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   1,
 					Envelope: envelope.MustMarshal(Marshaler, env1),
@@ -132,9 +132,9 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ev, err := stream.Recv()
+			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: envelope.MustMarshal(Marshaler, env2),
@@ -151,18 +151,18 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ev, err := stream.Recv()
+			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: envelope.MustMarshal(Marshaler, env0),
 				},
 			))
 
-			ev, err = stream.Recv()
+			res, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(Equal(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: envelope.MustMarshal(Marshaler, env2),

@@ -108,7 +108,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -132,7 +132,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -156,7 +156,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				3,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   4,
 					Envelope: env,
 				},
@@ -185,7 +185,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -211,7 +211,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -235,7 +235,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -256,7 +256,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -277,7 +277,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				&eventstream.Parcel{
 					Offset:   0,
 					Envelope: env,
 				},
@@ -300,7 +300,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				err := adaptor.HandleEvent(
 					context.Background(),
 					0,
-					&eventstream.Event{
+					&eventstream.Parcel{
 						Offset:   0,
 						Envelope: env,
 					},
@@ -322,7 +322,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				err := adaptor.HandleEvent(
 					context.Background(),
 					0,
-					&eventstream.Event{
+					&eventstream.Parcel{
 						Offset:   0,
 						Envelope: env,
 					},

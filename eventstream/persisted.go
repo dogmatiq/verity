@@ -87,7 +87,7 @@ func (s *PersistedStream) Open(
 		query:      q,
 		marshaler:  s.Marshaler,
 		cancel:     cancelConsume,
-		events:     make(chan *Event, s.PreFetch),
+		events:     make(chan *Parcel, s.PreFetch),
 	}
 
 	go c.consume(consumeCtx)
@@ -102,7 +102,7 @@ type persistedCursor struct {
 	marshaler  marshalkit.ValueMarshaler
 	once       sync.Once
 	cancel     context.CancelFunc
-	events     chan *Event
+	events     chan *Parcel
 	err        error
 }
 
@@ -113,13 +113,13 @@ type persistedCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *persistedCursor) Next(ctx context.Context) (*Event, error) {
+func (c *persistedCursor) Next(ctx context.Context) (*Parcel, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case ev, ok := <-c.events:
+	case p, ok := <-c.events:
 		if ok {
-			return ev, nil
+			return p, nil
 		}
 
 		return nil, c.err
@@ -188,17 +188,17 @@ func (c *persistedCursor) execQuery(ctx context.Context) error {
 			break
 		}
 
-		ev := &Event{
+		p := &Parcel{
 			Offset: Offset(pev.Offset),
 		}
 
-		ev.Envelope, err = envelope.Unmarshal(c.marshaler, pev.Envelope)
+		p.Envelope, err = envelope.Unmarshal(c.marshaler, pev.Envelope)
 		if err != nil {
 			return err
 		}
 
 		select {
-		case c.events <- ev:
+		case c.events <- p:
 			continue
 		case <-ctx.Done():
 			return ctx.Err()

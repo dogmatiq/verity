@@ -51,14 +51,14 @@ func (s *server) Consume(
 	defer cur.Close()
 
 	for {
-		ev, err := cur.Next(ctx)
+		p, err := cur.Next(ctx)
 		if err != nil {
 			return err
 		}
 
 		res := &messagingspec.ConsumeResponse{
-			Offset:   uint64(ev.Offset),
-			Envelope: envelope.MustMarshal(s.marshaler, ev.Envelope),
+			Offset:   uint64(p.Offset),
+			Envelope: envelope.MustMarshal(s.marshaler, p.Envelope),
 		}
 
 		if err := consumer.Send(res); err != nil {

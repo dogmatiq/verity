@@ -38,9 +38,9 @@ func expectMessageToEqual(check, expect *queuestore.Message, desc ...interface{}
 func expectMessagesToEqual(check, expect []*queuestore.Message, desc ...interface{}) {
 	gomega.Expect(check).To(gomega.HaveLen(len(expect)))
 
-	for i, ev := range check {
+	for i, m := range check {
 		expectMessageToEqual(
-			ev, expect[i],
+			m, expect[i],
 			common.ExpandDescription(
 				desc,
 				fmt.Sprintf("message at index #%d of slice", i),
