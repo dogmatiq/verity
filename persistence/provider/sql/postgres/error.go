@@ -131,9 +131,9 @@ func (d errorConverter) SelectEvents(
 
 func (d errorConverter) ScanEvent(
 	rows *sql.Rows,
-	ev *eventstore.Event,
+	p *eventstore.Parcel,
 ) error {
-	return d.d.ScanEvent(rows, ev)
+	return d.d.ScanEvent(rows, p)
 }
 
 //

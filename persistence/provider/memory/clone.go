@@ -7,8 +7,8 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-func cloneEvent(ev *eventstore.Event) *eventstore.Event {
-	clone := *ev
+func cloneEventStoreParcel(p *eventstore.Parcel) *eventstore.Parcel {
+	clone := *p
 	clone.Envelope = cloneEnvelope(clone.Envelope)
 	return &clone
 }

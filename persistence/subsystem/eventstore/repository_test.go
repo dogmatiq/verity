@@ -66,25 +66,25 @@ var _ = Describe("type Query", func() {
 	Describe("func IsMatch()", func() {
 		DescribeTable(
 			"it returns true if the event matches",
-			func(q Query, ev *eventstore.Event) {
-				Expect(q.IsMatch(ev)).To(BeTrue())
+			func(q Query, p *eventstore.Parcel) {
+				Expect(q.IsMatch(p)).To(BeTrue())
 			},
 			Entry(
 				"min-offset (equal)",
 				Query{MinOffset: 3},
-				&Event{Offset: 3},
+				&Parcel{Offset: 3},
 			),
 			Entry(
 				"min-offset (greater)",
 				Query{MinOffset: 3},
-				&Event{Offset: 4},
+				&Parcel{Offset: 4},
 			),
 			Entry(
 				"type filter",
 				Query{
 					Filter: NewFilter("<name-1>", "<name-2>"),
 				},
-				&Event{
+				&Parcel{
 					Envelope: &envelopespec.Envelope{
 						PortableName: "<name-1>",
 					},
@@ -96,7 +96,7 @@ var _ = Describe("type Query", func() {
 					AggregateHandlerKey: "<handler>",
 					AggregateInstanceID: "<instance>",
 				},
-				&Event{
+				&Parcel{
 					Envelope: &envelopespec.Envelope{
 						MetaData: &envelopespec.MetaData{
 							Source: &envelopespec.Source{
@@ -113,20 +113,20 @@ var _ = Describe("type Query", func() {
 
 		DescribeTable(
 			"it returns false if the event does not match",
-			func(q Query, ev *eventstore.Event) {
-				Expect(q.IsMatch(ev)).To(BeFalse())
+			func(q Query, p *eventstore.Parcel) {
+				Expect(q.IsMatch(p)).To(BeFalse())
 			},
 			Entry(
 				"min-offset",
 				Query{MinOffset: 3},
-				&Event{Offset: 2},
+				&Parcel{Offset: 2},
 			),
 			Entry(
 				"type filter",
 				Query{
 					Filter: NewFilter("<name-1>", "<name-2>"),
 				},
-				&Event{
+				&Parcel{
 					Envelope: &envelopespec.Envelope{
 						PortableName: "<different>",
 					},
@@ -138,7 +138,7 @@ var _ = Describe("type Query", func() {
 					AggregateHandlerKey: "<handler>",
 					AggregateInstanceID: "<instance>",
 				},
-				&Event{
+				&Parcel{
 					Envelope: &envelopespec.Envelope{
 						MetaData: &envelopespec.MetaData{
 							Source: &envelopespec.Source{
@@ -157,7 +157,7 @@ var _ = Describe("type Query", func() {
 					AggregateHandlerKey: "<handler>",
 					AggregateInstanceID: "<instance>",
 				},
-				&Event{
+				&Parcel{
 					Envelope: &envelopespec.Envelope{
 						MetaData: &envelopespec.MetaData{
 							Source: &envelopespec.Source{

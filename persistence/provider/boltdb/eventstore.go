@@ -76,7 +76,7 @@ type eventStoreResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventStoreResult) Next(
 	ctx context.Context,
-) (ev *eventstore.Event, ok bool, err error) {
+) (p *eventstore.Parcel, ok bool, err error) {
 	defer bboltx.Recover(&err)
 
 	// Execute a read-only transaction.
@@ -93,8 +93,8 @@ func (r *eventStoreResult) Next(
 			for exists && !ok {
 				bboltx.Must(ctx.Err()) // Bail if we're taking too long.
 
-				ev, exists = loadEvent(events, r.query.MinOffset)
-				ok = exists && r.query.IsMatch(ev)
+				p, exists = loadParcel(events, r.query.MinOffset)
+				ok = exists && r.query.IsMatch(p)
 
 				r.query.MinOffset++
 			}
@@ -153,11 +153,11 @@ func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
 	bboltx.Put(b, offsetKey, data)
 }
 
-// loadEvent loads an event at a specific offset.
-func loadEvent(
+// loadParcel loads a parcel at a specific offset.
+func loadParcel(
 	events *bbolt.Bucket,
 	o eventstore.Offset,
-) (*eventstore.Event, bool) {
+) (*eventstore.Parcel, bool) {
 	k := marshalOffset(o)
 	v := events.Get(k)
 
@@ -168,7 +168,7 @@ func loadEvent(
 	var env envelopespec.Envelope
 	bboltx.Must(proto.Unmarshal(v, &env))
 
-	return &eventstore.Event{
+	return &eventstore.Parcel{
 		Offset:   o,
 		Envelope: &env,
 	}, true

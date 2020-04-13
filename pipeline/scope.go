@@ -93,7 +93,7 @@ func (s *Scope) RecordEvent(
 		s.Recorded,
 		RecordedEvent{
 			Memory: env,
-			Persisted: &eventstore.Event{
+			Parcel: &eventstore.Parcel{
 				Offset:   o,
 				Envelope: penv,
 			},

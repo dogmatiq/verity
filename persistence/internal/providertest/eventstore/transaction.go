@@ -94,7 +94,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				var (
 					g      sync.WaitGroup
 					m      sync.Mutex
-					expect []*eventstore.Event
+					expect []*eventstore.Parcel
 				)
 
 				fn := func(env *envelopespec.Envelope) {
@@ -107,7 +107,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 					expect = append(
 						expect,
-						&eventstore.Event{
+						&eventstore.Parcel{
 							Offset:   o,
 							Envelope: env,
 						},
@@ -132,7 +132,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				)
 
 				events := queryEvents(tc.Context, repository, eventstore.Query{})
-				expectEventsToEqual(events, expect)
+				expectParcelsToEqual(events, expect)
 			})
 
 			ginkgo.When("the transaction is rolled-back", func() {

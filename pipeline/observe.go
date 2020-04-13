@@ -36,8 +36,8 @@ func WhenMessageEnqueued(fn EnqueuedMessageObserver) Stage {
 
 // RecordedEvent contains an event that was recorded via a scope.
 type RecordedEvent struct {
-	Memory    *envelope.Envelope
-	Persisted *eventstore.Event
+	Memory *envelope.Envelope
+	Parcel *eventstore.Parcel
 }
 
 // RecordedEventObserver is a function that is notified when events are

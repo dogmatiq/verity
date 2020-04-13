@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
@@ -22,45 +21,59 @@ import (
 func DeclareRepositoryTests(tc *common.TestContext) {
 	ginkgo.Describe("type eventstore.Repository", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository eventstore.Repository
-			tearDown   func()
-
-			env0, env1, env2, env3, env4, env5             *envelopespec.Envelope
-			event0, event1, event2, event3, event4, event5 *eventstore.Event
+			dataStore                                            persistence.DataStore
+			repository                                           eventstore.Repository
+			tearDown                                             func()
+			parcel0, parcel1, parcel2, parcel3, parcel4, parcel5 *eventstore.Parcel
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 			repository = dataStore.EventStoreRepository()
 
-			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
-			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1)
-			env2 = infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1)
-			env3 = infixfixtures.NewEnvelopeProto("<message-3>", dogmafixtures.MessageA2)
-			env4 = infixfixtures.NewEnvelopeProto("<message-4>", dogmafixtures.MessageB2)
-			env5 = infixfixtures.NewEnvelopeProto("<message-5>", dogmafixtures.MessageC2)
+			parcel0 = &eventstore.Parcel{
+				Offset:   0,
+				Envelope: infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1),
+			}
 
-			event0 = &eventstore.Event{Offset: 0, Envelope: env0}
-			event1 = &eventstore.Event{Offset: 1, Envelope: env1}
-			event2 = &eventstore.Event{Offset: 2, Envelope: env2}
-			event3 = &eventstore.Event{Offset: 3, Envelope: env3}
-			event4 = &eventstore.Event{Offset: 4, Envelope: env4}
-			event5 = &eventstore.Event{Offset: 5, Envelope: env5}
+			parcel1 = &eventstore.Parcel{
+				Offset:   1,
+				Envelope: infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1),
+			}
+
+			parcel2 = &eventstore.Parcel{
+				Offset:   2,
+				Envelope: infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1),
+			}
+
+			parcel3 = &eventstore.Parcel{
+				Offset:   3,
+				Envelope: infixfixtures.NewEnvelopeProto("<message-3>", dogmafixtures.MessageA2),
+			}
+
+			parcel4 = &eventstore.Parcel{
+				Offset:   4,
+				Envelope: infixfixtures.NewEnvelopeProto("<message-4>", dogmafixtures.MessageB2),
+			}
+
+			parcel5 = &eventstore.Parcel{
+				Offset:   5,
+				Envelope: infixfixtures.NewEnvelopeProto("<message-5>", dogmafixtures.MessageC2),
+			}
 
 			// Setup some different source handler values to test the aggregate
 			// instance filtering.
-			env0.MetaData.Source.Handler.Key = "<aggregate>"
-			env0.MetaData.Source.InstanceId = "<instance-a>"
+			parcel0.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			parcel0.Envelope.MetaData.Source.InstanceId = "<instance-a>"
 
-			env1.MetaData.Source.Handler.Key = "<aggregate>"
-			env1.MetaData.Source.InstanceId = "<instance-b>"
+			parcel1.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			parcel1.Envelope.MetaData.Source.InstanceId = "<instance-b>"
 
-			env2.MetaData.Source.Handler.Key = "<aggregate>"
-			env2.MetaData.Source.InstanceId = "<instance-a>"
+			parcel2.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			parcel2.Envelope.MetaData.Source.InstanceId = "<instance-a>"
 
-			env3.MetaData.Source.Handler.Key = "<aggregate>"
-			env3.MetaData.Source.InstanceId = "<instance-b>"
+			parcel3.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			parcel3.Envelope.MetaData.Source.InstanceId = "<instance-b>"
 		})
 
 		ginkgo.AfterEach(func() {
@@ -75,24 +88,24 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 			table.DescribeTable(
 				"it returns a result containing the events that match the query criteria",
-				func(q eventstore.Query, expected ...**eventstore.Event) {
+				func(q eventstore.Query, expected ...**eventstore.Parcel) {
 					saveEvents(
 						tc.Context,
 						dataStore,
-						env0,
-						env1,
-						env2,
-						env3,
-						env4,
-						env5,
+						parcel0.Envelope,
+						parcel1.Envelope,
+						parcel2.Envelope,
+						parcel3.Envelope,
+						parcel4.Envelope,
+						parcel5.Envelope,
 					)
 
 					events := queryEvents(tc.Context, repository, q)
 					gomega.Expect(events).To(gomega.HaveLen(len(expected)))
 
-					for i, ev := range events {
-						expectEventToEqual(
-							ev,
+					for i, p := range events {
+						expectParcelToEqual(
+							p,
 							*expected[i],
 							fmt.Sprintf("event at index #%d of slice", i),
 						)
@@ -101,12 +114,12 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				table.Entry(
 					"it includes all events by default",
 					eventstore.Query{},
-					&event0, &event1, &event2, &event3, &event4, &event5,
+					&parcel0, &parcel1, &parcel2, &parcel3, &parcel4, &parcel5,
 				),
 				table.Entry(
 					"it honours the minimum offset",
 					eventstore.Query{MinOffset: 3},
-					&event3, &event4, &event5,
+					&parcel3, &parcel4, &parcel5,
 				),
 				table.Entry(
 					"it returns an empty result if the minimum offset is larger than the largest offset",
@@ -121,7 +134,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 							marshalfixtures.MessageCPortableName,
 						),
 					},
-					&event0, &event2, &event3, &event5,
+					&parcel0, &parcel2, &parcel3, &parcel5,
 				),
 				table.Entry(
 					"it honours the aggregate instance filter",
@@ -129,7 +142,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						AggregateHandlerKey: "<aggregate>",
 						AggregateInstanceID: "<instance-a>",
 					},
-					&event0, &event2,
+					&parcel0, &parcel2,
 				),
 			)
 
@@ -137,12 +150,12 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				saveEvents(
 					tc.Context,
 					dataStore,
-					env0,
-					env1,
-					env2,
-					env3,
-					env4,
-					env5,
+					parcel0.Envelope,
+					parcel1.Envelope,
+					parcel2.Envelope,
+					parcel3.Envelope,
+					parcel4.Envelope,
+					parcel5.Envelope,
 				)
 
 				q := eventstore.Query{
@@ -175,8 +188,8 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				saveEvents(
 					tc.Context,
 					dataStore,
-					env0,
-					env1,
+					parcel0.Envelope,
+					parcel1.Envelope,
 				)
 
 				// The implementation may or may not expose these newly

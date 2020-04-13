@@ -63,24 +63,24 @@ type Query struct {
 	AggregateInstanceID string
 }
 
-// IsMatch returns true if ev matches the query criteria.
-func (q Query) IsMatch(ev *Event) bool {
-	if ev.Offset < q.MinOffset {
+// IsMatch returns true if p matches the query criteria.
+func (q Query) IsMatch(p *Parcel) bool {
+	if p.Offset < q.MinOffset {
 		return false
 	}
 
 	if len(q.Filter) > 0 {
-		if _, ok := q.Filter[ev.Envelope.PortableName]; !ok {
+		if _, ok := q.Filter[p.Envelope.PortableName]; !ok {
 			return false
 		}
 	}
 
 	if q.AggregateHandlerKey != "" {
-		if ev.Envelope.MetaData.Source.Handler.Key != q.AggregateHandlerKey {
+		if p.Envelope.MetaData.Source.Handler.Key != q.AggregateHandlerKey {
 			return false
 		}
 
-		if ev.Envelope.MetaData.Source.InstanceId != q.AggregateInstanceID {
+		if p.Envelope.MetaData.Source.InstanceId != q.AggregateInstanceID {
 			return false
 		}
 	}
@@ -95,7 +95,7 @@ type Result interface {
 	// Next returns the next event in the result.
 	//
 	// It returns false if the are no more events in the result.
-	Next(ctx context.Context) (*Event, bool, error)
+	Next(ctx context.Context) (*Parcel, bool, error)
 
 	// Close closes the cursor.
 	Close() error

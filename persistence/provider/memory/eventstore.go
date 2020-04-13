@@ -25,7 +25,7 @@ func (t *transaction) SaveEvent(
 
 	t.uncommitted.events = append(
 		t.uncommitted.events,
-		&eventstore.Event{
+		&eventstore.Parcel{
 			Offset:   next,
 			Envelope: cloneEnvelope(env),
 		},
@@ -73,7 +73,7 @@ type eventStoreResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventStoreResult) Next(
 	ctx context.Context,
-) (*eventstore.Event, bool, error) {
+) (*eventstore.Parcel, bool, error) {
 	if err := r.db.RLock(ctx); err != nil {
 		return nil, false, err
 	}
@@ -84,13 +84,13 @@ func (r *eventStoreResult) Next(
 			return nil, false, ctx.Err()
 		}
 
-		ev := r.db.events[r.index]
+		p := r.db.events[r.index]
 		r.index++
 
-		if r.query.IsMatch(ev) {
+		if r.query.IsMatch(p) {
 			// Clone event on the way out so inadvertent manipulation does not
 			// affect the data in the data-store.
-			return cloneEvent(ev), true, nil
+			return cloneEventStoreParcel(p), true, nil
 		}
 	}
 
