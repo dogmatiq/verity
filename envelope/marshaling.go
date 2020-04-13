@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 )
@@ -26,7 +27,7 @@ func Marshal(
 	}
 
 	return &envelopespec.Envelope{
-		MetaData:     marshalMetaData(&env.MetaData),
+		MetaData:     marshalMetaData(env.Message, &env.MetaData),
 		PortableName: n,
 		MediaType:    p.MediaType,
 		Data:         p.Data,
@@ -71,7 +72,7 @@ func Unmarshal(
 }
 
 // marshalMetaData marshals message meta-data to its protobuf representation.
-func marshalMetaData(in *MetaData) *envelopespec.MetaData {
+func marshalMetaData(m dogma.Message, in *MetaData) *envelopespec.MetaData {
 	return &envelopespec.MetaData{
 		MessageId:     in.MessageID,
 		CausationId:   in.CausationID,
@@ -79,6 +80,7 @@ func marshalMetaData(in *MetaData) *envelopespec.MetaData {
 		Source:        marshalSource(&in.Source),
 		CreatedAt:     marshalTime(in.CreatedAt),
 		ScheduledFor:  marshalTime(in.ScheduledFor),
+		Description:   dogma.DescribeMessage(m),
 	}
 }
 
