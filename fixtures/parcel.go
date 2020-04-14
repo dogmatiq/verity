@@ -41,7 +41,7 @@ func NewParcel(
 	cleanseTime(&createdAt)
 	cleanseTime(&scheduledFor)
 
-	return &parcel.Parcel{
+	p := &parcel.Parcel{
 		Envelope: &envelopespec.Envelope{
 			MetaData: &envelopespec.MetaData{
 				MessageId:     id,
@@ -65,9 +65,13 @@ func NewParcel(
 		Message:      m,
 		ScheduledFor: scheduledFor,
 	}
+
+	envelope.MustMarshalMessage(fixtures.Marshaler, m, p.Envelope)
+
+	return p
 }
 
-// NewPacker returns an parce packer that uses a deterministic ID sequence and
+// NewPacker returns a parcel packer that uses a deterministic ID sequence and
 // clock.
 //
 // MessageID is a monotonically increasing integer, starting at 0. CreatedAt

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/parcel"
@@ -25,13 +24,11 @@ var _ = Describe("type PipelineSource", func() {
 		dataStore persistence.DataStore
 		queue     *Queue
 		source    *PipelineSource
-		env       *envelope.Envelope
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		env = NewEnvelope("<id>", MessageA1)
 		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
@@ -44,7 +41,8 @@ var _ = Describe("type PipelineSource", func() {
 			Semaphore: handler.NewSemaphore(1),
 		}
 
-		push(ctx, queue, env)
+		p := NewParcel("<id>", MessageA1)
+		push(ctx, queue, p)
 	})
 
 	JustBeforeEach(func() {

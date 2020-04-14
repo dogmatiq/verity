@@ -6,9 +6,9 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -23,19 +23,19 @@ var _ pipeline.Session = (*Session)(nil)
 
 var _ = Describe("type Session", func() {
 	var (
-		ctx        context.Context
-		cancel     context.CancelFunc
-		dataStore  *DataStoreStub
-		queue      *Queue
-		sess       *Session
-		env0, env1 *envelope.Envelope
+		ctx              context.Context
+		cancel           context.CancelFunc
+		dataStore        *DataStoreStub
+		queue            *Queue
+		sess             *Session
+		parcel0, parcel1 *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		env0 = NewEnvelope("<message-0>", MessageA1)
-		env1 = NewEnvelope("<message-1>", MessageA2)
+		parcel0 = NewParcel("<message-0>", MessageA1)
+		parcel1 = NewParcel("<message-1>", MessageA2)
 
 		dataStore = NewDataStoreStub()
 
@@ -48,7 +48,7 @@ var _ = Describe("type Session", func() {
 	JustBeforeEach(func() {
 		go queue.Run(ctx)
 
-		push(ctx, queue, env0)
+		push(ctx, queue, parcel0)
 
 		var err error
 		sess, err = queue.Pop(ctx)
@@ -88,9 +88,7 @@ var _ = Describe("type Session", func() {
 	Describe("func Envelope()", func() {
 		It("returns the message envelope", func() {
 			e := sess.Envelope()
-			Expect(e).To(EqualX(
-				envelope.MustMarshal(Marshaler, env0),
-			))
+			Expect(e).To(EqualX(parcel0.Envelope))
 		})
 	})
 
@@ -98,14 +96,14 @@ var _ = Describe("type Session", func() {
 		It("returns the message", func() {
 			m, err := sess.Message()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(EqualX(env0.Message))
+			Expect(m).To(EqualX(parcel0.Message))
 		})
 
 		It("unmarshals the message if necessary", func() {
 			// Push a new message, which will get discarded from memory due to
 			// the buffer size limit.
 			queue.BufferSize = 1
-			push(ctx, queue, env1)
+			push(ctx, queue, parcel1)
 
 			// Commit and close the existing session for env0, freeing us to
 			// load again.
@@ -123,7 +121,7 @@ var _ = Describe("type Session", func() {
 			// Finally, verify that the message is unpacked.
 			m, err := sess.Message()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(EqualX(env1.Message))
+			Expect(m).To(EqualX(parcel1.Message))
 		})
 	})
 

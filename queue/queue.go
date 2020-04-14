@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
@@ -104,16 +103,6 @@ func (q *Queue) Pop(ctx context.Context) (*Session, error) {
 			queue: q,
 			elem:  e,
 		}, nil
-	}
-}
-
-// NewItem returns a new queue store item containing the given envelope.
-//
-// TODO: remove this
-func (q *Queue) NewItem(env *envelope.Envelope, n time.Time) *queuestore.Item {
-	return &queuestore.Item{
-		NextAttemptAt: n,
-		Envelope:      envelope.MustMarshal(q.Marshaler, env),
 	}
 }
 

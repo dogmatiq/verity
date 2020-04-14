@@ -50,9 +50,13 @@ func (s *Session) Message() (dogma.Message, error) {
 			s.queue.Marshaler,
 			s.elem.item.Envelope,
 		)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return s.elem.parcel.Message, err
+	return s.elem.parcel.Message, nil
 }
 
 // Tx returns the transaction under which the message must be handled, starting
