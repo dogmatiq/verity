@@ -127,7 +127,7 @@ func (s *NetworkStream) Open(
 			stream:    stream,
 			marshaler: s.Marshaler,
 			cancel:    cancelConsume,
-			events:    make(chan *Parcel, s.PreFetch),
+			events:    make(chan *Event, s.PreFetch),
 		}
 
 		go c.consume()
@@ -142,7 +142,7 @@ type networkCursor struct {
 	marshaler marshalkit.ValueMarshaler
 	once      sync.Once
 	cancel    context.CancelFunc
-	events    chan *Parcel
+	events    chan *Event
 	err       error
 }
 
@@ -153,13 +153,13 @@ type networkCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *networkCursor) Next(ctx context.Context) (*Parcel, error) {
+func (c *networkCursor) Next(ctx context.Context) (*Event, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case p, ok := <-c.events:
+	case ev, ok := <-c.events:
 		if ok {
-			return p, nil
+			return ev, nil
 		}
 
 		return nil, c.err
@@ -219,17 +219,17 @@ func (c *networkCursor) recv() error {
 		return err
 	}
 
-	p := &Parcel{
+	ev := &Event{
 		Offset: Offset(res.Offset),
 	}
 
-	p.Envelope, err = envelope.Unmarshal(c.marshaler, res.GetEnvelope())
+	ev.Envelope, err = envelope.Unmarshal(c.marshaler, res.GetEnvelope())
 	if err != nil {
 		return err
 	}
 
 	select {
-	case c.events <- p:
+	case c.events <- ev:
 		return nil
 	case <-c.stream.Context().Done():
 		return c.stream.Context().Err()

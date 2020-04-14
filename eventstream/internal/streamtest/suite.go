@@ -74,31 +74,31 @@ func Declare(
 		in     In
 		out    Out
 
-		parcel0, parcel1, parcel2, parcel3, parcel4 *eventstream.Parcel
+		event0, event1, event2, event3, event4 *eventstream.Event
 	)
 
 	ginkgo.BeforeEach(func() {
-		parcel0 = &eventstream.Parcel{
+		event0 = &eventstream.Event{
 			Offset:   0,
 			Envelope: infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
 		}
 
-		parcel1 = &eventstream.Parcel{
+		event1 = &eventstream.Event{
 			Offset:   1,
 			Envelope: infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
 		}
 
-		parcel2 = &eventstream.Parcel{
+		event2 = &eventstream.Event{
 			Offset:   2,
 			Envelope: infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA2),
 		}
 
-		parcel3 = &eventstream.Parcel{
+		event3 = &eventstream.Event{
 			Offset:   3,
 			Envelope: infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageB2),
 		}
 
-		parcel4 = &eventstream.Parcel{
+		event4 = &eventstream.Event{
 			Offset:   4,
 			Envelope: infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageC1),
 		}
@@ -112,13 +112,13 @@ func Declare(
 			cfg := configkit.FromApplication(&dogmafixtures.Application{
 				ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 					// use the application identity from the envelope fixtures
-					id := parcel0.Envelope.MetaData.Source.Application
+					id := event0.Envelope.MetaData.Source.Application
 					c.Identity(id.Name, id.Key)
 
 					c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
 						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 							// use the handler identity from the envelope fixtures
-							id := parcel0.Envelope.MetaData.Source.Handler
+							id := event0.Envelope.MetaData.Source.Handler
 							c.Identity(id.Name, id.Key)
 
 							c.ConsumesCommandType(dogmafixtures.MessageX{})
@@ -171,10 +171,10 @@ func Declare(
 				ginkgo.BeforeEach(func() {
 					out.Append(
 						ctx,
-						parcel0.Envelope,
-						parcel1.Envelope,
-						parcel2.Envelope,
-						parcel3.Envelope,
+						event0.Envelope,
+						event1.Envelope,
+						event2.Envelope,
+						event3.Envelope,
 					)
 				})
 
@@ -183,9 +183,9 @@ func Declare(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
-					p, err := cur.Next(ctx)
+					ev, err := cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(p).To(gomega.Equal(parcel2))
+					gomega.Expect(ev).To(gomega.Equal(event2))
 				})
 
 				ginkgo.It("limits results to the supplied message types", func() {
@@ -197,13 +197,13 @@ func Declare(
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer cur.Close()
 
-					p, err := cur.Next(ctx)
+					ev, err := cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(p).To(gomega.Equal(parcel0))
+					gomega.Expect(ev).To(gomega.Equal(event0))
 
-					p, err = cur.Next(ctx)
+					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(p).To(gomega.Equal(parcel2))
+					gomega.Expect(ev).To(gomega.Equal(event2))
 				})
 
 				ginkgo.It("panics if no event types are specified", func() {
@@ -263,10 +263,10 @@ func Declare(
 					ginkgo.BeforeEach(func() {
 						out.Append(
 							ctx,
-							parcel0.Envelope,
-							parcel1.Envelope,
-							parcel2.Envelope,
-							parcel3.Envelope,
+							event0.Envelope,
+							event1.Envelope,
+							event2.Envelope,
+							event3.Envelope,
 						)
 					})
 
@@ -275,21 +275,21 @@ func Declare(
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						defer cur.Close()
 
-						p, err := cur.Next(ctx)
+						ev, err := cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(p).To(gomega.Equal(parcel0))
+						gomega.Expect(ev).To(gomega.Equal(event0))
 
-						p, err = cur.Next(ctx)
+						ev, err = cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(p).To(gomega.Equal(parcel1))
+						gomega.Expect(ev).To(gomega.Equal(event1))
 
-						p, err = cur.Next(ctx)
+						ev, err = cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(p).To(gomega.Equal(parcel2))
+						gomega.Expect(ev).To(gomega.Equal(event2))
 
-						p, err = cur.Next(ctx)
+						ev, err = cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(p).To(gomega.Equal(parcel3))
+						gomega.Expect(ev).To(gomega.Equal(event3))
 					})
 
 					ginkgo.It("returns an error if the cursor is closed", func() {
@@ -326,12 +326,12 @@ func Declare(
 
 							go func() {
 								time.Sleep(out.AssumeBlockingDuration)
-								out.Append(ctx, parcel4.Envelope)
+								out.Append(ctx, event4.Envelope)
 							}()
 
-							p, err := cur.Next(ctx)
+							ev, err := cur.Next(ctx)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-							gomega.Expect(p).To(gomega.Equal(parcel4))
+							gomega.Expect(ev).To(gomega.Equal(event4))
 						})
 
 						ginkgo.It("returns an error if the cursor is closed", func() {
@@ -394,9 +394,9 @@ func Declare(
 									defer cur.Close()
 
 									barrier <- struct{}{}
-									p, err := cur.Next(ctx)
+									ev, err := cur.Next(ctx)
 									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-									gomega.Expect(p).To(gomega.Equal(parcel4))
+									gomega.Expect(ev).To(gomega.Equal(event4))
 
 									return nil
 								}()
@@ -414,7 +414,7 @@ func Declare(
 							time.Sleep(out.AssumeBlockingDuration)
 
 							// wake the consumers
-							out.Append(ctx, parcel4.Envelope)
+							out.Append(ctx, event4.Envelope)
 						})
 					})
 				})

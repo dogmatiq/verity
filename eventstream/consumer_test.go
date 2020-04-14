@@ -28,38 +28,38 @@ var _ = Describe("type Consumer", func() {
 		eshandler *EventStreamHandlerStub
 		consumer  *Consumer
 
-		parcel0, parcel1, parcel2, parcel3, parcel4, parcel5 *Parcel
+		event0, event1, event2, event3, event4, event5 *Event
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		parcel0 = &Parcel{
+		event0 = &Event{
 			Offset:   0,
 			Envelope: NewEnvelope("<message-0>", MessageA1),
 		}
 
-		parcel1 = &Parcel{
+		event1 = &Event{
 			Offset:   1,
 			Envelope: NewEnvelope("<message-1>", MessageB1),
 		}
 
-		parcel2 = &Parcel{
+		event2 = &Event{
 			Offset:   2,
 			Envelope: NewEnvelope("<message-2>", MessageA2),
 		}
 
-		parcel3 = &Parcel{
+		event3 = &Event{
 			Offset:   3,
 			Envelope: NewEnvelope("<message-3>", MessageB2),
 		}
 
-		parcel4 = &Parcel{
+		event4 = &Event{
 			Offset:   4,
 			Envelope: NewEnvelope("<message-4>", MessageA3),
 		}
 
-		parcel5 = &Parcel{
+		event5 = &Event{
 			Offset:   5,
 			Envelope: NewEnvelope("<message-5>", MessageB3),
 		}
@@ -77,12 +77,12 @@ var _ = Describe("type Consumer", func() {
 		}
 
 		mstream.Append(
-			parcel0.Envelope,
-			parcel1.Envelope,
-			parcel2.Envelope,
-			parcel3.Envelope,
-			parcel4.Envelope,
-			parcel5.Envelope,
+			event0.Envelope,
+			event1.Envelope,
+			event2.Envelope,
+			event3.Envelope,
+			event4.Envelope,
+			event5.Envelope,
 		)
 
 		eshandler = &EventStreamHandlerStub{}
@@ -104,15 +104,15 @@ var _ = Describe("type Consumer", func() {
 
 	Describe("func Run()", func() {
 		It("passes the filtered events to the handler in order", func() {
-			var parcels []*Parcel
+			var events []*Event
 			eshandler.HandleEventFunc = func(
 				_ context.Context,
 				_ eventstream.Offset,
-				p *Parcel,
+				ev *Event,
 			) error {
-				parcels = append(parcels, p)
+				events = append(events, ev)
 
-				if len(parcels) == 3 {
+				if len(events) == 3 {
 					cancel()
 				}
 
@@ -121,11 +121,11 @@ var _ = Describe("type Consumer", func() {
 
 			err := consumer.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
-			Expect(parcels).To(Equal(
-				[]*Parcel{
-					parcel0,
-					parcel2,
-					parcel4,
+			Expect(events).To(Equal(
+				[]*Event{
+					event0,
+					event2,
+					event4,
 				},
 			))
 		})
@@ -152,9 +152,9 @@ var _ = Describe("type Consumer", func() {
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
-					p *Parcel,
+					ev *Event,
 				) error {
-					Expect(p).To(Equal(parcel0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 					return nil
 				}
@@ -175,9 +175,9 @@ var _ = Describe("type Consumer", func() {
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
-					p *Parcel,
+					ev *Event,
 				) error {
-					Expect(p).To(Equal(parcel0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 					return nil
 				}
@@ -193,14 +193,14 @@ var _ = Describe("type Consumer", func() {
 			eshandler.HandleEventFunc = func(
 				context.Context,
 				eventstream.Offset,
-				*Parcel,
+				*Event,
 			) error {
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
-					p *Parcel,
+					ev *Event,
 				) error {
-					Expect(p).To(Equal(parcel0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 					return nil
 				}
@@ -268,9 +268,9 @@ var _ = Describe("type Consumer", func() {
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
-					p *Parcel,
+					ev *Event,
 				) error {
-					Expect(p).To(Equal(parcel2))
+					Expect(ev).To(Equal(event2))
 					cancel()
 					return nil
 				}
@@ -290,7 +290,7 @@ var _ = Describe("type Consumer", func() {
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					o eventstream.Offset,
-					_ *Parcel,
+					_ *Event,
 				) error {
 					Expect(o).To(BeNumerically("==", 2))
 					cancel()
@@ -305,7 +305,7 @@ var _ = Describe("type Consumer", func() {
 				eshandler.HandleEventFunc = func(
 					context.Context,
 					eventstream.Offset,
-					*Parcel,
+					*Event,
 				) error {
 					eshandler.NextOffsetFunc = func(
 						context.Context,
@@ -317,9 +317,9 @@ var _ = Describe("type Consumer", func() {
 					eshandler.HandleEventFunc = func(
 						_ context.Context,
 						_ eventstream.Offset,
-						p *Parcel,
+						ev *Event,
 					) error {
-						Expect(p).To(Equal(parcel2))
+						Expect(ev).To(Equal(event2))
 						cancel()
 						return nil
 					}
@@ -343,9 +343,9 @@ var _ = Describe("type Consumer", func() {
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
 					_ eventstream.Offset,
-					p *Parcel,
+					ev *Event,
 				) error {
-					Expect(p).To(Equal(parcel0))
+					Expect(ev).To(Equal(event0))
 					cancel()
 
 					return nil

@@ -44,7 +44,7 @@ type Cursor interface {
 	//
 	// If the stream is closed before or during a call to Next(), it returns
 	// ErrCursorClosed.
-	Next(ctx context.Context) (*Parcel, error)
+	Next(ctx context.Context) (*Event, error)
 
 	// Close discards the cursor.
 	//

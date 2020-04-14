@@ -19,7 +19,7 @@ type MemoryStream struct {
 
 	m         sync.Mutex
 	ready     chan struct{}
-	envelopes []*envelope.Envelope // TODO: Change to Parcel
+	envelopes []*envelope.Envelope // TODO: change to Event
 }
 
 // Application returns the identity of the application that owns the stream.
@@ -100,7 +100,7 @@ type memoryCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *memoryCursor) Next(ctx context.Context) (*Parcel, error) {
+func (c *memoryCursor) Next(ctx context.Context) (*Event, error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -144,7 +144,7 @@ func (c *memoryCursor) Close() error {
 
 // get returns the next relevant event, or if the end of the stream is reached,
 // it returns a "ready" channel that is closed when an event is appended.
-func (c *memoryCursor) get() (*Parcel, <-chan struct{}) {
+func (c *memoryCursor) get() (*Event, <-chan struct{}) {
 	c.stream.m.Lock()
 	defer c.stream.m.Unlock()
 
@@ -155,7 +155,7 @@ func (c *memoryCursor) get() (*Parcel, <-chan struct{}) {
 		env := c.stream.envelopes[offset]
 
 		if c.filter.HasM(env.Message) {
-			return &Parcel{
+			return &Event{
 				Offset:   offset,
 				Envelope: env,
 			}, nil

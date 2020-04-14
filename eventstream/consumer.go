@@ -22,8 +22,8 @@ type Handler interface {
 	// HandleEvent handles an event obtained from the event stream.
 	//
 	// o must be the offset that would be returned by NextOffset(). On success,
-	// the next call to NextOffset() will return p.Offset + 1.
-	HandleEvent(ctx context.Context, o Offset, p *Parcel) error
+	// the next call to NextOffset() will return ev.Offset + 1.
+	HandleEvent(ctx context.Context, o Offset, ev *Event) error
 }
 
 // Consumer reads events from a stream in order to handle them.
@@ -151,7 +151,7 @@ func (c *Consumer) open(
 
 // consumeNext waits for the next event on the stream then handles it.
 func (c *Consumer) consumeNext(ctx context.Context, cur Cursor) error {
-	p, err := cur.Next(ctx)
+	ev, err := cur.Next(ctx)
 	if err != nil {
 		return err
 	}
@@ -169,12 +169,12 @@ func (c *Consumer) consumeNext(ctx context.Context, cur Cursor) error {
 	}
 	defer c.Semaphore.Release()
 
-	if err := c.Handler.HandleEvent(ctx, c.offset, p); err != nil {
+	if err := c.Handler.HandleEvent(ctx, c.offset, ev); err != nil {
 		c.handlerFailed = true
 		return err
 	}
 
-	c.offset = p.Offset + 1
+	c.offset = ev.Offset + 1
 	c.backoff.Reset()
 
 	return nil
