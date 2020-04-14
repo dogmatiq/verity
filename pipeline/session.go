@@ -25,6 +25,8 @@ type Session interface {
 	// Message returns the Dogma message that is to be handled.
 	//
 	// It returns an error if the message can not be unpacked.
+	//
+	// TODO: move this to Scope and make it return the parcel.
 	Message() (dogma.Message, error)
 
 	// Tx returns the transaction used to persist data within this session.

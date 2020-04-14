@@ -47,8 +47,8 @@ func push(
 	err = q.Track(
 		ctx,
 		queuestore.Pair{
-			Parcel:   p,
-			Original: env,
+			Parcel:  p,
+			Message: env.Message,
 		},
 	)
 	Expect(err).ShouldNot(HaveOccurred())
@@ -236,7 +236,7 @@ var _ = Describe("type Queue", func() {
 							Parcel: &queuestore.Parcel{
 								Revision: 0,
 							},
-							Original: env0,
+							Message: env0.Message,
 						},
 					)
 				}).To(Panic())
@@ -307,7 +307,7 @@ var _ = Describe("type Queue", func() {
 						Revision: 1,
 						Envelope: envelope.MustMarshal(Marshaler, env0),
 					},
-					Original: env0,
+					Message: env0.Message,
 				}
 
 				// It's an implementation detail, but the internal channel used to start
@@ -363,7 +363,7 @@ var _ = Describe("type Queue", func() {
 						Revision: 1,
 						Envelope: envelope.MustMarshal(Marshaler, env0),
 					},
-					Original: env0,
+					Message: env0.Message,
 				}
 
 				err := queue.Track(ctx, p)

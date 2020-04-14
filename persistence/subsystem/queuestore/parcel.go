@@ -3,8 +3,8 @@ package queuestore
 import (
 	"time"
 
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 )
 
 // Revision is the revision of a message on the queue, used for optimistic
@@ -26,6 +26,6 @@ func (p *Parcel) ID() string {
 
 // Pair encapsulates a parcel and the envelope that is encoded within it.
 type Pair struct {
-	Parcel   *Parcel
-	Original *envelope.Envelope
+	Parcel  *Parcel
+	Message dogma.Message
 }

@@ -22,14 +22,16 @@ var _ = Describe("func RouteByType()", func() {
 	)
 
 	BeforeEach(func() {
-		env := NewEnvelope("<id>", MessageA1)
-		scope, sess, _ = NewPipelineScope(env, nil)
+		scope, sess, _ = NewPipelineScope(
+			NewEnvelopeProto("<consume>", MessageC1),
+			nil,
+		)
 	})
 
 	It("injects the stage from the table if there is a match", func() {
 		stage := RouteByType(
 			map[message.Type]Stage{
-				MessageAType: func(ctx context.Context, sc *Scope, next Sink) error {
+				MessageCType: func(ctx context.Context, sc *Scope, next Sink) error {
 					return fmt.Errorf("intercepted: %w", next(ctx, sc))
 				},
 			},
@@ -42,7 +44,7 @@ var _ = Describe("func RouteByType()", func() {
 	It("calls the next stage directly if there is no match", func() {
 		stage := RouteByType(
 			map[message.Type]Stage{
-				MessageBType: Terminate(pass),
+				MessageXType: Terminate(pass),
 			},
 		)
 

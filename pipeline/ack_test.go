@@ -23,8 +23,10 @@ var _ = Describe("func Acknowledge()", func() {
 	)
 
 	BeforeEach(func() {
-		env := NewEnvelope("<id>", MessageA1)
-		scope, sess, _ = NewPipelineScope(env, nil)
+		scope, sess, _ = NewPipelineScope(
+			NewEnvelopeProto("<consume>", MessageC1),
+			nil,
+		)
 
 		logger = scope.Logger.(*logging.BufferedLogger)
 
@@ -53,7 +55,7 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● {A1}",
+					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● {C1}",
 				},
 			))
 		})
@@ -89,7 +91,7 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● {A1}",
+					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● {C1}",
 				},
 			))
 		})
@@ -99,7 +101,7 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  MessageA ● <failed> ● next retry in 1s",
+					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  MessageC ● <failed> ● next retry in 1s",
 				},
 			))
 		})

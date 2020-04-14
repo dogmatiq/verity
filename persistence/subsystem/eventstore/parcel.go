@@ -1,8 +1,8 @@
 package eventstore
 
 import (
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 )
 
 // Offset is the position of an event within the store.
@@ -21,6 +21,6 @@ func (p *Parcel) ID() string {
 
 // Pair encapsulates a parcel and the envelope that is encoded within it.
 type Pair struct {
-	Parcel   *Parcel
-	Original *envelope.Envelope
+	Parcel  *Parcel
+	Message dogma.Message
 }

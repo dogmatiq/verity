@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/infix/parcel"
+
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
@@ -104,14 +106,14 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		dataStore persistence.DataStore
 		queue     *Queue
 		observer  pipeline.QueueObserver
-		env       *envelope.Envelope
-		parcel    *queuestore.Parcel
+		pcl       *parcel.Parcel
+		qpcl      *queuestore.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		env = NewEnvelope("<id>", MessageA1)
+		pcl = NewParcel("<id>", MessageA1)
 		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
@@ -121,20 +123,20 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 
 		observer = TrackEnqueuedCommands(queue)
 
-		parcel = &queuestore.Parcel{
+		qpcl = &queuestore.Parcel{
 			NextAttemptAt: time.Now(),
-			Envelope:      envelope.MustMarshal(Marshaler, env),
+			Envelope:      pcl.Envelope,
 		}
 
 		err := persistence.WithTransaction(
 			ctx,
 			dataStore,
 			func(tx persistence.ManagedTransaction) error {
-				return tx.SaveMessageToQueue(ctx, parcel)
+				return tx.SaveMessageToQueue(ctx, qpcl)
 			},
 		)
 		Expect(err).ShouldNot(HaveOccurred())
-		parcel.Revision++
+		qpcl.Revision++
 	})
 
 	AfterEach(func() {
@@ -150,8 +152,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 			ctx,
 			[]queuestore.Pair{
 				{
-					Parcel:   parcel,
-					Original: env,
+					Parcel:  qpcl,
+					Message: pcl.Message,
 				},
 			},
 		)
@@ -166,8 +168,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 
 	It("returns an error if the context deadline is exceeded", func() {
 		p := queuestore.Pair{
-			Parcel:   parcel,
-			Original: env,
+			Parcel:  qpcl,
+			Message: pcl.Message,
 		}
 
 		// It's an implementation detail, but the internal channel used to start

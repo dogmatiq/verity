@@ -3,27 +3,25 @@ package integration_test
 import (
 	"context"
 	"errors"
-	"time"
 
-	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/integration"
+	"github.com/dogmatiq/infix/internal/x/gomegax"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
+	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("type Sink", func() {
 	var (
-		env       *envelope.Envelope
 		tx        *TransactionStub
 		dataStore *DataStoreStub
 		sess      *SessionStub
@@ -33,10 +31,11 @@ var _ = Describe("type Sink", func() {
 	)
 
 	BeforeEach(func() {
-		env = NewEnvelope("<id>", MessageC1)
-
 		dataStore = NewDataStoreStub()
-		scope, sess, tx = NewPipelineScope(env, dataStore)
+		scope, sess, tx = NewPipelineScope(
+			NewEnvelopeProto("<consume>", MessageC1),
+			dataStore,
+		)
 
 		handler = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
@@ -101,30 +100,34 @@ var _ = Describe("type Sink", func() {
 				return nil
 			}
 
-			effect := &envelope.Envelope{
-				MetaData: envelope.MetaData{
-					MessageID:     "0",
-					CausationID:   "<id>",
-					CorrelationID: "<correlation>",
-					Source: envelope.Source{
-						Application: configkit.Identity{
-							Name: "<app-name>",
-							Key:  "<app-key>",
-						},
-						Handler: configkit.Identity{
-							Name: "<integration-name>",
-							Key:  "<integration-key>",
-						},
-					},
-					CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-				},
-				Message: MessageE1,
-			}
-
 			err := sink.Accept(context.Background(), scope)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(scope.Recorded).To(HaveLen(1))
-			Expect(scope.Recorded[0].Original).To(Equal(effect))
+			Expect(scope.Recorded).To(gomegax.EqualX(
+				[]eventstore.Pair{
+					{
+						Parcel: &eventstore.Parcel{
+							Offset: 0,
+							Envelope: &envelopespec.Envelope{
+								MetaData: &envelopespec.MetaData{
+									MessageId:     "0",
+									CausationId:   "<consume>",
+									CorrelationId: "<correlation>",
+									Source: &envelopespec.Source{
+										Application: sink.Packer.Application,
+										Handler:     sink.Identity,
+									},
+									CreatedAt:   "2000-01-01T00:00:00Z",
+									Description: "{E1}",
+								},
+								PortableName: MessageEPortableName,
+								MediaType:    MessageE1Packet.MediaType,
+								Data:         MessageE1Packet.Data,
+							},
+						},
+						Message: MessageE1,
+					},
+				},
+			))
 		})
 
 		It("logs about recorded events", func() {
@@ -143,7 +146,7 @@ var _ = Describe("type Sink", func() {
 			logger := scope.Logger.(*logging.BufferedLogger)
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= 0  ∵ <id>  ⋲ <correlation>  ▲    MessageE ● {E1}",
+					Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
 				},
 			))
 		})
@@ -185,7 +188,7 @@ var _ = Describe("type Sink", func() {
 			logger := scope.Logger.(*logging.BufferedLogger)
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
+					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
 				},
 			))
 		})

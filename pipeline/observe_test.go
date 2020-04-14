@@ -3,30 +3,34 @@ package pipeline_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/pipeline"
-	. "github.com/dogmatiq/marshalkit/fixtures"
-	"github.com/golang/protobuf/proto"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Context("observer stages", func() {
 	var (
-		cause, effect *envelope.Envelope
-		scope         *Scope
+		now   time.Time
+		pcl   *parcel.Parcel
+		scope *Scope
 	)
 
 	BeforeEach(func() {
-		cause = NewEnvelope("<cause>", MessageC1)
-		effect = NewEnvelope("<effect>", MessageE1)
+		now = time.Now()
+		pcl = NewParcel("<produce>", MessageP1, now, now)
 
-		scope, _, _ = NewPipelineScope(cause, nil)
+		scope, _, _ = NewPipelineScope(
+			NewEnvelopeProto("<consume>", MessageC1),
+			nil,
+		)
 	})
 
 	Describe("func WhenMessageEnqueued()", func() {
@@ -40,29 +44,23 @@ var _ = Context("observer stages", func() {
 				called = true
 
 				Expect(pairs).To(HaveLen(1))
-
-				p := pairs[0]
-
-				Expect(p.Original).To(Equal(effect))
-				Expect(p.Parcel.Revision).To(BeEquivalentTo(1))
-				Expect(p.Parcel.NextAttemptAt).To(BeTemporally("==", effect.CreatedAt))
-
-				Expect(
-					proto.Equal(
-						p.Parcel.Envelope,
-						envelope.MustMarshal(Marshaler, effect),
-					),
-				).To(
-					BeTrue(),
-					"protobuf envelope is not equal",
-				)
+				Expect(pairs[0]).To(EqualX(
+					queuestore.Pair{
+						Parcel: &queuestore.Parcel{
+							Revision:      1,
+							NextAttemptAt: now,
+							Envelope:      pcl.Envelope,
+						},
+						Message: pcl.Message,
+					},
+				))
 
 				return nil
 			}
 
 			stage := WhenMessageEnqueued(fn)
 			next := func(ctx context.Context, sc *Scope) error {
-				return sc.EnqueueMessage(ctx, effect)
+				return sc.EnqueueMessage(ctx, pcl)
 			}
 
 			err := stage(context.Background(), scope, next)
@@ -96,7 +94,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenMessageEnqueued(fn)
 			next := func(ctx context.Context, sc *Scope) error {
-				if err := sc.EnqueueMessage(ctx, effect); err != nil {
+				if err := sc.EnqueueMessage(ctx, pcl); err != nil {
 					return err
 				}
 
@@ -117,7 +115,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenMessageEnqueued(fn)
 			next := func(ctx context.Context, sc *Scope) error {
-				return sc.EnqueueMessage(ctx, effect)
+				return sc.EnqueueMessage(ctx, pcl)
 			}
 
 			err := stage(context.Background(), scope, next)
@@ -136,28 +134,22 @@ var _ = Context("observer stages", func() {
 				called = true
 
 				Expect(pairs).To(HaveLen(1))
-
-				p := pairs[0]
-
-				Expect(p.Original).To(Equal(effect))
-				Expect(p.Parcel.Offset).To(BeEquivalentTo(0))
-
-				Expect(
-					proto.Equal(
-						p.Parcel.Envelope,
-						envelope.MustMarshal(Marshaler, effect),
-					),
-				).To(
-					BeTrue(),
-					"protobuf envelope is not equal",
-				)
+				Expect(pairs[0]).To(EqualX(
+					eventstore.Pair{
+						Parcel: &eventstore.Parcel{
+							Offset:   0,
+							Envelope: pcl.Envelope,
+						},
+						Message: pcl.Message,
+					},
+				))
 
 				return nil
 			}
 
 			stage := WhenEventRecorded(fn)
 			next := func(ctx context.Context, sc *Scope) error {
-				_, err := sc.RecordEvent(ctx, effect)
+				_, err := sc.RecordEvent(ctx, pcl)
 				return err
 			}
 
@@ -192,7 +184,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenEventRecorded(fn)
 			next := func(ctx context.Context, sc *Scope) error {
-				if _, err := sc.RecordEvent(ctx, effect); err != nil {
+				if _, err := sc.RecordEvent(ctx, pcl); err != nil {
 					return err
 				}
 
@@ -213,7 +205,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenEventRecorded(fn)
 			next := func(ctx context.Context, sc *Scope) error {
-				_, err := sc.RecordEvent(ctx, effect)
+				_, err := sc.RecordEvent(ctx, pcl)
 				return err
 			}
 

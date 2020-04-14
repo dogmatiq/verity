@@ -9,6 +9,8 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
+// TODO: move standard marshaling code into envelopespec package.
+
 // Marshal marshals a message envelope to its protobuf representation.
 func Marshal(
 	m marshalkit.ValueMarshaler,

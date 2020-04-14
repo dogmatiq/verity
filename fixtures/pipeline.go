@@ -10,7 +10,6 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
-	"github.com/dogmatiq/marshalkit/fixtures"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 )
 
@@ -31,7 +30,7 @@ type SessionStub struct {
 // NewPipelineScope returns a new pipeline scope that uses a session stub with
 // pre-configured Envelope() and Tx() methods.
 func NewPipelineScope(
-	env *envelope.Envelope,
+	env *envelopespec.Envelope,
 	ds *DataStoreStub,
 ) (
 	*pipeline.Scope,
@@ -51,17 +50,15 @@ func NewPipelineScope(
 		tx = t.(*TransactionStub)
 	}
 
-	penv := envelope.MustMarshal(fixtures.Marshaler, env)
-
 	sess := &SessionStub{
 		MessageIDFunc: func() string {
-			return env.MessageID
+			return env.MetaData.MessageId
 		},
 		EnvelopeFunc: func() *envelopespec.Envelope {
-			return penv
+			return env
 		},
 		MessageFunc: func() (dogma.Message, error) {
-			return env.Message, nil
+			return envelope.UnmarshalMessage(marshalfixtures.Marshaler, env)
 		},
 		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
 			return tx, nil

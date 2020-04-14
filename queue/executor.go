@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
@@ -14,20 +14,17 @@ import (
 // commands to the message queue.
 type CommandExecutor struct {
 	Queue  *Queue
-	Packer *envelope.Packer
+	Packer *parcel.Packer
 }
 
 // ExecuteCommand enqueues a command for execution.
 func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 	env := x.Packer.PackCommand(m)
 
-	// TODO: remove this
-	xxx, err := envelope.Unmarshal(x.Packer.Marshaler, env)
-	if err != nil {
-		panic(err)
+	p := &queuestore.Parcel{
+		NextAttemptAt: time.Now(),
+		Envelope:      env.Envelope,
 	}
-
-	p := x.Queue.NewParcel(xxx, time.Now())
 
 	if err := persistence.WithTransaction(
 		ctx,
@@ -44,8 +41,8 @@ func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) e
 	return x.Queue.Track(
 		ctx,
 		queuestore.Pair{
-			Parcel:   p,
-			Original: xxx,
+			Parcel:  p,
+			Message: m,
 		},
 	)
 }

@@ -1,4 +1,4 @@
-package envelope_test
+package parcel_test
 
 import (
 	"fmt"
@@ -9,8 +9,9 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	. "github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	. "github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -30,7 +31,7 @@ var _ = Describe("type Packer", func() {
 		seq = 0
 
 		t := time.Now()
-		now = MarshalTime(t)
+		now = envelope.MarshalTime(t)
 
 		app = &envelopespec.Identity{
 			Name: "<app-name>",
@@ -67,23 +68,26 @@ var _ = Describe("type Packer", func() {
 
 	Describe("func PackCommand()", func() {
 		It("returns a new envelope", func() {
-			env := packer.PackCommand(MessageC1)
+			p := packer.PackCommand(MessageC1)
 
-			Expect(env).To(EqualX(
-				&envelopespec.Envelope{
-					MetaData: &envelopespec.MetaData{
-						MessageId:     "00000001",
-						CausationId:   "00000001",
-						CorrelationId: "00000001",
-						Source: &envelopespec.Source{
-							Application: app,
+			Expect(p).To(EqualX(
+				&Parcel{
+					Envelope: &envelopespec.Envelope{
+						MetaData: &envelopespec.MetaData{
+							MessageId:     "00000001",
+							CausationId:   "00000001",
+							CorrelationId: "00000001",
+							Source: &envelopespec.Source{
+								Application: app,
+							},
+							CreatedAt:   now,
+							Description: "{C1}",
 						},
-						CreatedAt:   now,
-						Description: "{C1}",
+						PortableName: MessageCPortableName,
+						MediaType:    MessageC1Packet.MediaType,
+						Data:         MessageC1Packet.Data,
 					},
-					PortableName: MessageCPortableName,
-					MediaType:    MessageC1Packet.MediaType,
-					Data:         MessageC1Packet.Data,
+					Message: MessageC1,
 				},
 			))
 		})
@@ -103,23 +107,26 @@ var _ = Describe("type Packer", func() {
 
 	Describe("func PackEvent()", func() {
 		It("returns a new envelope", func() {
-			env := packer.PackEvent(MessageE1)
+			p := packer.PackEvent(MessageE1)
 
-			Expect(env).To(EqualX(
-				&envelopespec.Envelope{
-					MetaData: &envelopespec.MetaData{
-						MessageId:     "00000001",
-						CausationId:   "00000001",
-						CorrelationId: "00000001",
-						Source: &envelopespec.Source{
-							Application: app,
+			Expect(p).To(EqualX(
+				&Parcel{
+					Envelope: &envelopespec.Envelope{
+						MetaData: &envelopespec.MetaData{
+							MessageId:     "00000001",
+							CausationId:   "00000001",
+							CorrelationId: "00000001",
+							Source: &envelopespec.Source{
+								Application: app,
+							},
+							CreatedAt:   now,
+							Description: "{E1}",
 						},
-						CreatedAt:   now,
-						Description: "{E1}",
+						PortableName: MessageEPortableName,
+						MediaType:    MessageE1Packet.MediaType,
+						Data:         MessageE1Packet.Data,
 					},
-					PortableName: MessageEPortableName,
-					MediaType:    MessageE1Packet.MediaType,
-					Data:         MessageE1Packet.Data,
+					Message: MessageE1,
 				},
 			))
 		})
@@ -140,18 +147,18 @@ var _ = Describe("type Packer", func() {
 	It("generates UUIDs by default", func() {
 		packer.GenerateID = nil
 
-		env := packer.PackCommand(MessageC1)
+		p := packer.PackCommand(MessageC1)
 
-		_, err := uuid.Parse(env.MetaData.MessageId)
+		_, err := uuid.Parse(p.Envelope.MetaData.MessageId)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("uses the system clock by default", func() {
 		packer.Now = nil
 
-		env := packer.PackCommand(MessageC1)
+		p := packer.PackCommand(MessageC1)
 
-		createdAt, err := UnmarshalTime(env.MetaData.CreatedAt)
+		createdAt, err := envelope.UnmarshalTime(p.Envelope.MetaData.CreatedAt)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(createdAt).To(BeTemporally("~", time.Now()))
 	})
@@ -179,31 +186,36 @@ var _ = Describe("type Packer", func() {
 			DescribeTable(
 				"it returns a new envelope",
 				func(cause dogma.Message) {
-					env := packer.PackChildCommand(
-						parent,
-						cause,
+					p := packer.PackChildCommand(
+						&Parcel{
+							Envelope: parent,
+							Message:  cause,
+						},
 						MessageC1,
 						handler,
 						"<instance>",
 					)
 
-					Expect(env).To(EqualX(
-						&envelopespec.Envelope{
-							MetaData: &envelopespec.MetaData{
-								MessageId:     "00000001",
-								CausationId:   "<cause>",
-								CorrelationId: "<cause>",
-								Source: &envelopespec.Source{
-									Application: app,
-									Handler:     handler,
-									InstanceId:  "<instance>",
+					Expect(p).To(EqualX(
+						&Parcel{
+							Envelope: &envelopespec.Envelope{
+								MetaData: &envelopespec.MetaData{
+									MessageId:     "00000001",
+									CausationId:   "<cause>",
+									CorrelationId: "<cause>",
+									Source: &envelopespec.Source{
+										Application: app,
+										Handler:     handler,
+										InstanceId:  "<instance>",
+									},
+									CreatedAt:   now,
+									Description: "{C1}",
 								},
-								CreatedAt:   now,
-								Description: "{C1}",
+								PortableName: MessageCPortableName,
+								MediaType:    MessageC1Packet.MediaType,
+								Data:         MessageC1Packet.Data,
 							},
-							PortableName: MessageCPortableName,
-							MediaType:    MessageC1Packet.MediaType,
-							Data:         MessageC1Packet.Data,
+							Message: MessageC1,
 						},
 					))
 				},
@@ -216,8 +228,10 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildCommand(
-							parent,
-							cause,
+							&Parcel{
+								Envelope: parent,
+								Message:  cause,
+							},
 							MessageC1,
 							handler,
 							"<instance>",
@@ -233,8 +247,10 @@ var _ = Describe("type Packer", func() {
 				func(m dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildCommand(
-							parent,
-							MessageF1,
+							&Parcel{
+								Envelope: parent,
+								Message:  MessageF1,
+							},
 							m,
 							handler,
 							"<instance>",
@@ -251,31 +267,36 @@ var _ = Describe("type Packer", func() {
 			DescribeTable(
 				"it returns a new envelope",
 				func(cause dogma.Message) {
-					env := packer.PackChildEvent(
-						parent,
-						cause,
+					p := packer.PackChildEvent(
+						&Parcel{
+							Envelope: parent,
+							Message:  cause,
+						},
 						MessageE1,
 						handler,
 						"<instance>",
 					)
 
-					Expect(env).To(EqualX(
-						&envelopespec.Envelope{
-							MetaData: &envelopespec.MetaData{
-								MessageId:     "00000001",
-								CausationId:   "<cause>",
-								CorrelationId: "<cause>",
-								Source: &envelopespec.Source{
-									Application: app,
-									Handler:     handler,
-									InstanceId:  "<instance>",
+					Expect(p).To(EqualX(
+						&Parcel{
+							Envelope: &envelopespec.Envelope{
+								MetaData: &envelopespec.MetaData{
+									MessageId:     "00000001",
+									CausationId:   "<cause>",
+									CorrelationId: "<cause>",
+									Source: &envelopespec.Source{
+										Application: app,
+										Handler:     handler,
+										InstanceId:  "<instance>",
+									},
+									CreatedAt:   now,
+									Description: "{E1}",
 								},
-								CreatedAt:   now,
-								Description: "{E1}",
+								PortableName: MessageEPortableName,
+								MediaType:    MessageE1Packet.MediaType,
+								Data:         MessageE1Packet.Data,
 							},
-							PortableName: MessageEPortableName,
-							MediaType:    MessageE1Packet.MediaType,
-							Data:         MessageE1Packet.Data,
+							Message: MessageE1,
 						},
 					))
 				},
@@ -287,8 +308,10 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildEvent(
-							parent,
-							cause,
+							&Parcel{
+								Envelope: parent,
+								Message:  cause,
+							},
 							MessageE1,
 							handler,
 							"<instance>",
@@ -305,8 +328,10 @@ var _ = Describe("type Packer", func() {
 				func(m dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildEvent(
-							parent,
-							MessageD1,
+							&Parcel{
+								Envelope: parent,
+								Message:  MessageD1,
+							},
 							m,
 							handler,
 							"<instance>",
@@ -324,33 +349,39 @@ var _ = Describe("type Packer", func() {
 				"it returns a new envelope",
 				func(cause dogma.Message) {
 					scheduledFor := time.Now()
-					env := packer.PackChildTimeout(
-						parent,
-						cause,
+					p := packer.PackChildTimeout(
+						&Parcel{
+							Envelope: parent,
+							Message:  cause,
+						},
 						MessageT1,
 						scheduledFor,
 						handler,
 						"<instance>",
 					)
 
-					Expect(env).To(EqualX(
-						&envelopespec.Envelope{
-							MetaData: &envelopespec.MetaData{
-								MessageId:     "00000001",
-								CausationId:   "<cause>",
-								CorrelationId: "<cause>",
-								Source: &envelopespec.Source{
-									Application: app,
-									Handler:     handler,
-									InstanceId:  "<instance>",
+					Expect(p).To(EqualX(
+						&Parcel{
+							Envelope: &envelopespec.Envelope{
+								MetaData: &envelopespec.MetaData{
+									MessageId:     "00000001",
+									CausationId:   "<cause>",
+									CorrelationId: "<cause>",
+									Source: &envelopespec.Source{
+										Application: app,
+										Handler:     handler,
+										InstanceId:  "<instance>",
+									},
+									CreatedAt:    now,
+									ScheduledFor: envelope.MarshalTime(scheduledFor),
+									Description:  "{T1}",
 								},
-								CreatedAt:    now,
-								ScheduledFor: MarshalTime(scheduledFor),
-								Description:  "{T1}",
+								PortableName: MessageTPortableName,
+								MediaType:    MessageT1Packet.MediaType,
+								Data:         MessageT1Packet.Data,
 							},
-							PortableName: MessageTPortableName,
-							MediaType:    MessageT1Packet.MediaType,
-							Data:         MessageT1Packet.Data,
+							Message:      MessageT1,
+							ScheduledFor: scheduledFor,
 						},
 					))
 				},
@@ -363,8 +394,10 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildTimeout(
-							parent,
-							cause,
+							&Parcel{
+								Envelope: parent,
+								Message:  cause,
+							},
 							MessageT1,
 							time.Now(),
 							handler,
@@ -381,8 +414,10 @@ var _ = Describe("type Packer", func() {
 				func(m dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildTimeout(
-							parent,
-							MessageF1,
+							&Parcel{
+								Envelope: parent,
+								Message:  MessageF1,
+							},
 							m,
 							time.Now(),
 							handler,

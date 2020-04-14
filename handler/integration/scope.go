@@ -4,34 +4,32 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/mlog"
+	"github.com/dogmatiq/infix/parcel"
 )
 
 // scope is an implementation of dogma.IntegrationEventScope.
 type scope struct {
-	envelope *envelopespec.Envelope
-	message  dogma.Message
-	handler  *envelopespec.Identity
-	packer   *envelope.Packer
-	logger   logging.Logger
-	events   []*envelopespec.Envelope
+	cause   *parcel.Parcel
+	packer  *parcel.Packer
+	handler *envelopespec.Identity
+	logger  logging.Logger
+	events  []*parcel.Parcel
 }
 
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
-	env := s.packer.PackChildEvent(
-		s.envelope,
-		s.message,
+	p := s.packer.PackChildEvent(
+		s.cause,
 		m,
 		s.handler,
 		"",
 	)
 
-	mlog.LogProduce(s.logger, env)
+	mlog.LogProduce(s.logger, p.Envelope)
 
-	s.events = append(s.events, env)
+	s.events = append(s.events, p)
 }
 
 // Log records an informational message within the context of the message
@@ -39,7 +37,7 @@ func (s *scope) RecordEvent(m dogma.Message) {
 func (s *scope) Log(f string, v ...interface{}) {
 	mlog.LogFromHandler(
 		s.logger,
-		s.envelope,
+		s.cause.Envelope,
 		f,
 		v,
 	)

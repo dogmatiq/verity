@@ -13,6 +13,7 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/infix/queue"
@@ -126,7 +127,7 @@ func (e *Engine) newCommandExecutor(
 ) *queue.CommandExecutor {
 	return &queue.CommandExecutor{
 		Queue: q,
-		Packer: &envelope.Packer{
+		Packer: &parcel.Packer{
 			Application: envelope.MarshalIdentity(cfg.Identity()),
 			Marshaler:   e.opts.Marshaler,
 			Produced: cfg.
@@ -187,7 +188,7 @@ func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.Ric
 		Identity:       envelope.MarshalIdentity(cfg.Identity()),
 		Handler:        cfg.Handler(),
 		DefaultTimeout: f.opts.MessageTimeout,
-		Packer: &envelope.Packer{
+		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,
 			Produced:    cfg.MessageTypes().Produced,

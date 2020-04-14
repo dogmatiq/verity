@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/linger"
 )
@@ -23,9 +23,9 @@ type Sink struct {
 	// application-specific message handling logic.
 	Handler dogma.IntegrationMessageHandler
 
-	// Packer is used to create new envelopes for events recorded by the
+	// Packer is used to create new parcels for events recorded by the
 	// handler.
-	Packer *envelope.Packer
+	Packer *parcel.Packer
 
 	// DefaultTimeout is the timeout to apply when handling the message if the
 	// handler does not provide a timeout hint.
@@ -40,11 +40,13 @@ func (s *Sink) Accept(ctx context.Context, sc *pipeline.Scope) error {
 	}
 
 	ds := &scope{
-		envelope: sc.Session.Envelope(),
-		message:  m,
-		handler:  s.Identity,
-		packer:   s.Packer,
-		logger:   sc.Logger,
+		cause: &parcel.Parcel{
+			Envelope: sc.Session.Envelope(),
+			Message:  m,
+		},
+		packer:  s.Packer,
+		handler: s.Identity,
+		logger:  sc.Logger,
 	}
 
 	hctx, cancel := linger.ContextWithTimeout(
@@ -59,13 +61,7 @@ func (s *Sink) Accept(ctx context.Context, sc *pipeline.Scope) error {
 	}
 
 	for _, env := range ds.events {
-		// TODO: remove this
-		xxx, err := envelope.Unmarshal(s.Packer.Marshaler, env)
-		if err != nil {
-			panic(err)
-		}
-
-		if _, err := sc.RecordEvent(ctx, xxx); err != nil {
+		if _, err := sc.RecordEvent(ctx, env); err != nil {
 			return err
 		}
 	}
