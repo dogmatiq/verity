@@ -13,6 +13,20 @@ import (
 	"github.com/google/uuid"
 )
 
+// NewEnvelope returns a new envelope containing the given message.
+//
+// If id is empty, a new UUID is generated.
+//
+// times can contain up to two elements, the first is the created time, the
+// second is the scheduled-for time.
+func NewEnvelope(
+	id string,
+	m dogma.Message,
+	times ...time.Time,
+) *envelopespec.Envelope {
+	return NewParcel(id, m, times...).Envelope
+}
+
 // NewParcel returns a new parcel containing the given message.
 //
 // If id is empty, a new UUID is generated.

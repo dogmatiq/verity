@@ -24,7 +24,7 @@ var _ = Describe("func Acknowledge()", func() {
 
 	BeforeEach(func() {
 		scope, sess, _ = NewPipelineScope(
-			NewEnvelopeProto("<consume>", MessageC1),
+			NewEnvelope("<consume>", MessageC1),
 			nil,
 		)
 

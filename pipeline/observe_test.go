@@ -28,7 +28,7 @@ var _ = Context("observer stages", func() {
 		pcl = NewParcel("<produce>", MessageP1, now, now)
 
 		scope, _, _ = NewPipelineScope(
-			NewEnvelopeProto("<consume>", MessageC1),
+			NewEnvelope("<consume>", MessageC1),
 			nil,
 		)
 	})

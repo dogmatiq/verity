@@ -41,19 +41,19 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			item0 = &queuestore.Item{
 				FailureCount:  1,
 				NextAttemptAt: time.Now().Add(3 * time.Hour),
-				Envelope:      infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA3),
+				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA3),
 			}
 
 			item1 = &queuestore.Item{
 				FailureCount:  2,
 				NextAttemptAt: time.Now().Add(-10 * time.Hour),
-				Envelope:      infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA1),
+				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA1),
 			}
 
 			item2 = &queuestore.Item{
 				FailureCount:  3,
 				NextAttemptAt: time.Now().Add(2 * time.Hour),
-				Envelope:      infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA2),
+				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA2),
 			}
 		})
 

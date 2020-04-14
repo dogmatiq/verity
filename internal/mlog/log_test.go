@@ -18,7 +18,7 @@ var _ = Describe("func LogConsume()", func() {
 
 		LogConsume(
 			logger,
-			NewEnvelopeProto("<id>", MessageA1),
+			NewEnvelope("<id>", MessageA1),
 			0,
 		)
 
@@ -34,7 +34,7 @@ var _ = Describe("func LogConsume()", func() {
 
 		LogConsume(
 			logger,
-			NewEnvelopeProto("<id>", MessageA1),
+			NewEnvelope("<id>", MessageA1),
 			1,
 		)
 
@@ -52,7 +52,7 @@ var _ = Describe("func LogProduce()", func() {
 
 		LogProduce(
 			logger,
-			NewEnvelopeProto("<id>", MessageA1),
+			NewEnvelope("<id>", MessageA1),
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
@@ -69,7 +69,7 @@ var _ = Describe("func LogNack()", func() {
 
 		LogNack(
 			logger,
-			NewEnvelopeProto("<id>", MessageA1),
+			NewEnvelope("<id>", MessageA1),
 			errors.New("<error>"),
 			5*time.Second,
 		)
@@ -88,7 +88,7 @@ var _ = Describe("func LogFromHandler()", func() {
 
 		LogFromHandler(
 			logger,
-			NewEnvelopeProto("<id>", MessageA1),
+			NewEnvelope("<id>", MessageA1),
 			"format %s",
 			[]interface{}{"<value>"},
 		)

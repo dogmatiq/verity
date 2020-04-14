@@ -28,7 +28,7 @@ var _ = Describe("type Scope", func() {
 		pcl = NewParcel("<produce>", MessageP1)
 
 		scope, sess, tx = NewPipelineScope(
-			NewEnvelopeProto("<consume>", MessageC1),
+			NewEnvelope("<consume>", MessageC1),
 			nil,
 		)
 	})

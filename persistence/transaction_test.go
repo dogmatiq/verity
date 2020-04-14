@@ -41,7 +41,7 @@ var _ = Describe("func WithTransaction", func() {
 	})
 
 	It("commits the transaction if fn returns nil", func() {
-		env := NewEnvelopeProto("<id>", MessageA1)
+		env := NewEnvelope("<id>", MessageA1)
 
 		err := WithTransaction(
 			ctx,
@@ -64,7 +64,7 @@ var _ = Describe("func WithTransaction", func() {
 	})
 
 	It("rolls the transaction back if fn returns an error", func() {
-		env := NewEnvelopeProto("<id>", MessageA1)
+		env := NewEnvelope("<id>", MessageA1)
 
 		err := WithTransaction(
 			ctx,

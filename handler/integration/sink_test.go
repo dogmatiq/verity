@@ -35,7 +35,7 @@ var _ = Describe("type Sink", func() {
 	BeforeEach(func() {
 		dataStore = NewDataStoreStub()
 		scope, sess, tx = NewPipelineScope(
-			NewEnvelopeProto("<consume>", MessageC1),
+			NewEnvelope("<consume>", MessageC1),
 			dataStore,
 		)
 

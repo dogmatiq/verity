@@ -12,7 +12,7 @@ var _ = Describe("type Item", func() {
 	Describe("func ID()", func() {
 		It("returns the ID from the envelope", func() {
 			item := &Item{
-				Envelope: NewEnvelopeProto("<id>", MessageA1),
+				Envelope: NewEnvelope("<id>", MessageA1),
 			}
 
 			Expect(item.ID()).To(Equal("<id>"))

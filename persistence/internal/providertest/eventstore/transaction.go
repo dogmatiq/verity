@@ -32,9 +32,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			dataStore, tearDown = tc.SetupDataStore()
 			repository = dataStore.EventStoreRepository()
 
-			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
-			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1)
-			env2 = infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1)
+			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
+			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
+			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1)
 		})
 
 		ginkgo.AfterEach(func() {

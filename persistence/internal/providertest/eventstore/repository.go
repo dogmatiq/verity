@@ -34,32 +34,32 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 			item0 = &eventstore.Item{
 				Offset:   0,
-				Envelope: infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1),
+				Envelope: infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
 			}
 
 			item1 = &eventstore.Item{
 				Offset:   1,
-				Envelope: infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1),
+				Envelope: infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
 			}
 
 			item2 = &eventstore.Item{
 				Offset:   2,
-				Envelope: infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1),
+				Envelope: infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1),
 			}
 
 			item3 = &eventstore.Item{
 				Offset:   3,
-				Envelope: infixfixtures.NewEnvelopeProto("<message-3>", dogmafixtures.MessageA2),
+				Envelope: infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageA2),
 			}
 
 			item4 = &eventstore.Item{
 				Offset:   4,
-				Envelope: infixfixtures.NewEnvelopeProto("<message-4>", dogmafixtures.MessageB2),
+				Envelope: infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageB2),
 			}
 
 			item5 = &eventstore.Item{
 				Offset:   5,
-				Envelope: infixfixtures.NewEnvelopeProto("<message-5>", dogmafixtures.MessageC2),
+				Envelope: infixfixtures.NewEnvelope("<message-5>", dogmafixtures.MessageC2),
 			}
 
 			// Setup some different source handler values to test the aggregate

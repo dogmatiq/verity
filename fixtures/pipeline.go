@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
@@ -58,7 +57,7 @@ func NewPipelineScope(
 			return env
 		},
 		MessageFunc: func() (dogma.Message, error) {
-			return envelope.UnmarshalMessage(marshalfixtures.Marshaler, env)
+			return envelopespec.UnmarshalMessage(marshalfixtures.Marshaler, env)
 		},
 		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
 			return tx, nil

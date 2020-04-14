@@ -32,17 +32,17 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			item0 = &queuestore.Item{
 				NextAttemptAt: time.Now(),
-				Envelope:      infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1),
+				Envelope:      infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
 			}
 
 			item1 = &queuestore.Item{
 				NextAttemptAt: time.Now(),
-				Envelope:      infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageA2),
+				Envelope:      infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2),
 			}
 
 			item2 = &queuestore.Item{
 				NextAttemptAt: time.Now(),
-				Envelope:      infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageA3),
+				Envelope:      infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3),
 			}
 		})
 

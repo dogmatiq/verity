@@ -159,7 +159,7 @@ var _ = Describe("type Session", func() {
 			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
+			_, err = tx.SaveEvent(ctx, NewEnvelope("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = sess.Ack(ctx)
@@ -238,7 +238,7 @@ var _ = Describe("type Session", func() {
 			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
+			_, err = tx.SaveEvent(ctx, NewEnvelope("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = sess.Nack(ctx, time.Now().Add(1*time.Hour))

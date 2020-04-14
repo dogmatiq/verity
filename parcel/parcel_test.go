@@ -23,7 +23,7 @@ var _ = Describe("type Parcel", func() {
 		createdAt = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 		scheduledFor = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
 
-		env = NewEnvelopeProto(
+		env = NewEnvelope(
 			"<id>",
 			MessageA1,
 			createdAt,
