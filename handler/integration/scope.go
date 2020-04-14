@@ -22,17 +22,20 @@ type scope struct {
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
-	// env := s.packer.PackChildEvent(
-	// 	s.message,
-	// 	m,
-	// 	s.handler,
-	// 	"",
-	// )
+	env := s.packer.PackChildEvent(
+		s.envelope,
+		s.message,
+		m,
+		s.handler,
+		"",
+	)
 
-	// mlog.LogProduce(s.logger, env)
+	mlog.LogProduce(
+		s.logger,
+		envelope.MustMarshal(s.packer.Marshaler, env),
+	)
 
-	// s.events = append(s.events, env)
-
+	s.events = append(s.events, env)
 }
 
 // Log records an informational message within the context of the message

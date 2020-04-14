@@ -140,7 +140,7 @@ var _ = Describe("type Sink", func() {
 			logger := scope.Logger.(*logging.BufferedLogger)
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= 0  ∵ <id>  ⋲ <correlation>  ▲    fixtures.MessageE ● {E1}",
+					Message: "= 0  ∵ <id>  ⋲ <correlation>  ▲    MessageE ● {E1}",
 				},
 			))
 		})
@@ -182,7 +182,7 @@ var _ = Describe("type Sink", func() {
 			logger := scope.Logger.(*logging.BufferedLogger)
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageC ● format <value>",
+					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
 				},
 			))
 		})

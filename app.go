@@ -127,6 +127,7 @@ func (e *Engine) newCommandExecutor(
 		Queue: q,
 		Packer: &envelope.Packer{
 			Application: cfg.Identity(),
+			Marshaler:   e.opts.Marshaler,
 			Produced: cfg.
 				MessageTypes().
 				Consumed.
@@ -187,6 +188,7 @@ func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.Ric
 		DefaultTimeout: f.opts.MessageTimeout,
 		Packer: &envelope.Packer{
 			Application: f.app,
+			Marshaler:   f.opts.Marshaler,
 			Produced:    cfg.MessageTypes().Produced,
 			Consumed:    cfg.MessageTypes().Consumed,
 		},
