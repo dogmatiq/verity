@@ -35,33 +35,33 @@ var _ = Describe("type Consumer", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		event0 = &Event{
-			Offset:   0,
-			Envelope: NewEnvelope("<message-0>", MessageA1),
+			Offset: 0,
+			Parcel: NewParcel("<message-0>", MessageA1),
 		}
 
 		event1 = &Event{
-			Offset:   1,
-			Envelope: NewEnvelope("<message-1>", MessageB1),
+			Offset: 1,
+			Parcel: NewParcel("<message-1>", MessageB1),
 		}
 
 		event2 = &Event{
-			Offset:   2,
-			Envelope: NewEnvelope("<message-2>", MessageA2),
+			Offset: 2,
+			Parcel: NewParcel("<message-2>", MessageA2),
 		}
 
 		event3 = &Event{
-			Offset:   3,
-			Envelope: NewEnvelope("<message-3>", MessageB2),
+			Offset: 3,
+			Parcel: NewParcel("<message-3>", MessageB2),
 		}
 
 		event4 = &Event{
-			Offset:   4,
-			Envelope: NewEnvelope("<message-4>", MessageA3),
+			Offset: 4,
+			Parcel: NewParcel("<message-4>", MessageA3),
 		}
 
 		event5 = &Event{
-			Offset:   5,
-			Envelope: NewEnvelope("<message-5>", MessageB3),
+			Offset: 5,
+			Parcel: NewParcel("<message-5>", MessageB3),
 		}
 
 		mstream = &MemoryStream{
@@ -77,12 +77,12 @@ var _ = Describe("type Consumer", func() {
 		}
 
 		mstream.Append(
-			event0.Envelope,
-			event1.Envelope,
-			event2.Envelope,
-			event3.Envelope,
-			event4.Envelope,
-			event5.Envelope,
+			event0.Parcel,
+			event1.Parcel,
+			event2.Parcel,
+			event3.Parcel,
+			event4.Parcel,
+			event5.Parcel,
 		)
 
 		eshandler = &EventStreamHandlerStub{}

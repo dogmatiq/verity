@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -223,7 +223,7 @@ func (c *networkCursor) recv() error {
 		Offset: Offset(res.Offset),
 	}
 
-	ev.Envelope, err = envelope.Unmarshal(c.marshaler, res.GetEnvelope())
+	ev.Parcel, err = parcel.FromEnvelope(c.marshaler, res.GetEnvelope())
 	if err != nil {
 		return err
 	}

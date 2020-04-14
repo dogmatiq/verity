@@ -30,6 +30,10 @@ func FromEnvelope(
 	ma marshalkit.ValueMarshaler,
 	env *envelopespec.Envelope,
 ) (*Parcel, error) {
+	if err := envelopespec.CheckWellFormed(env); err != nil {
+		return nil, err
+	}
+
 	m, err := envelopespec.UnmarshalMessage(ma, env)
 	if err != nil {
 		return nil, err

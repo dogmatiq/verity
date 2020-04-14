@@ -3,9 +3,9 @@ package eventstream_test
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
@@ -32,15 +32,15 @@ var _ = Describe("type PersistedStream", func() {
 
 			return streamtest.Out{
 				Stream: stream,
-				Append: func(ctx context.Context, envelopes ...*envelope.Envelope) {
+				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
 					tx, err := dataStore.Begin(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
 					defer tx.Rollback()
 
-					for _, env := range envelopes {
+					for _, p := range parcels {
 						_, err = tx.SaveEvent(
 							ctx,
-							envelope.MustMarshal(stream.Marshaler, env),
+							p.Envelope,
 						)
 						Expect(err).ShouldNot(HaveOccurred())
 					}

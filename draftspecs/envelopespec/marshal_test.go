@@ -23,8 +23,8 @@ var _ = Describe("func MarshalMessage()", func() {
 			&env,
 		)
 
-		Expect(env).To(EqualX(
-			Envelope{
+		Expect(&env).To(EqualX(
+			&Envelope{
 				PortableName: MessageAPortableName,
 				MediaType:    MessageA1Packet.MediaType,
 				Data:         MessageA1Packet.Data,

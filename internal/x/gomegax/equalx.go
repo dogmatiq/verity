@@ -4,11 +4,16 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 // EqualX is a more powerful and safer alternative to gomega.Equal() for
 // comparing whether two values are semantically equal.
 func EqualX(expected interface{}, options ...cmp.Option) types.GomegaMatcher {
+	if len(options) == 0 {
+		options = append(options, protocmp.Transform())
+	}
+
 	return &equalMatcher{
 		expected: expected,
 		options:  options,

@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/parcel"
 )
 
 // MemoryStream is an in-memory event stream.
@@ -17,9 +17,9 @@ type MemoryStream struct {
 	// Types is the set of supported event types.
 	Types message.TypeCollection
 
-	m         sync.Mutex
-	ready     chan struct{}
-	envelopes []*envelope.Envelope // TODO: change to Event
+	m      sync.Mutex
+	ready  chan struct{}
+	events []*Event
 }
 
 // Application returns the identity of the application that owns the stream.
@@ -64,18 +64,28 @@ func (s *MemoryStream) Open(
 }
 
 // Append appends events to the stream.
-func (s *MemoryStream) Append(envelopes ...*envelope.Envelope) {
-	for _, env := range envelopes {
-		t := message.TypeOf(env.Message)
-		if !s.Types.Has(t) {
-			panic("unsupported message type: " + t.String())
-		}
-	}
-
+func (s *MemoryStream) Append(parcels ...*parcel.Parcel) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	s.envelopes = append(s.envelopes, envelopes...)
+	o := Offset(len(s.events))
+
+	for _, p := range parcels {
+		t := message.TypeOf(p.Message)
+		if !s.Types.Has(t) {
+			panic("unsupported message type: " + t.String())
+		}
+
+		s.events = append(
+			s.events,
+			&Event{
+				Offset: o,
+				Parcel: p,
+			},
+		)
+
+		o++
+	}
 
 	if s.ready != nil {
 		close(s.ready)
@@ -148,17 +158,14 @@ func (c *memoryCursor) get() (*Event, <-chan struct{}) {
 	c.stream.m.Lock()
 	defer c.stream.m.Unlock()
 
-	for Offset(len(c.stream.envelopes)) > c.offset {
+	for Offset(len(c.stream.events)) > c.offset {
 		offset := c.offset
 		c.offset++
 
-		env := c.stream.envelopes[offset]
+		ev := c.stream.events[offset]
 
-		if c.filter.HasM(env.Message) {
-			return &Event{
-				Offset:   offset,
-				Envelope: env,
-			}, nil
+		if c.filter.HasM(ev.Parcel.Message) {
+			return ev, nil
 		}
 	}
 

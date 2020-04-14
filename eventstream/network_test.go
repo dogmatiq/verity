@@ -10,10 +10,10 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -60,8 +60,8 @@ var _ = Describe("type NetworkStream", func() {
 					Client:    messagingspec.NewEventStreamClient(conn),
 					Marshaler: in.Marshaler,
 				},
-				Append: func(_ context.Context, envelopes ...*envelope.Envelope) {
-					source.Append(envelopes...)
+				Append: func(_ context.Context, parcels ...*parcel.Parcel) {
+					source.Append(parcels...)
 				},
 			}
 		},
@@ -87,20 +87,21 @@ var _ = Describe("type NetworkStream", func() {
 		source   *MemoryStream
 		stream   *NetworkStream
 		types    message.TypeSet
-
-		env = NewEnvelope("<message-1>", MessageA1)
+		pcl      *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
+		pcl = NewParcel("<message-1>", MessageA1)
+
 		types = message.NewTypeSet(MessageAType)
 		source = &MemoryStream{
 			Types: message.TypesOf(
-				env.Message,
+				pcl.Message,
 			),
 		}
-		source.Append(env)
+		source.Append(pcl)
 
 		var err error
 		listener, err = net.Listen("tcp", ":")
@@ -170,7 +171,7 @@ var _ = Describe("type NetworkStream", func() {
 	Describe("type cursor", func() {
 		Describe("func Next()", func() {
 			It("returns an error if the server returns an invalid envelope", func() {
-				env.MetaData.MessageID = ""
+				pcl.Envelope.MetaData.MessageId = ""
 
 				cur, err := stream.Open(ctx, 0, types)
 				Expect(err).ShouldNot(HaveOccurred())

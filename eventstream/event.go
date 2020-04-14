@@ -1,6 +1,6 @@
 package eventstream
 
-import "github.com/dogmatiq/infix/envelope"
+import "github.com/dogmatiq/infix/parcel"
 
 // Offset is the 0-based index of an event on a stream.
 type Offset uint64
@@ -10,6 +10,6 @@ type Event struct {
 	// Offset is the offset of the message on the stream.
 	Offset Offset
 
-	// Envelope contains the event from the stream.
-	Envelope *envelope.Envelope
+	// Parcel contains the event from the stream.
+	Parcel *parcel.Parcel
 }

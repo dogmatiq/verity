@@ -11,9 +11,10 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
@@ -51,7 +52,7 @@ type Out struct {
 	AssumeBlockingDuration time.Duration
 
 	// Append is a function that appends messages to the stream.
-	Append func(context.Context, ...*envelope.Envelope)
+	Append func(context.Context, ...*parcel.Parcel)
 }
 
 const (
@@ -79,28 +80,28 @@ func Declare(
 
 	ginkgo.BeforeEach(func() {
 		event0 = &eventstream.Event{
-			Offset:   0,
-			Envelope: infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
+			Offset: 0,
+			Parcel: infixfixtures.NewParcel("<message-0>", dogmafixtures.MessageA1),
 		}
 
 		event1 = &eventstream.Event{
-			Offset:   1,
-			Envelope: infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
+			Offset: 1,
+			Parcel: infixfixtures.NewParcel("<message-1>", dogmafixtures.MessageB1),
 		}
 
 		event2 = &eventstream.Event{
-			Offset:   2,
-			Envelope: infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA2),
+			Offset: 2,
+			Parcel: infixfixtures.NewParcel("<message-2>", dogmafixtures.MessageA2),
 		}
 
 		event3 = &eventstream.Event{
-			Offset:   3,
-			Envelope: infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageB2),
+			Offset: 3,
+			Parcel: infixfixtures.NewParcel("<message-3>", dogmafixtures.MessageB2),
 		}
 
 		event4 = &eventstream.Event{
-			Offset:   4,
-			Envelope: infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageC1),
+			Offset: 4,
+			Parcel: infixfixtures.NewParcel("<message-4>", dogmafixtures.MessageC1),
 		}
 	})
 
@@ -112,13 +113,13 @@ func Declare(
 			cfg := configkit.FromApplication(&dogmafixtures.Application{
 				ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 					// use the application identity from the envelope fixtures
-					id := event0.Envelope.MetaData.Source.Application
+					id := event0.Parcel.Envelope.MetaData.Source.Application
 					c.Identity(id.Name, id.Key)
 
 					c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
 						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 							// use the handler identity from the envelope fixtures
-							id := event0.Envelope.MetaData.Source.Handler
+							id := event0.Parcel.Envelope.MetaData.Source.Handler
 							c.Identity(id.Name, id.Key)
 
 							c.ConsumesCommandType(dogmafixtures.MessageX{})
@@ -171,10 +172,10 @@ func Declare(
 				ginkgo.BeforeEach(func() {
 					out.Append(
 						ctx,
-						event0.Envelope,
-						event1.Envelope,
-						event2.Envelope,
-						event3.Envelope,
+						event0.Parcel,
+						event1.Parcel,
+						event2.Parcel,
+						event3.Parcel,
 					)
 				})
 
@@ -185,7 +186,7 @@ func Declare(
 
 					ev, err := cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(event2))
+					gomega.Expect(ev).To(gomegax.EqualX(event2))
 				})
 
 				ginkgo.It("limits results to the supplied message types", func() {
@@ -199,11 +200,11 @@ func Declare(
 
 					ev, err := cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(event0))
+					gomega.Expect(ev).To(gomegax.EqualX(event0))
 
 					ev, err = cur.Next(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(ev).To(gomega.Equal(event2))
+					gomega.Expect(ev).To(gomegax.EqualX(event2))
 				})
 
 				ginkgo.It("panics if no event types are specified", func() {
@@ -263,10 +264,10 @@ func Declare(
 					ginkgo.BeforeEach(func() {
 						out.Append(
 							ctx,
-							event0.Envelope,
-							event1.Envelope,
-							event2.Envelope,
-							event3.Envelope,
+							event0.Parcel,
+							event1.Parcel,
+							event2.Parcel,
+							event3.Parcel,
 						)
 					})
 
@@ -277,19 +278,19 @@ func Declare(
 
 						ev, err := cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(ev).To(gomega.Equal(event0))
+						gomega.Expect(ev).To(gomegax.EqualX(event0))
 
 						ev, err = cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(ev).To(gomega.Equal(event1))
+						gomega.Expect(ev).To(gomegax.EqualX(event1))
 
 						ev, err = cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(ev).To(gomega.Equal(event2))
+						gomega.Expect(ev).To(gomegax.EqualX(event2))
 
 						ev, err = cur.Next(ctx)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(ev).To(gomega.Equal(event3))
+						gomega.Expect(ev).To(gomegax.EqualX(event3))
 					})
 
 					ginkgo.It("returns an error if the cursor is closed", func() {
@@ -326,12 +327,12 @@ func Declare(
 
 							go func() {
 								time.Sleep(out.AssumeBlockingDuration)
-								out.Append(ctx, event4.Envelope)
+								out.Append(ctx, event4.Parcel)
 							}()
 
 							ev, err := cur.Next(ctx)
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-							gomega.Expect(ev).To(gomega.Equal(event4))
+							gomega.Expect(ev).To(gomegax.EqualX(event4))
 						})
 
 						ginkgo.It("returns an error if the cursor is closed", func() {
@@ -396,7 +397,7 @@ func Declare(
 									barrier <- struct{}{}
 									ev, err := cur.Next(ctx)
 									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-									gomega.Expect(ev).To(gomega.Equal(event4))
+									gomega.Expect(ev).To(gomegax.EqualX(event4))
 
 									return nil
 								}()
@@ -414,7 +415,7 @@ func Declare(
 							time.Sleep(out.AssumeBlockingDuration)
 
 							// wake the consumers
-							out.Append(ctx, event4.Envelope)
+							out.Append(ctx, event4.Parcel)
 						})
 					})
 				})
