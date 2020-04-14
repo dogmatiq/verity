@@ -18,13 +18,13 @@ var _ = Describe("func LogConsume()", func() {
 
 		LogConsume(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelopeProto("<id>", MessageA1),
 			0,
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● {A1}",
 			},
 		))
 	})
@@ -34,13 +34,13 @@ var _ = Describe("func LogConsume()", func() {
 
 		LogConsume(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelopeProto("<id>", MessageA1),
 			1,
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ↻  fixtures.MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ↻  MessageA ● {A1}",
 			},
 		))
 	})
@@ -52,12 +52,12 @@ var _ = Describe("func LogProduce()", func() {
 
 		LogProduce(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelopeProto("<id>", MessageA1),
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▲    fixtures.MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▲    MessageA ● {A1}",
 			},
 		))
 	})
@@ -69,33 +69,14 @@ var _ = Describe("func LogNack()", func() {
 
 		LogNack(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelopeProto("<id>", MessageA1),
 			errors.New("<error>"),
 			5*time.Second,
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <error> ● next retry in 5s",
-			},
-		))
-	})
-})
-
-var _ = Describe("func LogNackWithoutEnvelope()", func() {
-	It("logs in the correct format", func() {
-		logger := &logging.BufferedLogger{}
-
-		LogNackWithoutEnvelope(
-			logger,
-			"<id>",
-			errors.New("<error>"),
-			5*time.Second,
-		)
-
-		Expect(logger.Messages()).To(ContainElement(
-			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ -  ⋲ -  ▽ ✖  <error> ● next retry in 5s",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  MessageA ● <error> ● next retry in 5s",
 			},
 		))
 	})
@@ -107,14 +88,14 @@ var _ = Describe("func LogFromHandler()", func() {
 
 		LogFromHandler(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelopeProto("<id>", MessageA1),
 			"format %s",
 			[]interface{}{"<value>"},
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● format <value>",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● format <value>",
 			},
 		))
 	})
