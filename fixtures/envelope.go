@@ -111,10 +111,13 @@ func NewPacker(roles message.TypeRoles) *envelope.Packer {
 	)
 
 	return &envelope.Packer{
-		Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-		Marshaler:   fixtures.Marshaler,
-		Produced:    roles,
-		Consumed:    roles,
+		Application: &envelopespec.Identity{
+			Name: "<app-name>",
+			Key:  "<app-key>",
+		},
+		Marshaler: fixtures.Marshaler,
+		Produced:  roles,
+		Consumed:  roles,
 		GenerateID: func() string {
 			m.Lock()
 			defer m.Unlock()

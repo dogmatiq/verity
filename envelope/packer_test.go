@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
@@ -12,6 +11,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -20,16 +20,31 @@ import (
 
 var _ = Describe("type Packer", func() {
 	var (
-		seq    int
-		now    time.Time
-		packer *Packer
+		seq          int
+		now          string
+		app, handler *envelopespec.Identity
+		packer       *Packer
 	)
 
 	BeforeEach(func() {
 		seq = 0
-		now = time.Now()
+
+		t := time.Now()
+		now = MarshalTime(t)
+
+		app = &envelopespec.Identity{
+			Name: "<app-name>",
+			Key:  "<app-key>",
+		}
+
+		handler = &envelopespec.Identity{
+			Name: "<handler-name>",
+			Key:  "<handler-key>",
+		}
+
 		packer = &Packer{
-			Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			Application: app,
+			Marshaler:   Marshaler,
 			Produced: message.TypeRoles{
 				MessageCType: message.CommandRole,
 				MessageEType: message.EventRole,
@@ -45,7 +60,7 @@ var _ = Describe("type Packer", func() {
 				return fmt.Sprintf("%08d", seq)
 			},
 			Now: func() time.Time {
-				return now
+				return t
 			},
 		}
 	})
@@ -54,18 +69,21 @@ var _ = Describe("type Packer", func() {
 		It("returns a new envelope", func() {
 			env := packer.PackCommand(MessageC1)
 
-			Expect(env).To(Equal(
-				&Envelope{
-					MetaData: MetaData{
-						MessageID:     "00000001",
-						CausationID:   "00000001",
-						CorrelationID: "00000001",
-						Source: Source{
-							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			Expect(env).To(EqualX(
+				&envelopespec.Envelope{
+					MetaData: &envelopespec.MetaData{
+						MessageId:     "00000001",
+						CausationId:   "00000001",
+						CorrelationId: "00000001",
+						Source: &envelopespec.Source{
+							Application: app,
 						},
-						CreatedAt: now,
+						CreatedAt:   now,
+						Description: "{C1}",
 					},
-					Message: MessageC1,
+					PortableName: MessageCPortableName,
+					MediaType:    MessageC1Packet.MediaType,
+					Data:         MessageC1Packet.Data,
 				},
 			))
 		})
@@ -87,18 +105,21 @@ var _ = Describe("type Packer", func() {
 		It("returns a new envelope", func() {
 			env := packer.PackEvent(MessageE1)
 
-			Expect(env).To(Equal(
-				&Envelope{
-					MetaData: MetaData{
-						MessageID:     "00000001",
-						CausationID:   "00000001",
-						CorrelationID: "00000001",
-						Source: Source{
-							Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			Expect(env).To(EqualX(
+				&envelopespec.Envelope{
+					MetaData: &envelopespec.MetaData{
+						MessageId:     "00000001",
+						CausationId:   "00000001",
+						CorrelationId: "00000001",
+						Source: &envelopespec.Source{
+							Application: app,
 						},
-						CreatedAt: now,
+						CreatedAt:   now,
+						Description: "{E1}",
 					},
-					Message: MessageE1,
+					PortableName: MessageEPortableName,
+					MediaType:    MessageE1Packet.MediaType,
+					Data:         MessageE1Packet.Data,
 				},
 			))
 		})
@@ -120,7 +141,8 @@ var _ = Describe("type Packer", func() {
 		packer.GenerateID = nil
 
 		env := packer.PackCommand(MessageC1)
-		_, err := uuid.Parse(env.MessageID)
+
+		_, err := uuid.Parse(env.MetaData.MessageId)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -128,7 +150,10 @@ var _ = Describe("type Packer", func() {
 		packer.Now = nil
 
 		env := packer.PackCommand(MessageC1)
-		Expect(env.CreatedAt).To(BeTemporally("~", time.Now()))
+
+		createdAt, err := UnmarshalTime(env.MetaData.CreatedAt)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(createdAt).To(BeTemporally("~", time.Now()))
 	})
 
 	Context("child envelopes", func() {
@@ -158,24 +183,27 @@ var _ = Describe("type Packer", func() {
 						parent,
 						cause,
 						MessageC1,
-						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						handler,
 						"<instance>",
 					)
 
-					Expect(env).To(Equal(
-						&Envelope{
-							MetaData: MetaData{
-								MessageID:     "00000001",
-								CausationID:   "<cause>",
-								CorrelationID: "<cause>",
-								Source: Source{
-									Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-									Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-									InstanceID:  "<instance>",
+					Expect(env).To(EqualX(
+						&envelopespec.Envelope{
+							MetaData: &envelopespec.MetaData{
+								MessageId:     "00000001",
+								CausationId:   "<cause>",
+								CorrelationId: "<cause>",
+								Source: &envelopespec.Source{
+									Application: app,
+									Handler:     handler,
+									InstanceId:  "<instance>",
 								},
-								CreatedAt: now,
+								CreatedAt:   now,
+								Description: "{C1}",
 							},
-							Message: MessageC1,
+							PortableName: MessageCPortableName,
+							MediaType:    MessageC1Packet.MediaType,
+							Data:         MessageC1Packet.Data,
 						},
 					))
 				},
@@ -191,7 +219,7 @@ var _ = Describe("type Packer", func() {
 							parent,
 							cause,
 							MessageC1,
-							configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
@@ -208,7 +236,7 @@ var _ = Describe("type Packer", func() {
 							parent,
 							MessageF1,
 							m,
-							configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
@@ -227,24 +255,27 @@ var _ = Describe("type Packer", func() {
 						parent,
 						cause,
 						MessageE1,
-						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						handler,
 						"<instance>",
 					)
 
-					Expect(env).To(Equal(
-						&Envelope{
-							MetaData: MetaData{
-								MessageID:     "00000001",
-								CausationID:   "<cause>",
-								CorrelationID: "<cause>",
-								Source: Source{
-									Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-									Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-									InstanceID:  "<instance>",
+					Expect(env).To(EqualX(
+						&envelopespec.Envelope{
+							MetaData: &envelopespec.MetaData{
+								MessageId:     "00000001",
+								CausationId:   "<cause>",
+								CorrelationId: "<cause>",
+								Source: &envelopespec.Source{
+									Application: app,
+									Handler:     handler,
+									InstanceId:  "<instance>",
 								},
-								CreatedAt: now,
+								CreatedAt:   now,
+								Description: "{E1}",
 							},
-							Message: MessageE1,
+							PortableName: MessageEPortableName,
+							MediaType:    MessageE1Packet.MediaType,
+							Data:         MessageE1Packet.Data,
 						},
 					))
 				},
@@ -259,7 +290,7 @@ var _ = Describe("type Packer", func() {
 							parent,
 							cause,
 							MessageE1,
-							configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
@@ -277,7 +308,7 @@ var _ = Describe("type Packer", func() {
 							parent,
 							MessageD1,
 							m,
-							configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
@@ -298,25 +329,28 @@ var _ = Describe("type Packer", func() {
 						cause,
 						MessageT1,
 						scheduledFor,
-						configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+						handler,
 						"<instance>",
 					)
 
-					Expect(env).To(Equal(
-						&Envelope{
-							MetaData: MetaData{
-								MessageID:     "00000001",
-								CausationID:   "<cause>",
-								CorrelationID: "<cause>",
-								Source: Source{
-									Application: configkit.MustNewIdentity("<app-name>", "<app-key>"),
-									Handler:     configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
-									InstanceID:  "<instance>",
+					Expect(env).To(EqualX(
+						&envelopespec.Envelope{
+							MetaData: &envelopespec.MetaData{
+								MessageId:     "00000001",
+								CausationId:   "<cause>",
+								CorrelationId: "<cause>",
+								Source: &envelopespec.Source{
+									Application: app,
+									Handler:     handler,
+									InstanceId:  "<instance>",
 								},
 								CreatedAt:    now,
-								ScheduledFor: scheduledFor,
+								ScheduledFor: MarshalTime(scheduledFor),
+								Description:  "{T1}",
 							},
-							Message: MessageT1,
+							PortableName: MessageTPortableName,
+							MediaType:    MessageT1Packet.MediaType,
+							Data:         MessageT1Packet.Data,
 						},
 					))
 				},
@@ -333,7 +367,7 @@ var _ = Describe("type Packer", func() {
 							cause,
 							MessageT1,
 							time.Now(),
-							configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
@@ -351,7 +385,7 @@ var _ = Describe("type Packer", func() {
 							MessageF1,
 							m,
 							time.Now(),
-							configkit.MustNewIdentity("<handler-name>", "<handler-key>"),
+							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))

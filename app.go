@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/handler/integration"
@@ -126,7 +127,7 @@ func (e *Engine) newCommandExecutor(
 	return &queue.CommandExecutor{
 		Queue: q,
 		Packer: &envelope.Packer{
-			Application: cfg.Identity(),
+			Application: envelope.MarshalIdentity(cfg.Identity()),
 			Marshaler:   e.opts.Marshaler,
 			Produced: cfg.
 				MessageTypes().
@@ -162,13 +163,13 @@ func (e *Engine) newPipeline(
 // routeFactory is a configkit.RichVisitor that constructs the messaging
 // pipeline.
 type routeFactory struct {
-	app    configkit.Identity
+	app    *envelopespec.Identity
 	opts   *engineOptions
 	routes map[message.Type]pipeline.Stage
 }
 
 func (f *routeFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
-	f.app = cfg.Identity()
+	f.app = envelope.MarshalIdentity(cfg.Identity())
 	f.routes = map[message.Type]pipeline.Stage{}
 	return cfg.RichHandlers().AcceptRichVisitor(ctx, f)
 }
@@ -183,7 +184,7 @@ func (f *routeFactory) VisitRichProcess(_ context.Context, cfg configkit.RichPro
 
 func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
 	s := &integration.Sink{
-		Identity:       cfg.Identity(),
+		Identity:       envelope.MarshalIdentity(cfg.Identity()),
 		Handler:        cfg.Handler(),
 		DefaultTimeout: f.opts.MessageTimeout,
 		Packer: &envelope.Packer{

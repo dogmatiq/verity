@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -13,10 +12,10 @@ import (
 type scope struct {
 	envelope *envelopespec.Envelope
 	message  dogma.Message
-	handler  configkit.Identity
+	handler  *envelopespec.Identity
 	packer   *envelope.Packer
 	logger   logging.Logger
-	events   []*envelope.Envelope
+	events   []*envelopespec.Envelope
 }
 
 // RecordEvent records the occurrence of an event as a result of the command
@@ -30,10 +29,7 @@ func (s *scope) RecordEvent(m dogma.Message) {
 		"",
 	)
 
-	mlog.LogProduce(
-		s.logger,
-		envelope.MustMarshal(s.packer.Marshaler, env),
-	)
+	mlog.LogProduce(s.logger, env)
 
 	s.events = append(s.events, env)
 }

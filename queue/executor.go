@@ -20,7 +20,14 @@ type CommandExecutor struct {
 // ExecuteCommand enqueues a command for execution.
 func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 	env := x.Packer.PackCommand(m)
-	p := x.Queue.NewParcel(env, time.Now())
+
+	// TODO: remove this
+	xxx, err := envelope.Unmarshal(x.Packer.Marshaler, env)
+	if err != nil {
+		panic(err)
+	}
+
+	p := x.Queue.NewParcel(xxx, time.Now())
 
 	if err := persistence.WithTransaction(
 		ctx,
@@ -38,7 +45,7 @@ func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) e
 		ctx,
 		queuestore.Pair{
 			Parcel:   p,
-			Original: env,
+			Original: xxx,
 		},
 	)
 }

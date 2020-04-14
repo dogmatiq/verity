@@ -21,6 +21,9 @@ type Scope struct {
 
 	// Marshaler is the application's marshaler, used to marshal new messages
 	// that are produced as a result of handling this message.
+	//
+	// TODO: this should be able to be removed once the packer works entirely on
+	// PB envelopes.
 	Marshaler marshalkit.Marshaler
 
 	// Logger is the logger to use for informational messages within the context

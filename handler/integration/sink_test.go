@@ -47,8 +47,11 @@ var _ = Describe("type Sink", func() {
 		}
 
 		sink = &Sink{
-			Identity: configkit.MustNewIdentity("<integration-name>", "<integration-key>"),
-			Handler:  handler,
+			Identity: &envelopespec.Identity{
+				Name: "<integration-name>",
+				Key:  "<integration-key>",
+			},
+			Handler: handler,
 			Packer: NewPacker(
 				message.TypeRoles{
 					MessageCType: message.CommandRole,

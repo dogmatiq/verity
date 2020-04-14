@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/linger"
@@ -17,7 +17,7 @@ import (
 // The Accept() method conforms to the pipeline.Sink() signature.
 type Sink struct {
 	// Identity is the handler's identity.
-	Identity configkit.Identity
+	Identity *envelopespec.Identity
 
 	// Handler is the integration message handler that implements the
 	// application-specific message handling logic.
@@ -59,7 +59,13 @@ func (s *Sink) Accept(ctx context.Context, sc *pipeline.Scope) error {
 	}
 
 	for _, env := range ds.events {
-		if _, err := sc.RecordEvent(ctx, env); err != nil {
+		// TODO: remove this
+		xxx, err := envelope.Unmarshal(s.Packer.Marshaler, env)
+		if err != nil {
+			panic(err)
+		}
+
+		if _, err := sc.RecordEvent(ctx, xxx); err != nil {
 			return err
 		}
 	}

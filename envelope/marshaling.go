@@ -65,6 +65,27 @@ func Unmarshal(
 	return &out, err
 }
 
+// MustMarshalMessage marshals a Dogma message into an envelope or panics if
+// unable to do so.
+func MustMarshalMessage(
+	vm marshalkit.ValueMarshaler,
+	m dogma.Message,
+	env *envelopespec.Envelope,
+) {
+	p := marshalkit.MustMarshalMessage(vm, m)
+
+	_, n, err := p.ParseMediaType()
+	if err != nil {
+		// CODE COVERAGE: This branch would require the marshaler to violate its
+		// own requirements on the format of the media-type.
+		panic(err)
+	}
+
+	env.PortableName = n
+	env.MediaType = p.MediaType
+	env.Data = p.Data
+}
+
 // UnmarshalMessage unmarshals a message from an envelope.
 func UnmarshalMessage(
 	m marshalkit.ValueMarshaler,
@@ -86,8 +107,8 @@ func marshalMetaData(m dogma.Message, in *MetaData) *envelopespec.MetaData {
 		CausationId:   in.CausationID,
 		CorrelationId: in.CorrelationID,
 		Source:        marshalSource(&in.Source),
-		CreatedAt:     marshalTime(in.CreatedAt),
-		ScheduledFor:  marshalTime(in.ScheduledFor),
+		CreatedAt:     MarshalTime(in.CreatedAt),
+		ScheduledFor:  MarshalTime(in.ScheduledFor),
 		Description:   dogma.DescribeMessage(m),
 	}
 }
@@ -103,11 +124,15 @@ func unmarshalMetaData(in *envelopespec.MetaData, out *MetaData) error {
 		return err
 	}
 
-	if err := unmarshalTime(in.GetCreatedAt(), &out.CreatedAt); err != nil {
+	var err error
+
+	out.CreatedAt, err = UnmarshalTime(in.GetCreatedAt())
+	if err != nil {
 		return err
 	}
 
-	if err := unmarshalTime(in.GetScheduledFor(), &out.ScheduledFor); err != nil {
+	out.ScheduledFor, err = UnmarshalTime(in.GetScheduledFor())
+	if err != nil {
 		return err
 	}
 
@@ -117,11 +142,11 @@ func unmarshalMetaData(in *envelopespec.MetaData, out *MetaData) error {
 // marshalSource marshals a message source to its protobuf representation.
 func marshalSource(in *Source) *envelopespec.Source {
 	out := &envelopespec.Source{
-		Application: marshalIdentity(in.Application),
+		Application: MarshalIdentity(in.Application),
 	}
 
 	if !in.Handler.IsZero() {
-		out.Handler = marshalIdentity(in.Handler)
+		out.Handler = MarshalIdentity(in.Handler)
 		out.InstanceId = in.InstanceID
 	}
 
@@ -130,25 +155,25 @@ func marshalSource(in *Source) *envelopespec.Source {
 
 // unmarshalSource unmarshals a message source from its protobuf representation.
 func unmarshalSource(in *envelopespec.Source, out *Source) error {
-	unmarshalIdentity(in.GetApplication(), &out.Application)
-	unmarshalIdentity(in.GetHandler(), &out.Handler)
+	UnmarshalIdentity(in.GetApplication(), &out.Application)
+	UnmarshalIdentity(in.GetHandler(), &out.Handler)
 	out.InstanceID = in.GetInstanceId()
 
 	return out.Validate()
 }
 
-// marshalIdentity marshals a configkit.Identity to its protocol buffers
+// MarshalIdentity marshals a configkit.Identity to its protocol buffers
 // representation.
-func marshalIdentity(in configkit.Identity) *envelopespec.Identity {
+func MarshalIdentity(in configkit.Identity) *envelopespec.Identity {
 	return &envelopespec.Identity{
 		Name: in.Name,
 		Key:  in.Key,
 	}
 }
 
-// unmarshalIdentity unmarshals a configkit.Identity from its protocol buffers
+// UnmarshalIdentity unmarshals a configkit.Identity from its protocol buffers
 // representation.
-func unmarshalIdentity(
+func UnmarshalIdentity(
 	in *envelopespec.Identity,
 	out *configkit.Identity,
 ) (err error) {
@@ -158,8 +183,8 @@ func unmarshalIdentity(
 	return out.Validate()
 }
 
-// marshalTime marshals a time.Time to its RFC-3339 representation.
-func marshalTime(in time.Time) string {
+// MarshalTime marshals a time.Time to its RFC-3339 representation.
+func MarshalTime(in time.Time) string {
 	if in.IsZero() {
 		return ""
 	}
@@ -167,14 +192,11 @@ func marshalTime(in time.Time) string {
 	return in.Format(time.RFC3339Nano)
 }
 
-// unmarshalTime unmarshals a time.Time from its RFC-3339 representation.
-func unmarshalTime(in string, out *time.Time) error {
+// UnmarshalTime unmarshals a time.Time from its RFC-3339 representation.
+func UnmarshalTime(in string) (time.Time, error) {
 	if len(in) == 0 {
-		*out = time.Time{}
-		return nil
+		return time.Time{}, nil
 	}
 
-	var err error
-	*out, err = time.Parse(time.RFC3339Nano, in)
-	return err
+	return time.Parse(time.RFC3339Nano, in)
 }
