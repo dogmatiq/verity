@@ -27,10 +27,7 @@ func saveMessages(
 			return nil
 		},
 	)
-
-	if err != nil {
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	}
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 	for _, i := range items {
 		i.Revision++
@@ -55,10 +52,7 @@ func removeMessages(
 			return nil
 		},
 	)
-
-	if err != nil {
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	}
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 	for _, i := range items {
 		i.Revision = 0
