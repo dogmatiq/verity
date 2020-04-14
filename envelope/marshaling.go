@@ -67,9 +67,9 @@ func Unmarshal(
 	return &out, err
 }
 
-// MustMarshalMessage marshals a Dogma message into an envelope or panics if
+// mustMarshalMessage marshals a Dogma message into an envelope or panics if
 // unable to do so.
-func MustMarshalMessage(
+func mustMarshalMessage(
 	vm marshalkit.ValueMarshaler,
 	m dogma.Message,
 	env *envelopespec.Envelope,
@@ -109,8 +109,8 @@ func marshalMetaData(m dogma.Message, in *MetaData) *envelopespec.MetaData {
 		CausationId:   in.CausationID,
 		CorrelationId: in.CorrelationID,
 		Source:        marshalSource(&in.Source),
-		CreatedAt:     MarshalTime(in.CreatedAt),
-		ScheduledFor:  MarshalTime(in.ScheduledFor),
+		CreatedAt:     marshalTime(in.CreatedAt),
+		ScheduledFor:  marshalTime(in.ScheduledFor),
 		Description:   dogma.DescribeMessage(m),
 	}
 }
@@ -128,12 +128,12 @@ func unmarshalMetaData(in *envelopespec.MetaData, out *MetaData) error {
 
 	var err error
 
-	out.CreatedAt, err = UnmarshalTime(in.GetCreatedAt())
+	out.CreatedAt, err = unmarshalTime(in.GetCreatedAt())
 	if err != nil {
 		return err
 	}
 
-	out.ScheduledFor, err = UnmarshalTime(in.GetScheduledFor())
+	out.ScheduledFor, err = unmarshalTime(in.GetScheduledFor())
 	if err != nil {
 		return err
 	}
@@ -144,11 +144,11 @@ func unmarshalMetaData(in *envelopespec.MetaData, out *MetaData) error {
 // marshalSource marshals a message source to its protobuf representation.
 func marshalSource(in *Source) *envelopespec.Source {
 	out := &envelopespec.Source{
-		Application: MarshalIdentity(in.Application),
+		Application: marshalIdentity(in.Application),
 	}
 
 	if !in.Handler.IsZero() {
-		out.Handler = MarshalIdentity(in.Handler)
+		out.Handler = marshalIdentity(in.Handler)
 		out.InstanceId = in.InstanceID
 	}
 
@@ -157,25 +157,25 @@ func marshalSource(in *Source) *envelopespec.Source {
 
 // unmarshalSource unmarshals a message source from its protobuf representation.
 func unmarshalSource(in *envelopespec.Source, out *Source) error {
-	UnmarshalIdentity(in.GetApplication(), &out.Application)
-	UnmarshalIdentity(in.GetHandler(), &out.Handler)
+	unmarshalIdentity(in.GetApplication(), &out.Application)
+	unmarshalIdentity(in.GetHandler(), &out.Handler)
 	out.InstanceID = in.GetInstanceId()
 
 	return out.Validate()
 }
 
-// MarshalIdentity marshals a configkit.Identity to its protocol buffers
+// marshalIdentity marshals a configkit.Identity to its protocol buffers
 // representation.
-func MarshalIdentity(in configkit.Identity) *envelopespec.Identity {
+func marshalIdentity(in configkit.Identity) *envelopespec.Identity {
 	return &envelopespec.Identity{
 		Name: in.Name,
 		Key:  in.Key,
 	}
 }
 
-// UnmarshalIdentity unmarshals a configkit.Identity from its protocol buffers
+// unmarshalIdentity unmarshals a configkit.Identity from its protocol buffers
 // representation.
-func UnmarshalIdentity(
+func unmarshalIdentity(
 	in *envelopespec.Identity,
 	out *configkit.Identity,
 ) (err error) {
@@ -185,8 +185,8 @@ func UnmarshalIdentity(
 	return out.Validate()
 }
 
-// MarshalTime marshals a time.Time to its RFC-3339 representation.
-func MarshalTime(in time.Time) string {
+// marshalTime marshals a time.Time to its RFC-3339 representation.
+func marshalTime(in time.Time) string {
 	if in.IsZero() {
 		return ""
 	}
@@ -194,8 +194,8 @@ func MarshalTime(in time.Time) string {
 	return in.Format(time.RFC3339Nano)
 }
 
-// UnmarshalTime unmarshals a time.Time from its RFC-3339 representation.
-func UnmarshalTime(in string) (time.Time, error) {
+// unmarshalTime unmarshals a time.Time from its RFC-3339 representation.
+func unmarshalTime(in string) (time.Time, error) {
 	if len(in) == 0 {
 		return time.Time{}, nil
 	}

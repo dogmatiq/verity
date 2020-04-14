@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -28,12 +27,12 @@ func FromEnvelope(
 	ma marshalkit.ValueMarshaler,
 	env *envelopespec.Envelope,
 ) (*Parcel, error) {
-	m, err := envelope.UnmarshalMessage(ma, env)
+	m, err := envelopespec.UnmarshalMessage(ma, env)
 	if err != nil {
 		return nil, err
 	}
 
-	sf, err := envelope.UnmarshalTime(env.MetaData.ScheduledFor)
+	sf, err := envelopespec.UnmarshalTime(env.MetaData.ScheduledFor)
 	if err != nil {
 		return nil, err
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
@@ -128,7 +127,7 @@ func (e *Engine) newCommandExecutor(
 	return &queue.CommandExecutor{
 		Queue: q,
 		Packer: &parcel.Packer{
-			Application: envelope.MarshalIdentity(cfg.Identity()),
+			Application: envelopespec.MarshalIdentity(cfg.Identity()),
 			Marshaler:   e.opts.Marshaler,
 			Produced: cfg.
 				MessageTypes().
@@ -170,7 +169,7 @@ type routeFactory struct {
 }
 
 func (f *routeFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
-	f.app = envelope.MarshalIdentity(cfg.Identity())
+	f.app = envelopespec.MarshalIdentity(cfg.Identity())
 	f.routes = map[message.Type]pipeline.Stage{}
 	return cfg.RichHandlers().AcceptRichVisitor(ctx, f)
 }
@@ -185,7 +184,7 @@ func (f *routeFactory) VisitRichProcess(_ context.Context, cfg configkit.RichPro
 
 func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
 	s := &integration.Sink{
-		Identity:       envelope.MarshalIdentity(cfg.Identity()),
+		Identity:       envelopespec.MarshalIdentity(cfg.Identity()),
 		Handler:        cfg.Handler(),
 		DefaultTimeout: f.opts.MessageTimeout,
 		Packer: &parcel.Packer{

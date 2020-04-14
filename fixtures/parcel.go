@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/marshalkit/fixtures"
 )
@@ -58,15 +57,15 @@ func NewParcel(
 					},
 					InstanceId: "<instance>",
 				},
-				CreatedAt:    envelope.MarshalTime(createdAt),
-				ScheduledFor: envelope.MarshalTime(scheduledFor),
+				CreatedAt:    envelopespec.MarshalTime(createdAt),
+				ScheduledFor: envelopespec.MarshalTime(scheduledFor),
 			},
 		},
 		Message:      m,
 		ScheduledFor: scheduledFor,
 	}
 
-	envelope.MustMarshalMessage(fixtures.Marshaler, m, p.Envelope)
+	envelopespec.MarshalMessage(fixtures.Marshaler, m, p.Envelope)
 
 	return p
 }

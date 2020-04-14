@@ -7,6 +7,8 @@ import (
 	"github.com/dogmatiq/configkit"
 )
 
+// TODO: move validation code into envelopespec
+
 // Source describes the source of a message.
 type Source struct {
 	// Application is the identity of the Dogma application that produced this
