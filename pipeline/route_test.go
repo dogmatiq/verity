@@ -7,8 +7,8 @@ import (
 
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/onsi/ginkgo"
@@ -50,8 +50,8 @@ var _ = Describe("func RouteByType()", func() {
 		Expect(err).To(MatchError("<failed>"))
 	})
 
-	It("returns an error if the envelope cannot be obtained", func() {
-		sess.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
+	It("returns an error if the message cannot be unpacked", func() {
+		sess.MessageFunc = func() (dogma.Message, error) {
 			return nil, errors.New("<error>")
 		}
 

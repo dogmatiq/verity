@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/linger/backoff"
 )
@@ -22,55 +21,30 @@ func Acknowledge(bs backoff.Strategy) Stage {
 	}
 
 	return func(ctx context.Context, sc *Scope, next Sink) error {
-		// We need the envelope in order to log about it. This also detects any
-		// unmarshaling problems early in the pipeline.
-		env, err := sc.Session.Envelope(ctx)
-		if err != nil {
-			return nack(ctx, bs, sc, nil, err)
-		}
-
 		mlog.LogConsume(
 			sc.Logger,
-			env,
+			sc.Session.Envelope(),
 			sc.Session.FailureCount(),
 		)
 
-		if err := next(ctx, sc); err != nil {
-			return nack(ctx, bs, sc, env, err)
+		err := next(ctx, sc)
+
+		if err == nil {
+			return sc.Session.Ack(ctx)
 		}
 
-		return sc.Session.Ack(ctx)
-	}
-}
+		delay := bs(err, sc.Session.FailureCount())
 
-// nack a message and log about it.
-func nack(
-	ctx context.Context,
-	bs backoff.Strategy,
-	sc *Scope,
-	env *envelope.Envelope,
-	cause error,
-) error {
-	delay := bs(cause, sc.Session.FailureCount())
-
-	if env == nil {
-		mlog.LogNackWithoutEnvelope(
-			sc.Logger,
-			sc.Session.MessageID(),
-			cause,
-			delay,
-		)
-	} else {
 		mlog.LogNack(
 			sc.Logger,
-			env,
-			cause,
+			sc.Session.Envelope(),
+			err,
 			delay,
 		)
-	}
 
-	return sc.Session.Nack(
-		ctx,
-		time.Now().Add(delay),
-	)
+		return sc.Session.Nack(
+			ctx,
+			time.Now().Add(delay),
+		)
+	}
 }

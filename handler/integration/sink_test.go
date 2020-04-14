@@ -79,8 +79,8 @@ var _ = Describe("type Sink", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("returns an error if the envelope cannot be obtained", func() {
-			sess.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
+		It("returns an error if the message cannot be unpacked", func() {
+			sess.MessageFunc = func() (dogma.Message, error) {
 				return nil, errors.New("<error>")
 			}
 

@@ -7,7 +7,6 @@ import (
 
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/linger/backoff"
@@ -54,7 +53,7 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● {A1}",
+					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● {A1}",
 				},
 			))
 		})
@@ -90,7 +89,7 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● {A1}",
+					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● {A1}",
 				},
 			))
 		})
@@ -100,7 +99,7 @@ var _ = Describe("func Acknowledge()", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <failed> ● next retry in 1s",
+					Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  MessageA ● <failed> ● next retry in 1s",
 				},
 			))
 		})
@@ -124,47 +123,6 @@ var _ = Describe("func Acknowledge()", func() {
 			ack = Acknowledge(nil)
 			err := ack(context.Background(), scope, next)
 			Expect(err).ShouldNot(HaveOccurred())
-		})
-	})
-
-	Context("when the envelope can not be unpacked", func() {
-		next := fatal // also ensures next stage is never reached
-
-		BeforeEach(func() {
-			sess.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
-				return nil, errors.New("<envelope error>")
-			}
-		})
-
-		It("negatively acknowledges the session", func() {
-			called := false
-			sess.NackFunc = func(_ context.Context, n time.Time) error {
-				called = true
-				return nil
-			}
-
-			err := ack(context.Background(), scope, next)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(called).To(BeTrue())
-		})
-
-		It("logs about negative acknowledgement", func() {
-			err := ack(context.Background(), scope, next)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(logger.Messages()).To(ContainElement(
-				logging.BufferedLogMessage{
-					Message: "= <id>  ∵ -  ⋲ -  ▽ ✖  <envelope error> ● next retry in 1s",
-				},
-			))
-		})
-
-		It("returns an error if Nack() fails", func() {
-			sess.NackFunc = func(context.Context, time.Time) error {
-				return errors.New("<error>")
-			}
-
-			err := ack(context.Background(), scope, next)
-			Expect(err).To(MatchError("<error>"))
 		})
 	})
 })

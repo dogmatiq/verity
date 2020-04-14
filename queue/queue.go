@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	"github.com/dogmatiq/infix/persistence"
@@ -78,7 +79,9 @@ const (
 //
 // It implements the pdeque.Elem interface.
 type elem struct {
-	queuestore.Pair
+	Parcel  *queuestore.Parcel
+	Message dogma.Message
+
 	tracked bool // true once elem is actually in the tracked list
 }
 
@@ -119,7 +122,10 @@ func (q *Queue) Track(ctx context.Context, p queuestore.Pair) error {
 		panic("message must be persisted")
 	}
 
-	e := &elem{Pair: p}
+	e := &elem{
+		Parcel:  p.Parcel,
+		Message: p.Original.Message,
+	}
 
 	q.init()
 
@@ -285,9 +291,7 @@ func (q *Queue) load(ctx context.Context) error {
 	}
 
 	for _, p := range parcels {
-		e := &elem{}
-		e.Parcel = p
-		q.update(e)
+		q.update(&elem{Parcel: p})
 	}
 
 	return nil

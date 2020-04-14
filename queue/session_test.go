@@ -8,6 +8,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -85,14 +86,23 @@ var _ = Describe("type Session", func() {
 	})
 
 	Describe("func Envelope()", func() {
-		It("returns the unmarshaled message envelope", func() {
-			e, err := sess.Envelope(ctx)
+		It("returns the message envelope", func() {
+			e := sess.Envelope()
+			Expect(e).To(EqualX(
+				envelope.MustMarshal(Marshaler, env0),
+			))
+		})
+	})
+
+	Describe("func Message()", func() {
+		It("returns the message", func() {
+			m, err := sess.Message()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(e).To(Equal(env0))
+			Expect(m).To(EqualX(env0.Message))
 		})
 
-		It("unmarshals the envelope if necessary", func() {
-			// Push a new envelope, which will get discarded from memory due to
+		It("unmarshals the message if necessary", func() {
+			// Push a new message, which will get discarded from memory due to
 			// the buffer size limit.
 			queue.BufferSize = 1
 			push(ctx, queue, env1)
@@ -111,9 +121,9 @@ var _ = Describe("type Session", func() {
 			defer sess.Close()
 
 			// Finally, verify that the message is unpacked.
-			e, err := sess.Envelope(ctx)
+			m, err := sess.Message()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(e).To(Equal(env1))
+			Expect(m).To(EqualX(env1.Message))
 		})
 	})
 

@@ -60,15 +60,23 @@ func Unmarshal(
 		return nil, err
 	}
 
-	out.Message, err = marshalkit.UnmarshalMessage(
+	out.Message, err = UnmarshalMessage(m, env)
+
+	return &out, err
+}
+
+// UnmarshalMessage unmarshals a message from an envelope.
+func UnmarshalMessage(
+	m marshalkit.ValueMarshaler,
+	env *envelopespec.Envelope,
+) (dogma.Message, error) {
+	return marshalkit.UnmarshalMessage(
 		m,
 		marshalkit.Packet{
 			MediaType: env.GetMediaType(),
 			Data:      env.GetData(),
 		},
 	)
-
-	return &out, err
 }
 
 // marshalMetaData marshals message meta-data to its protobuf representation.

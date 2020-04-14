@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/persistence"
 )
@@ -33,21 +35,30 @@ func (s *Session) FailureCount() uint {
 }
 
 // Envelope returns the envelope containing the message to be handled.
-func (s *Session) Envelope(context.Context) (*envelope.Envelope, error) {
+func (s *Session) Envelope() *envelopespec.Envelope {
+	return s.elem.Parcel.Envelope
+}
+
+// Message returns the Dogma message that is to be handled.
+//
+// It returns an error if the message can not be unpacked.
+func (s *Session) Message() (dogma.Message, error) {
 	var err error
 
-	if s.elem.Original == nil {
-		s.elem.Original, err = envelope.Unmarshal(
+	if s.elem.Message == nil {
+		s.elem.Message, err = envelope.UnmarshalMessage(
 			s.queue.Marshaler,
 			s.elem.Parcel.Envelope,
 		)
 	}
 
-	return s.elem.Original, err
+	return s.elem.Message, err
 }
 
 // Tx returns the transaction under which the message must be handled, starting
 // it if necessary.
+//
+// It starts the transaction if it has not already been started.
 func (s *Session) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {
 	if s.tx == nil {
 		tx, err := s.queue.DataStore.Begin(ctx)

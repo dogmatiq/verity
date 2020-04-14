@@ -34,26 +34,27 @@ type Sink struct {
 
 // Accept handles a message using s.Handler.
 func (s *Sink) Accept(ctx context.Context, sc *pipeline.Scope) error {
-	env, err := sc.Session.Envelope(ctx)
+	m, err := sc.Session.Message()
 	if err != nil {
 		return err
 	}
 
 	ds := &scope{
-		handler: s.Identity,
-		cause:   env,
-		packer:  s.Packer,
-		logger:  sc.Logger,
+		envelope: sc.Session.Envelope(),
+		message:  m,
+		handler:  s.Identity,
+		packer:   s.Packer,
+		logger:   sc.Logger,
 	}
 
 	hctx, cancel := linger.ContextWithTimeout(
 		ctx,
-		s.Handler.TimeoutHint(env.Message),
+		s.Handler.TimeoutHint(m),
 		s.DefaultTimeout,
 	)
 	defer cancel()
 
-	if err := s.Handler.HandleCommand(hctx, ds, env.Message); err != nil {
+	if err := s.Handler.HandleCommand(hctx, ds, m); err != nil {
 		return err
 	}
 

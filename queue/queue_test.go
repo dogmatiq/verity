@@ -8,6 +8,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
@@ -164,7 +165,9 @@ var _ = Describe("type Queue", func() {
 						Expect(err).ShouldNot(HaveOccurred())
 						defer sess.Close()
 
-						Expect(sess.Envelope(ctx)).To(Equal(env1))
+						Expect(sess.Envelope()).To(EqualX(
+							envelope.MustMarshal(Marshaler, env1),
+						))
 					})
 
 					It("returns an error if the context deadline is exceeded", func() {
@@ -217,7 +220,9 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer sess.Close()
 
-					Expect(sess.Envelope(ctx)).To(Equal(env0))
+					Expect(sess.Envelope()).To(EqualX(
+						envelope.MustMarshal(Marshaler, env0),
+					))
 				})
 			})
 		})
