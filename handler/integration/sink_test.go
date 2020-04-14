@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
@@ -125,8 +126,9 @@ var _ = Describe("type Sink", func() {
 				[]pipeline.RecordedEvent{
 					{
 						Parcel: &parcel.Parcel{
-							Envelope: env,
-							Message:  MessageE1,
+							Envelope:  env,
+							Message:   MessageE1,
+							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
 						Persisted: &eventstore.Item{
 							Offset:   0,

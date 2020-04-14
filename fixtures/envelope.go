@@ -7,9 +7,23 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/envelope"
-	"github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/google/uuid"
 )
+
+// NewEnvelopeProto returns a new envelope containing the given message,
+// marshaled to its protobuf representation.
+//
+// If id is empty, a new UUID is generated.
+//
+// times can contain up to two elements, the first is the created time, the
+// second is the scheduled-for time.
+func NewEnvelopeProto(
+	id string,
+	m dogma.Message,
+	times ...time.Time,
+) *envelopespec.Envelope {
+	return NewParcel(id, m, times...).Envelope
+}
 
 // NewEnvelope returns a new envelope containing the given message.
 //
@@ -56,39 +70,4 @@ func NewEnvelope(
 	cleanseTime(&env.MetaData.ScheduledFor)
 
 	return env
-}
-
-// NewEnvelopeProto returns a new envelope containing the given message,
-// marshaled to its protobuf representation.
-//
-// If id is empty, a new UUID is generated.
-//
-// times can contain up to two elements, the first is the created time, the
-// second is the scheduled-for time.
-func NewEnvelopeProto(
-	id string,
-	m dogma.Message,
-	times ...time.Time,
-) *envelopespec.Envelope {
-	env := NewEnvelope(id, m, times...)
-	return envelope.MustMarshal(fixtures.Marshaler, env)
-}
-
-// cleanseTime marshals/unmarshals time to strip any internal state that would
-// not be transmitted across the network.
-func cleanseTime(t *time.Time) {
-	if t.IsZero() {
-		*t = time.Time{}
-		return
-	}
-
-	data, err := t.MarshalText()
-	if err != nil {
-		panic(err)
-	}
-
-	err = t.UnmarshalText(data)
-	if err != nil {
-		panic(err)
-	}
 }

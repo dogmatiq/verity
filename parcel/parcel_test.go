@@ -33,13 +33,13 @@ var _ = Describe("type Parcel", func() {
 
 	Describe("func FromEnvelope()", func() {
 		It("returns a parcel containing the given envelope", func() {
-
 			p, err := FromEnvelope(Marshaler, env)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(p).To(EqualX(
 				&Parcel{
 					Envelope:     env,
 					Message:      MessageA1,
+					CreatedAt:    createdAt,
 					ScheduledFor: scheduledFor,
 				},
 			))
@@ -52,6 +52,12 @@ var _ = Describe("type Parcel", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 
+		It("returns an error if the created-at time can not be unmarshaled", func() {
+			env.MetaData.CreatedAt = "<malformed>"
+
+			_, err := FromEnvelope(Marshaler, env)
+			Expect(err).Should(HaveOccurred())
+		})
 		It("returns an error if the scheduled-for time can not be unmarshaled", func() {
 			env.MetaData.ScheduledFor = "<malformed>"
 

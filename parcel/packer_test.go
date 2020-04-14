@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/internal/x/gomegax"
 	. "github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -22,7 +21,8 @@ import (
 var _ = Describe("type Packer", func() {
 	var (
 		seq          int
-		now          string
+		now          time.Time
+		nowString    string
 		app, handler *envelopespec.Identity
 		packer       *Packer
 	)
@@ -30,8 +30,8 @@ var _ = Describe("type Packer", func() {
 	BeforeEach(func() {
 		seq = 0
 
-		t := time.Now()
-		now = envelope.MarshalTime(t)
+		now = time.Now()
+		nowString = envelopespec.MarshalTime(now)
 
 		app = &envelopespec.Identity{
 			Name: "<app-name>",
@@ -61,7 +61,7 @@ var _ = Describe("type Packer", func() {
 				return fmt.Sprintf("%08d", seq)
 			},
 			Now: func() time.Time {
-				return t
+				return now
 			},
 		}
 	})
@@ -80,14 +80,15 @@ var _ = Describe("type Packer", func() {
 							Source: &envelopespec.Source{
 								Application: app,
 							},
-							CreatedAt:   now,
+							CreatedAt:   nowString,
 							Description: "{C1}",
 						},
 						PortableName: MessageCPortableName,
 						MediaType:    MessageC1Packet.MediaType,
 						Data:         MessageC1Packet.Data,
 					},
-					Message: MessageC1,
+					Message:   MessageC1,
+					CreatedAt: now,
 				},
 			))
 		})
@@ -119,14 +120,15 @@ var _ = Describe("type Packer", func() {
 							Source: &envelopespec.Source{
 								Application: app,
 							},
-							CreatedAt:   now,
+							CreatedAt:   nowString,
 							Description: "{E1}",
 						},
 						PortableName: MessageEPortableName,
 						MediaType:    MessageE1Packet.MediaType,
 						Data:         MessageE1Packet.Data,
 					},
-					Message: MessageE1,
+					Message:   MessageE1,
+					CreatedAt: now,
 				},
 			))
 		})
@@ -158,7 +160,7 @@ var _ = Describe("type Packer", func() {
 
 		p := packer.PackCommand(MessageC1)
 
-		createdAt, err := envelope.UnmarshalTime(p.Envelope.MetaData.CreatedAt)
+		createdAt, err := envelopespec.UnmarshalTime(p.Envelope.MetaData.CreatedAt)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(createdAt).To(BeTemporally("~", time.Now()))
 	})
@@ -208,14 +210,15 @@ var _ = Describe("type Packer", func() {
 										Handler:     handler,
 										InstanceId:  "<instance>",
 									},
-									CreatedAt:   now,
+									CreatedAt:   nowString,
 									Description: "{C1}",
 								},
 								PortableName: MessageCPortableName,
 								MediaType:    MessageC1Packet.MediaType,
 								Data:         MessageC1Packet.Data,
 							},
-							Message: MessageC1,
+							Message:   MessageC1,
+							CreatedAt: now,
 						},
 					))
 				},
@@ -289,14 +292,15 @@ var _ = Describe("type Packer", func() {
 										Handler:     handler,
 										InstanceId:  "<instance>",
 									},
-									CreatedAt:   now,
+									CreatedAt:   nowString,
 									Description: "{E1}",
 								},
 								PortableName: MessageEPortableName,
 								MediaType:    MessageE1Packet.MediaType,
 								Data:         MessageE1Packet.Data,
 							},
-							Message: MessageE1,
+							Message:   MessageE1,
+							CreatedAt: now,
 						},
 					))
 				},
@@ -372,8 +376,8 @@ var _ = Describe("type Packer", func() {
 										Handler:     handler,
 										InstanceId:  "<instance>",
 									},
-									CreatedAt:    now,
-									ScheduledFor: envelope.MarshalTime(scheduledFor),
+									CreatedAt:    nowString,
+									ScheduledFor: envelopespec.MarshalTime(scheduledFor),
 									Description:  "{T1}",
 								},
 								PortableName: MessageTPortableName,
@@ -381,6 +385,7 @@ var _ = Describe("type Packer", func() {
 								Data:         MessageT1Packet.Data,
 							},
 							Message:      MessageT1,
+							CreatedAt:    now,
 							ScheduledFor: scheduledFor,
 						},
 					))

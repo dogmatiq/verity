@@ -17,6 +17,9 @@ type Parcel struct {
 	// Message is the original representation of the message.
 	Message dogma.Message
 
+	// CreatedAt is the time at which the message was created.
+	CreatedAt time.Time
+
 	// ScheduledFor is the time at which a timeout message is scheduled to
 	// occur. If the message is not a timeout message it is the zero-value.
 	ScheduledFor time.Time
@@ -32,7 +35,12 @@ func FromEnvelope(
 		return nil, err
 	}
 
-	sf, err := envelopespec.UnmarshalTime(env.MetaData.ScheduledFor)
+	createdAt, err := envelopespec.UnmarshalTime(env.MetaData.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	scheduledFor, err := envelopespec.UnmarshalTime(env.MetaData.ScheduledFor)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +48,7 @@ func FromEnvelope(
 	return &Parcel{
 		Envelope:     env,
 		Message:      m,
-		ScheduledFor: sf,
+		CreatedAt:    createdAt,
+		ScheduledFor: scheduledFor,
 	}, nil
 }

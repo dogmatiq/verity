@@ -115,6 +115,7 @@ func (p *Packer) PackChildTimeout(
 // new returns an envelope containing the given message.
 func (p *Packer) new(m dogma.Message) *Parcel {
 	id := p.generateID()
+	now := p.now()
 
 	env := &Parcel{
 		Envelope: &envelopespec.Envelope{
@@ -125,11 +126,12 @@ func (p *Packer) new(m dogma.Message) *Parcel {
 				Source: &envelopespec.Source{
 					Application: p.Application,
 				},
-				CreatedAt:   envelopespec.MarshalTime(p.now()),
+				CreatedAt:   envelopespec.MarshalTime(now),
 				Description: dogma.DescribeMessage(m),
 			},
 		},
-		Message: m,
+		Message:   m,
+		CreatedAt: now,
 	}
 
 	envelopespec.MarshalMessage(p.Marshaler, m, env.Envelope)

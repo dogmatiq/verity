@@ -10,6 +10,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/google/uuid"
 )
 
 // NewParcel returns a new parcel containing the given message.
@@ -23,6 +24,10 @@ func NewParcel(
 	m dogma.Message,
 	times ...time.Time,
 ) *parcel.Parcel {
+	if id == "" {
+		id = uuid.New().String()
+	}
+
 	var createdAt, scheduledFor time.Time
 
 	switch len(times) {
@@ -48,20 +53,22 @@ func NewParcel(
 				CorrelationId: "<correlation>",
 				Source: &envelopespec.Source{
 					Application: &envelopespec.Identity{
-						Key:  "<app-name>",
-						Name: "<app-key>",
+						Name: "<app-name>",
+						Key:  "<app-key>",
 					},
 					Handler: &envelopespec.Identity{
-						Key:  "<handler-name>",
-						Name: "<handler-key>",
+						Name: "<handler-name>",
+						Key:  "<handler-key>",
 					},
 					InstanceId: "<instance>",
 				},
 				CreatedAt:    envelopespec.MarshalTime(createdAt),
 				ScheduledFor: envelopespec.MarshalTime(scheduledFor),
+				Description:  dogma.DescribeMessage(m),
 			},
 		},
 		Message:      m,
+		CreatedAt:    createdAt,
 		ScheduledFor: scheduledFor,
 	}
 
@@ -110,5 +117,24 @@ func NewPacker(roles message.TypeRoles) *parcel.Packer {
 
 			return v
 		},
+	}
+}
+
+// cleanseTime marshals/unmarshals time to strip any internal state that would
+// not be transmitted across the network.
+func cleanseTime(t *time.Time) {
+	if t.IsZero() {
+		*t = time.Time{}
+		return
+	}
+
+	data, err := t.MarshalText()
+	if err != nil {
+		panic(err)
+	}
+
+	err = t.UnmarshalText(data)
+	if err != nil {
+		panic(err)
 	}
 }
