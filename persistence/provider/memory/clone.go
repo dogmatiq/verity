@@ -7,14 +7,14 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-func cloneEventStoreParcel(p *eventstore.Parcel) *eventstore.Parcel {
-	clone := *p
+func cloneEventStoreItem(i *eventstore.Item) *eventstore.Item {
+	clone := *i
 	clone.Envelope = cloneEnvelope(clone.Envelope)
 	return &clone
 }
 
-func cloneQueueStoreParcel(p *queuestore.Parcel) *queuestore.Parcel {
-	clone := *p
+func cloneQueueStoreItem(i *queuestore.Item) *queuestore.Item {
+	clone := *i
 	clone.Envelope = cloneEnvelope(clone.Envelope)
 	return &clone
 }

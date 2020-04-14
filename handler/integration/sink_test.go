@@ -13,6 +13,7 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -102,29 +103,35 @@ var _ = Describe("type Sink", func() {
 
 			err := sink.Accept(context.Background(), scope)
 			Expect(err).ShouldNot(HaveOccurred())
+
+			env := &envelopespec.Envelope{
+				MetaData: &envelopespec.MetaData{
+					MessageId:     "0",
+					CausationId:   "<consume>",
+					CorrelationId: "<correlation>",
+					Source: &envelopespec.Source{
+						Application: sink.Packer.Application,
+						Handler:     sink.Identity,
+					},
+					CreatedAt:   "2000-01-01T00:00:00Z",
+					Description: "{E1}",
+				},
+				PortableName: MessageEPortableName,
+				MediaType:    MessageE1Packet.MediaType,
+				Data:         MessageE1Packet.Data,
+			}
+
 			Expect(scope.Recorded).To(gomegax.EqualX(
-				[]eventstore.Pair{
+				[]pipeline.RecordedEvent{
 					{
-						Parcel: &eventstore.Parcel{
-							Offset: 0,
-							Envelope: &envelopespec.Envelope{
-								MetaData: &envelopespec.MetaData{
-									MessageId:     "0",
-									CausationId:   "<consume>",
-									CorrelationId: "<correlation>",
-									Source: &envelopespec.Source{
-										Application: sink.Packer.Application,
-										Handler:     sink.Identity,
-									},
-									CreatedAt:   "2000-01-01T00:00:00Z",
-									Description: "{E1}",
-								},
-								PortableName: MessageEPortableName,
-								MediaType:    MessageE1Packet.MediaType,
-								Data:         MessageE1Packet.Data,
-							},
+						Parcel: &parcel.Parcel{
+							Envelope: env,
+							Message:  MessageE1,
 						},
-						Message: MessageE1,
+						Persisted: &eventstore.Item{
+							Offset:   0,
+							Envelope: env,
+						},
 					},
 				},
 			))

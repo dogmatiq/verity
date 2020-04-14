@@ -191,9 +191,9 @@ var _ = Describe("type Session", func() {
 			err = sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+			items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(parcels).To(BeEmpty())
+			Expect(items).To(BeEmpty())
 		})
 
 		It("returns an error if the transaction cannot be begun", func() {
@@ -213,7 +213,7 @@ var _ = Describe("type Session", func() {
 
 			tx.(*TransactionStub).RemoveMessageFromQueueFunc = func(
 				context.Context,
-				*queuestore.Parcel,
+				*queuestore.Item,
 			) error {
 				return errors.New("<error>")
 			}
@@ -260,13 +260,13 @@ var _ = Describe("type Session", func() {
 			err := sess.Nack(ctx, next)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+			items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(parcels).To(HaveLen(1))
+			Expect(items).To(HaveLen(1))
 
-			p := parcels[0]
-			Expect(p.FailureCount).To(BeEquivalentTo(1))
-			Expect(p.NextAttemptAt).To(BeTemporally("~", next))
+			i := items[0]
+			Expect(i.FailureCount).To(BeEquivalentTo(1))
+			Expect(i.NextAttemptAt).To(BeTemporally("~", next))
 		})
 
 		It("returns the message to the in-memory queue when closed", func() {

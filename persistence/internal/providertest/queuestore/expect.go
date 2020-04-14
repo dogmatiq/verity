@@ -8,9 +8,11 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// expectParcelToEqual asserts that an queuestore.Parcel equals an
+// expectItemToEqual asserts that an queuestore.Item equals an
 // expected value, including the revisions.
-func expectParcelToEqual(check, expect *queuestore.Parcel, desc ...interface{}) {
+//
+// TODO: https://github.com/dogmatiq/infix/issues/151
+func expectItemToEqual(check, expect *queuestore.Item, desc ...interface{}) {
 	gomega.Expect(check.Revision).To(
 		gomega.Equal(expect.Revision),
 		common.ExpandDescription(desc, "revision does not match"),
@@ -33,17 +35,17 @@ func expectParcelToEqual(check, expect *queuestore.Parcel, desc ...interface{}) 
 	)
 }
 
-// expectParcelsToEqual asserts that a slice of queuestore.Parcel equals an
+// expectItemsToEqual asserts that a slice of queuestore.Item equals an
 // expected value, including the revisions.
-func expectParcelsToEqual(check, expect []*queuestore.Parcel, desc ...interface{}) {
+func expectItemsToEqual(check, expect []*queuestore.Item, desc ...interface{}) {
 	gomega.Expect(check).To(gomega.HaveLen(len(expect)))
 
-	for i, p := range check {
-		expectParcelToEqual(
-			p, expect[i],
+	for i, it := range check {
+		expectItemToEqual(
+			it, expect[i],
 			common.ExpandDescription(
 				desc,
-				fmt.Sprintf("parcel at index #%d of slice", i),
+				fmt.Sprintf("item at index #%d of slice", i),
 			),
 		)
 	}

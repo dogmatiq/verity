@@ -38,7 +38,7 @@ func (t *transaction) SaveEvent(
 	)
 
 	o := loadNextOffset(store)
-	saveEventStoreParcel(events, o, env)
+	saveEventStoreItem(events, o, env)
 	storeNextOffset(store, o+1)
 
 	return o, nil
@@ -76,7 +76,7 @@ type eventStoreResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventStoreResult) Next(
 	ctx context.Context,
-) (p *eventstore.Parcel, ok bool, err error) {
+) (i *eventstore.Item, ok bool, err error) {
 	defer bboltx.Recover(&err)
 
 	// Execute a read-only transaction.
@@ -93,8 +93,8 @@ func (r *eventStoreResult) Next(
 			for exists && !ok {
 				bboltx.Must(ctx.Err()) // Bail if we're taking too long.
 
-				p, exists = loadEventStoreParcel(events, r.query.MinOffset)
-				ok = exists && r.query.IsMatch(p)
+				i, exists = loadEventStoreItem(events, r.query.MinOffset)
+				ok = exists && r.query.IsMatch(i)
 
 				r.query.MinOffset++
 			}
@@ -153,11 +153,11 @@ func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
 	bboltx.Put(b, offsetKey, data)
 }
 
-// loadEventStoreParcel loads an event at a specific offset.
-func loadEventStoreParcel(
+// loadEventStoreItem loads the item at a specific offset.
+func loadEventStoreItem(
 	events *bbolt.Bucket,
 	o eventstore.Offset,
-) (*eventstore.Parcel, bool) {
+) (*eventstore.Item, bool) {
 	k := marshalOffset(o)
 	v := events.Get(k)
 
@@ -168,14 +168,14 @@ func loadEventStoreParcel(
 	var env envelopespec.Envelope
 	bboltx.Must(proto.Unmarshal(v, &env))
 
-	return &eventstore.Parcel{
+	return &eventstore.Item{
 		Offset:   o,
 		Envelope: &env,
 	}, true
 }
 
-// saveEventStoreParcel writes an event to the store at a specific offset.
-func saveEventStoreParcel(
+// saveEventStoreItem writes an event to the store at a specific offset.
+func saveEventStoreItem(
 	events *bbolt.Bucket,
 	o eventstore.Offset,
 	env *envelopespec.Envelope,

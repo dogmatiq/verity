@@ -13,14 +13,14 @@ import (
 func saveMessages(
 	ctx context.Context,
 	ds persistence.DataStore,
-	parcels ...*queuestore.Parcel,
+	items ...*queuestore.Item,
 ) {
 	err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
-			for _, p := range parcels {
-				if err := tx.SaveMessageToQueue(ctx, p); err != nil {
+			for _, i := range items {
+				if err := tx.SaveMessageToQueue(ctx, i); err != nil {
 					return err
 				}
 			}
@@ -32,8 +32,8 @@ func saveMessages(
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	}
 
-	for _, p := range parcels {
-		p.Revision++
+	for _, i := range items {
+		i.Revision++
 	}
 }
 
@@ -41,14 +41,14 @@ func saveMessages(
 func removeMessages(
 	ctx context.Context,
 	ds persistence.DataStore,
-	parcels ...*queuestore.Parcel,
+	items ...*queuestore.Item,
 ) {
 	err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
-			for _, p := range parcels {
-				if err := tx.RemoveMessageFromQueue(ctx, p); err != nil {
+			for _, i := range items {
+				if err := tx.RemoveMessageFromQueue(ctx, i); err != nil {
 					return err
 				}
 			}
@@ -60,8 +60,8 @@ func removeMessages(
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	}
 
-	for _, p := range parcels {
-		p.Revision = 0
+	for _, i := range items {
+		i.Revision = 0
 	}
 }
 
@@ -69,14 +69,14 @@ func removeMessages(
 func loadMessage(
 	ctx context.Context,
 	r queuestore.Repository,
-) *queuestore.Parcel {
-	parcels := loadMessages(ctx, r, 1)
+) *queuestore.Item {
+	items := loadMessages(ctx, r, 1)
 
-	if len(parcels) == 0 {
+	if len(items) == 0 {
 		ginkgo.Fail("no messages returned")
 	}
 
-	return parcels[0]
+	return items[0]
 }
 
 // loadMessages loads the messages at the head of the queue.
@@ -84,8 +84,8 @@ func loadMessages(
 	ctx context.Context,
 	r queuestore.Repository,
 	n int,
-) []*queuestore.Parcel {
-	parcels, err := r.LoadQueueMessages(ctx, n)
+) []*queuestore.Item {
+	items, err := r.LoadQueueMessages(ctx, n)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	return parcels
+	return items
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/handler"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/pipeline"
 	"golang.org/x/sync/errgroup"
 )
@@ -63,9 +62,9 @@ func (s *PipelineSource) Run(ctx context.Context) error {
 // TrackEnqueuedCommands returns a pipeline observer that calls q.Track() for
 // each message that is enqueued.
 func TrackEnqueuedCommands(q *Queue) pipeline.QueueObserver {
-	return func(ctx context.Context, pairs []queuestore.Pair) error {
-		for _, p := range pairs {
-			if err := q.Track(ctx, p); err != nil {
+	return func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
+		for _, m := range messages {
+			if err := q.Track(ctx, m.Parcel, m.Persisted); err != nil {
 				return err
 			}
 		}

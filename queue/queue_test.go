@@ -9,6 +9,7 @@ import (
 	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
@@ -31,26 +32,24 @@ func push(
 		next = n
 	}
 
-	p := q.NewParcel(env, next)
+	i := q.NewItem(env, next)
+	p := &parcel.Parcel{
+		// TODO:
+		Envelope: i.Envelope,
+	}
 
 	err := persistence.WithTransaction(
 		ctx,
 		q.DataStore,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, p)
+			return tx.SaveMessageToQueue(ctx, i)
 		},
 	)
 	Expect(err).ShouldNot(HaveOccurred())
 
-	p.Revision++
+	i.Revision++
 
-	err = q.Track(
-		ctx,
-		queuestore.Pair{
-			Parcel:  p,
-			Message: env.Message,
-		},
-	)
+	err = q.Track(ctx, p, i)
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
@@ -185,7 +184,7 @@ var _ = Describe("type Queue", func() {
 
 			When("messages are persisted but not in memory", func() {
 				BeforeEach(func() {
-					parcels := []*queuestore.Parcel{
+					items := []*queuestore.Item{
 						{
 							NextAttemptAt: time.Now(),
 							Envelope:      envelope.MustMarshal(Marshaler, env0),
@@ -204,8 +203,8 @@ var _ = Describe("type Queue", func() {
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							for _, p := range parcels {
-								if err := tx.SaveMessageToQueue(ctx, p); err != nil {
+							for _, i := range items {
+								if err := tx.SaveMessageToQueue(ctx, i); err != nil {
 									return err
 								}
 							}
@@ -232,11 +231,9 @@ var _ = Describe("type Queue", func() {
 				Expect(func() {
 					queue.Track(
 						ctx,
-						queuestore.Pair{
-							Parcel: &queuestore.Parcel{
-								Revision: 0,
-							},
-							Message: env0.Message,
+						&parcel.Parcel{}, // TODO:
+						&queuestore.Item{
+							Revision: 0, // 0 == not persisted
 						},
 					)
 				}).To(Panic())
@@ -275,7 +272,7 @@ var _ = Describe("type Queue", func() {
 					repository.LoadQueueMessagesFunc = func(
 						ctx context.Context,
 						n int,
-					) ([]*queuestore.Parcel, error) {
+					) ([]*queuestore.Item, error) {
 						push(ctx, queue, env0)
 						return repository.Repository.LoadQueueMessages(ctx, n)
 					}
@@ -302,12 +299,14 @@ var _ = Describe("type Queue", func() {
 	When("the queue is not running", func() {
 		Describe("func Track()", func() {
 			It("returns an error if the deadline is exceeded", func() {
-				p := queuestore.Pair{
-					Parcel: &queuestore.Parcel{
-						Revision: 1,
-						Envelope: envelope.MustMarshal(Marshaler, env0),
-					},
+				p := &parcel.Parcel{
+					// TODO:
 					Message: env0.Message,
+				}
+
+				i := &queuestore.Item{
+					Revision: 1,
+					Envelope: envelope.MustMarshal(Marshaler, env0),
 				}
 
 				// It's an implementation detail, but the internal channel used to start
@@ -321,14 +320,14 @@ var _ = Describe("type Queue", func() {
 				// Instead, we set it to one, and "fill" the channel with a request to
 				// ensure that it will block.
 				queue.BufferSize = 1
-				err := queue.Track(ctx, p)
+				err := queue.Track(ctx, p, i)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// Setup a short deadline for the test.
 				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 				defer cancel()
 
-				err = queue.Track(ctx, p)
+				err = queue.Track(ctx, p, i)
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
 		})
@@ -338,7 +337,7 @@ var _ = Describe("type Queue", func() {
 				repository.LoadQueueMessagesFunc = func(
 					context.Context,
 					int,
-				) ([]*queuestore.Parcel, error) {
+				) ([]*queuestore.Item, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -358,15 +357,17 @@ var _ = Describe("type Queue", func() {
 
 		Describe("func Track()", func() {
 			It("does not block", func() {
-				p := queuestore.Pair{
-					Parcel: &queuestore.Parcel{
-						Revision: 1,
-						Envelope: envelope.MustMarshal(Marshaler, env0),
-					},
+				p := &parcel.Parcel{
+					// TODO:
 					Message: env0.Message,
 				}
 
-				err := queue.Track(ctx, p)
+				i := &queuestore.Item{
+					Revision: 1,
+					Envelope: envelope.MustMarshal(Marshaler, env0),
+				}
+
+				err := queue.Track(ctx, p, i)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})

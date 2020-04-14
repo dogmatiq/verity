@@ -49,7 +49,7 @@ var _ = Describe("func WithTransaction", func() {
 			func(tx ManagedTransaction) error {
 				return tx.SaveMessageToQueue(
 					ctx,
-					&queuestore.Parcel{
+					&queuestore.Item{
 						NextAttemptAt: time.Now(),
 						Envelope:      env,
 					},
@@ -58,9 +58,9 @@ var _ = Describe("func WithTransaction", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+		items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(parcels).NotTo(BeEmpty())
+		Expect(items).NotTo(BeEmpty())
 	})
 
 	It("rolls the transaction back if fn returns an error", func() {
@@ -72,7 +72,7 @@ var _ = Describe("func WithTransaction", func() {
 			func(tx ManagedTransaction) error {
 				err := tx.SaveMessageToQueue(
 					ctx,
-					&queuestore.Parcel{
+					&queuestore.Item{
 						NextAttemptAt: time.Now(),
 						Envelope:      env,
 					},
@@ -84,9 +84,9 @@ var _ = Describe("func WithTransaction", func() {
 		)
 		Expect(err).To(MatchError("<error>"))
 
-		parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+		items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(parcels).To(BeEmpty())
+		Expect(items).To(BeEmpty())
 	})
 
 	It("returns an error if the transaction can not be begun", func() {

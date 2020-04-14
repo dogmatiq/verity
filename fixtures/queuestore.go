@@ -11,14 +11,14 @@ import (
 type QueueStoreRepositoryStub struct {
 	queuestore.Repository
 
-	LoadQueueMessagesFunc func(context.Context, int) ([]*queuestore.Parcel, error)
+	LoadQueueMessagesFunc func(context.Context, int) ([]*queuestore.Item, error)
 }
 
 // LoadQueueMessages loads the next n messages from the queue.
 func (r *QueueStoreRepositoryStub) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) ([]*queuestore.Parcel, error) {
+) ([]*queuestore.Item, error) {
 	if r.LoadQueueMessagesFunc != nil {
 		return r.LoadQueueMessagesFunc(ctx, n)
 	}

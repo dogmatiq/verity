@@ -16,22 +16,22 @@ type Transaction interface {
 	//
 	// If the message is already on the queue its meta-data is updated.
 	//
-	// p.Revision must be the revision of the message as currently persisted,
+	// i.Revision must be the revision of the message as currently persisted,
 	// otherwise an optimistic concurrency conflict has occurred, the message
 	// is not saved and ErrConflict is returned.
 	SaveMessageToQueue(
 		ctx context.Context,
-		p *Parcel,
+		i *Item,
 	) error
 
 	// RemoveMessageFromQueue removes a specific message from the application's
 	// message queue.
 	//
-	// p.Revision must be the revision of the message as currently persisted,
+	// i.Revision must be the revision of the message as currently persisted,
 	// otherwise an optimistic concurrency conflict has occurred, the message
 	// remains on the queue and ErrConflict is returned.
 	RemoveMessageFromQueue(
 		ctx context.Context,
-		p *Parcel,
+		i *Item,
 	) error
 }

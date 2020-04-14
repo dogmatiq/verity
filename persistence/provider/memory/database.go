@@ -13,10 +13,10 @@ type database struct {
 	syncx.RWMutex
 
 	open   uint32 // atomic
-	events []*eventstore.Parcel
+	events []*eventstore.Item
 	queue  struct {
-		order []*queuestore.Parcel
-		uniq  map[string]*queuestore.Parcel
+		order []*queuestore.Item
+		uniq  map[string]*queuestore.Item
 	}
 }
 

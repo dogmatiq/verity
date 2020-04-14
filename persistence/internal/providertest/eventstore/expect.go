@@ -8,9 +8,11 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// expectParcelToEqual asserts that an eventstore.Parcel equals an expected value.
-func expectParcelToEqual(
-	check, expect *eventstore.Parcel,
+// expectItemToEqual asserts that an eventstore.Item equals an expected value.
+//
+// TODO: https://github.com/dogmatiq/infix/issues/151
+func expectItemToEqual(
+	check, expect *eventstore.Item,
 	desc ...interface{},
 ) {
 	gomega.Expect(check.Offset).To(
@@ -25,20 +27,20 @@ func expectParcelToEqual(
 	)
 }
 
-// expectParcelsToEqual asserts that a slice of eventstore.Parcel equals an
+// expectItemsToEqual asserts that a slice of eventstore.Item equals an
 // expected value.
-func expectParcelsToEqual(
-	check, expect []*eventstore.Parcel,
+func expectItemsToEqual(
+	check, expect []*eventstore.Item,
 	desc ...interface{},
 ) {
 	gomega.Expect(check).To(gomega.HaveLen(len(expect)))
 
-	for i, p := range check {
-		expectParcelToEqual(
-			p, expect[i],
+	for i, item := range check {
+		expectItemToEqual(
+			item, expect[i],
 			common.ExpandDescription(
 				desc,
-				fmt.Sprintf("parcel at index #%d of slice", i),
+				fmt.Sprintf("item at index #%d of slice", i),
 			),
 		)
 	}

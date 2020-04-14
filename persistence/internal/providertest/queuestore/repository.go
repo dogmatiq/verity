@@ -24,7 +24,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			repository queuestore.Repository
 			tearDown   func()
 
-			parcel0, parcel1, parcel2 *queuestore.Parcel
+			item0, item1, item2 *queuestore.Item
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -38,19 +38,19 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			// This was noticed occurring with the SQL provider, which sorted by
 			// its PRIMARY KEY, which includes the message ID.
 
-			parcel0 = &queuestore.Parcel{
+			item0 = &queuestore.Item{
 				FailureCount:  1,
 				NextAttemptAt: time.Now().Add(3 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA3),
 			}
 
-			parcel1 = &queuestore.Parcel{
+			item1 = &queuestore.Item{
 				FailureCount:  2,
 				NextAttemptAt: time.Now().Add(-10 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA1),
 			}
 
-			parcel2 = &queuestore.Parcel{
+			item2 = &queuestore.Item{
 				FailureCount:  3,
 				NextAttemptAt: time.Now().Add(2 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA2),
@@ -63,46 +63,46 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func LoadQueueMessages()", func() {
 			ginkgo.It("returns an empty result if the queue is empty", func() {
-				parcels := loadMessages(tc.Context, repository, 10)
-				gomega.Expect(parcels).To(gomega.BeEmpty())
+				items := loadMessages(tc.Context, repository, 10)
+				gomega.Expect(items).To(gomega.BeEmpty())
 			})
 
 			table.DescribeTable(
 				"it returns messages from the queue, ordered by their next attempt time",
-				func(n int, expected ...**queuestore.Parcel) {
+				func(n int, expected ...**queuestore.Item) {
 					saveMessages(
 						tc.Context,
 						dataStore,
-						parcel0,
-						parcel1,
-						parcel2,
+						item0,
+						item1,
+						item2,
 					)
 
-					parcels := loadMessages(tc.Context, repository, n)
-					gomega.Expect(parcels).To(gomega.HaveLen(len(expected)))
+					items := loadMessages(tc.Context, repository, n)
+					gomega.Expect(items).To(gomega.HaveLen(len(expected)))
 
-					for i, p := range parcels {
-						expectParcelToEqual(
-							p,
+					for i, it := range items {
+						expectItemToEqual(
+							it,
 							*expected[i],
-							fmt.Sprintf("parcel at index #%d of slice", i),
+							fmt.Sprintf("item at index #%d of slice", i),
 						)
 					}
 				},
 				table.Entry(
 					"it returns all the messages if the limit is equal the length of the queue",
 					3,
-					&parcel1, &parcel2, &parcel0,
+					&item1, &item2, &item0,
 				),
 				table.Entry(
 					"it returns all the messages if the limit is larger than the length of the queue",
 					10,
-					&parcel1, &parcel2, &parcel0,
+					&item1, &item2, &item0,
 				),
 				table.Entry(
 					"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
 					2,
-					&parcel1, &parcel2,
+					&item1, &item2,
 				),
 			)
 		})

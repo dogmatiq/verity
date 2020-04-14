@@ -15,8 +15,8 @@ type transaction struct {
 	hasLock bool
 
 	uncommitted struct {
-		events []*eventstore.Parcel
-		queue  map[string]*queuestore.Parcel
+		events []*eventstore.Item
+		queue  map[string]*queuestore.Item
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/marshalkit"
@@ -78,13 +79,14 @@ const (
 //
 // It implements the pdeque.Elem interface.
 type elem struct {
-	queuestore.Pair
+	parcel  *parcel.Parcel
+	item    *queuestore.Item
 	tracked bool // true once elem is actually in the tracked list
 }
 
 func (e *elem) Less(v pdeque.Elem) bool {
-	return e.Parcel.NextAttemptAt.Before(
-		v.(*elem).Parcel.NextAttemptAt,
+	return e.item.NextAttemptAt.Before(
+		v.(*elem).item.NextAttemptAt,
 	)
 }
 
@@ -105,23 +107,30 @@ func (q *Queue) Pop(ctx context.Context) (*Session, error) {
 	}
 }
 
-// NewParcel returns a new queue store parcel containing the given envelope.
+// NewItem returns a new queue store item containing the given envelope.
 //
 // TODO: remove this
-func (q *Queue) NewParcel(env *envelope.Envelope, n time.Time) *queuestore.Parcel {
-	return &queuestore.Parcel{
+func (q *Queue) NewItem(env *envelope.Envelope, n time.Time) *queuestore.Item {
+	return &queuestore.Item{
 		NextAttemptAt: n,
 		Envelope:      envelope.MustMarshal(q.Marshaler, env),
 	}
 }
 
 // Track begins tracking a message that has been persisted to the queue store.
-func (q *Queue) Track(ctx context.Context, p queuestore.Pair) error {
-	if p.Parcel.Revision == 0 {
+func (q *Queue) Track(
+	ctx context.Context,
+	p *parcel.Parcel,
+	i *queuestore.Item,
+) error {
+	if i.Revision == 0 {
 		panic("message must be persisted")
 	}
 
-	e := &elem{Pair: p}
+	e := &elem{
+		parcel: p,
+		item:   i,
+	}
 
 	q.init()
 
@@ -132,18 +141,18 @@ func (q *Queue) Track(ctx context.Context, p queuestore.Pair) error {
 		// Set the exhaustive state to NO so that Run() knows to try loading
 		// messages from the store again.
 		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
-		logging.Debug(q.Logger, "%s requested tracking, but canceled or timed-out (exhaustive: no)", e.Parcel.ID())
+		logging.Debug(q.Logger, "%s requested tracking, but canceled or timed-out (exhaustive: no)", e.item.ID())
 		return ctx.Err()
 
 	case q.in <- e:
-		logging.Debug(q.Logger, "%s requested tracking successfully", e.Parcel.ID())
+		logging.Debug(q.Logger, "%s requested tracking successfully", e.item.ID())
 		return nil
 
 	case <-q.done:
 		// Run() has stopped, so nothing will be tracked, but the message has
 		// been persisted so from the perspective of the caller the message has
 		// been queued successfully.
-		logging.Debug(q.Logger, "%s requested tracking, but the queue is not running", e.Parcel.ID())
+		logging.Debug(q.Logger, "%s requested tracking, but the queue is not running", e.item.ID())
 		return nil
 	}
 }
@@ -197,16 +206,16 @@ func (q *Queue) tick(ctx context.Context) error {
 	}
 
 	if ok {
-		d := time.Until(e.Parcel.NextAttemptAt)
+		d := time.Until(e.item.NextAttemptAt)
 
 		if d <= 0 {
 			out = q.out
-			logging.Debug(q.Logger, "%s is ready to be handled immediately", e.Parcel.ID())
+			logging.Debug(q.Logger, "%s is ready to be handled immediately", e.item.ID())
 		} else {
 			timer := time.NewTimer(d)
 			defer timer.Stop()
 			wait = timer.C
-			logging.Debug(q.Logger, "%s will not be ready for another %s", e.Parcel.ID(), d)
+			logging.Debug(q.Logger, "%s will not be ready for another %s", e.item.ID(), d)
 		}
 	}
 
@@ -216,13 +225,13 @@ func (q *Queue) tick(ctx context.Context) error {
 			return ctx.Err()
 
 		case <-wait:
-			logging.Debug(q.Logger, "%s is now ready to be handled", e.Parcel.ID())
+			logging.Debug(q.Logger, "%s is now ready to be handled", e.item.ID())
 			out = q.out
 			wait = nil
 
 		case out <- e:
 			q.pending.PopFront()
-			logging.Debug(q.Logger, "%s was sent to a consumer", e.Parcel.ID())
+			logging.Debug(q.Logger, "%s was sent to a consumer", e.item.ID())
 			return nil
 
 		case e := <-q.in:
@@ -264,12 +273,12 @@ func (q *Queue) load(ctx context.Context) error {
 
 	// Load messages up to our configured limit.
 	logging.Debug(q.Logger, "loading up to %d message(s)", limit)
-	parcels, err := q.DataStore.QueueStoreRepository().LoadQueueMessages(ctx, limit)
+	items, err := q.DataStore.QueueStoreRepository().LoadQueueMessages(ctx, limit)
 	if err != nil {
 		return err
 	}
 
-	n := len(parcels)
+	n := len(items)
 
 	if n < limit && atomic.CompareAndSwapUint32(
 		&q.exhaustive,
@@ -286,12 +295,8 @@ func (q *Queue) load(ctx context.Context) error {
 		logging.Debug(q.Logger, "loaded %d message(s) from store (exhaustive: unknown)", n)
 	}
 
-	for _, p := range parcels {
-		q.update(&elem{
-			Pair: queuestore.Pair{
-				Parcel: p,
-			},
-		})
+	for _, i := range items {
+		q.update(&elem{item: i})
 	}
 
 	return nil
@@ -307,31 +312,31 @@ func (q *Queue) update(e *elem) bool {
 		limit = DefaultBufferSize
 	}
 
-	if e.Parcel.Revision == 0 {
+	if e.item.Revision == 0 {
 		// The message has been handled successfully and removed from the queue
 		// store, stop tracking it.
-		delete(q.tracked, e.Parcel.ID())
-		logging.Debug(q.Logger, "%s is no longer tracked, handled successfully (pending: %d, tracked: %d/%d)", e.Parcel.ID(), q.pending.Len(), len(q.tracked), limit)
+		delete(q.tracked, e.item.ID())
+		logging.Debug(q.Logger, "%s is no longer tracked, handled successfully (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 		return len(q.tracked) == 0
 	}
 
 	if e.tracked {
 		// The message is already tracked, just put it back in the pending
 		// queue to be re-attempted.
-		logging.Debug(q.Logger, "%s has been returned to the pending queue (pending: %d, tracked: %d/%d)", e.Parcel.ID(), q.pending.Len(), len(q.tracked), limit)
+		logging.Debug(q.Logger, "%s has been returned to the pending queue (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 		return q.pending.Push(e)
 	}
 
 	// Start tracking the message.
 	before := len(q.tracked)
-	q.tracked[e.Parcel.ID()] = struct{}{}
+	q.tracked[e.item.ID()] = struct{}{}
 	after := len(q.tracked)
 
 	if before == after {
 		// The message was already be in the tracked list, which can occur if it
 		// was persisted just before we loaded form the store so we see the
 		// message both in the load result and on the q.in channel.
-		logging.Debug(q.Logger, "%s is already tracked (pending: %d, tracked: %d/%d)", e.Parcel.ID(), q.pending.Len(), len(q.tracked), limit)
+		logging.Debug(q.Logger, "%s is already tracked (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 		return false
 	}
 
@@ -342,7 +347,7 @@ func (q *Queue) update(e *elem) bool {
 		// We're tracking more messages than the limit allows, drop the
 		// lowest-priority element.
 		drop, _ := q.pending.PopBack()
-		delete(q.tracked, drop.(*elem).Parcel.ID())
+		delete(q.tracked, drop.(*elem).item.ID())
 
 		// There are now persisted messages that are not in the buffer.
 		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
@@ -352,14 +357,14 @@ func (q *Queue) update(e *elem) bool {
 			// buffered messages are in active sessions, which should not occur
 			// if BufferSize is larger than the number of consumers as suggested
 			// by its documentation.
-			logging.Debug(q.Logger, "%s will not be tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.Parcel.ID(), q.pending.Len(), len(q.tracked), limit)
+			logging.Debug(q.Logger, "%s will not be tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 			return false
 		}
 
-		logging.Debug(q.Logger, "%s is no longer tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.Parcel.ID(), q.pending.Len(), len(q.tracked), limit)
+		logging.Debug(q.Logger, "%s is no longer tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 	}
 
-	logging.Debug(q.Logger, "%s is now tracked (pending: %d, tracked: %d/%d)", e.Parcel.ID(), q.pending.Len(), len(q.tracked), limit)
+	logging.Debug(q.Logger, "%s is now tracked (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 	return head
 }
 

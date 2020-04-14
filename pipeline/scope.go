@@ -34,10 +34,10 @@ type Scope struct {
 	Logger logging.Logger
 
 	// Enqueued is a slice of all messages enqueued via the scope.
-	Enqueued []queuestore.Pair
+	Enqueued []EnqueuedMessage
 
 	// Recorded is a slice of all events recorded via the scope.
-	Recorded []eventstore.Pair
+	Recorded []RecordedEvent
 }
 
 // EnqueueMessage adds a message to the queue.
@@ -55,22 +55,22 @@ func (s *Scope) EnqueueMessage(
 		n = time.Now()
 	}
 
-	sp := &queuestore.Parcel{
+	i := &queuestore.Item{
 		NextAttemptAt: n,
 		Envelope:      p.Envelope,
 	}
 
-	if err := tx.SaveMessageToQueue(ctx, sp); err != nil {
+	if err := tx.SaveMessageToQueue(ctx, i); err != nil {
 		return err
 	}
 
-	sp.Revision++
+	i.Revision++
 
 	s.Enqueued = append(
 		s.Enqueued,
-		queuestore.Pair{
-			Parcel:  sp,
-			Message: p.Message,
+		EnqueuedMessage{
+			Parcel:    p,
+			Persisted: i,
 		},
 	)
 
@@ -94,12 +94,12 @@ func (s *Scope) RecordEvent(
 
 	s.Recorded = append(
 		s.Recorded,
-		eventstore.Pair{
-			Parcel: &eventstore.Parcel{
+		RecordedEvent{
+			Parcel: p,
+			Persisted: &eventstore.Item{
 				Offset:   o,
 				Envelope: p.Envelope,
 			},
-			Message: p.Message,
 		},
 	)
 

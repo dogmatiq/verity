@@ -66,9 +66,9 @@ var _ = Describe("type Executor", func() {
 			err := executor.ExecuteCommand(ctx, MessageA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
+			items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(parcels).To(HaveLen(1))
+			Expect(items).To(HaveLen(1))
 
 			x := &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
@@ -89,9 +89,10 @@ var _ = Describe("type Executor", func() {
 				Data:         MessageA1Packet.Data,
 			}
 
-			p := parcels[0]
-			if !proto.Equal(p.Envelope, x) {
-				Expect(p.Envelope).To(Equal(x))
+			// TODO: https://github.com/dogmatiq/infix/issues/151
+			i := items[0]
+			if !proto.Equal(i.Envelope, x) {
+				Expect(i.Envelope).To(Equal(x))
 			}
 		})
 
@@ -99,12 +100,12 @@ var _ = Describe("type Executor", func() {
 			err := executor.ExecuteCommand(ctx, MessageA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			parcels, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
+			items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(parcels).To(HaveLen(1))
+			Expect(items).To(HaveLen(1))
 
-			p := parcels[0]
-			Expect(p.NextAttemptAt).To(BeTemporally("~", time.Now()))
+			i := items[0]
+			Expect(i.NextAttemptAt).To(BeTemporally("~", time.Now()))
 		})
 
 		It("returns an error if the transaction can not be begun", func() {

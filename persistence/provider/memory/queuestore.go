@@ -11,18 +11,18 @@ import (
 //
 // If the message is already on the queue its meta-data is updated.
 //
-// p.Revision must be the revision of the message as currently persisted,
+// i.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // is not saved and ErrConflict is returned.
 func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
-	p *queuestore.Parcel,
+	i *queuestore.Item,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	id := p.ID()
+	id := i.ID()
 	committed := t.ds.db.queue.uniq[id]
 	uncommitted, changed := t.uncommitted.queue[id]
 
@@ -37,20 +37,20 @@ func (t *transaction) SaveMessageToQueue(
 		rev = effective.Revision
 	}
 
-	if p.Revision != rev {
+	if i.Revision != rev {
 		return queuestore.ErrConflict
 	}
 
 	if uncommitted == nil {
-		uncommitted = cloneQueueStoreParcel(p)
+		uncommitted = cloneQueueStoreItem(i)
 	} else {
-		assignMetaData(uncommitted, p)
+		assignMetaData(uncommitted, i)
 	}
 
 	uncommitted.Revision++
 
 	if t.uncommitted.queue == nil {
-		t.uncommitted.queue = map[string]*queuestore.Parcel{}
+		t.uncommitted.queue = map[string]*queuestore.Item{}
 	}
 	t.uncommitted.queue[id] = uncommitted
 
@@ -60,18 +60,18 @@ func (t *transaction) SaveMessageToQueue(
 // RemoveMessageFromQueue removes a specific message from the application's
 // message queue.
 //
-// p.Revision must be the revision of the message as currently persisted,
+// i.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // remains on the queue and ErrConflict is returned.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
-	p *queuestore.Parcel,
+	i *queuestore.Item,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	id := p.ID()
+	id := i.ID()
 	committed, exists := t.ds.db.queue.uniq[id]
 	uncommitted, changed := t.uncommitted.queue[id]
 
@@ -80,7 +80,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		effective = uncommitted
 	}
 
-	if effective == nil || p.Revision != effective.Revision {
+	if effective == nil || i.Revision != effective.Revision {
 		return queuestore.ErrConflict
 	}
 
@@ -92,7 +92,7 @@ func (t *transaction) RemoveMessageFromQueue(
 	}
 
 	if t.uncommitted.queue == nil {
-		t.uncommitted.queue = map[string]*queuestore.Parcel{}
+		t.uncommitted.queue = map[string]*queuestore.Item{}
 	}
 	t.uncommitted.queue[id] = nil
 
@@ -148,13 +148,13 @@ func (t *transaction) commitQueue() {
 // commitQueueInsert inserts a new message into the queue as part of a commit.
 func (t *transaction) commitQueueInsert(
 	id string,
-	uncommitted *queuestore.Parcel,
+	uncommitted *queuestore.Item,
 ) {
 	q := &t.ds.db.queue
 
 	// Add the message to the unique index.
 	if q.uniq == nil {
-		q.uniq = map[string]*queuestore.Parcel{}
+		q.uniq = map[string]*queuestore.Item{}
 	}
 	q.uniq[id] = uncommitted
 
@@ -182,8 +182,8 @@ func (t *transaction) commitQueueInsert(
 // commitQueueUpdate updates an existing message as part of a commit.
 func (t *transaction) commitQueueUpdate(
 	id string,
-	committed *queuestore.Parcel,
-	uncommitted *queuestore.Parcel,
+	committed *queuestore.Item,
+	uncommitted *queuestore.Item,
 ) bool {
 	needsSort := !uncommitted.NextAttemptAt.Equal(committed.NextAttemptAt)
 	assignMetaData(committed, uncommitted)
@@ -197,16 +197,16 @@ func (t *transaction) commitQueueRemovals() {
 	i := len(q.order) - 1
 
 	for i >= 0 {
-		p := q.order[i]
+		it := q.order[i]
 
-		if p.Revision > 0 {
+		if it.Revision > 0 {
 			// All deleted messages have a revision of 0 and have been sorted to
 			// the end, so once we find a real revision, we're done.
 			break
 		}
 
 		q.order[i] = nil // prevent memory leak
-		delete(q.uniq, p.ID())
+		delete(q.uniq, it.ID())
 
 		i--
 	}
@@ -217,7 +217,7 @@ func (t *transaction) commitQueueRemovals() {
 
 // assignMetaData assigns meta-data from src to dest, retaining dest's original
 // envelope.
-func assignMetaData(dest, src *queuestore.Parcel) {
+func assignMetaData(dest, src *queuestore.Item) {
 	env := dest.Envelope
 	*dest = *src
 	dest.Envelope = env
@@ -233,7 +233,7 @@ type queueStoreRepository struct {
 func (r *queueStoreRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) ([]*queuestore.Parcel, error) {
+) ([]*queuestore.Item, error) {
 	if err := r.db.RLock(ctx); err != nil {
 		return nil, err
 	}
@@ -244,10 +244,10 @@ func (r *queueStoreRepository) LoadQueueMessages(
 		n = max
 	}
 
-	result := make([]*queuestore.Parcel, n)
+	result := make([]*queuestore.Item, n)
 
-	for i, p := range r.db.queue.order[:n] {
-		result[i] = cloneQueueStoreParcel(p)
+	for i, it := range r.db.queue.order[:n] {
+		result[i] = cloneQueueStoreItem(it)
 	}
 
 	return result, nil

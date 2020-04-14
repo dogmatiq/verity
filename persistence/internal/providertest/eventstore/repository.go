@@ -25,56 +25,56 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			repository eventstore.Repository
 			tearDown   func()
 
-			parcel0, parcel1, parcel2, parcel3, parcel4, parcel5 *eventstore.Parcel
+			item0, item1, item2, item3, item4, item5 *eventstore.Item
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 			repository = dataStore.EventStoreRepository()
 
-			parcel0 = &eventstore.Parcel{
+			item0 = &eventstore.Item{
 				Offset:   0,
 				Envelope: infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1),
 			}
 
-			parcel1 = &eventstore.Parcel{
+			item1 = &eventstore.Item{
 				Offset:   1,
 				Envelope: infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1),
 			}
 
-			parcel2 = &eventstore.Parcel{
+			item2 = &eventstore.Item{
 				Offset:   2,
 				Envelope: infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1),
 			}
 
-			parcel3 = &eventstore.Parcel{
+			item3 = &eventstore.Item{
 				Offset:   3,
 				Envelope: infixfixtures.NewEnvelopeProto("<message-3>", dogmafixtures.MessageA2),
 			}
 
-			parcel4 = &eventstore.Parcel{
+			item4 = &eventstore.Item{
 				Offset:   4,
 				Envelope: infixfixtures.NewEnvelopeProto("<message-4>", dogmafixtures.MessageB2),
 			}
 
-			parcel5 = &eventstore.Parcel{
+			item5 = &eventstore.Item{
 				Offset:   5,
 				Envelope: infixfixtures.NewEnvelopeProto("<message-5>", dogmafixtures.MessageC2),
 			}
 
 			// Setup some different source handler values to test the aggregate
 			// instance filtering.
-			parcel0.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			parcel0.Envelope.MetaData.Source.InstanceId = "<instance-a>"
+			item0.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			item0.Envelope.MetaData.Source.InstanceId = "<instance-a>"
 
-			parcel1.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			parcel1.Envelope.MetaData.Source.InstanceId = "<instance-b>"
+			item1.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			item1.Envelope.MetaData.Source.InstanceId = "<instance-b>"
 
-			parcel2.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			parcel2.Envelope.MetaData.Source.InstanceId = "<instance-a>"
+			item2.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			item2.Envelope.MetaData.Source.InstanceId = "<instance-a>"
 
-			parcel3.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			parcel3.Envelope.MetaData.Source.InstanceId = "<instance-b>"
+			item3.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			item3.Envelope.MetaData.Source.InstanceId = "<instance-b>"
 		})
 
 		ginkgo.AfterEach(func() {
@@ -83,44 +83,44 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func QueryEvents()", func() {
 			ginkgo.It("returns an empty result if the store is empty", func() {
-				parcels := queryEvents(tc.Context, repository, eventstore.Query{})
-				gomega.Expect(parcels).To(gomega.BeEmpty())
+				items := queryEvents(tc.Context, repository, eventstore.Query{})
+				gomega.Expect(items).To(gomega.BeEmpty())
 			})
 
 			table.DescribeTable(
 				"it returns a result containing the events that match the query criteria",
-				func(q eventstore.Query, expected ...**eventstore.Parcel) {
+				func(q eventstore.Query, expected ...**eventstore.Item) {
 					saveEvents(
 						tc.Context,
 						dataStore,
-						parcel0.Envelope,
-						parcel1.Envelope,
-						parcel2.Envelope,
-						parcel3.Envelope,
-						parcel4.Envelope,
-						parcel5.Envelope,
+						item0.Envelope,
+						item1.Envelope,
+						item2.Envelope,
+						item3.Envelope,
+						item4.Envelope,
+						item5.Envelope,
 					)
 
-					parcels := queryEvents(tc.Context, repository, q)
-					gomega.Expect(parcels).To(gomega.HaveLen(len(expected)))
+					items := queryEvents(tc.Context, repository, q)
+					gomega.Expect(items).To(gomega.HaveLen(len(expected)))
 
-					for i, p := range parcels {
-						expectParcelToEqual(
-							p,
+					for i, item := range items {
+						expectItemToEqual(
+							item,
 							*expected[i],
-							fmt.Sprintf("parcel at index #%d of slice", i),
+							fmt.Sprintf("item at index #%d of slice", i),
 						)
 					}
 				},
 				table.Entry(
 					"it includes all events by default",
 					eventstore.Query{},
-					&parcel0, &parcel1, &parcel2, &parcel3, &parcel4, &parcel5,
+					&item0, &item1, &item2, &item3, &item4, &item5,
 				),
 				table.Entry(
 					"it honours the minimum offset",
 					eventstore.Query{MinOffset: 3},
-					&parcel3, &parcel4, &parcel5,
+					&item3, &item4, &item5,
 				),
 				table.Entry(
 					"it returns an empty result if the minimum offset is larger than the largest offset",
@@ -135,7 +135,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 							marshalfixtures.MessageCPortableName,
 						),
 					},
-					&parcel0, &parcel2, &parcel3, &parcel5,
+					&item0, &item2, &item3, &item5,
 				),
 				table.Entry(
 					"it honours the aggregate instance filter",
@@ -143,7 +143,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						AggregateHandlerKey: "<aggregate>",
 						AggregateInstanceID: "<instance-a>",
 					},
-					&parcel0, &parcel2,
+					&item0, &item2,
 				),
 			)
 
@@ -151,12 +151,12 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				saveEvents(
 					tc.Context,
 					dataStore,
-					parcel0.Envelope,
-					parcel1.Envelope,
-					parcel2.Envelope,
-					parcel3.Envelope,
-					parcel4.Envelope,
-					parcel5.Envelope,
+					item0.Envelope,
+					item1.Envelope,
+					item2.Envelope,
+					item3.Envelope,
+					item4.Envelope,
+					item5.Envelope,
 				)
 
 				q := eventstore.Query{
@@ -170,8 +170,8 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				fn := func() {
 					defer g.Done()
 					defer ginkgo.GinkgoRecover()
-					parcels := queryEvents(tc.Context, repository, q)
-					gomega.Expect(parcels).To(gomega.HaveLen(2))
+					items := queryEvents(tc.Context, repository, q)
+					gomega.Expect(items).To(gomega.HaveLen(2))
 				}
 
 				g.Add(3)
@@ -189,8 +189,8 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				saveEvents(
 					tc.Context,
 					dataStore,
-					parcel0.Envelope,
-					parcel1.Envelope,
+					item0.Envelope,
+					item1.Envelope,
 				)
 
 				// The implementation may or may not expose these newly
