@@ -10,12 +10,12 @@ import (
 // of the message.
 func RouteByType(table map[message.Type]Stage) Stage {
 	return func(ctx context.Context, sc *Scope, next Sink) error {
-		m, err := sc.Session.Message()
+		p, err := sc.Session.Parcel()
 		if err != nil {
 			return err
 		}
 
-		mt := message.TypeOf(m)
+		mt := message.TypeOf(p.Message)
 
 		if n, ok := table[mt]; ok {
 			return n(ctx, sc, next)

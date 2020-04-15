@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -22,12 +22,8 @@ type Session interface {
 	// Envelope returns the message envelope.
 	Envelope() *envelopespec.Envelope
 
-	// Message returns the Dogma message that is to be handled.
-	//
-	// It returns an error if the message can not be unpacked.
-	//
-	// TODO: move this to Scope and make it return the parcel.
-	Message() (dogma.Message, error)
+	// Parcel returns a parcel containing the message that is to be handled.
+	Parcel() (*parcel.Parcel, error)
 
 	// Tx returns the transaction used to persist data within this session.
 	//

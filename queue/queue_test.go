@@ -242,7 +242,7 @@ var _ = Describe("type Queue", func() {
 				// This push exceeds the limit so env1 should not be buffered.
 				push(ctx, queue, parcel1)
 
-				// Acquire a session for env0, but don't commit it.
+				// Acquire a session for parcel0, but don't commit it.
 				sess, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
 				defer sess.Close()

@@ -35,7 +35,7 @@ var _ = Describe("type Sink", func() {
 	BeforeEach(func() {
 		dataStore = NewDataStoreStub()
 		scope, sess, tx = NewPipelineScope(
-			NewEnvelope("<consume>", MessageC1),
+			NewParcel("<consume>", MessageC1),
 			dataStore,
 		)
 
@@ -84,7 +84,7 @@ var _ = Describe("type Sink", func() {
 		})
 
 		It("returns an error if the message cannot be unpacked", func() {
-			sess.MessageFunc = func() (dogma.Message, error) {
+			sess.ParcelFunc = func() (*parcel.Parcel, error) {
 				return nil, errors.New("<error>")
 			}
 

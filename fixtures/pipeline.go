@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
@@ -19,7 +19,7 @@ type SessionStub struct {
 	MessageIDFunc    func() string
 	FailureCountFunc func() uint
 	EnvelopeFunc     func() *envelopespec.Envelope
-	MessageFunc      func() (dogma.Message, error)
+	ParcelFunc       func() (*parcel.Parcel, error)
 	TxFunc           func(context.Context) (persistence.ManagedTransaction, error)
 	AckFunc          func(context.Context) error
 	NackFunc         func(context.Context, time.Time) error
@@ -29,7 +29,7 @@ type SessionStub struct {
 // NewPipelineScope returns a new pipeline scope that uses a session stub with
 // pre-configured Envelope() and Tx() methods.
 func NewPipelineScope(
-	env *envelopespec.Envelope,
+	p *parcel.Parcel,
 	ds *DataStoreStub,
 ) (
 	*pipeline.Scope,
@@ -51,13 +51,13 @@ func NewPipelineScope(
 
 	sess := &SessionStub{
 		MessageIDFunc: func() string {
-			return env.MetaData.MessageId
+			return p.Envelope.MetaData.MessageId
 		},
 		EnvelopeFunc: func() *envelopespec.Envelope {
-			return env
+			return p.Envelope
 		},
-		MessageFunc: func() (dogma.Message, error) {
-			return envelopespec.UnmarshalMessage(marshalfixtures.Marshaler, env)
+		ParcelFunc: func() (*parcel.Parcel, error) {
+			return p, nil
 		},
 		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
 			return tx, nil
@@ -113,14 +113,14 @@ func (s *SessionStub) Envelope() *envelopespec.Envelope {
 	return nil
 }
 
-// Message returns the Dogma message that is to be handled.
-func (s *SessionStub) Message() (dogma.Message, error) {
+// Parcel returns a parcel containing the message that is to be handled.
+func (s *SessionStub) Parcel() (*parcel.Parcel, error) {
 	if s.EnvelopeFunc != nil {
-		return s.MessageFunc()
+		return s.ParcelFunc()
 	}
 
 	if s.Session != nil {
-		return s.Session.Message()
+		return s.Session.Parcel()
 	}
 
 	return nil, nil

@@ -92,20 +92,20 @@ var _ = Describe("type Session", func() {
 		})
 	})
 
-	Describe("func Message()", func() {
-		It("returns the message", func() {
-			m, err := sess.Message()
+	Describe("func Parcel()", func() {
+		It("returns the parcel", func() {
+			p, err := sess.Parcel()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(EqualX(parcel0.Message))
+			Expect(p).To(EqualX(parcel0))
 		})
 
-		It("unmarshals the message if necessary", func() {
+		It("unmarshals the parcel if necessary", func() {
 			// Push a new message, which will get discarded from memory due to
 			// the buffer size limit.
 			queue.BufferSize = 1
 			push(ctx, queue, parcel1)
 
-			// Commit and close the existing session for env0, freeing us to
+			// Commit and close the existing session for parcel0, freeing us to
 			// load again.
 			err := sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -113,15 +113,15 @@ var _ = Describe("type Session", func() {
 			err = sess.Close()
 			Expect(err).ShouldNot(HaveOccurred())
 
-			// Start the session for env1.
+			// Start the session for parcel1.
 			sess, err := queue.Pop(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 			defer sess.Close()
 
-			// Finally, verify that the message is unpacked.
-			m, err := sess.Message()
+			// Finally, verify that the parcel is unpacked.
+			p, err := sess.Parcel()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m).To(EqualX(parcel1.Message))
+			Expect(p).To(EqualX(parcel1))
 		})
 	})
 
