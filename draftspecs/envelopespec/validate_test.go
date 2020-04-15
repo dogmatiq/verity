@@ -137,3 +137,19 @@ var _ = Describe("func CheckWellFormed()", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 })
+
+var _ = Describe("func MustBeWellFormed()", func() {
+	It("panics if the envelope is not well-formed", func() {
+		env := NewEnvelope(
+			"<id>",
+			MessageA1,
+			time.Now(),
+			time.Now(),
+		)
+		env.MetaData = nil
+
+		Expect(func() {
+			MustBeWellFormed(env)
+		}).To(Panic())
+	})
+})
