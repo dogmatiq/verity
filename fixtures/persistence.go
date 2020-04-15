@@ -135,8 +135,8 @@ type TransactionStub struct {
 	persistence.Transaction
 
 	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
-	SaveMessageToQueueFunc     func(context.Context, *queuestore.Message) error
-	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Message) error
+	SaveMessageToQueueFunc     func(context.Context, *queuestore.Item) error
+	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Item) error
 
 	CommitFunc   func(context.Context) error
 	RollbackFunc func() error
@@ -156,13 +156,13 @@ func (t *TransactionStub) SaveEvent(ctx context.Context, env *envelopespec.Envel
 }
 
 // SaveMessageToQueue persists a message to the application's message queue.
-func (t *TransactionStub) SaveMessageToQueue(ctx context.Context, m *queuestore.Message) error {
+func (t *TransactionStub) SaveMessageToQueue(ctx context.Context, i *queuestore.Item) error {
 	if t.SaveMessageToQueueFunc != nil {
-		return t.SaveMessageToQueueFunc(ctx, m)
+		return t.SaveMessageToQueueFunc(ctx, i)
 	}
 
 	if t.Transaction != nil {
-		return t.Transaction.SaveMessageToQueue(ctx, m)
+		return t.Transaction.SaveMessageToQueue(ctx, i)
 	}
 
 	return nil
@@ -170,13 +170,13 @@ func (t *TransactionStub) SaveMessageToQueue(ctx context.Context, m *queuestore.
 
 // RemoveMessageFromQueue removes a specific message from the application's
 // message queue.
-func (t *TransactionStub) RemoveMessageFromQueue(ctx context.Context, m *queuestore.Message) error {
+func (t *TransactionStub) RemoveMessageFromQueue(ctx context.Context, i *queuestore.Item) error {
 	if t.RemoveMessageFromQueueFunc != nil {
-		return t.RemoveMessageFromQueueFunc(ctx, m)
+		return t.RemoveMessageFromQueueFunc(ctx, i)
 	}
 
 	if t.Transaction != nil {
-		return t.Transaction.RemoveMessageFromQueue(ctx, m)
+		return t.Transaction.RemoveMessageFromQueue(ctx, i)
 	}
 
 	return nil

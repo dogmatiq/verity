@@ -8,14 +8,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Event", func() {
+var _ = Describe("type Item", func() {
 	Describe("func ID()", func() {
 		It("returns the ID from the envelope", func() {
-			ev := &Event{
-				Envelope: NewEnvelopeProto("<id>", MessageA1),
+			item := &Item{
+				Envelope: NewEnvelope("<id>", MessageA1),
 			}
 
-			Expect(ev.ID()).To(Equal("<id>"))
+			Expect(item.ID()).To(Equal("<id>"))
 		})
 	})
 })

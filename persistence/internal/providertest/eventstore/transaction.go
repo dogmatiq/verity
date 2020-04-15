@@ -32,9 +32,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			dataStore, tearDown = tc.SetupDataStore()
 			repository = dataStore.EventStoreRepository()
 
-			env0 = infixfixtures.NewEnvelopeProto("<message-0>", dogmafixtures.MessageA1)
-			env1 = infixfixtures.NewEnvelopeProto("<message-1>", dogmafixtures.MessageB1)
-			env2 = infixfixtures.NewEnvelopeProto("<message-2>", dogmafixtures.MessageC1)
+			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
+			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
+			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1)
 		})
 
 		ginkgo.AfterEach(func() {
@@ -94,7 +94,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				var (
 					g      sync.WaitGroup
 					m      sync.Mutex
-					expect []*eventstore.Event
+					expect []*eventstore.Item
 				)
 
 				fn := func(env *envelopespec.Envelope) {
@@ -107,7 +107,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 					expect = append(
 						expect,
-						&eventstore.Event{
+						&eventstore.Item{
 							Offset:   o,
 							Envelope: env,
 						},
@@ -131,8 +131,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					},
 				)
 
-				events := queryEvents(tc.Context, repository, eventstore.Query{})
-				expectEventsToEqual(events, expect)
+				items := queryEvents(tc.Context, repository, eventstore.Query{})
+				expectItemsToEqual(items, expect)
 			})
 
 			ginkgo.When("the transaction is rolled-back", func() {
@@ -147,8 +147,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					events := queryEvents(tc.Context, repository, eventstore.Query{})
-					gomega.Expect(events).To(gomega.BeEmpty())
+					items := queryEvents(tc.Context, repository, eventstore.Query{})
+					gomega.Expect(items).To(gomega.BeEmpty())
 				})
 
 				ginkgo.It("does not increment the offset", func() {

@@ -56,21 +56,21 @@ func queryEvents(
 	ctx context.Context,
 	r eventstore.Repository,
 	q eventstore.Query,
-) []*eventstore.Event {
+) []*eventstore.Item {
 	res, err := r.QueryEvents(ctx, q)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 
-	var events []*eventstore.Event
+	var items []*eventstore.Item
 
 	for {
-		ev, ok, err := res.Next(ctx)
+		i, ok, err := res.Next(ctx)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		if !ok {
-			return events
+			return items
 		}
 
-		events = append(events, ev)
+		items = append(items, i)
 	}
 }

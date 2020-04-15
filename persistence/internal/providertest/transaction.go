@@ -63,14 +63,14 @@ func declareTransactionTests(
 
 			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.SaveMessageToQueue(*ctx, &queuestore.Message{})
+					err := transaction.SaveMessageToQueue(*ctx, &queuestore.Item{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
 
 			ginkgo.Describe("func RemoveMessageFromQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.RemoveMessageFromQueue(*ctx, &queuestore.Message{})
+					err := transaction.RemoveMessageFromQueue(*ctx, &queuestore.Item{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
@@ -105,14 +105,14 @@ func declareTransactionTests(
 
 			ginkgo.Describe("func SaveMessageToQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.SaveMessageToQueue(*ctx, &queuestore.Message{})
+					err := transaction.SaveMessageToQueue(*ctx, &queuestore.Item{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
 
 			ginkgo.Describe("func RemoveMessageFromQueue()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.RemoveMessageFromQueue(*ctx, &queuestore.Message{})
+					err := transaction.RemoveMessageFromQueue(*ctx, &queuestore.Item{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})

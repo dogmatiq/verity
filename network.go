@@ -24,7 +24,7 @@ func (e *Engine) runServer(ctx context.Context) error {
 	}
 
 	if err := e.registerEventStreamServer(ctx, server); err != nil {
-		return fmt.Errorf("unable to register event-stream gRPC server: %w", err)
+		return fmt.Errorf("unable to register event stream gRPC server: %w", err)
 	}
 
 	lis, err := net.Listen("tcp", e.opts.Network.ListenAddress)

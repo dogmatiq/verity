@@ -3,24 +3,23 @@ package pipeline
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // EnqueuedMessage contains a message that was enqueued via a scope.
 type EnqueuedMessage struct {
-	Memory    *envelope.Envelope
-	Persisted *queuestore.Message
+	Parcel    *parcel.Parcel
+	Persisted *queuestore.Item
 }
 
-// EnqueuedMessageObserver is a function that is notified when messages are
-// enqueued.
-type EnqueuedMessageObserver func(context.Context, []EnqueuedMessage) error
+// QueueObserver is a function that is notified when messages are enqueued.
+type QueueObserver func(context.Context, []EnqueuedMessage) error
 
 // WhenMessageEnqueued returns a pipeline stage that calls fn when messages
 // are enqueued by any subsequent pipeline stage, and that stage is successful.
-func WhenMessageEnqueued(fn EnqueuedMessageObserver) Stage {
+func WhenMessageEnqueued(fn QueueObserver) Stage {
 	return func(ctx context.Context, sc *Scope, next Sink) error {
 		if err := next(ctx, sc); err != nil {
 			return err
@@ -36,17 +35,16 @@ func WhenMessageEnqueued(fn EnqueuedMessageObserver) Stage {
 
 // RecordedEvent contains an event that was recorded via a scope.
 type RecordedEvent struct {
-	Memory    *envelope.Envelope
-	Persisted *eventstore.Event
+	Parcel    *parcel.Parcel
+	Persisted *eventstore.Item
 }
 
-// RecordedEventObserver is a function that is notified when events are
-// recorded.
-type RecordedEventObserver func(context.Context, []RecordedEvent) error
+// EventStreamObserver is a function that is notified when events are recorded.
+type EventStreamObserver func(context.Context, []RecordedEvent) error
 
 // WhenEventRecorded returns a pipeline stage that calls fn when events are
 // recorded by any subsequent pipeline stage, and that state is successful.
-func WhenEventRecorded(fn RecordedEventObserver) Stage {
+func WhenEventRecorded(fn EventStreamObserver) Stage {
 	return func(ctx context.Context, sc *Scope, next Sink) error {
 		if err := next(ctx, sc); err != nil {
 			return err

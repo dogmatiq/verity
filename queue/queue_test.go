@@ -6,8 +6,9 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
@@ -22,7 +23,7 @@ import (
 func push(
 	ctx context.Context,
 	q *queue.Queue,
-	env *envelope.Envelope,
+	p *parcel.Parcel,
 	nextOptional ...time.Time,
 ) {
 	next := time.Now()
@@ -30,39 +31,42 @@ func push(
 		next = n
 	}
 
-	m := q.NewMessage(env, next)
+	i := &queuestore.Item{
+		NextAttemptAt: next,
+		Envelope:      p.Envelope,
+	}
 
 	err := persistence.WithTransaction(
 		ctx,
 		q.DataStore,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, m)
+			return tx.SaveMessageToQueue(ctx, i)
 		},
 	)
 	Expect(err).ShouldNot(HaveOccurred())
 
-	m.Revision++
+	i.Revision++
 
-	err = q.Track(ctx, env, m)
+	err = q.Track(ctx, p, i)
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
 var _ = Describe("type Queue", func() {
 	var (
-		ctx              context.Context
-		cancel           context.CancelFunc
-		dataStore        *DataStoreStub
-		repository       *QueueStoreRepositoryStub
-		queue            *Queue
-		env0, env1, env2 *envelope.Envelope
+		ctx                       context.Context
+		cancel                    context.CancelFunc
+		dataStore                 *DataStoreStub
+		repository                *QueueStoreRepositoryStub
+		queue                     *Queue
+		parcel0, parcel1, parcel2 *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		env0 = NewEnvelope("<message-0>", MessageA1)
-		env1 = NewEnvelope("<message-1>", MessageA2)
-		env2 = NewEnvelope("<message-2>", MessageA3)
+		parcel0 = NewParcel("<message-0>", MessageA1)
+		parcel1 = NewParcel("<message-1>", MessageA2)
+		parcel2 = NewParcel("<message-2>", MessageA3)
 
 		dataStore = NewDataStoreStub()
 		repository = dataStore.QueueStoreRepository().(*QueueStoreRepositoryStub)
@@ -95,7 +99,7 @@ var _ = Describe("type Queue", func() {
 					go func() {
 						defer GinkgoRecover()
 						time.Sleep(20 * time.Millisecond)
-						push(ctx, queue, env0)
+						push(ctx, queue, parcel0)
 					}()
 
 					sess, err := queue.Pop(ctx)
@@ -118,7 +122,7 @@ var _ = Describe("type Queue", func() {
 			When("the queue is not empty", func() {
 				When("the message at the front of the queue is ready for handling", func() {
 					BeforeEach(func() {
-						push(ctx, queue, env0)
+						push(ctx, queue, parcel0)
 					})
 
 					It("returns a session immediately", func() {
@@ -136,7 +140,7 @@ var _ = Describe("type Queue", func() {
 
 					BeforeEach(func() {
 						next = time.Now().Add(10 * time.Millisecond)
-						push(ctx, queue, env0, next)
+						push(ctx, queue, parcel0, next)
 					})
 
 					It("blocks until the message becomes ready", func() {
@@ -151,14 +155,14 @@ var _ = Describe("type Queue", func() {
 						go func() {
 							defer GinkgoRecover()
 							time.Sleep(5 * time.Millisecond)
-							push(ctx, queue, env1)
+							push(ctx, queue, parcel1)
 						}()
 
 						sess, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
 						defer sess.Close()
 
-						Expect(sess.Envelope(ctx)).To(Equal(env1))
+						Expect(sess.Envelope()).To(EqualX(parcel1.Envelope))
 					})
 
 					It("returns an error if the context deadline is exceeded", func() {
@@ -176,18 +180,18 @@ var _ = Describe("type Queue", func() {
 
 			When("messages are persisted but not in memory", func() {
 				BeforeEach(func() {
-					messages := []*queuestore.Message{
+					items := []*queuestore.Item{
 						{
 							NextAttemptAt: time.Now(),
-							Envelope:      envelope.MustMarshal(Marshaler, env0),
+							Envelope:      parcel0.Envelope,
 						},
 						{
 							NextAttemptAt: time.Now().Add(10 * time.Millisecond),
-							Envelope:      envelope.MustMarshal(Marshaler, env1),
+							Envelope:      parcel1.Envelope,
 						},
 						{
 							NextAttemptAt: time.Now().Add(5 * time.Millisecond),
-							Envelope:      envelope.MustMarshal(Marshaler, env2),
+							Envelope:      parcel2.Envelope,
 						},
 					}
 
@@ -195,8 +199,8 @@ var _ = Describe("type Queue", func() {
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							for _, m := range messages {
-								if err := tx.SaveMessageToQueue(ctx, m); err != nil {
+							for _, i := range items {
+								if err := tx.SaveMessageToQueue(ctx, i); err != nil {
 									return err
 								}
 							}
@@ -211,7 +215,7 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer sess.Close()
 
-					Expect(sess.Envelope(ctx)).To(Equal(env0))
+					Expect(sess.Envelope()).To(EqualX(parcel0.Envelope))
 				})
 			})
 		})
@@ -221,9 +225,9 @@ var _ = Describe("type Queue", func() {
 				Expect(func() {
 					queue.Track(
 						ctx,
-						env0,
-						&queuestore.Message{
-							Revision: 0,
+						parcel0,
+						&queuestore.Item{
+							Revision: 0, // 0 == not persisted
 						},
 					)
 				}).To(Panic())
@@ -233,10 +237,10 @@ var _ = Describe("type Queue", func() {
 				queue.BufferSize = 1
 
 				// This push fills the buffer.
-				push(ctx, queue, env0)
+				push(ctx, queue, parcel0)
 
 				// This push exceeds the limit so env1 should not be buffered.
-				push(ctx, queue, env1)
+				push(ctx, queue, parcel1)
 
 				// Acquire a session for env0, but don't commit it.
 				sess, err := queue.Pop(ctx)
@@ -262,8 +266,8 @@ var _ = Describe("type Queue", func() {
 					repository.LoadQueueMessagesFunc = func(
 						ctx context.Context,
 						n int,
-					) ([]*queuestore.Message, error) {
-						push(ctx, queue, env0)
+					) ([]*queuestore.Item, error) {
+						push(ctx, queue, parcel0)
 						return repository.Repository.LoadQueueMessages(ctx, n)
 					}
 
@@ -289,9 +293,9 @@ var _ = Describe("type Queue", func() {
 	When("the queue is not running", func() {
 		Describe("func Track()", func() {
 			It("returns an error if the deadline is exceeded", func() {
-				m := &queuestore.Message{
+				i := &queuestore.Item{
 					Revision: 1,
-					Envelope: envelope.MustMarshal(Marshaler, env0),
+					Envelope: parcel0.Envelope,
 				}
 
 				// It's an implementation detail, but the internal channel used to start
@@ -305,14 +309,14 @@ var _ = Describe("type Queue", func() {
 				// Instead, we set it to one, and "fill" the channel with a request to
 				// ensure that it will block.
 				queue.BufferSize = 1
-				err := queue.Track(ctx, env0, m)
+				err := queue.Track(ctx, parcel0, i)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// Setup a short deadline for the test.
 				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 				defer cancel()
 
-				err = queue.Track(ctx, env0, m)
+				err = queue.Track(ctx, parcel0, i)
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
 		})
@@ -322,7 +326,7 @@ var _ = Describe("type Queue", func() {
 				repository.LoadQueueMessagesFunc = func(
 					context.Context,
 					int,
-				) ([]*queuestore.Message, error) {
+				) ([]*queuestore.Item, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -342,12 +346,12 @@ var _ = Describe("type Queue", func() {
 
 		Describe("func Track()", func() {
 			It("does not block", func() {
-				m := &queuestore.Message{
+				i := &queuestore.Item{
 					Revision: 1,
-					Envelope: envelope.MustMarshal(Marshaler, env0),
+					Envelope: parcel0.Envelope,
 				}
 
-				err := queue.Track(ctx, env0, m)
+				err := queue.Track(ctx, parcel0, i)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})

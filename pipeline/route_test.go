@@ -7,8 +7,8 @@ import (
 
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/onsi/ginkgo"
@@ -22,14 +22,16 @@ var _ = Describe("func RouteByType()", func() {
 	)
 
 	BeforeEach(func() {
-		env := NewEnvelope("<id>", MessageA1)
-		scope, sess, _ = NewPipelineScope(env, nil)
+		scope, sess, _ = NewPipelineScope(
+			NewEnvelope("<consume>", MessageC1),
+			nil,
+		)
 	})
 
 	It("injects the stage from the table if there is a match", func() {
 		stage := RouteByType(
 			map[message.Type]Stage{
-				MessageAType: func(ctx context.Context, sc *Scope, next Sink) error {
+				MessageCType: func(ctx context.Context, sc *Scope, next Sink) error {
 					return fmt.Errorf("intercepted: %w", next(ctx, sc))
 				},
 			},
@@ -42,7 +44,7 @@ var _ = Describe("func RouteByType()", func() {
 	It("calls the next stage directly if there is no match", func() {
 		stage := RouteByType(
 			map[message.Type]Stage{
-				MessageBType: Terminate(pass),
+				MessageXType: Terminate(pass),
 			},
 		)
 
@@ -50,8 +52,8 @@ var _ = Describe("func RouteByType()", func() {
 		Expect(err).To(MatchError("<failed>"))
 	})
 
-	It("returns an error if the envelope cannot be obtained", func() {
-		sess.EnvelopeFunc = func(context.Context) (*envelope.Envelope, error) {
+	It("returns an error if the message cannot be unpacked", func() {
+		sess.MessageFunc = func() (dogma.Message, error) {
 			return nil, errors.New("<error>")
 		}
 

@@ -6,8 +6,9 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -22,19 +23,19 @@ var _ pipeline.Session = (*Session)(nil)
 
 var _ = Describe("type Session", func() {
 	var (
-		ctx        context.Context
-		cancel     context.CancelFunc
-		dataStore  *DataStoreStub
-		queue      *Queue
-		sess       *Session
-		env0, env1 *envelope.Envelope
+		ctx              context.Context
+		cancel           context.CancelFunc
+		dataStore        *DataStoreStub
+		queue            *Queue
+		sess             *Session
+		parcel0, parcel1 *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		env0 = NewEnvelope("<message-0>", MessageA1)
-		env1 = NewEnvelope("<message-1>", MessageA2)
+		parcel0 = NewParcel("<message-0>", MessageA1)
+		parcel1 = NewParcel("<message-1>", MessageA2)
 
 		dataStore = NewDataStoreStub()
 
@@ -47,7 +48,7 @@ var _ = Describe("type Session", func() {
 	JustBeforeEach(func() {
 		go queue.Run(ctx)
 
-		push(ctx, queue, env0)
+		push(ctx, queue, parcel0)
 
 		var err error
 		sess, err = queue.Pop(ctx)
@@ -85,17 +86,24 @@ var _ = Describe("type Session", func() {
 	})
 
 	Describe("func Envelope()", func() {
-		It("returns the unmarshaled message envelope", func() {
-			e, err := sess.Envelope(ctx)
+		It("returns the message envelope", func() {
+			e := sess.Envelope()
+			Expect(e).To(EqualX(parcel0.Envelope))
+		})
+	})
+
+	Describe("func Message()", func() {
+		It("returns the message", func() {
+			m, err := sess.Message()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(e).To(Equal(env0))
+			Expect(m).To(EqualX(parcel0.Message))
 		})
 
-		It("unmarshals the envelope if necessary", func() {
-			// Push a new envelope, which will get discarded from memory due to
+		It("unmarshals the message if necessary", func() {
+			// Push a new message, which will get discarded from memory due to
 			// the buffer size limit.
 			queue.BufferSize = 1
-			push(ctx, queue, env1)
+			push(ctx, queue, parcel1)
 
 			// Commit and close the existing session for env0, freeing us to
 			// load again.
@@ -111,9 +119,9 @@ var _ = Describe("type Session", func() {
 			defer sess.Close()
 
 			// Finally, verify that the message is unpacked.
-			e, err := sess.Envelope(ctx)
+			m, err := sess.Message()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(e).To(Equal(env1))
+			Expect(m).To(EqualX(parcel1.Message))
 		})
 	})
 
@@ -151,7 +159,7 @@ var _ = Describe("type Session", func() {
 			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
+			_, err = tx.SaveEvent(ctx, NewEnvelope("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = sess.Ack(ctx)
@@ -181,9 +189,9 @@ var _ = Describe("type Session", func() {
 			err = sess.Ack(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+			items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(messages).To(BeEmpty())
+			Expect(items).To(BeEmpty())
 		})
 
 		It("returns an error if the transaction cannot be begun", func() {
@@ -203,7 +211,7 @@ var _ = Describe("type Session", func() {
 
 			tx.(*TransactionStub).RemoveMessageFromQueueFunc = func(
 				context.Context,
-				*queuestore.Message,
+				*queuestore.Item,
 			) error {
 				return errors.New("<error>")
 			}
@@ -230,7 +238,7 @@ var _ = Describe("type Session", func() {
 			tx, err := sess.Tx(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			_, err = tx.SaveEvent(ctx, NewEnvelopeProto("<event>", MessageE1))
+			_, err = tx.SaveEvent(ctx, NewEnvelope("<event>", MessageE1))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = sess.Nack(ctx, time.Now().Add(1*time.Hour))
@@ -250,13 +258,13 @@ var _ = Describe("type Session", func() {
 			err := sess.Nack(ctx, next)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+			items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(messages).To(HaveLen(1))
+			Expect(items).To(HaveLen(1))
 
-			m := messages[0]
-			Expect(m.FailureCount).To(BeEquivalentTo(1))
-			Expect(m.NextAttemptAt).To(BeTemporally("~", next))
+			i := items[0]
+			Expect(i.FailureCount).To(BeEquivalentTo(1))
+			Expect(i.NextAttemptAt).To(BeTemporally("~", next))
 		})
 
 		It("returns the message to the in-memory queue when closed", func() {

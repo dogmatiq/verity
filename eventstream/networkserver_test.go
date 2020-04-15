@@ -9,10 +9,11 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
+	"github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,21 +32,23 @@ var _ = Describe("type server", func() {
 		server   *grpc.Server
 		client   messagingspec.EventStreamClient
 
-		env0 = NewEnvelope("<message-0>", MessageA1)
-		env1 = NewEnvelope("<message-1>", MessageB1)
-		env2 = NewEnvelope("<message-2>", MessageA2)
-		env3 = NewEnvelope("<message-3>", MessageB2)
+		parcel0, parcel1, parcel2, parcel3 *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
+		parcel0 = NewParcel("<message-0>", MessageA1)
+		parcel1 = NewParcel("<message-1>", MessageB1)
+		parcel2 = NewParcel("<message-2>", MessageA2)
+		parcel3 = NewParcel("<message-3>", MessageB2)
+
 		mstream = &MemoryStream{
 			Types: message.TypesOf(
-				env0.Message,
-				env1.Message,
-				env2.Message,
-				env3.Message,
+				parcel0.Message,
+				parcel1.Message,
+				parcel2.Message,
+				parcel3.Message,
 			),
 		}
 
@@ -91,7 +94,12 @@ var _ = Describe("type server", func() {
 
 	Describe("func Consume()", func() {
 		BeforeEach(func() {
-			mstream.Append(env0, env1, env2, env3)
+			mstream.Append(
+				parcel0,
+				parcel1,
+				parcel2,
+				parcel3,
+			)
 		})
 
 		It("exposes the messages from the underlying stream", func() {
@@ -103,21 +111,21 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ev, err := stream.Recv()
+			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(EqualX(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: envelope.MustMarshal(Marshaler, env0),
+					Envelope: parcel0.Envelope,
 				},
 			))
 
-			ev, err = stream.Recv()
+			res, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(EqualX(
 				&messagingspec.ConsumeResponse{
 					Offset:   1,
-					Envelope: envelope.MustMarshal(Marshaler, env1),
+					Envelope: parcel1.Envelope,
 				},
 			))
 		})
@@ -132,12 +140,12 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ev, err := stream.Recv()
+			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(EqualX(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: envelope.MustMarshal(Marshaler, env2),
+					Envelope: parcel2.Envelope,
 				},
 			))
 		})
@@ -151,21 +159,21 @@ var _ = Describe("type server", func() {
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ev, err := stream.Recv()
+			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(EqualX(
 				&messagingspec.ConsumeResponse{
 					Offset:   0,
-					Envelope: envelope.MustMarshal(Marshaler, env0),
+					Envelope: parcel0.Envelope,
 				},
 			))
 
-			ev, err = stream.Recv()
+			res, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(ev).To(Equal(
+			Expect(res).To(EqualX(
 				&messagingspec.ConsumeResponse{
 					Offset:   2,
-					Envelope: envelope.MustMarshal(Marshaler, env2),
+					Envelope: parcel2.Envelope,
 				},
 			))
 		})
@@ -197,9 +205,11 @@ var _ = Describe("type server", func() {
 			Expect(s.Message()).To(Equal("unrecognized application: <unknown>"))
 			Expect(s.Code()).To(Equal(codes.NotFound))
 			Expect(s.Details()).To(ContainElement(
-				&messagingspec.UnrecognizedApplication{
-					ApplicationKey: "<unknown>",
-				},
+				EqualX(
+					&messagingspec.UnrecognizedApplication{
+						ApplicationKey: "<unknown>",
+					},
+				),
 			))
 		})
 
@@ -233,12 +243,16 @@ var _ = Describe("type server", func() {
 			Expect(s.Message()).To(Equal("unrecognized message type(s)"))
 			Expect(s.Code()).To(Equal(codes.InvalidArgument))
 			Expect(s.Details()).To(ContainElements(
-				&messagingspec.UnrecognizedMessage{
-					Name: "<unknown-1>",
-				},
-				&messagingspec.UnrecognizedMessage{
-					Name: "<unknown-2>",
-				},
+				EqualX(
+					&messagingspec.UnrecognizedMessage{
+						Name: "<unknown-1>",
+					},
+				),
+				EqualX(
+					&messagingspec.UnrecognizedMessage{
+						Name: "<unknown-2>",
+					},
+				),
 			))
 		})
 	})
@@ -267,9 +281,11 @@ var _ = Describe("type server", func() {
 			Expect(s.Message()).To(Equal("unrecognized application: <unknown>"))
 			Expect(s.Code()).To(Equal(codes.NotFound))
 			Expect(s.Details()).To(ContainElement(
-				&messagingspec.UnrecognizedApplication{
-					ApplicationKey: "<unknown>",
-				},
+				EqualX(
+					&messagingspec.UnrecognizedApplication{
+						ApplicationKey: "<unknown>",
+					},
+				),
 			))
 		})
 

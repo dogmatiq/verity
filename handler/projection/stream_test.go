@@ -12,6 +12,7 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/projection"
+	"github.com/dogmatiq/infix/parcel"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -20,13 +21,14 @@ var _ eventstream.Handler = (*StreamAdaptor)(nil)
 
 var _ = Describe("type StreamAdaptor", func() {
 	var (
+		pcl     *parcel.Parcel
 		handler *ProjectionMessageHandler
 		logger  *logging.BufferedLogger
 		adaptor *StreamAdaptor
-		env     = NewEnvelope("<id>", MessageA1)
 	)
 
 	BeforeEach(func() {
+		pcl = NewParcel("<id>", MessageA1)
 		handler = &ProjectionMessageHandler{}
 		logger = &logging.BufferedLogger{}
 		adaptor = &StreamAdaptor{
@@ -101,7 +103,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ dogma.ProjectionEventScope,
 				m dogma.Message,
 			) (bool, error) {
-				Expect(m).To(Equal(env.Message))
+				Expect(m).To(Equal(pcl.Message))
 				return true, nil
 			}
 
@@ -109,8 +111,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				0,
 				&eventstream.Event{
-					Offset:   0,
-					Envelope: env,
+					Offset: 0,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -133,8 +135,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				0,
 				&eventstream.Event{
-					Offset:   0,
-					Envelope: env,
+					Offset: 0,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -157,8 +159,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				3,
 				&eventstream.Event{
-					Offset:   4,
-					Envelope: env,
+					Offset: 4,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -166,7 +168,7 @@ var _ = Describe("type StreamAdaptor", func() {
 
 		It("uses the timeout hint from the handler", func() {
 			handler.TimeoutHintFunc = func(m dogma.Message) time.Duration {
-				Expect(m).To(Equal(env.Message))
+				Expect(m).To(Equal(pcl.Message))
 				return 100 * time.Millisecond
 			}
 
@@ -186,8 +188,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				0,
 				&eventstream.Event{
-					Offset:   0,
-					Envelope: env,
+					Offset: 0,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -212,8 +214,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				0,
 				&eventstream.Event{
-					Offset:   0,
-					Envelope: env,
+					Offset: 0,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -236,8 +238,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				0,
 				&eventstream.Event{
-					Offset:   0,
-					Envelope: env,
+					Offset: 0,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -257,8 +259,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				0,
 				&eventstream.Event{
-					Offset:   0,
-					Envelope: env,
+					Offset: 0,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).To(MatchError("optimistic concurrency conflict"))
@@ -278,8 +280,8 @@ var _ = Describe("type StreamAdaptor", func() {
 				context.Background(),
 				0,
 				&eventstream.Event{
-					Offset:   0,
-					Envelope: env,
+					Offset: 0,
+					Parcel: pcl,
 				},
 			)
 			Expect(err).To(MatchError("<error>"))
@@ -293,7 +295,7 @@ var _ = Describe("type StreamAdaptor", func() {
 					s dogma.ProjectionEventScope,
 					_ dogma.Message,
 				) (bool, error) {
-					Expect(s.RecordedAt()).To(BeTemporally("==", env.CreatedAt))
+					Expect(s.RecordedAt()).To(BeTemporally("==", pcl.CreatedAt))
 					return true, nil
 				}
 
@@ -301,8 +303,8 @@ var _ = Describe("type StreamAdaptor", func() {
 					context.Background(),
 					0,
 					&eventstream.Event{
-						Offset:   0,
-						Envelope: env,
+						Offset: 0,
+						Parcel: pcl,
 					},
 				)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -323,8 +325,8 @@ var _ = Describe("type StreamAdaptor", func() {
 					context.Background(),
 					0,
 					&eventstream.Event{
-						Offset:   0,
-						Envelope: env,
+						Offset: 0,
+						Parcel: pcl,
 					},
 				)
 				Expect(err).ShouldNot(HaveOccurred())

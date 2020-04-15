@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/envelope"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
@@ -58,7 +57,7 @@ func (s *server) Consume(
 
 		res := &messagingspec.ConsumeResponse{
 			Offset:   uint64(ev.Offset),
-			Envelope: envelope.MustMarshal(s.marshaler, ev.Envelope),
+			Envelope: ev.Parcel.Envelope,
 		}
 
 		if err := consumer.Send(res); err != nil {

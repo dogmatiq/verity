@@ -12,7 +12,8 @@ require (
 	github.com/dogmatiq/marshalkit v0.2.2
 	github.com/dogmatiq/projectionkit v0.3.2
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/golang/protobuf v1.3.5
+	github.com/golang/protobuf v1.4.0
+	github.com/google/go-cmp v0.4.0
 	github.com/google/uuid v1.1.1
 	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v1.13.0
@@ -23,4 +24,5 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db // indirect
 	google.golang.org/grpc v1.28.1
+	google.golang.org/protobuf v1.21.0
 )

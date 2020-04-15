@@ -5,9 +5,9 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/envelope"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/handler"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/pipeline"
@@ -24,13 +24,11 @@ var _ = Describe("type PipelineSource", func() {
 		dataStore persistence.DataStore
 		queue     *Queue
 		source    *PipelineSource
-		env       *envelope.Envelope
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		env = NewEnvelope("<id>", MessageA1)
 		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
@@ -43,7 +41,8 @@ var _ = Describe("type PipelineSource", func() {
 			Semaphore: handler.NewSemaphore(1),
 		}
 
-		push(ctx, queue, env)
+		p := NewParcel("<id>", MessageA1)
+		push(ctx, queue, p)
 	})
 
 	JustBeforeEach(func() {
@@ -103,15 +102,15 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		cancel    context.CancelFunc
 		dataStore persistence.DataStore
 		queue     *Queue
-		observer  pipeline.EnqueuedMessageObserver
-		env       *envelope.Envelope
-		message   *queuestore.Message
+		observer  pipeline.QueueObserver
+		pcl       *parcel.Parcel
+		item      *queuestore.Item
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		env = NewEnvelope("<id>", MessageA1)
+		pcl = NewParcel("<id>", MessageA1)
 		dataStore = NewDataStoreStub()
 
 		queue = &Queue{
@@ -121,20 +120,20 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 
 		observer = TrackEnqueuedCommands(queue)
 
-		message = &queuestore.Message{
+		item = &queuestore.Item{
 			NextAttemptAt: time.Now(),
-			Envelope:      envelope.MustMarshal(Marshaler, env),
+			Envelope:      pcl.Envelope,
 		}
 
 		err := persistence.WithTransaction(
 			ctx,
 			dataStore,
 			func(tx persistence.ManagedTransaction) error {
-				return tx.SaveMessageToQueue(ctx, message)
+				return tx.SaveMessageToQueue(ctx, item)
 			},
 		)
 		Expect(err).ShouldNot(HaveOccurred())
-		message.Revision++
+		item.Revision++
 	})
 
 	AfterEach(func() {
@@ -150,8 +149,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 			ctx,
 			[]pipeline.EnqueuedMessage{
 				{
-					Memory:    env,
-					Persisted: message,
+					Parcel:    pcl,
+					Persisted: item,
 				},
 			},
 		)
@@ -165,6 +164,11 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 	})
 
 	It("returns an error if the context deadline is exceeded", func() {
+		m := pipeline.EnqueuedMessage{
+			Parcel:    pcl,
+			Persisted: item,
+		}
+
 		// It's an implementation detail, but the internal channel used to start
 		// tracking is buffered at the same size as the overall buffer size
 		// limit.
@@ -176,22 +180,14 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		// Instead, we set it to one, and "fill" the channel with a request to
 		// ensure that it will block.
 		queue.BufferSize = 1
-		err := queue.Track(ctx, env, message)
+		err := queue.Track(ctx, m.Parcel, m.Persisted)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Setup a short deadline for the test.
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 		defer cancel()
 
-		err = observer(
-			ctx,
-			[]pipeline.EnqueuedMessage{
-				{
-					Memory:    env,
-					Persisted: message,
-				},
-			},
-		)
+		err = observer(ctx, []pipeline.EnqueuedMessage{m})
 		Expect(err).To(Equal(context.DeadlineExceeded))
 	})
 })

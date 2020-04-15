@@ -32,12 +32,12 @@ func (r *EventStoreRepositoryStub) QueryEvents(ctx context.Context, q eventstore
 type EventStoreResultStub struct {
 	eventstore.Result
 
-	NextFunc  func(context.Context) (*eventstore.Event, bool, error)
+	NextFunc  func(context.Context) (*eventstore.Item, bool, error)
 	CloseFunc func() error
 }
 
 // Next returns the next event in the result.
-func (r *EventStoreResultStub) Next(ctx context.Context) (*eventstore.Event, bool, error) {
+func (r *EventStoreResultStub) Next(ctx context.Context) (*eventstore.Item, bool, error) {
 	if r.NextFunc != nil {
 		return r.NextFunc(ctx)
 	}

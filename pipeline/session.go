@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -18,10 +19,19 @@ type Session interface {
 	// attempted without success, not including this attempt.
 	FailureCount() uint
 
-	// Envelope returns the envelope containing the message to be handled.
-	Envelope(ctx context.Context) (*envelope.Envelope, error)
+	// Envelope returns the message envelope.
+	Envelope() *envelopespec.Envelope
+
+	// Message returns the Dogma message that is to be handled.
+	//
+	// It returns an error if the message can not be unpacked.
+	//
+	// TODO: move this to Scope and make it return the parcel.
+	Message() (dogma.Message, error)
 
 	// Tx returns the transaction used to persist data within this session.
+	//
+	// It starts the transaction if it has not already been started.
 	Tx(ctx context.Context) (persistence.ManagedTransaction, error)
 
 	// Ack acknowledges successful handling of the message.

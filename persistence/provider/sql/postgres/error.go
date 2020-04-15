@@ -131,9 +131,9 @@ func (d errorConverter) SelectEvents(
 
 func (d errorConverter) ScanEvent(
 	rows *sql.Rows,
-	ev *eventstore.Event,
+	i *eventstore.Item,
 ) error {
-	return d.d.ScanEvent(rows, ev)
+	return d.d.ScanEvent(rows, i)
 }
 
 //
@@ -144,9 +144,9 @@ func (d errorConverter) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	m *queuestore.Message,
+	i *queuestore.Item,
 ) (bool, error) {
-	ok, err := d.d.InsertQueueMessage(ctx, tx, ak, m)
+	ok, err := d.d.InsertQueueMessage(ctx, tx, ak, i)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -154,9 +154,9 @@ func (d errorConverter) UpdateQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	m *queuestore.Message,
+	i *queuestore.Item,
 ) (bool, error) {
-	ok, err := d.d.UpdateQueueMessage(ctx, tx, ak, m)
+	ok, err := d.d.UpdateQueueMessage(ctx, tx, ak, i)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -164,9 +164,9 @@ func (d errorConverter) DeleteQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	m *queuestore.Message,
+	i *queuestore.Item,
 ) (bool, error) {
-	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, m)
+	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, i)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -182,7 +182,7 @@ func (d errorConverter) SelectQueueMessages(
 
 func (d errorConverter) ScanQueueMessage(
 	rows *sql.Rows,
-	m *queuestore.Message,
+	i *queuestore.Item,
 ) error {
-	return d.d.ScanQueueMessage(rows, m)
+	return d.d.ScanQueueMessage(rows, i)
 }

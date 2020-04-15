@@ -4,7 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -23,31 +25,44 @@ type Session struct {
 // The ID is available even if the complete message envelope can not be
 // unmarshaled.
 func (s *Session) MessageID() string {
-	return s.elem.persisted.ID()
+	return s.elem.item.ID()
 }
 
 // FailureCount returns the number of times this message has already been
 // attempted, not including this attempt.
 func (s *Session) FailureCount() uint {
-	return s.elem.persisted.FailureCount
+	return s.elem.item.FailureCount
 }
 
 // Envelope returns the envelope containing the message to be handled.
-func (s *Session) Envelope(context.Context) (*envelope.Envelope, error) {
+func (s *Session) Envelope() *envelopespec.Envelope {
+	return s.elem.item.Envelope
+}
+
+// Message returns the Dogma message that is to be handled.
+//
+// It returns an error if the message can not be unpacked.
+func (s *Session) Message() (dogma.Message, error) {
 	var err error
 
-	if s.elem.memory == nil {
-		s.elem.memory, err = envelope.Unmarshal(
+	if s.elem.parcel == nil {
+		s.elem.parcel, err = parcel.FromEnvelope(
 			s.queue.Marshaler,
-			s.elem.persisted.Envelope,
+			s.elem.item.Envelope,
 		)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return s.elem.memory, err
+	return s.elem.parcel.Message, nil
 }
 
 // Tx returns the transaction under which the message must be handled, starting
 // it if necessary.
+//
+// It starts the transaction if it has not already been started.
 func (s *Session) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {
 	if s.tx == nil {
 		tx, err := s.queue.DataStore.Begin(ctx)
@@ -70,7 +85,7 @@ func (s *Session) Ack(ctx context.Context) error {
 		return err
 	}
 
-	if err := s.tx.RemoveMessageFromQueue(ctx, s.elem.persisted); err != nil {
+	if err := s.tx.RemoveMessageFromQueue(ctx, s.elem.item); err != nil {
 		return err
 	}
 
@@ -79,7 +94,7 @@ func (s *Session) Ack(ctx context.Context) error {
 	}
 
 	s.done = true
-	s.elem.persisted.Revision = 0
+	s.elem.item.Revision = 0
 
 	return nil
 }
@@ -96,20 +111,20 @@ func (s *Session) Nack(ctx context.Context, n time.Time) error {
 	}
 
 	s.done = true
-	s.elem.persisted.FailureCount++
-	s.elem.persisted.NextAttemptAt = n
+	s.elem.item.FailureCount++
+	s.elem.item.NextAttemptAt = n
 
 	if err := persistence.WithTransaction(
 		ctx,
 		s.queue.DataStore,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, s.elem.persisted)
+			return tx.SaveMessageToQueue(ctx, s.elem.item)
 		},
 	); err != nil {
 		return err
 	}
 
-	s.elem.persisted.Revision++
+	s.elem.item.Revision++
 
 	return nil
 }

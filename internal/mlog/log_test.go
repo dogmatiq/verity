@@ -24,7 +24,7 @@ var _ = Describe("func LogConsume()", func() {
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● {A1}",
 			},
 		))
 	})
@@ -40,7 +40,7 @@ var _ = Describe("func LogConsume()", func() {
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ↻  fixtures.MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ↻  MessageA ● {A1}",
 			},
 		))
 	})
@@ -57,7 +57,7 @@ var _ = Describe("func LogProduce()", func() {
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▲    fixtures.MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▲    MessageA ● {A1}",
 			},
 		))
 	})
@@ -76,26 +76,7 @@ var _ = Describe("func LogNack()", func() {
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  fixtures.MessageA ● <error> ● next retry in 5s",
-			},
-		))
-	})
-})
-
-var _ = Describe("func LogNackWithoutEnvelope()", func() {
-	It("logs in the correct format", func() {
-		logger := &logging.BufferedLogger{}
-
-		LogNackWithoutEnvelope(
-			logger,
-			"<id>",
-			errors.New("<error>"),
-			5*time.Second,
-		)
-
-		Expect(logger.Messages()).To(ContainElement(
-			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ -  ⋲ -  ▽ ✖  <error> ● next retry in 5s",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  MessageA ● <error> ● next retry in 5s",
 			},
 		))
 	})
@@ -114,7 +95,7 @@ var _ = Describe("func LogFromHandler()", func() {
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    fixtures.MessageA ● format <value>",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● format <value>",
 			},
 		))
 	})

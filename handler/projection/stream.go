@@ -54,7 +54,7 @@ func (a *StreamAdaptor) NextOffset(
 // HandleEvent handles a message consumed from the event stream.
 //
 // o must be the offset that would be returned by NextOffset(). On success,
-// the next call to NextOffset() will return e.Offset + 1.
+// the next call to NextOffset() will return ev.Offset + 1.
 func (a *StreamAdaptor) HandleEvent(
 	ctx context.Context,
 	o eventstream.Offset,
@@ -62,7 +62,7 @@ func (a *StreamAdaptor) HandleEvent(
 ) error {
 	ctx, cancel := linger.ContextWithTimeout(
 		ctx,
-		a.Handler.TimeoutHint(ev.Envelope.Message),
+		a.Handler.TimeoutHint(ev.Parcel.Message),
 		a.DefaultTimeout,
 		DefaultTimeout,
 	)
@@ -70,14 +70,14 @@ func (a *StreamAdaptor) HandleEvent(
 
 	ok, err := a.Handler.HandleEvent(
 		ctx,
-		resource.FromApplicationKey(ev.Envelope.Source.Application.Key),
+		resource.FromApplicationKey(ev.Parcel.Envelope.MetaData.Source.Application.Key),
 		resource.MarshalOffset(o),
 		resource.MarshalOffset(ev.Offset+1),
 		scope{
-			recordedAt: ev.Envelope.CreatedAt,
+			recordedAt: ev.Parcel.CreatedAt,
 			logger:     a.Logger,
 		},
-		ev.Envelope.Message,
+		ev.Parcel.Message,
 	)
 	if err != nil {
 		return err

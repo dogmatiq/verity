@@ -228,22 +228,22 @@ func (driver) SelectEvents(
 // ScanEvent scans the next event from a row-set returned by SelectEvents().
 func (driver) ScanEvent(
 	rows *sql.Rows,
-	ev *eventstore.Event,
+	i *eventstore.Item,
 ) error {
 	return rows.Scan(
-		&ev.Offset,
-		&ev.Envelope.MetaData.MessageId,
-		&ev.Envelope.MetaData.CausationId,
-		&ev.Envelope.MetaData.CorrelationId,
-		&ev.Envelope.MetaData.Source.Application.Name,
-		&ev.Envelope.MetaData.Source.Application.Key,
-		&ev.Envelope.MetaData.Source.Handler.Name,
-		&ev.Envelope.MetaData.Source.Handler.Key,
-		&ev.Envelope.MetaData.Source.InstanceId,
-		&ev.Envelope.MetaData.CreatedAt,
-		&ev.Envelope.MetaData.Description,
-		&ev.Envelope.PortableName,
-		&ev.Envelope.MediaType,
-		&ev.Envelope.Data,
+		&i.Offset,
+		&i.Envelope.MetaData.MessageId,
+		&i.Envelope.MetaData.CausationId,
+		&i.Envelope.MetaData.CorrelationId,
+		&i.Envelope.MetaData.Source.Application.Name,
+		&i.Envelope.MetaData.Source.Application.Key,
+		&i.Envelope.MetaData.Source.Handler.Name,
+		&i.Envelope.MetaData.Source.Handler.Key,
+		&i.Envelope.MetaData.Source.InstanceId,
+		&i.Envelope.MetaData.CreatedAt,
+		&i.Envelope.MetaData.Description,
+		&i.Envelope.PortableName,
+		&i.Envelope.MediaType,
+		&i.Envelope.Data,
 	)
 }

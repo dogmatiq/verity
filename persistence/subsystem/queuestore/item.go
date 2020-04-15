@@ -10,15 +10,15 @@ import (
 // concurrency control.
 type Revision uint64
 
-// Message is a message persisted on the queue.
-type Message struct {
+// Item is a message persisted in the queue store.
+type Item struct {
 	Revision      Revision
 	FailureCount  uint
 	NextAttemptAt time.Time
 	Envelope      *envelopespec.Envelope
 }
 
-// ID returns the message ID from the envelope.
-func (m *Message) ID() string {
-	return m.Envelope.MetaData.MessageId
+// ID returns the ID of the message.
+func (i *Item) ID() string {
+	return i.Envelope.MetaData.MessageId
 }

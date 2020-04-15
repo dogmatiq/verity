@@ -1,20 +1,24 @@
-package envelope
+package parcel
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/marshalkit"
 	"github.com/google/uuid"
 )
 
-// Packer puts messages into envelopes.
+// Packer puts messages into parcels.
 type Packer struct {
 	// Application is the identity of this application.
-	Application configkit.Identity
+	Application *envelopespec.Identity
+
+	// Marshaler is used to marshal messages into envelopes.
+	Marshaler marshalkit.ValueMarshaler
 
 	// Produced is a map of message type to role, used to validate the messages
 	// that are being packed.
@@ -33,115 +37,124 @@ type Packer struct {
 	Now func() time.Time
 }
 
-// PackCommand returns a new command envelope containing the given message.
-func (p *Packer) PackCommand(m dogma.Message) *Envelope {
+// PackCommand returns a parcel containing the given command message.
+func (p *Packer) PackCommand(m dogma.Message) *Parcel {
 	p.checkProducedRole(m, message.CommandRole)
 	return p.new(m)
 }
 
-// PackEvent returns a new event envelope containing the given message.
-func (p *Packer) PackEvent(m dogma.Message) *Envelope {
+// PackEvent returns a parcel containing the given event message.
+func (p *Packer) PackEvent(m dogma.Message) *Parcel {
 	p.checkProducedRole(m, message.EventRole)
 	return p.new(m)
 }
 
-// PackChildCommand returns a new command envelope containing the given message
-// and configured as a child of cause.
+// PackChildCommand returns a parcel containing the given command message,
+// configured as a child of c, the cause.
 func (p *Packer) PackChildCommand(
-	cause *Envelope,
+	c *Parcel,
 	m dogma.Message,
-	handler configkit.Identity,
+	handler *envelopespec.Identity,
 	instanceID string,
-) *Envelope {
-	p.checkConsumedRole(cause.Message, message.EventRole, message.TimeoutRole)
+) *Parcel {
+	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
 	p.checkProducedRole(m, message.CommandRole)
 
 	return p.newChild(
-		cause,
+		c,
 		m,
 		handler,
 		instanceID,
 	)
 }
 
-// PackChildEvent returns a new event envelope containing the given message and
-// configured as a child of cause.
+// PackChildEvent returns a parcel containing the given event message,
+// configured as a child of c, the cause.
 func (p *Packer) PackChildEvent(
-	cause *Envelope,
+	c *Parcel,
 	m dogma.Message,
-	handler configkit.Identity,
+	handler *envelopespec.Identity,
 	instanceID string,
-) *Envelope {
-	p.checkConsumedRole(cause.Message, message.CommandRole)
+) *Parcel {
+	p.checkConsumedRole(c.Message, message.CommandRole)
 	p.checkProducedRole(m, message.EventRole)
 
 	return p.newChild(
-		cause,
+		c,
 		m,
 		handler,
 		instanceID,
 	)
 }
 
-// PackChildTimeout returns a new timeout envelope containing the given message
-// and configured as a child of cause.
+// PackChildTimeout returns a parcel containing the given timeout message,
+// configured as a child of c, the cause.
 func (p *Packer) PackChildTimeout(
-	cause *Envelope,
+	c *Parcel,
 	m dogma.Message,
 	t time.Time,
-	handler configkit.Identity,
+	handler *envelopespec.Identity,
 	instanceID string,
-) *Envelope {
-	p.checkConsumedRole(cause.Message, message.EventRole, message.TimeoutRole)
+) *Parcel {
+	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
 	p.checkProducedRole(m, message.TimeoutRole)
 
-	env := p.newChild(
-		cause,
+	parcel := p.newChild(
+		c,
 		m,
 		handler,
 		instanceID,
 	)
 
-	env.ScheduledFor = t
+	parcel.Envelope.MetaData.ScheduledFor = envelopespec.MarshalTime(t)
+	parcel.ScheduledFor = t
 
-	return env
+	return parcel
 }
 
 // new returns an envelope containing the given message.
-func (p *Packer) new(m dogma.Message) *Envelope {
+func (p *Packer) new(m dogma.Message) *Parcel {
 	id := p.generateID()
+	now := p.now()
 
-	return &Envelope{
-		MetaData{
-			id,
-			id,
-			id,
-			Source{
-				Application: p.Application,
+	env := &Parcel{
+		Envelope: &envelopespec.Envelope{
+			MetaData: &envelopespec.MetaData{
+				MessageId:     id,
+				CorrelationId: id,
+				CausationId:   id,
+				Source: &envelopespec.Source{
+					Application: p.Application,
+				},
+				CreatedAt:   envelopespec.MarshalTime(now),
+				Description: dogma.DescribeMessage(m),
 			},
-			p.now(),
-			time.Time{},
 		},
-		m,
+		Message:   m,
+		CreatedAt: now,
 	}
+
+	envelopespec.MarshalMessage(p.Marshaler, m, env.Envelope)
+
+	return env
 }
 
 // newChild returns an envelope containing the given message, which was a
 // produced as a result of handling a causal message.
 func (p *Packer) newChild(
-	cause *Envelope,
+	c *Parcel,
 	m dogma.Message,
-	handler configkit.Identity,
+	handler *envelopespec.Identity,
 	instanceID string,
-) *Envelope {
-	env := p.new(m)
+) *Parcel {
+	parcel := p.new(m)
 
-	env.CausationID = cause.MessageID
-	env.CorrelationID = cause.CorrelationID
-	env.Source.Handler = handler
-	env.Source.InstanceID = instanceID
+	parcel.Envelope.MetaData.CausationId = c.Envelope.MetaData.MessageId
+	parcel.Envelope.MetaData.CorrelationId = c.Envelope.MetaData.CorrelationId
+	parcel.Envelope.MetaData.Source.Handler = handler
+	parcel.Envelope.MetaData.Source.InstanceId = instanceID
 
-	return env
+	return parcel
 }
 
 // now returns the current time.

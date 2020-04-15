@@ -61,10 +61,10 @@ func (s *PipelineSource) Run(ctx context.Context) error {
 
 // TrackEnqueuedCommands returns a pipeline observer that calls q.Track() for
 // each message that is enqueued.
-func TrackEnqueuedCommands(q *Queue) pipeline.EnqueuedMessageObserver {
+func TrackEnqueuedCommands(q *Queue) pipeline.QueueObserver {
 	return func(ctx context.Context, messages []pipeline.EnqueuedMessage) error {
 		for _, m := range messages {
-			if err := q.Track(ctx, m.Memory, m.Persisted); err != nil {
+			if err := q.Track(ctx, m.Parcel, m.Persisted); err != nil {
 				return err
 			}
 		}

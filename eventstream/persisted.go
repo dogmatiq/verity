@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
@@ -179,7 +179,7 @@ func (c *persistedCursor) execQuery(ctx context.Context) error {
 	defer res.Close()
 
 	for {
-		pev, ok, err := res.Next(ctx)
+		i, ok, err := res.Next(ctx)
 		if err != nil {
 			return err
 		}
@@ -189,10 +189,10 @@ func (c *persistedCursor) execQuery(ctx context.Context) error {
 		}
 
 		ev := &Event{
-			Offset: Offset(pev.Offset),
+			Offset: Offset(i.Offset),
 		}
 
-		ev.Envelope, err = envelope.Unmarshal(c.marshaler, pev.Envelope)
+		ev.Parcel, err = parcel.FromEnvelope(c.marshaler, i.Envelope)
 		if err != nil {
 			return err
 		}

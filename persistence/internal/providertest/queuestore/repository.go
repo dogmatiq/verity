@@ -6,7 +6,6 @@ import (
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
@@ -25,8 +24,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			repository queuestore.Repository
 			tearDown   func()
 
-			env0, env1, env2             *envelopespec.Envelope
-			message0, message1, message2 *queuestore.Message
+			item0, item1, item2 *queuestore.Item
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -39,26 +37,23 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			//
 			// This was noticed occurring with the SQL provider, which sorted by
 			// its PRIMARY KEY, which includes the message ID.
-			env0 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA3)
-			env1 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA1)
-			env2 = infixfixtures.NewEnvelopeProto("", dogmafixtures.MessageA2)
 
-			message0 = &queuestore.Message{
+			item0 = &queuestore.Item{
 				FailureCount:  1,
 				NextAttemptAt: time.Now().Add(3 * time.Hour),
-				Envelope:      env0,
+				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA3),
 			}
 
-			message1 = &queuestore.Message{
+			item1 = &queuestore.Item{
 				FailureCount:  2,
 				NextAttemptAt: time.Now().Add(-10 * time.Hour),
-				Envelope:      env1,
+				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA1),
 			}
 
-			message2 = &queuestore.Message{
+			item2 = &queuestore.Item{
 				FailureCount:  3,
 				NextAttemptAt: time.Now().Add(2 * time.Hour),
-				Envelope:      env2,
+				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA2),
 			}
 		})
 
@@ -68,46 +63,46 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func LoadQueueMessages()", func() {
 			ginkgo.It("returns an empty result if the queue is empty", func() {
-				messages := loadMessages(tc.Context, repository, 10)
-				gomega.Expect(messages).To(gomega.BeEmpty())
+				items := loadMessages(tc.Context, repository, 10)
+				gomega.Expect(items).To(gomega.BeEmpty())
 			})
 
 			table.DescribeTable(
 				"it returns messages from the queue, ordered by their next attempt time",
-				func(n int, expected ...**queuestore.Message) {
+				func(n int, expected ...**queuestore.Item) {
 					saveMessages(
 						tc.Context,
 						dataStore,
-						message0,
-						message1,
-						message2,
+						item0,
+						item1,
+						item2,
 					)
 
-					messages := loadMessages(tc.Context, repository, n)
-					gomega.Expect(messages).To(gomega.HaveLen(len(expected)))
+					items := loadMessages(tc.Context, repository, n)
+					gomega.Expect(items).To(gomega.HaveLen(len(expected)))
 
-					for i, m := range messages {
-						expectMessageToEqual(
-							m,
+					for i, it := range items {
+						expectItemToEqual(
+							it,
 							*expected[i],
-							fmt.Sprintf("message at index #%d of slice", i),
+							fmt.Sprintf("item at index #%d of slice", i),
 						)
 					}
 				},
 				table.Entry(
 					"it returns all the messages if the limit is equal the length of the queue",
 					3,
-					&message1, &message2, &message0,
+					&item1, &item2, &item0,
 				),
 				table.Entry(
 					"it returns all the messages if the limit is larger than the length of the queue",
 					10,
-					&message1, &message2, &message0,
+					&item1, &item2, &item0,
 				),
 				table.Entry(
 					"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
 					2,
-					&message1, &message2,
+					&item1, &item2,
 				),
 			)
 		})

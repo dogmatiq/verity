@@ -28,20 +28,41 @@ var _ = Describe("type Consumer", func() {
 		eshandler *EventStreamHandlerStub
 		consumer  *Consumer
 
-		env0 = NewEnvelope("<message-0>", MessageA1)
-		env1 = NewEnvelope("<message-1>", MessageB1)
-		env2 = NewEnvelope("<message-2>", MessageA2)
-		env3 = NewEnvelope("<message-3>", MessageB2)
-		env4 = NewEnvelope("<message-4>", MessageA3)
-		env5 = NewEnvelope("<message-5>", MessageB3)
-
-		event0 = &Event{Offset: 0, Envelope: env0}
-		event2 = &Event{Offset: 2, Envelope: env2}
-		event4 = &Event{Offset: 4, Envelope: env4}
+		event0, event1, event2, event3, event4, event5 *Event
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
+		event0 = &Event{
+			Offset: 0,
+			Parcel: NewParcel("<message-0>", MessageA1),
+		}
+
+		event1 = &Event{
+			Offset: 1,
+			Parcel: NewParcel("<message-1>", MessageB1),
+		}
+
+		event2 = &Event{
+			Offset: 2,
+			Parcel: NewParcel("<message-2>", MessageA2),
+		}
+
+		event3 = &Event{
+			Offset: 3,
+			Parcel: NewParcel("<message-3>", MessageB2),
+		}
+
+		event4 = &Event{
+			Offset: 4,
+			Parcel: NewParcel("<message-4>", MessageA3),
+		}
+
+		event5 = &Event{
+			Offset: 5,
+			Parcel: NewParcel("<message-5>", MessageB3),
+		}
 
 		mstream = &MemoryStream{
 			App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
@@ -56,12 +77,12 @@ var _ = Describe("type Consumer", func() {
 		}
 
 		mstream.Append(
-			env0,
-			env1,
-			env2,
-			env3,
-			env4,
-			env5,
+			event0.Parcel,
+			event1.Parcel,
+			event2.Parcel,
+			event3.Parcel,
+			event4.Parcel,
+			event5.Parcel,
 		)
 
 		eshandler = &EventStreamHandlerStub{}

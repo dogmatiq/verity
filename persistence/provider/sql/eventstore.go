@@ -72,7 +72,7 @@ type eventStoreDriver interface {
 	// ScanEvent scans the next event from a row-set returned by SelectEvents().
 	ScanEvent(
 		rows *sql.Rows,
-		ev *eventstore.Event,
+		i *eventstore.Item,
 	) error
 }
 
@@ -171,13 +171,13 @@ type eventStoreResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventStoreResult) Next(
 	ctx context.Context,
-) (*eventstore.Event, bool, error) {
+) (*eventstore.Item, bool, error) {
 	if ctx.Err() != nil {
 		return nil, false, ctx.Err()
 	}
 
 	if r.rows.Next() {
-		ev := &eventstore.Event{
+		i := &eventstore.Item{
 			Envelope: &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
 					Source: &envelopespec.Source{
@@ -188,9 +188,9 @@ func (r *eventStoreResult) Next(
 			},
 		}
 
-		err := r.driver.ScanEvent(r.rows, ev)
+		err := r.driver.ScanEvent(r.rows, i)
 
-		return ev, true, err
+		return i, true, err
 	}
 
 	return nil, false, nil

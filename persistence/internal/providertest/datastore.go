@@ -106,7 +106,7 @@ func declareDataStoreTests(
 						if write {
 							ginkgo.By("performing a write operation")
 
-							env := infixfixtures.NewEnvelopeProto("<id>", dogmafixtures.MessageA1)
+							env := infixfixtures.NewEnvelope("<id>", dogmafixtures.MessageA1)
 
 							if _, err := tx.SaveEvent(*ctx, env); err != nil {
 								result <- err

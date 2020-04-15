@@ -15,12 +15,12 @@ import (
 //
 // If the message is already on the queue its meta-data is updated.
 //
-// m.Revision must be the revision of the message as currently persisted,
+// i.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // is not saved and ErrConflict is returned.
 func (t *transaction) SaveMessageToQueue(
 	ctx context.Context,
-	m *queuestore.Message,
+	i *queuestore.Item,
 ) (err error) {
 	defer bboltx.Recover(&err)
 
@@ -35,14 +35,14 @@ func (t *transaction) SaveMessageToQueue(
 		messagesBucketKey,
 	)
 
-	old := loadQueueMessage(messages, m.ID())
+	old := loadQueueStoreItem(messages, i.ID())
 
-	if uint64(m.Revision) != old.GetRevision() {
+	if uint64(i.Revision) != old.GetRevision() {
 		return queuestore.ErrConflict
 	}
 
-	new, data := marshalQueueMessage(m, old)
-	bboltx.Put(messages, []byte(m.ID()), data)
+	new, data := marshalQueueStoreItem(i, old)
+	bboltx.Put(messages, []byte(i.ID()), data)
 
 	if new.GetNextAttemptAt() != old.GetNextAttemptAt() {
 		order := bboltx.CreateBucketIfNotExists(
@@ -65,12 +65,12 @@ func (t *transaction) SaveMessageToQueue(
 // RemoveMessageFromQueue removes a specific message from the application's
 // message queue.
 //
-// m.Revision must be the revision of the message as currently persisted,
+// i.Revision must be the revision of the message as currently persisted,
 // otherwise an optimistic concurrency conflict has occurred, the message
 // remains on the queue and ErrConflict is returned.
 func (t *transaction) RemoveMessageFromQueue(
 	ctx context.Context,
-	m *queuestore.Message,
+	i *queuestore.Item,
 ) (err error) {
 	defer bboltx.Recover(&err)
 
@@ -88,9 +88,9 @@ func (t *transaction) RemoveMessageFromQueue(
 		return queuestore.ErrConflict
 	}
 
-	old := loadQueueMessage(messages, m.ID())
+	old := loadQueueStoreItem(messages, i.ID())
 
-	if uint64(m.Revision) != old.GetRevision() {
+	if uint64(i.Revision) != old.GetRevision() {
 		return queuestore.ErrConflict
 	}
 
@@ -101,7 +101,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		orderBucketKey,
 	)
 
-	bboltx.Delete(messages, []byte(m.ID()))
+	bboltx.Delete(messages, []byte(i.ID()))
 	removeQueueOrder(order, old)
 
 	return nil
@@ -118,10 +118,10 @@ type queueStoreRepository struct {
 func (r *queueStoreRepository) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) (_ []*queuestore.Message, err error) {
+) (_ []*queuestore.Item, err error) {
 	defer bboltx.Recover(&err)
 
-	var result []*queuestore.Message
+	var result []*queuestore.Item
 
 	// Execute a read-only transaction.
 	r.db.View(
@@ -153,8 +153,8 @@ func (r *queueStoreRepository) LoadQueueMessages(
 
 				for id != nil {
 					data := messages.Get(id)
-					m := unmarshalQueueMessage(data)
-					result = append(result, m)
+					i := unmarshalQueueStoreItem(data)
+					result = append(result, i)
 
 					if len(result) == n {
 						return
@@ -177,39 +177,40 @@ var (
 	orderBucketKey    = []byte("order")
 )
 
-// unmarshalQueueMessage unmarshals a queue message from its binary
+// unmarshalQueueStoreItem unmarshals a queuestore.Item from its binary
 // representation.
-func unmarshalQueueMessage(data []byte) *queuestore.Message {
-	var m pb.QueueMessage
-	bboltx.Must(proto.Unmarshal(data, &m))
+func unmarshalQueueStoreItem(data []byte) *queuestore.Item {
+	var i pb.QueueStoreItem
+	bboltx.Must(proto.Unmarshal(data, &i))
 
-	next, err := time.Parse(time.RFC3339Nano, m.NextAttemptAt)
+	next, err := time.Parse(time.RFC3339Nano, i.NextAttemptAt)
 	bboltx.Must(err)
 
-	return &queuestore.Message{
-		Revision:      queuestore.Revision(m.Revision),
-		FailureCount:  uint(m.FailureCount),
+	return &queuestore.Item{
+		Revision:      queuestore.Revision(i.Revision),
+		FailureCount:  uint(i.FailureCount),
 		NextAttemptAt: next,
-		Envelope:      m.Envelope,
+		Envelope:      i.Envelope,
 	}
 }
 
-// marshalQueueMessage marshals a queue message to its binary representation.
-func marshalQueueMessage(
-	m *queuestore.Message,
-	old *pb.QueueMessage,
-) (*pb.QueueMessage, []byte) {
-	new := &pb.QueueMessage{
-		Revision:      uint64(m.Revision + 1),
-		FailureCount:  uint64(m.FailureCount),
-		NextAttemptAt: m.NextAttemptAt.Format(time.RFC3339Nano),
+// marshalQueueStoreItem marshals a queuestore.Item to its binary
+// representation.
+func marshalQueueStoreItem(
+	i *queuestore.Item,
+	old *pb.QueueStoreItem,
+) (*pb.QueueStoreItem, []byte) {
+	new := &pb.QueueStoreItem{
+		Revision:      uint64(i.Revision + 1),
+		FailureCount:  uint64(i.FailureCount),
+		NextAttemptAt: i.NextAttemptAt.Format(time.RFC3339Nano),
 		Envelope:      old.GetEnvelope(),
 	}
 
 	// Only use user-supplied envelope if there's no old one.
 	// This satisfies the requirement that updates only modify meta-data.
 	if new.Envelope == nil {
-		new.Envelope = m.Envelope
+		new.Envelope = i.Envelope
 	}
 
 	data, err := proto.Marshal(new)
@@ -218,42 +219,42 @@ func marshalQueueMessage(
 	return new, data
 }
 
-// loadQueueMessage loads the protobuf representation of a queue message.
-func loadQueueMessage(messages *bbolt.Bucket, id string) *pb.QueueMessage {
+// loadQueueStoreItem loads an item from the queue.
+func loadQueueStoreItem(messages *bbolt.Bucket, id string) *pb.QueueStoreItem {
 	data := messages.Get([]byte(id))
 	if data == nil {
 		return nil
 	}
 
-	m := &pb.QueueMessage{}
-	err := proto.Unmarshal(data, m)
+	i := &pb.QueueStoreItem{}
+	err := proto.Unmarshal(data, i)
 	bboltx.Must(err)
 
-	return m
+	return i
 }
 
-// saveQueueOrder adds a record for m to the order bucket.
-func saveQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
-	id := m.GetEnvelope().GetMetaData().GetMessageId()
+// saveQueueOrder adds a record for i to the order bucket.
+func saveQueueOrder(order *bbolt.Bucket, i *pb.QueueStoreItem) {
+	id := i.GetEnvelope().GetMetaData().GetMessageId()
 
 	bboltx.Put(
 		bboltx.CreateBucketIfNotExists(
 			order,
-			[]byte(m.NextAttemptAt),
+			[]byte(i.NextAttemptAt),
 		),
 		[]byte(id),
 		nil,
 	)
 }
 
-// removeQueueOrder removes the record for m from the order bucket.
-func removeQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
-	id := m.GetEnvelope().GetMetaData().GetMessageId()
+// removeQueueOrder removes the record for i from the order bucket.
+func removeQueueOrder(order *bbolt.Bucket, i *pb.QueueStoreItem) {
+	id := i.GetEnvelope().GetMetaData().GetMessageId()
 
 	bboltx.Delete(
 		bboltx.Bucket(
 			order,
-			[]byte(m.NextAttemptAt),
+			[]byte(i.NextAttemptAt),
 		),
 		[]byte(id),
 	)

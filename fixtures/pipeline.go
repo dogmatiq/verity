@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
@@ -17,7 +18,8 @@ type SessionStub struct {
 
 	MessageIDFunc    func() string
 	FailureCountFunc func() uint
-	EnvelopeFunc     func(context.Context) (*envelope.Envelope, error)
+	EnvelopeFunc     func() *envelopespec.Envelope
+	MessageFunc      func() (dogma.Message, error)
 	TxFunc           func(context.Context) (persistence.ManagedTransaction, error)
 	AckFunc          func(context.Context) error
 	NackFunc         func(context.Context, time.Time) error
@@ -27,7 +29,7 @@ type SessionStub struct {
 // NewPipelineScope returns a new pipeline scope that uses a session stub with
 // pre-configured Envelope() and Tx() methods.
 func NewPipelineScope(
-	env *envelope.Envelope,
+	env *envelopespec.Envelope,
 	ds *DataStoreStub,
 ) (
 	*pipeline.Scope,
@@ -49,10 +51,13 @@ func NewPipelineScope(
 
 	sess := &SessionStub{
 		MessageIDFunc: func() string {
-			return env.MessageID
+			return env.MetaData.MessageId
 		},
-		EnvelopeFunc: func(context.Context) (*envelope.Envelope, error) {
-			return env, nil
+		EnvelopeFunc: func() *envelopespec.Envelope {
+			return env
+		},
+		MessageFunc: func() (dogma.Message, error) {
+			return envelopespec.UnmarshalMessage(marshalfixtures.Marshaler, env)
 		},
 		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
 			return tx, nil
@@ -95,14 +100,27 @@ func (s *SessionStub) FailureCount() uint {
 	return 0
 }
 
-// Envelope returns the envelope containing the message to be handled.
-func (s *SessionStub) Envelope(ctx context.Context) (*envelope.Envelope, error) {
+// Envelope returns the message envelope.
+func (s *SessionStub) Envelope() *envelopespec.Envelope {
 	if s.EnvelopeFunc != nil {
-		return s.EnvelopeFunc(ctx)
+		return s.EnvelopeFunc()
 	}
 
 	if s.Session != nil {
-		return s.Session.Envelope(ctx)
+		return s.Session.Envelope()
+	}
+
+	return nil
+}
+
+// Message returns the Dogma message that is to be handled.
+func (s *SessionStub) Message() (dogma.Message, error) {
+	if s.EnvelopeFunc != nil {
+		return s.MessageFunc()
+	}
+
+	if s.Session != nil {
+		return s.Session.Message()
 	}
 
 	return nil, nil

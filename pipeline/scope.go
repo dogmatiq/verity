@@ -2,9 +2,10 @@ package pipeline
 
 import (
 	"context"
+	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/envelope"
+	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/marshalkit"
@@ -15,6 +16,11 @@ import (
 //
 // The operations are performed atomically, only taking effect if the handler
 // succeeds.
+//
+// TODO: consider embedding ManagedTransaction into the scope. The
+// SaveMessageToQueue() and SaveEvent() methods would be shadowed by those
+// defined here, eliminating the need to warn against using their Tx equivalents
+// directly, and keeping all persistence operations on one interface.
 type Scope struct {
 	// Session is the session under which the message is handled.
 	Session Session
@@ -37,35 +43,34 @@ type Scope struct {
 // EnqueueMessage adds a message to the queue.
 func (s *Scope) EnqueueMessage(
 	ctx context.Context,
-	env *envelope.Envelope,
+	p *parcel.Parcel,
 ) error {
 	tx, err := s.Session.Tx(ctx)
 	if err != nil {
 		return err
 	}
 
-	n := env.ScheduledFor
-
+	n := p.ScheduledFor
 	if n.IsZero() {
-		n = env.CreatedAt
+		n = time.Now()
 	}
 
-	m := &queuestore.Message{
+	i := &queuestore.Item{
 		NextAttemptAt: n,
-		Envelope:      envelope.MustMarshal(s.Marshaler, env),
+		Envelope:      p.Envelope,
 	}
 
-	if err := tx.SaveMessageToQueue(ctx, m); err != nil {
+	if err := tx.SaveMessageToQueue(ctx, i); err != nil {
 		return err
 	}
 
-	m.Revision++
+	i.Revision++
 
 	s.Enqueued = append(
 		s.Enqueued,
 		EnqueuedMessage{
-			Memory:    env,
-			Persisted: m,
+			Parcel:    p,
+			Persisted: i,
 		},
 	)
 
@@ -75,16 +80,14 @@ func (s *Scope) EnqueueMessage(
 // RecordEvent appends an event to the event stream.
 func (s *Scope) RecordEvent(
 	ctx context.Context,
-	env *envelope.Envelope,
+	p *parcel.Parcel,
 ) (eventstore.Offset, error) {
 	tx, err := s.Session.Tx(ctx)
 	if err != nil {
 		return 0, err
 	}
 
-	penv := envelope.MustMarshal(s.Marshaler, env)
-
-	o, err := tx.SaveEvent(ctx, penv)
+	o, err := tx.SaveEvent(ctx, p.Envelope)
 	if err != nil {
 		return 0, err
 	}
@@ -92,10 +95,10 @@ func (s *Scope) RecordEvent(
 	s.Recorded = append(
 		s.Recorded,
 		RecordedEvent{
-			Memory: env,
-			Persisted: &eventstore.Event{
+			Parcel: p,
+			Persisted: &eventstore.Item{
 				Offset:   o,
-				Envelope: penv,
+				Envelope: p.Envelope,
 			},
 		},
 	)

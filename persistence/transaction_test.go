@@ -41,7 +41,7 @@ var _ = Describe("func WithTransaction", func() {
 	})
 
 	It("commits the transaction if fn returns nil", func() {
-		env := NewEnvelopeProto("<id>", MessageA1)
+		env := NewEnvelope("<id>", MessageA1)
 
 		err := WithTransaction(
 			ctx,
@@ -49,7 +49,7 @@ var _ = Describe("func WithTransaction", func() {
 			func(tx ManagedTransaction) error {
 				return tx.SaveMessageToQueue(
 					ctx,
-					&queuestore.Message{
+					&queuestore.Item{
 						NextAttemptAt: time.Now(),
 						Envelope:      env,
 					},
@@ -58,13 +58,13 @@ var _ = Describe("func WithTransaction", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+		items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(messages).NotTo(BeEmpty())
+		Expect(items).NotTo(BeEmpty())
 	})
 
 	It("rolls the transaction back if fn returns an error", func() {
-		env := NewEnvelopeProto("<id>", MessageA1)
+		env := NewEnvelope("<id>", MessageA1)
 
 		err := WithTransaction(
 			ctx,
@@ -72,7 +72,7 @@ var _ = Describe("func WithTransaction", func() {
 			func(tx ManagedTransaction) error {
 				err := tx.SaveMessageToQueue(
 					ctx,
-					&queuestore.Message{
+					&queuestore.Item{
 						NextAttemptAt: time.Now(),
 						Envelope:      env,
 					},
@@ -84,9 +84,9 @@ var _ = Describe("func WithTransaction", func() {
 		)
 		Expect(err).To(MatchError("<error>"))
 
-		messages, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+		items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(messages).To(BeEmpty())
+		Expect(items).To(BeEmpty())
 	})
 
 	It("returns an error if the transaction can not be begun", func() {

@@ -8,9 +8,11 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// expectEventToEqual asserts that an eventstore.Event equals an expected value.
-func expectEventToEqual(
-	check, expect *eventstore.Event,
+// expectItemToEqual asserts that an eventstore.Item equals an expected value.
+//
+// TODO: https://github.com/dogmatiq/infix/issues/151
+func expectItemToEqual(
+	check, expect *eventstore.Item,
 	desc ...interface{},
 ) {
 	gomega.Expect(check.Offset).To(
@@ -25,20 +27,20 @@ func expectEventToEqual(
 	)
 }
 
-// expectEventsToEqual asserts that a slice of eventstore.Event equals an
+// expectItemsToEqual asserts that a slice of eventstore.Item equals an
 // expected value.
-func expectEventsToEqual(
-	check, expect []*eventstore.Event,
+func expectItemsToEqual(
+	check, expect []*eventstore.Item,
 	desc ...interface{},
 ) {
 	gomega.Expect(check).To(gomega.HaveLen(len(expect)))
 
-	for i, ev := range check {
-		expectEventToEqual(
-			ev, expect[i],
+	for i, item := range check {
+		expectItemToEqual(
+			item, expect[i],
 			common.ExpandDescription(
 				desc,
-				fmt.Sprintf("event at index #%d of slice", i),
+				fmt.Sprintf("item at index #%d of slice", i),
 			),
 		)
 	}
