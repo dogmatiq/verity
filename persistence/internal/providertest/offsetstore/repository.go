@@ -30,21 +30,40 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 		})
 
 		ginkgo.Describe("func LoadOffset()", func() {
-			ginkgo.It("loads the initial offset as zero", func() {
-				o, err := repository.LoadOffset(context.Background(), "<source-app-key>")
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(o).Should(gomega.BeNumerically("==", 0))
+			ginkgo.When("application has no previous offsets associated", func() {
+				ginkgo.It("loads the initial offset as zero", func() {
+					actual, err := repository.LoadOffset(
+						context.Background(),
+						"<source-app-key>",
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(actual).Should(gomega.BeNumerically("==", 0))
+				})
 			})
 
-			// TO-DO: add a test with transaction involved to test the
-			// incremented offset.
+			ginkgo.When("application has previous offsets associated", func() {
+				ginkgo.It("returns the current offset", func() {
+					c := offsetstore.Offset(0)
+					n := offsetstore.Offset(1)
+					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
 
-			ginkgo.It("returns an error if the context is canceled", func() {
-				ctx, cancel := context.WithCancel(tc.Context)
-				cancel()
+					actual, err := repository.LoadOffset(
+						context.Background(),
+						"<source-app-key>",
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+					gomega.Expect(actual).Should(gomega.BeNumerically("==", n))
+				})
+			})
 
-				_, err := repository.LoadOffset(ctx, "<app-key>")
-				gomega.Expect(err).To(gomega.Equal(context.Canceled))
+			ginkgo.When("context is cancelled", func() {
+				ginkgo.It("returns the context cancellation error", func() {
+					ctx, cancel := context.WithCancel(tc.Context)
+					cancel()
+
+					_, err := repository.LoadOffset(ctx, "<source-app-key>")
+					gomega.Expect(err).To(gomega.Equal(context.Canceled))
+				})
 			})
 		})
 	})
