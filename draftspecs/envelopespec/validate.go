@@ -17,7 +17,7 @@ import (
 // can be unmarshaled.
 func CheckWellFormed(env *Envelope) error {
 	if err := checkMetaData(env.GetMetaData()); err != nil {
-		return fmt.Errorf("meta-data is invalid: %s", err)
+		return err
 	}
 
 	if env.GetPortableName() == "" {
@@ -47,7 +47,7 @@ func checkMetaData(md *MetaData) error {
 	src := md.GetSource()
 
 	if err := checkSource(src); err != nil {
-		return fmt.Errorf("message source is invalid: %s", err)
+		return err
 	}
 
 	if md.GetMessageId() == "" {
@@ -86,7 +86,7 @@ func checkSource(src *Source) error {
 
 	if isEmpty(h) {
 		if src.GetInstanceId() != "" {
-			return errors.New("instance ID must not be specified without providing a handler identity")
+			return errors.New("source instance ID must not be specified without providing a handler identity")
 		}
 	} else if err := checkIdentity(h); err != nil {
 		return fmt.Errorf("handler identity is invalid: %w", err)

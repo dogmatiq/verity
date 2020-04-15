@@ -45,6 +45,13 @@ var _ = Describe("type Parcel", func() {
 			))
 		})
 
+		It("returns an error if the envelope is not well-formed", func() {
+			env.MetaData.MessageId = ""
+
+			_, err := FromEnvelope(Marshaler, env)
+			Expect(err).Should(HaveOccurred())
+		})
+
 		It("returns an error if the message can not be unmarshaled", func() {
 			env.Data = []byte("<malformed>")
 
