@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
@@ -21,6 +22,11 @@ func newDataStore(db *database) *dataStore {
 	return &dataStore{
 		db: db,
 	}
+}
+
+// AggregateStoreRepository returns application's aggregate store repository.
+func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
+	panic("not implemented")
 }
 
 // EventStoreRepository returns the application's event store repository.

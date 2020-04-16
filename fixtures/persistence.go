@@ -39,10 +39,11 @@ func (p *ProviderStub) Open(ctx context.Context, k string) (persistence.DataStor
 type DataStoreStub struct {
 	persistence.DataStore
 
-	EventStoreRepositoryFunc func() eventstore.Repository
-	QueueStoreRepositoryFunc func() queuestore.Repository
-	BeginFunc                func(context.Context) (persistence.Transaction, error)
-	CloseFunc                func() error
+	AggregateStoreRepositoryFunc func() aggregatestore.Repository
+	EventStoreRepositoryFunc     func() eventstore.Repository
+	QueueStoreRepositoryFunc     func() queuestore.Repository
+	BeginFunc                    func(context.Context) (persistence.Transaction, error)
+	CloseFunc                    func() error
 }
 
 // NewDataStoreStub returns a new data-store stub that uses an in-memory
@@ -58,6 +59,26 @@ func NewDataStoreStub() *DataStoreStub {
 	}
 
 	return ds.(*DataStoreStub)
+}
+
+// AggregateStoreRepository returns the application's aggregate store
+// repository.
+func (ds *DataStoreStub) AggregateStoreRepository() aggregatestore.Repository {
+	if ds.EventStoreRepositoryFunc != nil {
+		return ds.AggregateStoreRepositoryFunc()
+	}
+
+	if ds.DataStore != nil {
+		r := ds.DataStore.AggregateStoreRepository()
+
+		if r != nil {
+			r = &AggregateStoreRepositoryStub{Repository: r}
+		}
+
+		return r
+	}
+
+	return nil
 }
 
 // EventStoreRepository returns the application's event store repository.
