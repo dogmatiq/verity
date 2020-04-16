@@ -21,6 +21,10 @@ func (t *transaction) IncrementAggregateRevision(
 	id string,
 	c aggregatestore.Revision,
 ) error {
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
 	return errors.New("not implemented")
 }
 

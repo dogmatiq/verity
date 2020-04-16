@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
@@ -20,7 +21,13 @@ func (t *transaction) IncrementAggregateRevision(
 	hk string,
 	id string,
 	c aggregatestore.Revision,
-) error {
+) (err error) {
+	defer bboltx.Recover(&err)
+
+	if err := t.begin(ctx); err != nil {
+		return err
+	}
+
 	return errors.New("not implemented")
 }
 
