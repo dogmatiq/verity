@@ -99,53 +99,6 @@ var _ = Describe("type Sink", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("can record events via the scope", func() {
-			handler.HandleCommandFunc = func(
-				_ context.Context,
-				s dogma.IntegrationCommandScope,
-				_ dogma.Message,
-			) error {
-				s.RecordEvent(MessageE1)
-				return nil
-			}
-
-			err := sink.Accept(context.Background(), req, res)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			env := &envelopespec.Envelope{
-				MetaData: &envelopespec.MetaData{
-					MessageId:     "0",
-					CausationId:   "<consume>",
-					CorrelationId: "<correlation>",
-					Source: &envelopespec.Source{
-						Application: sink.Packer.Application,
-						Handler:     sink.Identity,
-					},
-					CreatedAt:   "2000-01-01T00:00:00Z",
-					Description: "{E1}",
-				},
-				PortableName: MessageEPortableName,
-				MediaType:    MessageE1Packet.MediaType,
-				Data:         MessageE1Packet.Data,
-			}
-
-			Expect(res.RecordedEvents).To(gomegax.EqualX(
-				[]pipeline.RecordedEvent{
-					{
-						Parcel: &parcel.Parcel{
-							Envelope:  env,
-							Message:   MessageE1,
-							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-						},
-						Persisted: &eventstore.Item{
-							Offset:   0,
-							Envelope: env,
-						},
-					},
-				},
-			))
-		})
-
 		It("logs about recorded events", func() {
 			handler.HandleCommandFunc = func(
 				_ context.Context,
@@ -197,23 +150,76 @@ var _ = Describe("type Sink", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("can log messages via the scope", func() {
-			handler.HandleCommandFunc = func(
-				_ context.Context,
-				s dogma.IntegrationCommandScope,
-				_ dogma.Message,
-			) error {
-				s.Log("format %s", "<value>")
-				return nil
-			}
+		Describe("type scope", func() {
+			Describe("func RecordEvent()", func() {
+				It("produces the correct envelope", func() {
+					handler.HandleCommandFunc = func(
+						_ context.Context,
+						s dogma.IntegrationCommandScope,
+						_ dogma.Message,
+					) error {
+						s.RecordEvent(MessageE1)
+						return nil
+					}
 
-			err := sink.Accept(context.Background(), req, res)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(logger.Messages()).To(ContainElement(
-				logging.BufferedLogMessage{
-					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
-				},
-			))
+					err := sink.Accept(context.Background(), req, res)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					env := &envelopespec.Envelope{
+						MetaData: &envelopespec.MetaData{
+							MessageId:     "0",
+							CausationId:   "<consume>",
+							CorrelationId: "<correlation>",
+							Source: &envelopespec.Source{
+								Application: sink.Packer.Application,
+								Handler:     sink.Identity,
+							},
+							CreatedAt:   "2000-01-01T00:00:00Z",
+							Description: "{E1}",
+						},
+						PortableName: MessageEPortableName,
+						MediaType:    MessageE1Packet.MediaType,
+						Data:         MessageE1Packet.Data,
+					}
+
+					Expect(res.RecordedEvents).To(gomegax.EqualX(
+						[]pipeline.RecordedEvent{
+							{
+								Parcel: &parcel.Parcel{
+									Envelope:  env,
+									Message:   MessageE1,
+									CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+								},
+								Persisted: &eventstore.Item{
+									Offset:   0,
+									Envelope: env,
+								},
+							},
+						},
+					))
+				})
+			})
+
+			Describe("func RecordEvent()", func() {
+				It("logs using the standard format", func() {
+					handler.HandleCommandFunc = func(
+						_ context.Context,
+						s dogma.IntegrationCommandScope,
+						_ dogma.Message,
+					) error {
+						s.Log("format %s", "<value>")
+						return nil
+					}
+
+					err := sink.Accept(context.Background(), req, res)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(logger.Messages()).To(ContainElement(
+						logging.BufferedLogMessage{
+							Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
+						},
+					))
+				})
+			})
 		})
 	})
 })
