@@ -7,8 +7,8 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/draftspecs/envelopespec"
-	. "github.com/dogmatiq/infix/internal/x/gomegax"
 	. "github.com/dogmatiq/marshalkit/fixtures"
+	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
