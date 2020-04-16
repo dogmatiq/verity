@@ -13,13 +13,14 @@ type scope struct {
 	cause   *parcel.Parcel
 	packer  *parcel.Packer
 	handler *envelopespec.Identity
+	id      string
 	logger  logging.Logger
 	events  []*parcel.Parcel
 }
 
 // InstanceID returns the ID of the targeted aggregate instance.
 func (s *scope) InstanceID() string {
-	return ""
+	return s.id
 }
 
 // Create creates the targeted instance.
@@ -44,7 +45,7 @@ func (s *scope) RecordEvent(m dogma.Message) {
 		s.cause,
 		m,
 		s.handler,
-		"",
+		s.id,
 	)
 
 	mlog.LogProduce(s.logger, p.Envelope)

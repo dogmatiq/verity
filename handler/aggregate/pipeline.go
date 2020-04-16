@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 )
 
@@ -17,6 +18,10 @@ import (
 type Sink struct {
 	// Identity is the handler's identity.
 	Identity *envelopespec.Identity
+
+	// EventStore is the repository used to load an aggregate instance's
+	// historical events.
+	EventStore eventstore.Repository
 
 	// Handler is the aggregate message handler that implements the
 	// application-specific message handling logic.
@@ -42,10 +47,13 @@ func (s *Sink) Accept(
 		return err
 	}
 
+	id := s.Handler.RouteCommandToInstance(p.Message)
+
 	ds := &scope{
 		cause:   p,
 		packer:  s.Packer,
 		handler: s.Identity,
+		id:      id,
 		logger:  s.Logger,
 	}
 
