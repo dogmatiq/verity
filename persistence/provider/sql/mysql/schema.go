@@ -11,6 +11,7 @@ import (
 func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
+	createAggregateStoreSchema(ctx, db)
 	createEventStoreSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
@@ -21,6 +22,8 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_revision`)
+
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
@@ -30,6 +33,23 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS queue`)
 
 	return nil
+}
+
+// createAggrevateStoreSchema creates the schema elements required by the
+// aggregate store subsystem.
+func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE aggregate_revision (
+			app_key     VARBINARY(255) NOT NULL,
+			handler_key VARBINARY(255) NOT NULL,
+			instance_id VARBINARY(255) NOT NULL,
+			revision    BIGINT NOT NULL DEFAULT 1,
+
+			PRIMARY KEY (app_key, handler_key, instance_id)
+		) ENGINE=InnoDB`,
+	)
 }
 
 // createEventStoreSchema creates the schema elements required by the event

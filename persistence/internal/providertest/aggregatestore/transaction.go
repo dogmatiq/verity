@@ -15,7 +15,7 @@ import (
 // DeclareTransactionTests declares a functional test-suite for a specific
 // aggregatestore.Transaction implementation.
 func DeclareTransactionTests(tc *common.TestContext) {
-	ginkgo.XDescribe("type aggregatestore.Transaction", func() {
+	ginkgo.Describe("type aggregatestore.Transaction", func() {
 		var (
 			dataStore  persistence.DataStore
 			repository aggregatestore.Repository
@@ -33,7 +33,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func IncrementAggregateRevision()", func() {
 			ginkgo.When("the instance does not exist", func() {
-				ginkgo.It("sets the revision to 1", func() {
+				ginkgo.XIt("sets the revision to 1", func() {
 					incrementRevision(
 						tc.Context,
 						dataStore,
@@ -46,7 +46,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
 				})
 
-				ginkgo.It("does not increment the revision if the transaction is rolled back", func() {
+				ginkgo.XIt("does not increment the revision if the transaction is rolled back", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
@@ -65,7 +65,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(0))
 				})
 
-				ginkgo.It("does not save the message when an OCC conflict occurs", func() {
+				ginkgo.XIt("does not save the message when an OCC conflict occurs", func() {
 					err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
@@ -98,7 +98,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 				})
 
-				ginkgo.It("increments the revision", func() {
+				ginkgo.XIt("increments the revision", func() {
 					incrementRevision(
 						tc.Context,
 						dataStore,
@@ -111,7 +111,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
 				})
 
-				ginkgo.It("does not update the message if the transaction is rolled-back", func() {
+				ginkgo.XIt("does not update the message if the transaction is rolled-back", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
@@ -171,7 +171,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			})
 
 			ginkgo.When("an instance's revision is incremented more than once in the same transaction", func() {
-				ginkgo.It("saves the highest revision", func() {
+				ginkgo.XIt("saves the highest revision", func() {
 					err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
@@ -199,7 +199,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
 				})
 
-				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
+				ginkgo.XIt("uses the uncommitted revision for OCC checks", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
@@ -226,7 +226,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				})
 			})
 
-			ginkgo.It("serializes operations from competing transactions", func() {
+			ginkgo.XIt("serializes operations from competing transactions", func() {
 				ginkgo.By("running several transactions in parallel")
 
 				var g sync.WaitGroup

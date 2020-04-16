@@ -63,6 +63,9 @@ func (t *transaction) IncrementAggregateRevision(
 // aggregateStoreRepository is an implementation of aggregatestore.Repository
 // that stores aggregate state in an SQL database.
 type aggregateStoreRepository struct {
+	db     *sql.DB
+	driver Driver
+	appKey string
 }
 
 // LoadRevision loads the current revision of an aggregate instance.
@@ -72,5 +75,5 @@ func (r *aggregateStoreRepository) LoadRevision(
 	ctx context.Context,
 	hk, id string,
 ) (aggregatestore.Revision, error) {
-	return 0, errors.New("not implemented")
+	return r.driver.SelectAggregateRevision(ctx, r.db, r.appKey, hk, id)
 }

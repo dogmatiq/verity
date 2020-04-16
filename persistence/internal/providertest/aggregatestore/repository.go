@@ -13,7 +13,7 @@ import (
 // DeclareRepositoryTests declares a functional test-suite for a specific
 // aggregatestore.Repository implementation.
 func DeclareRepositoryTests(tc *common.TestContext) {
-	ginkgo.XDescribe("type aggregatestore.Repository", func() {
+	ginkgo.Describe("type aggregatestore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
 			repository aggregatestore.Repository
@@ -35,7 +35,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				gomega.Expect(rev).To(gomega.BeEquivalentTo(0))
 			})
 
-			ginkgo.It("returns the current revision", func() {
+			ginkgo.XIt("returns the current revision", func() {
 				incrementRevision(
 					tc.Context,
 					dataStore,
@@ -48,7 +48,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
 			})
 
-			ginkgo.It("returns an error if the context is canceled", func() {
+			ginkgo.XIt("returns an error if the context is canceled", func() {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
