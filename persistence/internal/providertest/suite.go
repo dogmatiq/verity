@@ -60,6 +60,7 @@ func Declare(
 		})
 
 		aggregatestore.DeclareRepositoryTests(&tc)
+		aggregatestore.DeclareTransactionTests(&tc)
 
 		eventstore.DeclareRepositoryTests(&tc)
 		eventstore.DeclareTransactionTests(&tc)
