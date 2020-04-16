@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ pipeline.Session = (*Session)(nil)
+var _ pipeline.Request = (*Session)(nil)
 
 var _ = Describe("type Session", func() {
 	var (

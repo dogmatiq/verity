@@ -22,7 +22,7 @@ type app struct {
 	Config   configkit.RichApplication
 	Stream   *eventstream.PersistedStream
 	Queue    *queue.Queue
-	Pipeline pipeline.Port
+	Pipeline pipeline.Pipeline
 	Logger   logging.Logger
 }
 
@@ -142,28 +142,29 @@ func (e *Engine) newPipeline(
 	cfg configkit.RichApplication,
 	q *queue.Queue,
 	l logging.Logger,
-) pipeline.Port {
+) pipeline.Pipeline {
 	rf := &routeFactory{
-		opts: e.opts,
+		opts:   e.opts,
+		logger: l,
 	}
 
 	cfg.AcceptRichVisitor(nil, rf)
 
-	return pipeline.New(
-		l,
+	return pipeline.Pipeline{
 		pipeline.WhenMessageEnqueued(
 			queue.TrackEnqueuedCommands(q),
 		),
-		pipeline.Acknowledge(e.opts.MessageBackoff),
+		pipeline.Acknowledge(e.opts.MessageBackoff, l),
 		pipeline.RouteByType(rf.routes),
-	)
+	}
 }
 
 // routeFactory is a configkit.RichVisitor that constructs the messaging
 // pipeline.
 type routeFactory struct {
-	app    *envelopespec.Identity
 	opts   *engineOptions
+	logger logging.Logger
+	app    *envelopespec.Identity
 	routes map[message.Type]pipeline.Stage
 }
 
@@ -192,6 +193,7 @@ func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.Ric
 			Produced:    cfg.MessageTypes().Produced,
 			Consumed:    cfg.MessageTypes().Consumed,
 		},
+		Logger: f.logger,
 	}
 
 	for mt := range cfg.MessageTypes().Consumed {

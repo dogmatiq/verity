@@ -55,7 +55,7 @@ func LogProduce(
 	)
 }
 
-// LogNack logs a message indicating that a session has been Nack'd.
+// LogNack logs a message indicating that a request has been Nack'd.
 func LogNack(
 	log logging.Logger,
 	env *envelopespec.Envelope,

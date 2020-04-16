@@ -14,7 +14,7 @@ func (e *Engine) runQueuePumpForApp(
 ) error {
 	p := &queue.PipelineSource{
 		Queue:     a.Queue,
-		Pipeline:  a.Pipeline,
+		Pipeline:  a.Pipeline.Accept,
 		Semaphore: e.semaphore,
 	}
 

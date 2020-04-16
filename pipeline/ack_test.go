@@ -16,42 +16,45 @@ import (
 
 var _ = Describe("func Acknowledge()", func() {
 	var (
-		sess   *SessionStub
-		scope  *Scope
+		req    *PipelineRequestStub
+		res    *Response
 		logger *logging.BufferedLogger
 		ack    Stage
 	)
 
 	BeforeEach(func() {
-		scope, sess, _ = NewPipelineScope(
+		req, _ = NewPipelineRequestStub(
 			NewParcel("<consume>", MessageC1),
 			nil,
 		)
 
-		logger = scope.Logger.(*logging.BufferedLogger)
+		res = &Response{}
+
+		logger = &logging.BufferedLogger{}
 
 		ack = Acknowledge(
-			backoff.Constant(1 * time.Second),
+			backoff.Constant(1*time.Second),
+			logger,
 		)
 	})
 
 	Context("when the next stage succeeds", func() {
 		next := pass
 
-		It("acknowledges the session", func() {
+		It("acknowledges the request", func() {
 			called := false
-			sess.AckFunc = func(context.Context) error {
+			req.AckFunc = func(context.Context) error {
 				called = true
 				return nil
 			}
 
-			err := ack(context.Background(), scope, next)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
 
 		It("logs about consuming", func() {
-			err := ack(context.Background(), scope, next)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
@@ -61,11 +64,11 @@ var _ = Describe("func Acknowledge()", func() {
 		})
 
 		It("returns an error if Ack() fails", func() {
-			sess.AckFunc = func(context.Context) error {
+			req.AckFunc = func(context.Context) error {
 				return errors.New("<error>")
 			}
 
-			err := ack(context.Background(), scope, next)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
@@ -73,21 +76,21 @@ var _ = Describe("func Acknowledge()", func() {
 	Context("when the next stage fails", func() {
 		next := fail
 
-		It("negatively acknowledges the session", func() {
+		It("negatively acknowledges the request", func() {
 			called := false
-			sess.NackFunc = func(_ context.Context, n time.Time) error {
+			req.NackFunc = func(_ context.Context, n time.Time) error {
 				called = true
 				Expect(n).To(BeTemporally("~", time.Now().Add(1*time.Second)))
 				return nil
 			}
 
-			err := ack(context.Background(), scope, next)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
 
 		It("logs about consuming", func() {
-			err := ack(context.Background(), scope, next)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
@@ -97,7 +100,7 @@ var _ = Describe("func Acknowledge()", func() {
 		})
 
 		It("logs about negative acknowledgement", func() {
-			err := ack(context.Background(), scope, next)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
@@ -107,23 +110,23 @@ var _ = Describe("func Acknowledge()", func() {
 		})
 
 		It("returns an error if Nack() fails", func() {
-			sess.NackFunc = func(context.Context, time.Time) error {
+			req.NackFunc = func(context.Context, time.Time) error {
 				return errors.New("<error>")
 			}
 
-			err := ack(context.Background(), scope, next)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 
 		It("uses the default backoff strategy", func() {
 			now := time.Now()
-			sess.NackFunc = func(_ context.Context, n time.Time) error {
+			req.NackFunc = func(_ context.Context, n time.Time) error {
 				Expect(n).To(BeTemporally(">=", now))
 				return nil
 			}
 
-			ack = Acknowledge(nil)
-			err := ack(context.Background(), scope, next)
+			ack = Acknowledge(nil, logger)
+			err := ack(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})

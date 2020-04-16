@@ -65,14 +65,14 @@ var _ = Describe("type PipelineSource", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		It("passes the session to the pipeline", func() {
+		It("uses the session as the pipeline request", func() {
 			source.Pipeline = func(
 				ctx context.Context,
-				sess pipeline.Session,
+				req pipeline.Request,
 			) error {
 				defer GinkgoRecover()
 				defer cancel()
-				Expect(sess.MessageID()).To(Equal("<id>"))
+				Expect(req.MessageID()).To(Equal("<id>"))
 				return nil
 			}
 

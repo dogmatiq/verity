@@ -9,8 +9,8 @@ import (
 // RouteByType returns a stage that routes to different stages based on the type
 // of the message.
 func RouteByType(table map[message.Type]Stage) Stage {
-	return func(ctx context.Context, sc *Scope, next Sink) error {
-		p, err := sc.Session.Parcel()
+	return func(ctx context.Context, req Request, res *Response, next Sink) error {
+		p, err := req.Parcel()
 		if err != nil {
 			return err
 		}
@@ -18,9 +18,9 @@ func RouteByType(table map[message.Type]Stage) Stage {
 		mt := message.TypeOf(p.Message)
 
 		if n, ok := table[mt]; ok {
-			return n(ctx, sc, next)
+			return n(ctx, req, res, next)
 		}
 
-		return next(ctx, sc)
+		return next(ctx, req, res)
 	}
 }

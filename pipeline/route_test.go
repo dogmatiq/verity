@@ -17,27 +17,29 @@ import (
 
 var _ = Describe("func RouteByType()", func() {
 	var (
-		sess  *SessionStub
-		scope *Scope
+		req *PipelineRequestStub
+		res *Response
 	)
 
 	BeforeEach(func() {
-		scope, sess, _ = NewPipelineScope(
+		req, _ = NewPipelineRequestStub(
 			NewParcel("<consume>", MessageC1),
 			nil,
 		)
+
+		res = &Response{}
 	})
 
 	It("injects the stage from the table if there is a match", func() {
 		stage := RouteByType(
 			map[message.Type]Stage{
-				MessageCType: func(ctx context.Context, sc *Scope, next Sink) error {
-					return fmt.Errorf("intercepted: %w", next(ctx, sc))
+				MessageCType: func(ctx context.Context, req Request, res *Response, next Sink) error {
+					return fmt.Errorf("intercepted: %w", next(ctx, req, res))
 				},
 			},
 		)
 
-		err := stage(context.Background(), scope, fail)
+		err := stage(context.Background(), req, res, fail)
 		Expect(err).To(MatchError("intercepted: <failed>"))
 	})
 
@@ -48,18 +50,18 @@ var _ = Describe("func RouteByType()", func() {
 			},
 		)
 
-		err := stage(context.Background(), scope, fail)
+		err := stage(context.Background(), req, res, fail)
 		Expect(err).To(MatchError("<failed>"))
 	})
 
 	It("returns an error if the parcel cannot be unpacked", func() {
-		sess.ParcelFunc = func() (*parcel.Parcel, error) {
+		req.ParcelFunc = func() (*parcel.Parcel, error) {
 			return nil, errors.New("<error>")
 		}
 
 		stage := RouteByType(nil)
 
-		err := stage(context.Background(), scope, fail)
+		err := stage(context.Background(), req, res, fail)
 		Expect(err).To(MatchError("<error>"))
 	})
 })

@@ -4,45 +4,49 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/linger/backoff"
 )
 
-// Acknowledge returns a pipeline stage that acknowledges sessions that are
+// Acknowledge returns a pipeline stage that acknowledges requests that are
 // processed successfully.
 //
-// If next() returns an error the session is negatively-acknowledged with a
+// If next() returns an error the request is negatively-acknowledged with a
 // "next-attempt" timestamp computed using the given backoff strategy.
 //
 // If bs is nil, backoff.DefaultStrategy is used.
-func Acknowledge(bs backoff.Strategy) Stage {
+func Acknowledge(
+	bs backoff.Strategy,
+	l logging.Logger,
+) Stage {
 	if bs == nil {
 		bs = backoff.DefaultStrategy
 	}
 
-	return func(ctx context.Context, sc *Scope, next Sink) error {
+	return func(ctx context.Context, req Request, res *Response, next Sink) error {
 		mlog.LogConsume(
-			sc.Logger,
-			sc.Session.Envelope(),
-			sc.Session.FailureCount(),
+			l,
+			req.Envelope(),
+			req.FailureCount(),
 		)
 
-		err := next(ctx, sc)
+		err := next(ctx, req, res)
 
 		if err == nil {
-			return sc.Session.Ack(ctx)
+			return req.Ack(ctx)
 		}
 
-		delay := bs(err, sc.Session.FailureCount())
+		delay := bs(err, req.FailureCount())
 
 		mlog.LogNack(
-			sc.Logger,
-			sc.Session.Envelope(),
+			l,
+			req.Envelope(),
 			err,
 			delay,
 		)
 
-		return sc.Session.Nack(
+		return req.Nack(
 			ctx,
 			time.Now().Add(delay),
 		)

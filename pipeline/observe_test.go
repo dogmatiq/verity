@@ -18,19 +18,23 @@ import (
 
 var _ = Context("observer stages", func() {
 	var (
-		now   time.Time
-		pcl   *parcel.Parcel
-		scope *Scope
+		now time.Time
+		pcl *parcel.Parcel
+		tx  *TransactionStub
+		req *PipelineRequestStub
+		res *Response
 	)
 
 	BeforeEach(func() {
 		now = time.Now()
 		pcl = NewParcel("<produce>", MessageP1, now, now)
 
-		scope, _, _ = NewPipelineScope(
+		req, tx = NewPipelineRequestStub(
 			NewParcel("<consume>", MessageC1),
 			nil,
 		)
+
+		res = &Response{}
 	})
 
 	Describe("func WhenMessageEnqueued()", func() {
@@ -60,11 +64,11 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenMessageEnqueued(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				return sc.EnqueueMessage(ctx, pcl)
+			next := func(ctx context.Context, req Request, res *Response) error {
+				return res.EnqueueMessage(ctx, tx, pcl)
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue(), "fn was not called")
 		})
@@ -80,7 +84,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenMessageEnqueued(fn)
 
-			err := stage(context.Background(), scope, pass)
+			err := stage(context.Background(), req, res, pass)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -94,15 +98,15 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenMessageEnqueued(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				if err := sc.EnqueueMessage(ctx, pcl); err != nil {
+			next := func(ctx context.Context, req Request, res *Response) error {
+				if err := res.EnqueueMessage(ctx, tx, pcl); err != nil {
 					return err
 				}
 
 				return errors.New("<error>")
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), req, res, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -115,11 +119,11 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenMessageEnqueued(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				return sc.EnqueueMessage(ctx, pcl)
+			next := func(ctx context.Context, req Request, res *Response) error {
+				return res.EnqueueMessage(ctx, tx, pcl)
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), req, res, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
@@ -150,12 +154,12 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenEventRecorded(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				_, err := sc.RecordEvent(ctx, pcl)
+			next := func(ctx context.Context, req Request, res *Response) error {
+				_, err := res.RecordEvent(ctx, tx, pcl)
 				return err
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), req, res, next)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue(), "fn was not called")
 		})
@@ -171,7 +175,7 @@ var _ = Context("observer stages", func() {
 
 			stage := WhenEventRecorded(fn)
 
-			err := stage(context.Background(), scope, pass)
+			err := stage(context.Background(), req, res, pass)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -185,15 +189,15 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenEventRecorded(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				if _, err := sc.RecordEvent(ctx, pcl); err != nil {
+			next := func(ctx context.Context, req Request, res *Response) error {
+				if _, err := res.RecordEvent(ctx, tx, pcl); err != nil {
 					return err
 				}
 
 				return errors.New("<error>")
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), req, res, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -206,12 +210,12 @@ var _ = Context("observer stages", func() {
 			}
 
 			stage := WhenEventRecorded(fn)
-			next := func(ctx context.Context, sc *Scope) error {
-				_, err := sc.RecordEvent(ctx, pcl)
+			next := func(ctx context.Context, req Request, res *Response) error {
+				_, err := res.RecordEvent(ctx, tx, pcl)
 				return err
 			}
 
-			err := stage(context.Background(), scope, next)
+			err := stage(context.Background(), req, res, next)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})

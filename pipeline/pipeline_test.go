@@ -10,23 +10,23 @@ import (
 )
 
 // pass is a Sink that always returns nil.
-func pass(context.Context, *Scope) error {
+func pass(context.Context, Request, *Response) error {
 	return nil
 }
 
 // fail is a Sink that always returns an error.
-func fail(context.Context, *Scope) error {
+func fail(context.Context, Request, *Response) error {
 	return errors.New("<failed>")
 }
 
 // fail is a Sink that always panics.
-func fatal(context.Context, *Scope) error {
+func fatal(context.Context, Request, *Response) error {
 	panic("<fatal>")
 }
 
 // noop is a stage that forwards to the next stage without doing anything.
-func noop(ctx context.Context, sc *Scope, next Sink) error {
-	return next(ctx, sc)
+func noop(ctx context.Context, req Request, res *Response, next Sink) error {
+	return next(ctx, req, res)
 }
 
 var _ = Describe("type Pipeline", func() {
@@ -34,13 +34,13 @@ var _ = Describe("type Pipeline", func() {
 		It("invokes the stages in order", func() {
 			var order int
 
-			stage0 := func(ctx context.Context, sc *Scope, next Sink) error {
+			stage0 := func(ctx context.Context, req Request, res *Response, next Sink) error {
 				Expect(order).To(Equal(0))
 				order++
-				return next(ctx, sc)
+				return next(ctx, req, res)
 			}
 
-			stage1 := func(ctx context.Context, sc *Scope) error {
+			stage1 := func(ctx context.Context, req Request, res *Response) error {
 				Expect(order).To(Equal(1))
 				order++
 				return nil
@@ -51,7 +51,7 @@ var _ = Describe("type Pipeline", func() {
 				Terminate(stage1),
 			}
 
-			err := p.Accept(context.Background(), &Scope{})
+			err := p.Accept(context.Background(), nil)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -60,7 +60,7 @@ var _ = Describe("type Pipeline", func() {
 				Terminate(fail),
 			}
 
-			err := p.Accept(context.Background(), &Scope{})
+			err := p.Accept(context.Background(), nil)
 			Expect(err).To(MatchError("<failed>"))
 		})
 
@@ -68,7 +68,7 @@ var _ = Describe("type Pipeline", func() {
 			p := Pipeline{}
 
 			Expect(func() {
-				p.Accept(context.Background(), &Scope{})
+				p.Accept(context.Background(), nil)
 			}).To(Panic())
 		})
 	})
