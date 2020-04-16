@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
@@ -39,10 +38,8 @@ func (s *Session) Envelope() *envelopespec.Envelope {
 	return s.elem.item.Envelope
 }
 
-// Message returns the Dogma message that is to be handled.
-//
-// It returns an error if the message can not be unpacked.
-func (s *Session) Message() (dogma.Message, error) {
+// Parcel returns a parcel containing the message that is to be handled.
+func (s *Session) Parcel() (*parcel.Parcel, error) {
 	var err error
 
 	if s.elem.parcel == nil {
@@ -56,7 +53,7 @@ func (s *Session) Message() (dogma.Message, error) {
 		}
 	}
 
-	return s.elem.parcel.Message, nil
+	return s.elem.parcel, nil
 }
 
 // Tx returns the transaction under which the message must be handled, starting

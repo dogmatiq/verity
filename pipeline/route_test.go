@@ -7,9 +7,9 @@ import (
 
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +23,7 @@ var _ = Describe("func RouteByType()", func() {
 
 	BeforeEach(func() {
 		scope, sess, _ = NewPipelineScope(
-			NewEnvelope("<consume>", MessageC1),
+			NewParcel("<consume>", MessageC1),
 			nil,
 		)
 	})
@@ -52,8 +52,8 @@ var _ = Describe("func RouteByType()", func() {
 		Expect(err).To(MatchError("<failed>"))
 	})
 
-	It("returns an error if the message cannot be unpacked", func() {
-		sess.MessageFunc = func() (dogma.Message, error) {
+	It("returns an error if the parcel cannot be unpacked", func() {
+		sess.ParcelFunc = func() (*parcel.Parcel, error) {
 			return nil, errors.New("<error>")
 		}
 
