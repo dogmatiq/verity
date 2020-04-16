@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/pipeline"
@@ -16,21 +15,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Scope", func() {
+var _ = Describe("type Response", func() {
 	var (
-		pcl   *parcel.Parcel
-		tx    *TransactionStub
-		sess  *SessionStub
-		scope *Scope
+		pcl *parcel.Parcel
+		tx  *TransactionStub
+		res *Response
 	)
 
 	BeforeEach(func() {
 		pcl = NewParcel("<produce>", MessageP1)
-
-		scope, sess, tx = NewPipelineScope(
-			NewParcel("<consume>", MessageC1),
-			nil,
-		)
+		tx = &TransactionStub{}
+		res = &Response{}
 	})
 
 	Describe("func EnqueueMessage()", func() {
@@ -42,21 +37,12 @@ var _ = Describe("type Scope", func() {
 			// TODO:
 		})
 
-		It("returns an error if the transaction can not be started", func() {
-			sess.TxFunc = func(context.Context) (persistence.ManagedTransaction, error) {
-				return nil, errors.New("<error>")
-			}
-
-			err := scope.EnqueueMessage(context.Background(), pcl)
-			Expect(err).To(MatchError("<error>"))
-		})
-
 		It("returns an error if the message can not be persisted", func() {
 			tx.SaveMessageToQueueFunc = func(context.Context, *queuestore.Item) error {
 				return errors.New("<error>")
 			}
 
-			err := scope.EnqueueMessage(context.Background(), pcl)
+			err := res.EnqueueMessage(context.Background(), tx, pcl)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
@@ -70,21 +56,12 @@ var _ = Describe("type Scope", func() {
 			// TODO:
 		})
 
-		It("returns an error if the transaction can not be started", func() {
-			sess.TxFunc = func(context.Context) (persistence.ManagedTransaction, error) {
-				return nil, errors.New("<error>")
-			}
-
-			_, err := scope.RecordEvent(context.Background(), pcl)
-			Expect(err).To(MatchError("<error>"))
-		})
-
 		It("returns an error if the message can not be persisted", func() {
 			tx.SaveEventFunc = func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error) {
 				return 0, errors.New("<error>")
 			}
 
-			_, err := scope.RecordEvent(context.Background(), pcl)
+			_, err := res.RecordEvent(context.Background(), tx, pcl)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})

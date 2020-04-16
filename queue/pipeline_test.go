@@ -65,14 +65,14 @@ var _ = Describe("type PipelineSource", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		It("passes the session to the pipeline", func() {
+		It("passes the request to the pipeline", func() {
 			source.Pipeline = func(
 				ctx context.Context,
-				sess pipeline.Session,
+				req pipeline.Request,
 			) error {
 				defer GinkgoRecover()
 				defer cancel()
-				Expect(sess.MessageID()).To(Equal("<id>"))
+				Expect(req.MessageID()).To(Equal("<id>"))
 				return nil
 			}
 
@@ -157,10 +157,10 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		go queue.Run(ctx)
-		sess, err := queue.Pop(ctx)
+		req, err := queue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(sess.MessageID()).To(Equal("<id>"))
-		sess.Close()
+		Expect(req.MessageID()).To(Equal("<id>"))
+		req.Close()
 	})
 
 	It("returns an error if the context deadline is exceeded", func() {

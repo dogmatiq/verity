@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/parcel"
@@ -30,11 +31,19 @@ type Sink struct {
 	// DefaultTimeout is the timeout to apply when handling the message if the
 	// handler does not provide a timeout hint.
 	DefaultTimeout time.Duration
+
+	// Logger is the target for log messages produced within the handler.
+	// If it is nil, logging.DefaultLogger is used.
+	Logger logging.Logger
 }
 
 // Accept handles a message using s.Handler.
-func (s *Sink) Accept(ctx context.Context, sc *pipeline.Scope) error {
-	p, err := sc.Session.Parcel()
+func (s *Sink) Accept(
+	ctx context.Context,
+	req pipeline.Request,
+	res *pipeline.Response,
+) error {
+	p, err := req.Parcel()
 	if err != nil {
 		return err
 	}
@@ -43,7 +52,7 @@ func (s *Sink) Accept(ctx context.Context, sc *pipeline.Scope) error {
 		cause:   p,
 		packer:  s.Packer,
 		handler: s.Identity,
-		logger:  sc.Logger,
+		logger:  s.Logger,
 	}
 
 	hctx, cancel := linger.ContextWithTimeout(
@@ -57,8 +66,13 @@ func (s *Sink) Accept(ctx context.Context, sc *pipeline.Scope) error {
 		return err
 	}
 
+	tx, err := req.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, p := range ds.events {
-		if _, err := sc.RecordEvent(ctx, p); err != nil {
+		if _, err := res.RecordEvent(ctx, tx, p); err != nil {
 			return err
 		}
 	}

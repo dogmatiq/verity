@@ -15,6 +15,7 @@ import (
 	. "github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/gomegax"
 	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -26,18 +27,21 @@ var _ = Describe("type Sink", func() {
 	var (
 		tx        *TransactionStub
 		dataStore *DataStoreStub
-		sess      *SessionStub
-		scope     *pipeline.Scope
+		req       *PipelineRequestStub
+		res       *pipeline.Response
 		handler   *IntegrationMessageHandler
+		logger    *logging.BufferedLogger
 		sink      *Sink
 	)
 
 	BeforeEach(func() {
 		dataStore = NewDataStoreStub()
-		scope, sess, tx = NewPipelineScope(
+
+		req, tx = NewPipelineRequestStub(
 			NewParcel("<consume>", MessageC1),
 			dataStore,
 		)
+		res = &pipeline.Response{}
 
 		handler = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
@@ -46,6 +50,8 @@ var _ = Describe("type Sink", func() {
 				c.ProducesEventType(MessageE{})
 			},
 		}
+
+		logger = &logging.BufferedLogger{}
 
 		sink = &Sink{
 			Identity: &envelopespec.Identity{
@@ -59,6 +65,7 @@ var _ = Describe("type Sink", func() {
 					MessageEType: message.EventRole,
 				},
 			),
+			Logger: logger,
 		}
 	})
 
@@ -79,16 +86,16 @@ var _ = Describe("type Sink", func() {
 				return errors.New("<error>")
 			}
 
-			err := sink.Accept(context.Background(), scope)
+			err := sink.Accept(context.Background(), req, res)
 			Expect(err).To(MatchError("<error>"))
 		})
 
 		It("returns an error if the message cannot be unpacked", func() {
-			sess.ParcelFunc = func() (*parcel.Parcel, error) {
+			req.ParcelFunc = func() (*parcel.Parcel, error) {
 				return nil, errors.New("<error>")
 			}
 
-			err := sink.Accept(context.Background(), scope)
+			err := sink.Accept(context.Background(), req, res)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -102,7 +109,7 @@ var _ = Describe("type Sink", func() {
 				return nil
 			}
 
-			err := sink.Accept(context.Background(), scope)
+			err := sink.Accept(context.Background(), req, res)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			env := &envelopespec.Envelope{
@@ -122,7 +129,7 @@ var _ = Describe("type Sink", func() {
 				Data:         MessageE1Packet.Data,
 			}
 
-			Expect(scope.Recorded).To(gomegax.EqualX(
+			Expect(res.RecordedEvents).To(gomegax.EqualX(
 				[]pipeline.RecordedEvent{
 					{
 						Parcel: &parcel.Parcel{
@@ -149,15 +156,24 @@ var _ = Describe("type Sink", func() {
 				return nil
 			}
 
-			err := sink.Accept(context.Background(), scope)
+			err := sink.Accept(context.Background(), req, res)
 			Expect(err).ShouldNot(HaveOccurred())
-
-			logger := scope.Logger.(*logging.BufferedLogger)
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
 					Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
 				},
 			))
+		})
+
+		It("returns an error if the transaction cannot be started", func() {
+			req.TxFunc = func(
+				context.Context,
+			) (persistence.ManagedTransaction, error) {
+				return nil, errors.New("<error>")
+			}
+
+			err := sink.Accept(context.Background(), req, res)
+			Expect(err).To(MatchError("<error>"))
 		})
 
 		It("returns an error if an event can not be recorded", func() {
@@ -177,7 +193,7 @@ var _ = Describe("type Sink", func() {
 				return nil
 			}
 
-			err := sink.Accept(context.Background(), scope)
+			err := sink.Accept(context.Background(), req, res)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -191,10 +207,8 @@ var _ = Describe("type Sink", func() {
 				return nil
 			}
 
-			err := sink.Accept(context.Background(), scope)
+			err := sink.Accept(context.Background(), req, res)
 			Expect(err).ShouldNot(HaveOccurred())
-
-			logger := scope.Logger.(*logging.BufferedLogger)
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
 					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",

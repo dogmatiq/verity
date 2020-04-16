@@ -102,18 +102,18 @@ var _ = Describe("type Queue", func() {
 						push(ctx, queue, parcel0)
 					}()
 
-					sess, err := queue.Pop(ctx)
+					req, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
+					defer req.Close()
 				})
 
 				It("returns an error if the context deadline is exceeded", func() {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 					defer cancel()
 
-					sess, err := queue.Pop(ctx)
-					if sess != nil {
-						sess.Close()
+					req, err := queue.Pop(ctx)
+					if req != nil {
+						req.Close()
 					}
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
@@ -125,13 +125,13 @@ var _ = Describe("type Queue", func() {
 						push(ctx, queue, parcel0)
 					})
 
-					It("returns a session immediately", func() {
+					It("returns a request immediately", func() {
 						ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 						defer cancel()
 
-						sess, err := queue.Pop(ctx)
+						req, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer sess.Close()
+						defer req.Close()
 					})
 				})
 
@@ -144,9 +144,9 @@ var _ = Describe("type Queue", func() {
 					})
 
 					It("blocks until the message becomes ready", func() {
-						sess, err := queue.Pop(ctx)
+						req, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer sess.Close()
+						defer req.Close()
 
 						Expect(time.Now()).To(BeTemporally(">=", next))
 					})
@@ -158,20 +158,20 @@ var _ = Describe("type Queue", func() {
 							push(ctx, queue, parcel1)
 						}()
 
-						sess, err := queue.Pop(ctx)
+						req, err := queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
-						defer sess.Close()
+						defer req.Close()
 
-						Expect(sess.Envelope()).To(EqualX(parcel1.Envelope))
+						Expect(req.Envelope()).To(EqualX(parcel1.Envelope))
 					})
 
 					It("returns an error if the context deadline is exceeded", func() {
 						ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 						defer cancel()
 
-						sess, err := queue.Pop(ctx)
-						if sess != nil {
-							sess.Close()
+						req, err := queue.Pop(ctx)
+						if req != nil {
+							req.Close()
 						}
 						Expect(err).To(Equal(context.DeadlineExceeded))
 					})
@@ -210,12 +210,12 @@ var _ = Describe("type Queue", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				It("returns a session for a message loaded from the store", func() {
-					sess, err := queue.Pop(ctx)
+				It("returns a request for a message loaded from the store", func() {
+					req, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
+					defer req.Close()
 
-					Expect(sess.Envelope()).To(EqualX(parcel0.Envelope))
+					Expect(req.Envelope()).To(EqualX(parcel0.Envelope))
 				})
 			})
 		})
@@ -242,10 +242,10 @@ var _ = Describe("type Queue", func() {
 				// This push exceeds the limit so env1 should not be buffered.
 				push(ctx, queue, parcel1)
 
-				// Acquire a session for parcel0, but don't commit it.
-				sess, err := queue.Pop(ctx)
+				// Acquire a request for parcel0, but don't commit it.
+				req, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
-				defer sess.Close()
+				defer req.Close()
 
 				// Nothing new will be loaded from the store while there is
 				// anything tracked at all (this is why its important to
@@ -254,9 +254,9 @@ var _ = Describe("type Queue", func() {
 				ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 				defer cancel()
 
-				sess, err = queue.Pop(ctx)
-				if sess != nil {
-					sess.Close()
+				req, err = queue.Pop(ctx)
+				if req != nil {
+					req.Close()
 				}
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
@@ -272,17 +272,17 @@ var _ = Describe("type Queue", func() {
 					}
 
 					// We expect to get the pushed message once.
-					sess, err := queue.Pop(ctx)
+					req, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer sess.Close()
+					defer req.Close()
 
 					ctx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 					defer cancel()
 
 					// But not twice.
-					sess, err = queue.Pop(ctx)
-					if sess != nil {
-						sess.Close()
+					req, err = queue.Pop(ctx)
+					if req != nil {
+						req.Close()
 					}
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})

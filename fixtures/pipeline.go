@@ -4,17 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
-	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 )
 
-// SessionStub is a test implementation of the pipeline.Session interface.
-type SessionStub struct {
-	pipeline.Session
+// PipelineRequestStub is a test implementation of the pipeline.Request
+// interface.
+type PipelineRequestStub struct {
+	pipeline.Request
 
 	MessageIDFunc    func() string
 	FailureCountFunc func() uint
@@ -26,16 +25,12 @@ type SessionStub struct {
 	CloseFunc        func() error
 }
 
-// NewPipelineScope returns a new pipeline scope that uses a session stub with
-// pre-configured Envelope() and Tx() methods.
-func NewPipelineScope(
+// NewPipelineRequestStub returns a new request stub with pre-configured
+// Envelope() and Tx() methods.
+func NewPipelineRequestStub(
 	p *parcel.Parcel,
 	ds *DataStoreStub,
-) (
-	*pipeline.Scope,
-	*SessionStub,
-	*TransactionStub,
-) {
+) (*PipelineRequestStub, *TransactionStub) {
 	var tx *TransactionStub
 
 	if ds == nil {
@@ -49,7 +44,7 @@ func NewPipelineScope(
 		tx = t.(*TransactionStub)
 	}
 
-	sess := &SessionStub{
+	req := &PipelineRequestStub{
 		MessageIDFunc: func() string {
 			return p.Envelope.MetaData.MessageId
 		},
@@ -64,91 +59,87 @@ func NewPipelineScope(
 		},
 	}
 
-	sc := &pipeline.Scope{
-		Session:   sess,
-		Marshaler: marshalfixtures.Marshaler,
-		Logger:    &logging.BufferedLogger{},
-	}
-
-	return sc, sess, tx
+	return req, tx
 }
 
-// MessageID returns the ID of the message that started the session.
-func (s *SessionStub) MessageID() string {
-	if s.MessageIDFunc != nil {
-		return s.MessageIDFunc()
+// MessageID returns the ID of the message in the request.
+func (r *PipelineRequestStub) MessageID() string {
+	if r.MessageIDFunc != nil {
+		return r.MessageIDFunc()
 	}
 
-	if s.Session != nil {
-		return s.Session.MessageID()
+	if r.Request != nil {
+		return r.Request.MessageID()
 	}
 
 	return ""
 }
 
 // FailureCount returns the number of times this message has already been
-// attempted, not including this attempt.
-func (s *SessionStub) FailureCount() uint {
-	if s.FailureCountFunc != nil {
-		return s.FailureCountFunc()
+// attempted without success, not including this request.
+func (r *PipelineRequestStub) FailureCount() uint {
+	if r.FailureCountFunc != nil {
+		return r.FailureCountFunc()
 	}
 
-	if s.Session != nil {
-		return s.Session.FailureCount()
+	if r.Request != nil {
+		return r.Request.FailureCount()
 	}
 
 	return 0
 }
 
 // Envelope returns the message envelope.
-func (s *SessionStub) Envelope() *envelopespec.Envelope {
-	if s.EnvelopeFunc != nil {
-		return s.EnvelopeFunc()
+func (r *PipelineRequestStub) Envelope() *envelopespec.Envelope {
+	if r.EnvelopeFunc != nil {
+		return r.EnvelopeFunc()
 	}
 
-	if s.Session != nil {
-		return s.Session.Envelope()
+	if r.Request != nil {
+		return r.Request.Envelope()
 	}
 
 	return nil
 }
 
-// Parcel returns a parcel containing the message that is to be handled.
-func (s *SessionStub) Parcel() (*parcel.Parcel, error) {
-	if s.EnvelopeFunc != nil {
-		return s.ParcelFunc()
+// Parcel returns a parcel containing the original Dogma message.
+func (r *PipelineRequestStub) Parcel() (*parcel.Parcel, error) {
+	if r.EnvelopeFunc != nil {
+		return r.ParcelFunc()
 	}
 
-	if s.Session != nil {
-		return s.Session.Parcel()
-	}
-
-	return nil, nil
-}
-
-// Tx returns the transaction used to persist data within this session.
-func (s *SessionStub) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {
-	if s.TxFunc != nil {
-		return s.TxFunc(ctx)
-	}
-
-	if s.Session != nil {
-		return s.Session.Tx(ctx)
+	if r.Request != nil {
+		return r.Request.Parcel()
 	}
 
 	return nil, nil
 }
 
-// Ack acknowledges successful handling of the message.
+// Tx returns the transaction used to persist data within this request.
 //
-// It commits the changes performed in the session's transaction.
-func (s *SessionStub) Ack(ctx context.Context) error {
-	if s.AckFunc != nil {
-		return s.AckFunc(ctx)
+// It starts the transaction if it has not already been started.
+func (r *PipelineRequestStub) Tx(ctx context.Context) (persistence.ManagedTransaction, error) {
+	if r.TxFunc != nil {
+		return r.TxFunc(ctx)
 	}
 
-	if s.Session != nil {
-		return s.Session.Ack(ctx)
+	if r.Request != nil {
+		return r.Request.Tx(ctx)
+	}
+
+	return nil, nil
+}
+
+// Ack acknowledges successful handling of the request.
+//
+// It commits the changes performed in the request's transaction.
+func (r *PipelineRequestStub) Ack(ctx context.Context) error {
+	if r.AckFunc != nil {
+		return r.AckFunc(ctx)
+	}
+
+	if r.Request != nil {
+		return r.Request.Ack(ctx)
 	}
 
 	return nil
@@ -156,30 +147,30 @@ func (s *SessionStub) Ack(ctx context.Context) error {
 
 // Nack indicates an error while handling the message.
 //
-// It discards the changes performed in the session's transaction and defers
+// It discards the changes performed in the request's transaction and defers
 // handling of the message until n.
-func (s *SessionStub) Nack(ctx context.Context, n time.Time) error {
-	if s.NackFunc != nil {
-		return s.NackFunc(ctx, n)
+func (r *PipelineRequestStub) Nack(ctx context.Context, n time.Time) error {
+	if r.NackFunc != nil {
+		return r.NackFunc(ctx, n)
 	}
 
-	if s.Session != nil {
-		return s.Session.Nack(ctx, n)
+	if r.Request != nil {
+		return r.Request.Nack(ctx, n)
 	}
 
 	return nil
 }
 
-// Close releases the session.
+// Close releases the request.
 //
 // It must be called regardless of whether Ack() or Nack() are called.
-func (s *SessionStub) Close() error {
-	if s.CloseFunc != nil {
-		return s.CloseFunc()
+func (r *PipelineRequestStub) Close() error {
+	if r.CloseFunc != nil {
+		return r.CloseFunc()
 	}
 
-	if s.Session != nil {
-		return s.Session.Close()
+	if r.Request != nil {
+		return r.Request.Close()
 	}
 
 	return nil
