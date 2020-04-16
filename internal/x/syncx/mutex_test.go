@@ -18,7 +18,7 @@ var _ = Describe("type RWMutex", func() {
 	)
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
+		ctx, cancel = context.WithTimeout(context.Background(), 20*time.Millisecond)
 		mutex = &RWMutex{}
 	})
 
