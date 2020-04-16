@@ -29,8 +29,6 @@ type StreamAdaptor struct {
 
 	// Logger is the target for log messages produced within the handler.
 	// If it is nil, logging.DefaultLogger is used.
-	//
-	// TODO: use logging like the pipeline
 	Logger logging.Logger
 }
 
@@ -74,8 +72,8 @@ func (a *StreamAdaptor) HandleEvent(
 		resource.MarshalOffset(o),
 		resource.MarshalOffset(ev.Offset+1),
 		scope{
-			recordedAt: ev.Parcel.CreatedAt,
-			logger:     a.Logger,
+			cause:  ev.Parcel,
+			logger: a.Logger,
 		},
 		ev.Parcel.Message,
 	)

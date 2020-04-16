@@ -333,7 +333,7 @@ var _ = Describe("type StreamAdaptor", func() {
 
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "format <value>",
+						Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● format <value>",
 					},
 				))
 			})
