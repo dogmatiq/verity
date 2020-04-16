@@ -150,7 +150,6 @@ func (e *Engine) newPipeline(
 	cfg.AcceptRichVisitor(nil, rf)
 
 	return pipeline.New(
-		e.opts.Marshaler,
 		l,
 		pipeline.WhenMessageEnqueued(
 			queue.TrackEnqueuedCommands(q),

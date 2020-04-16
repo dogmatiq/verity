@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
-	"github.com/dogmatiq/marshalkit"
 )
 
 // Scope exposes operations that a pipeline stage can perform within the context
@@ -16,18 +15,9 @@ import (
 //
 // The operations are performed atomically, only taking effect if the handler
 // succeeds.
-//
-// TODO: consider embedding ManagedTransaction into the scope. The
-// SaveMessageToQueue() and SaveEvent() methods would be shadowed by those
-// defined here, eliminating the need to warn against using their Tx equivalents
-// directly, and keeping all persistence operations on one interface.
 type Scope struct {
 	// Session is the session under which the message is handled.
 	Session Session
-
-	// Marshaler is the application's marshaler, used to marshal new messages
-	// that are produced as a result of handling this message.
-	Marshaler marshalkit.Marshaler
 
 	// Logger is the logger to use for informational messages within the context
 	// of the message that is being handled.

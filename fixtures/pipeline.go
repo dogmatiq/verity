@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
-	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 )
 
 // SessionStub is a test implementation of the pipeline.Session interface.
@@ -65,9 +64,8 @@ func NewPipelineScope(
 	}
 
 	sc := &pipeline.Scope{
-		Session:   sess,
-		Marshaler: marshalfixtures.Marshaler,
-		Logger:    &logging.BufferedLogger{},
+		Session: sess,
+		Logger:  &logging.BufferedLogger{},
 	}
 
 	return sc, sess, tx
