@@ -37,7 +37,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						"<source-app-key>",
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(actual).Should(gomega.BeNumerically("==", 0))
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(0))
 				})
 			})
 
@@ -52,7 +52,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						"<source-app-key>",
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(actual).Should(gomega.BeNumerically("==", n))
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
 				})
 			})
 
