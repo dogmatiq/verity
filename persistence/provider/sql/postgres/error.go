@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/lib/pq"
@@ -65,6 +66,29 @@ func (d errorConverter) LockApplication(
 ) (func() error, error) {
 	r, err := d.d.LockApplication(ctx, db, ak)
 	return r, convertContextErrors(ctx, err)
+}
+
+//
+// aggregatestore
+//
+
+func (d errorConverter) InsertAggregateRevision(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak, hk, id string,
+) (bool, error) {
+	ok, err := d.d.InsertAggregateRevision(ctx, tx, ak, hk, id)
+	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) UpdateAggregateRevision(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak, hk, id string,
+	rev aggregatestore.Revision,
+) (bool, error) {
+	ok, err := d.d.UpdateAggregateRevision(ctx, tx, ak, hk, id, rev)
+	return ok, convertContextErrors(ctx, err)
 }
 
 //

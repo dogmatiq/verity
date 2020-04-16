@@ -2,10 +2,35 @@ package sql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
+
+// aggregateStoreDriver is the subset of the Driver interface that is concerned
+// with the aggregatestore subsystem.
+type aggregateStoreDriver interface {
+	// InsertAggregateRevision inserts an aggregate revision for an aggregate
+	// instance.
+	//
+	// It returns false if the row already exists.
+	InsertAggregateRevision(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak, hk, id string,
+	) (bool, error)
+
+	// UpdateAggregateRevision increments an aggregate isntance's revision by 1.
+	//
+	// It returns false if the row does not exist or rev is not current.
+	UpdateAggregateRevision(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak, hk, id string,
+		rev aggregatestore.Revision,
+	) (bool, error)
+}
 
 // IncrementAggregateRevision increments the persisted revision of a an
 // aggregate instance.
