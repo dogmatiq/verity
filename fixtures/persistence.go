@@ -6,6 +6,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
@@ -134,12 +135,27 @@ func (ds *DataStoreStub) Close() error {
 type TransactionStub struct {
 	persistence.Transaction
 
-	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
-	SaveMessageToQueueFunc     func(context.Context, *queuestore.Item) error
-	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Item) error
+	IncrementAggregateRevisionFunc func(context.Context, string, string, aggregatestore.Revision) error
+	SaveEventFunc                  func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
+	SaveMessageToQueueFunc         func(context.Context, *queuestore.Item) error
+	RemoveMessageFromQueueFunc     func(context.Context, *queuestore.Item) error
 
 	CommitFunc   func(context.Context) error
 	RollbackFunc func() error
+}
+
+// IncrementAggregateRevision increments the persisted revision of a an
+// aggregate instance.
+func (t *TransactionStub) IncrementAggregateRevision(ctx context.Context, hk, id string, c aggregatestore.Revision) error {
+	if t.IncrementAggregateRevisionFunc != nil {
+		return t.IncrementAggregateRevisionFunc(ctx, hk, id, c)
+	}
+
+	if t.Transaction != nil {
+		return t.Transaction.IncrementAggregateRevision(ctx, hk, id, c)
+	}
+
+	return nil
 }
 
 // SaveEvent persists an event in the application's event store.

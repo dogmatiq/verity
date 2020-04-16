@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
@@ -15,6 +16,7 @@ var ErrTransactionClosed = errors.New("transaction already committed or rolled-b
 // Transaction exposes persistence operations that can be performed atomically.
 // Transactions are not safe for concurrent use.
 type Transaction interface {
+	aggregatestore.Transaction
 	eventstore.Transaction
 	queuestore.Transaction
 
@@ -28,6 +30,7 @@ type Transaction interface {
 // ManagedTransaction is a Transaction that can not be commit or rolled-back
 // directly because its life-time is managed for the user.
 type ManagedTransaction interface {
+	aggregatestore.Transaction
 	eventstore.Transaction
 	queuestore.Transaction
 }
