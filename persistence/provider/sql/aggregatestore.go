@@ -23,3 +23,18 @@ func (t *transaction) IncrementAggregateRevision(
 ) error {
 	return errors.New("not implemented")
 }
+
+// aggregateStoreRepository is an implementation of aggregatestore.Repository
+// that stores aggregate state in an SQL database.
+type aggregateStoreRepository struct {
+}
+
+// LoadRevision loads the current revision of an aggregate instance.
+//
+// ak is the aggregate handler's identity key, id is the instance ID.
+func (r *aggregateStoreRepository) LoadRevision(
+	ctx context.Context,
+	hk, id string,
+) (aggregatestore.Revision, error) {
+	return 0, errors.New("not implemented")
+}

@@ -34,7 +34,7 @@ func newDataStore(
 
 // AggregateStoreRepository returns application's aggregate store repository.
 func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
-	panic("not implemented")
+	return &aggregateStoreRepository{}
 }
 
 // EventStoreRepository returns the application's event store repository.
