@@ -36,10 +36,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					c := offsetstore.Offset(0)
 					n := offsetstore.Offset(1)
 					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
-
-					actual, err := repository.LoadOffset(tc.Context, "<source-app-key>")
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
+					assertOffset(tc.Context, repository, "<source-app-key>", n)
 				})
 
 				table.DescribeTable(
@@ -62,40 +59,56 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						actual, err := repository.LoadOffset(tc.Context, "<source-app-key>")
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(actual).To(gomega.BeEquivalentTo(0))
+						assertOffset(tc.Context, repository, "<source-app-key>", 0)
 					},
 					table.Entry("high pair low range", 1, 2),
 					table.Entry("high pair high range", 99, 100),
 				)
+
+				ginkgo.It("does not save the offset when the transaction is rolled-back", func() {
+					c := offsetstore.Offset(0)
+					n := offsetstore.Offset(1)
+
+					err := common.WithTransactionRollback(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							return tx.SaveOffset(
+								tc.Context,
+								"<source-app-key>",
+								c,
+								n,
+							)
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					assertOffset(tc.Context, repository, "<source-app-key>", c)
+				})
 			})
 
 			ginkgo.When("application has previous offsets associated", func() {
-				ginkgo.It("updates the offset", func() {
-					c := offsetstore.Offset(0)
-					n := offsetstore.Offset(1)
-					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
+				var (
+					c, n offsetstore.Offset
+				)
 
+				ginkgo.BeforeEach(func() {
+					c = offsetstore.Offset(0)
+					n = offsetstore.Offset(1)
+					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
+				})
+
+				ginkgo.It("updates the offset", func() {
 					c = n
 					n += 123
 
 					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
-
-					actual, err := repository.LoadOffset(tc.Context, "<source-app-key>")
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
+					assertOffset(tc.Context, repository, "<source-app-key>", n)
 				})
 
 				table.DescribeTable(
 					"it does not update the offset when an OCC conflict occurs",
 					func(conflictingCurrentOffset, nextOffset offsetstore.Offset) {
-						// Update the current offset twice so that it's up to 1.
-						c := offsetstore.Offset(0)
-						n := offsetstore.Offset(1)
-
-						saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
-
 						err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
@@ -113,13 +126,32 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						actual, err := repository.LoadOffset(tc.Context, "<source-app-key>")
-						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-						gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
+						assertOffset(tc.Context, repository, "<source-app-key>", n)
 					},
 					table.Entry("too low pair", 0, 1),
 					table.Entry("too high pair", 99, 100),
 				)
+
+				ginkgo.It("does not save the offset when the transaction is rolled-back", func() {
+					c = n
+					n += 123
+
+					err := common.WithTransactionRollback(
+						tc.Context,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							return tx.SaveOffset(
+								tc.Context,
+								"<source-app-key>",
+								c,
+								n,
+							)
+						},
+					)
+					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+					assertOffset(tc.Context, repository, "<source-app-key>", c)
+				})
 			})
 
 			ginkgo.When("called multiple times within the same transaction", func() {
@@ -143,35 +175,37 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							return nil
 						},
 					)
-
-					actual, err := repository.LoadOffset(tc.Context, "<source-app-key>")
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
-				})
-			})
 
-			ginkgo.When("the transaction is rolled-back", func() {
-				ginkgo.It("does not save the offset", func() {
+					assertOffset(tc.Context, repository, "<source-app-key>", n)
+				})
+
+				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
 					c := offsetstore.Offset(0)
 					n := offsetstore.Offset(1)
-
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
+							if err := tx.SaveOffset(
+								tc.Context,
+								"<source-app-key>",
+								c, n,
+							); err != nil {
+								return err
+							}
+
+							n += 123
+							// Note that we did not increment the current offset
+							// after the the first save.
 							return tx.SaveOffset(
 								tc.Context,
 								"<source-app-key>",
-								c,
-								n,
+								c, n,
 							)
 						},
 					)
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-					actual, err := repository.LoadOffset(tc.Context, "<source-app-key>")
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					gomega.Expect(actual).To(gomega.BeEquivalentTo(c))
+					gomega.Expect(err).To(gomega.Equal(offsetstore.ErrConflict))
 				})
 			})
 
@@ -198,6 +232,10 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					go fn("<source-app2-key>", 0, 2)
 					go fn("<source-app3-key>", 0, 3)
 					g.Wait()
+
+					assertOffset(tc.Context, repository, "<source-app1-key>", 1)
+					assertOffset(tc.Context, repository, "<source-app2-key>", 2)
+					assertOffset(tc.Context, repository, "<source-app3-key>", 3)
 				})
 			})
 		})

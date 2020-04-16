@@ -33,7 +33,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			ginkgo.When("application has no previous offsets associated", func() {
 				ginkgo.It("loads the initial offset as zero", func() {
 					actual, err := repository.LoadOffset(
-						context.Background(),
+						tc.Context,
 						"<source-app-key>",
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -48,7 +48,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
 
 					actual, err := repository.LoadOffset(
-						context.Background(),
+						tc.Context,
 						"<source-app-key>",
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
