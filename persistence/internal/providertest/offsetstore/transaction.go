@@ -36,7 +36,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					c := offsetstore.Offset(0)
 					n := offsetstore.Offset(1)
 					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
-					assertOffset(tc.Context, repository, "<source-app-key>", n)
+
+					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
 				})
 
 				table.DescribeTable(
@@ -59,7 +61,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						assertOffset(tc.Context, repository, "<source-app-key>", 0)
+						actual := loadOffset(tc.Context, repository, "<source-app-key>")
+						gomega.Expect(actual).To(gomega.BeEquivalentTo(0))
 					},
 					table.Entry("high pair low range", 1, 2),
 					table.Entry("high pair high range", 99, 100),
@@ -83,7 +86,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					assertOffset(tc.Context, repository, "<source-app-key>", c)
+					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(c))
 				})
 			})
 
@@ -103,7 +107,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					n += 123
 
 					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
-					assertOffset(tc.Context, repository, "<source-app-key>", n)
+
+					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
 				})
 
 				table.DescribeTable(
@@ -126,7 +132,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						assertOffset(tc.Context, repository, "<source-app-key>", n)
+						actual := loadOffset(tc.Context, repository, "<source-app-key>")
+						gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
 					},
 					table.Entry("too low pair", 0, 1),
 					table.Entry("too high pair", 99, 100),
@@ -150,7 +157,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					assertOffset(tc.Context, repository, "<source-app-key>", c)
+					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(c))
 				})
 			})
 
@@ -177,7 +185,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					assertOffset(tc.Context, repository, "<source-app-key>", n)
+					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(n))
 				})
 
 				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
@@ -233,9 +242,14 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					go fn("<source-app3-key>", 0, 3)
 					g.Wait()
 
-					assertOffset(tc.Context, repository, "<source-app1-key>", 1)
-					assertOffset(tc.Context, repository, "<source-app2-key>", 2)
-					assertOffset(tc.Context, repository, "<source-app3-key>", 3)
+					actual := loadOffset(tc.Context, repository, "<source-app1-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(1))
+
+					actual = loadOffset(tc.Context, repository, "<source-app2-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(2))
+
+					actual = loadOffset(tc.Context, repository, "<source-app3-key>")
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(3))
 				})
 			})
 		})
