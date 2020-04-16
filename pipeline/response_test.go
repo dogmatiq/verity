@@ -3,10 +3,12 @@ package pipeline_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/infix/internal/x/gomegax"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -17,28 +19,79 @@ import (
 
 var _ = Describe("type Response", func() {
 	var (
+		now time.Time
 		pcl *parcel.Parcel
 		tx  *TransactionStub
 		res *Response
 	)
 
 	BeforeEach(func() {
-		pcl = NewParcel("<produce>", MessageP1)
+		now = time.Now()
+		pcl = NewParcel("<produce>", MessageP1, now, now)
 		tx = &TransactionStub{}
 		res = &Response{}
 	})
 
 	Describe("func EnqueueMessage()", func() {
-		XIt("persists the message", func() {
-			// TODO:
+		It("persists the message via the transaction", func() {
+			called := false
+			tx.SaveMessageToQueueFunc = func(
+				_ context.Context,
+				i *queuestore.Item,
+			) error {
+				called = true
+				Expect(i).To(EqualX(
+					&queuestore.Item{
+						Revision:      0,
+						NextAttemptAt: now,
+						Envelope:      pcl.Envelope,
+					},
+				))
+				return nil
+			}
+
+			err := res.EnqueueMessage(context.Background(), tx, pcl)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(called).To(BeTrue())
 		})
 
-		XIt("sets the next attempt time to now", func() {
-			// TODO:
+		It("adds the message to the response", func() {
+			err := res.EnqueueMessage(context.Background(), tx, pcl)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.EnqueuedMessages).To(EqualX(
+				[]EnqueuedMessage{
+					{
+						Parcel: pcl,
+						Persisted: &queuestore.Item{
+							Revision:      1,
+							NextAttemptAt: now,
+							Envelope:      pcl.Envelope,
+						},
+					},
+				},
+			))
+		})
+
+		It("sets the next attempt time to the scheduled-at time for timeouts", func() {
+			pcl.ScheduledFor = time.Now().Add(1 * time.Hour)
+
+			tx.SaveMessageToQueueFunc = func(
+				_ context.Context,
+				i *queuestore.Item,
+			) error {
+				Expect(i.NextAttemptAt).To(BeTemporally("==", pcl.ScheduledFor))
+				return nil
+			}
+
+			err := res.EnqueueMessage(context.Background(), tx, pcl)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("returns an error if the message can not be persisted", func() {
-			tx.SaveMessageToQueueFunc = func(context.Context, *queuestore.Item) error {
+			tx.SaveMessageToQueueFunc = func(
+				context.Context,
+				*queuestore.Item,
+			) error {
 				return errors.New("<error>")
 			}
 
@@ -48,16 +101,56 @@ var _ = Describe("type Response", func() {
 	})
 
 	Describe("func RecordEvent()", func() {
-		XIt("persists the event", func() {
-			// TODO:
+		It("persists the event via the transaction", func() {
+			called := false
+			tx.SaveEventFunc = func(
+				_ context.Context,
+				env *envelopespec.Envelope,
+			) (eventstore.Offset, error) {
+				called = true
+				Expect(env).To(EqualX(pcl.Envelope))
+				return 0, nil
+			}
+
+			_, err := res.RecordEvent(context.Background(), tx, pcl)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(called).To(BeTrue())
 		})
 
-		XIt("returns the offset", func() {
-			// TODO:
+		It("adds the message to the response", func() {
+			_, err := res.RecordEvent(context.Background(), tx, pcl)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.RecordedEvents).To(EqualX(
+				[]RecordedEvent{
+					{
+						Parcel: pcl,
+						Persisted: &eventstore.Item{
+							Offset:   0,
+							Envelope: pcl.Envelope,
+						},
+					},
+				},
+			))
+		})
+
+		It("returns the offset", func() {
+			tx.SaveEventFunc = func(
+				context.Context,
+				*envelopespec.Envelope,
+			) (eventstore.Offset, error) {
+				return 123, nil
+			}
+
+			o, err := res.RecordEvent(context.Background(), tx, pcl)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(o).To(BeEquivalentTo(123))
 		})
 
 		It("returns an error if the message can not be persisted", func() {
-			tx.SaveEventFunc = func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error) {
+			tx.SaveEventFunc = func(
+				context.Context,
+				*envelopespec.Envelope,
+			) (eventstore.Offset, error) {
 				return 0, errors.New("<error>")
 			}
 
