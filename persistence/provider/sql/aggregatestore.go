@@ -30,6 +30,13 @@ type aggregateStoreDriver interface {
 		ak, hk, id string,
 		rev aggregatestore.Revision,
 	) (bool, error)
+
+	// SelectAggregateRevision selects an aggregate instance's revision.
+	SelectAggregateRevision(
+		ctx context.Context,
+		db *sql.DB,
+		ak, hk, id string,
+	) (aggregatestore.Revision, error)
 }
 
 // IncrementAggregateRevision increments the persisted revision of a an

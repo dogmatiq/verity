@@ -91,6 +91,15 @@ func (d errorConverter) UpdateAggregateRevision(
 	return ok, convertContextErrors(ctx, err)
 }
 
+func (d errorConverter) SelectAggregateRevision(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+) (aggregatestore.Revision, error) {
+	rev, err := d.d.SelectAggregateRevision(ctx, db, ak, hk, id)
+	return rev, convertContextErrors(ctx, err)
+}
+
 //
 // eventstore
 //

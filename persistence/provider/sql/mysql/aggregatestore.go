@@ -31,3 +31,12 @@ func (driver) UpdateAggregateRevision(
 ) (bool, error) {
 	return false, errors.New("not implemented")
 }
+
+// SelectAggregateRevision selects an aggregate instance's revision.
+func (driver) SelectAggregateRevision(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+) (aggregatestore.Revision, error) {
+	return 0, errors.New("not implemented")
+}
