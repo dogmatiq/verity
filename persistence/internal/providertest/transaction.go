@@ -54,6 +54,13 @@ func declareTransactionTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 
+			ginkgo.Describe("func IncrementAggregateRevision()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.IncrementAggregateRevision(*ctx, "<handler-key>", "<instance>", 0)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
+			})
+
 			ginkgo.Describe("func SaveEvent()", func() {
 				ginkgo.It("returns an error", func() {
 					_, err := transaction.SaveEvent(*ctx, &envelopespec.Envelope{})
@@ -94,6 +101,13 @@ func declareTransactionTests(
 			ginkgo.BeforeEach(func() {
 				err := transaction.Rollback()
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			})
+
+			ginkgo.Describe("func IncrementAggregateRevision()", func() {
+				ginkgo.It("returns an error", func() {
+					err := transaction.IncrementAggregateRevision(*ctx, "<handler-key>", "<instance>", 0)
+					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
+				})
 			})
 
 			ginkgo.Describe("func SaveEvent()", func() {
