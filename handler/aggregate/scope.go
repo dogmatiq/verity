@@ -14,6 +14,8 @@ type scope struct {
 	packer  *parcel.Packer
 	handler *envelopespec.Identity
 	id      string
+	exists  bool
+	root    dogma.AggregateRoot
 	logger  logging.Logger
 	events  []*parcel.Parcel
 }
@@ -25,7 +27,12 @@ func (s *scope) InstanceID() string {
 
 // Create creates the targeted instance.
 func (s *scope) Create() bool {
-	return false
+	if s.exists {
+		return false
+	}
+
+	s.exists = true
+	return true
 }
 
 // Destroy destroys the targeted instance.
@@ -35,7 +42,8 @@ func (s *scope) Destroy() {
 
 // Root returns the root of the targeted aggregate instance.
 func (s *scope) Root() dogma.AggregateRoot {
-	return nil
+	// TODO: guard against calls when instance does not exist
+	return s.root
 }
 
 // RecordEvent records the occurrence of an event as a result of the command

@@ -9,6 +9,7 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
+	"github.com/dogmatiq/marshalkit"
 )
 
 // Sink is a pipeline sink that coordinates the handling of messages by a
@@ -19,13 +20,17 @@ type Sink struct {
 	// Identity is the handler's identity.
 	Identity *envelopespec.Identity
 
+	// Handler is the aggregate message handler that implements the
+	// application-specific message handling logic.
+	Handler dogma.AggregateMessageHandler
+
 	// EventStore is the repository used to load an aggregate instance's
 	// historical events.
 	EventStore eventstore.Repository
 
-	// Handler is the aggregate message handler that implements the
-	// application-specific message handling logic.
-	Handler dogma.AggregateMessageHandler
+	// Marshaler is used to marshal/unmarshal aggregate snapshots and historical
+	// events,
+	Marshaler marshalkit.ValueMarshaler
 
 	// Packer is used to create new parcels for events recorded by the
 	// handler.
@@ -49,11 +54,18 @@ func (s *Sink) Accept(
 
 	id := s.Handler.RouteCommandToInstance(p.Message)
 
+	r, ok, err := s.load(ctx, id)
+	if err != nil {
+		return err
+	}
+
 	ds := &scope{
 		cause:   p,
 		packer:  s.Packer,
 		handler: s.Identity,
 		id:      id,
+		exists:  ok,
+		root:    r,
 		logger:  s.Logger,
 	}
 
@@ -71,4 +83,38 @@ func (s *Sink) Accept(
 	}
 
 	return nil
+}
+
+// load reads an aggregate's state.
+func (s *Sink) load(ctx context.Context, id string) (dogma.AggregateRoot, bool, error) {
+	q := eventstore.Query{
+		// TODO: how do we best configure the filter to deal with events that
+		// the aggregate once produced, but no longer does?
+		Filter:              nil,
+		AggregateHandlerKey: s.Identity.Key,
+		AggregateInstanceID: id,
+	}
+
+	res, err := s.EventStore.QueryEvents(ctx, q)
+	if err != nil {
+		return nil, false, err
+	}
+
+	r := s.Handler.New()
+	exists := false
+
+	for {
+		i, ok, err := res.Next(ctx)
+		if !ok || err != nil {
+			return r, exists, err
+		}
+
+		p, err := parcel.FromEnvelope(s.Marshaler, i.Envelope)
+		if err != nil {
+			return nil, false, err
+		}
+
+		exists = true
+		r.ApplyEvent(p.Message)
+	}
 }

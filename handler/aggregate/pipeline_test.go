@@ -25,16 +25,21 @@ import (
 
 var _ = Describe("type Sink", func() {
 	var (
+		ctx       context.Context
+		cancel    context.CancelFunc
 		tx        *TransactionStub
 		dataStore *DataStoreStub
 		req       *PipelineRequestStub
 		res       *pipeline.Response
 		handler   *AggregateMessageHandler
+		packer    *parcel.Packer
 		logger    *logging.BufferedLogger
 		sink      *Sink
 	)
 
 	BeforeEach(func() {
+		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
 		dataStore = NewDataStoreStub()
 
 		req, tx = NewPipelineRequestStub(
@@ -54,6 +59,13 @@ var _ = Describe("type Sink", func() {
 			},
 		}
 
+		packer = NewPacker(
+			message.TypeRoles{
+				MessageCType: message.CommandRole,
+				MessageEType: message.EventRole,
+			},
+		)
+
 		logger = &logging.BufferedLogger{}
 
 		sink = &Sink{
@@ -61,14 +73,11 @@ var _ = Describe("type Sink", func() {
 				Name: "<aggregate-name>",
 				Key:  "<aggregate-key>",
 			},
-			Handler: handler,
-			Packer: NewPacker(
-				message.TypeRoles{
-					MessageCType: message.CommandRole,
-					MessageEType: message.EventRole,
-				},
-			),
-			Logger: logger,
+			Handler:    handler,
+			EventStore: dataStore.EventStoreRepository(),
+			Marshaler:  Marshaler,
+			Packer:     packer,
+			Logger:     logger,
 		}
 	})
 
@@ -76,6 +85,8 @@ var _ = Describe("type Sink", func() {
 		if dataStore != nil {
 			dataStore.Close()
 		}
+
+		cancel()
 	})
 
 	Describe("func Accept()", func() {
@@ -89,7 +100,7 @@ var _ = Describe("type Sink", func() {
 				Expect(m).To(Equal(MessageC1))
 			}
 
-			err := sink.Accept(context.Background(), req, res)
+			err := sink.Accept(ctx, req, res)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
@@ -99,7 +110,7 @@ var _ = Describe("type Sink", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := sink.Accept(context.Background(), req, res)
+			err := sink.Accept(ctx, req, res)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -111,7 +122,7 @@ var _ = Describe("type Sink", func() {
 				s.RecordEvent(MessageE1)
 			}
 
-			err := sink.Accept(context.Background(), req, res)
+			err := sink.Accept(ctx, req, res)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
@@ -127,7 +138,7 @@ var _ = Describe("type Sink", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := sink.Accept(context.Background(), req, res)
+			err := sink.Accept(ctx, req, res)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -146,7 +157,7 @@ var _ = Describe("type Sink", func() {
 				s.RecordEvent(MessageE1)
 			}
 
-			err := sink.Accept(context.Background(), req, res)
+			err := sink.Accept(ctx, req, res)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -160,9 +171,69 @@ var _ = Describe("type Sink", func() {
 						Expect(s.InstanceID()).To(Equal("<instance>"))
 					}
 
-					err := sink.Accept(context.Background(), req, res)
+					err := sink.Accept(ctx, req, res)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
+			})
+
+			Describe("func Create()", func() {
+				It("returns true when the instance does not already exist", func() {
+					handler.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						Expect(s.Create()).To(BeTrue())
+					}
+
+					err := sink.Accept(ctx, req, res)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				It("returns false when the instance already exists", func() {
+					persistence.WithTransaction(
+						ctx,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							p := packer.PackChildEvent(
+								NewParcel("<cause>", MessageC1),
+								MessageE1,
+								sink.Identity,
+								"<instance>",
+							)
+							_, err := tx.SaveEvent(ctx, p.Envelope)
+							return err
+						},
+					)
+
+					handler.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						Expect(s.Create()).To(BeFalse())
+					}
+
+					err := sink.Accept(ctx, req, res)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				It("returns false when the instance was already via the same scope", func() {
+					handler.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						s.Create()
+						Expect(s.Create()).To(BeFalse())
+					}
+
+					err := sink.Accept(ctx, req, res)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+			})
+
+			Describe("func Destroy()", func() {
+			})
+
+			Describe("func Root()", func() {
 			})
 
 			Describe("func RecordEvent()", func() {
@@ -174,7 +245,7 @@ var _ = Describe("type Sink", func() {
 						s.RecordEvent(MessageE1)
 					}
 
-					err := sink.Accept(context.Background(), req, res)
+					err := sink.Accept(ctx, req, res)
 					Expect(err).ShouldNot(HaveOccurred())
 
 					env := &envelopespec.Envelope{
@@ -222,7 +293,7 @@ var _ = Describe("type Sink", func() {
 						s.Log("format %s", "<value>")
 					}
 
-					err := sink.Accept(context.Background(), req, res)
+					err := sink.Accept(ctx, req, res)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(logger.Messages()).To(ContainElement(
 						logging.BufferedLogMessage{
