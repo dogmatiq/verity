@@ -24,7 +24,7 @@ type queueDriver interface {
 	// UpdateQueueMessage updates meta-data about a message that is already on
 	// the queue.
 	//
-	// It returns false if the row does not exists or i.Revision is not current.
+	// It returns false if the row does not exist or i.Revision is not current.
 	UpdateQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
@@ -34,7 +34,7 @@ type queueDriver interface {
 
 	// DeleteQueueMessage deletes a message from the queue.
 	//
-	// It returns false if the row does not exists or i.Revision is not current.
+	// It returns false if the row does not exist or i.Revision is not current.
 	DeleteQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,

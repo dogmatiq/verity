@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 )
 
-// Revision is the revision of a message on the queue, used for optimistic
+// Revision is the version of a message on the queue, used for optimistic
 // concurrency control.
 type Revision uint64
 
