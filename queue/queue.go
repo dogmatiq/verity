@@ -50,10 +50,10 @@ type Queue struct {
 	// The tracked messages are always those with the highest-priority, that is,
 	// those that are scheduled to be handled the soonest.
 	//
-	// Every tracked message is either being handled now (within a Session), or
+	// Every tracked message is either being handled now (within a Request), or
 	// it's in the "pending" queue.
 	tracked    map[string]struct{} // key == message ID
-	pending    pdeque.Deque        // priority queue of messages without active sessions
+	pending    pdeque.Deque        // priority queue of messages without active requests
 	exhaustive uint32              // atomic tri-bool, see exhaustiveXXX consts.
 
 	once sync.Once
@@ -89,17 +89,17 @@ func (e *elem) Less(v pdeque.Elem) bool {
 	)
 }
 
-// Pop returns a session for a message popped from the front of the queue.
+// Pop returns a request for the message popped from the front of the queue.
 //
 // It blocks until a message is ready to be handled or ctx is canceled.
-func (q *Queue) Pop(ctx context.Context) (*Session, error) {
+func (q *Queue) Pop(ctx context.Context) (*Request, error) {
 	q.init()
 
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case e := <-q.out:
-		return &Session{
+		return &Request{
 			queue: q,
 			elem:  e,
 		}, nil
@@ -243,7 +243,7 @@ func (q *Queue) load(ctx context.Context) error {
 
 	if atomic.LoadUint32(&q.exhaustive) == exhaustiveYes {
 		// All messages are known to be tracked. The pending queue may be empty
-		// right now, but that just means that there are active sessions for
+		// right now, but that just means that there are active requests for
 		// every message still on the queue or that the queue is truly empty.
 		logging.DebugString(q.Logger, "not loading messages (exhaustive: yes)")
 		return nil
@@ -343,7 +343,7 @@ func (q *Queue) update(e *elem) bool {
 
 		if drop == e {
 			// This is the message we just pushed. That would mean that all
-			// buffered messages are in active sessions, which should not occur
+			// buffered messages are in active requests, which should not occur
 			// if BufferSize is larger than the number of consumers as suggested
 			// by its documentation.
 			logging.Debug(q.Logger, "%s will not be tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)

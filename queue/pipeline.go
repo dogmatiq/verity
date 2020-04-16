@@ -31,20 +31,20 @@ func (s *PipelineSource) Run(ctx context.Context) error {
 	// Pop() is aborted when one of the pipeline goroutines fails.
 	g.Go(func() error {
 		for {
-			sess, err := s.Queue.Pop(ctx)
+			req, err := s.Queue.Pop(ctx)
 			if err != nil {
 				return err
 			}
 
 			if err := s.Semaphore.Acquire(ctx); err != nil {
-				sess.Close()
+				req.Close()
 				return err
 			}
 
 			g.Go(func() error {
-				defer sess.Close()
+				defer req.Close()
 				defer s.Semaphore.Release()
-				return s.Pipeline(ctx, sess)
+				return s.Pipeline(ctx, req)
 			})
 		}
 	})

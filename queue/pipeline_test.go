@@ -65,7 +65,7 @@ var _ = Describe("type PipelineSource", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		It("uses the session as the pipeline request", func() {
+		It("passes the request to the pipeline", func() {
 			source.Pipeline = func(
 				ctx context.Context,
 				req pipeline.Request,
@@ -157,10 +157,10 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		go queue.Run(ctx)
-		sess, err := queue.Pop(ctx)
+		req, err := queue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(sess.MessageID()).To(Equal("<id>"))
-		sess.Close()
+		Expect(req.MessageID()).To(Equal("<id>"))
+		req.Close()
 	})
 
 	It("returns an error if the context deadline is exceeded", func() {

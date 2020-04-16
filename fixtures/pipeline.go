@@ -44,7 +44,7 @@ func NewPipelineRequestStub(
 		tx = t.(*TransactionStub)
 	}
 
-	sess := &PipelineRequestStub{
+	req := &PipelineRequestStub{
 		MessageIDFunc: func() string {
 			return p.Envelope.MetaData.MessageId
 		},
@@ -59,7 +59,7 @@ func NewPipelineRequestStub(
 		},
 	}
 
-	return sess, tx
+	return req, tx
 }
 
 // MessageID returns the ID of the message in the request.
