@@ -25,6 +25,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
+	createAggregateStoreSchema(ctx, db)
 	createEventStoreSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
@@ -35,6 +36,23 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func DropSchema(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, `DROP SCHEMA IF EXISTS infix CASCADE`)
 	return err
+}
+
+// createAggregateStoreSchema creates the schema elements required by the
+// aggregate store subsystem.
+func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.aggregate_revision (
+			app_key 	TEXT NOT NULL,
+			handler_key TEXT NOT NULL,
+			instance_id TEXT NOT NULL,
+			revision    BIGINT NOT NULL DEFAULT 1,
+
+			PRIMARY KEY (app_key, handler_key, instance_id)
+		)`,
+	)
 }
 
 // createEventStoreSchema creates the schema elements required by the event
