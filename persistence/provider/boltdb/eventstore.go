@@ -2,8 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"encoding/binary"
-	"fmt"
 	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -79,7 +77,6 @@ func (r *eventStoreResult) Next(
 ) (i *eventstore.Item, ok bool, err error) {
 	defer bboltx.Recover(&err)
 
-	// Execute a read-only transaction.
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
@@ -116,40 +113,25 @@ var (
 	offsetKey           = []byte("offset")
 )
 
-// marshalOffset marshals a stream offset to its binary representation.
-func marshalOffset(offset eventstore.Offset) []byte {
-	data := make([]byte, 8)
-	binary.BigEndian.PutUint64(data, uint64(offset))
-	return data
+// marshalEventStoreOffset marshals a stream offset to its binary representation.
+func marshalEventStoreOffset(offset eventstore.Offset) []byte {
+	return marshalUint64(uint64(offset))
 }
 
-// unmarshalOffset unmarshals a stream offset from its binary representation.
-func unmarshalOffset(data []byte) eventstore.Offset {
-	n := len(data)
-
-	switch n {
-	case 0:
-		return 0
-	case 8:
-		return eventstore.Offset(
-			binary.BigEndian.Uint64(data),
-		)
-	default:
-		panic(bboltx.PanicSentinel{
-			Cause: fmt.Errorf("offset data is corrupt, expected 8 bytes, got %d", n),
-		})
-	}
+// unmarshalEventStoreOffset unmarshals a stream offset from its binary representation.
+func unmarshalEventStoreOffset(data []byte) eventstore.Offset {
+	return eventstore.Offset(unmarshalUint64(data))
 }
 
 // loadNextOffset returns the next free offset.
 func loadNextOffset(b *bbolt.Bucket) eventstore.Offset {
 	data := b.Get(offsetKey)
-	return unmarshalOffset(data)
+	return unmarshalEventStoreOffset(data)
 }
 
 // storeNextOffset updates the next free offset.
 func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
-	data := marshalOffset(next)
+	data := marshalEventStoreOffset(next)
 	bboltx.Put(b, offsetKey, data)
 }
 
@@ -158,7 +140,7 @@ func loadEventStoreItem(
 	events *bbolt.Bucket,
 	o eventstore.Offset,
 ) (*eventstore.Item, bool) {
-	k := marshalOffset(o)
+	k := marshalEventStoreOffset(o)
 	v := events.Get(k)
 
 	if v == nil {
@@ -180,7 +162,7 @@ func saveEventStoreItem(
 	o eventstore.Offset,
 	env *envelopespec.Envelope,
 ) {
-	k := marshalOffset(o)
+	k := marshalEventStoreOffset(o)
 	v, err := proto.Marshal(env)
 	bboltx.Must(err)
 	bboltx.Put(events, k, v)

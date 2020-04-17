@@ -123,7 +123,6 @@ func (r *queueStoreRepository) LoadQueueMessages(
 
 	var result []*queuestore.Item
 
-	// Execute a read-only transaction.
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
