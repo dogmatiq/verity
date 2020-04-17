@@ -16,15 +16,16 @@ var (
 	// eventstore.
 	eventStoreBucketKey = []byte("eventstore")
 
-	// eventStoreItemsBucketKey is the key for a child bucket that contains
-	// each event.
+	// eventStoreItemsBucketKey is the key for a child bucket that contains each
+	// event.
 	//
 	// The keys are the event offsets encoded as 8-byte big-endian packets. The
-	// values are envelopespec.Envelope values marshaled using protocol buffers.
+	// values are envelopespec. Envelope values marshaled using protocol
+	// buffers.
 	eventStoreItemsBucketKey = []byte("items")
 
-	// eventStoreNextOffsetKey is the key of a value within the root bucket
-	// that contains the next unused offset, again encoded as 8-byte big-endian
+	// eventStoreNextOffsetKey is the key of a value within the root bucket that
+	// contains the next unused offset, again encoded as 8-byte big-endian
 	// packet.
 	eventStoreNextOffsetKey = []byte("offset")
 )
