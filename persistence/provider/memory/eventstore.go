@@ -8,47 +8,6 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
-// eventStoreCommitted contains data committed to the event-store.
-type eventStoreCommitted struct {
-	items []*eventstore.Item
-}
-
-func (c *eventStoreCommitted) apply(u *eventStoreUncommitted) {
-	c.items = append(c.items, u.items...)
-}
-
-func (c *eventStoreCommitted) view(start int) []*eventstore.Item {
-	if len(c.items) <= start {
-		return nil
-	}
-
-	return c.items[start:]
-}
-
-// eventStoreUncommitted contains modifications to the event store that have
-// been performed within a transaction but not yet committed.
-type eventStoreUncommitted struct {
-	items []*eventstore.Item
-}
-
-func (u *eventStoreUncommitted) saveEvent(
-	c *eventStoreCommitted,
-	env *envelopespec.Envelope,
-) eventstore.Offset {
-	next := eventstore.Offset(
-		len(c.items) + len(u.items),
-	)
-
-	item := &eventstore.Item{
-		Offset:   next,
-		Envelope: cloneEnvelope(env),
-	}
-
-	u.items = append(u.items, item)
-
-	return next
-}
-
 // SaveEvent persists an event in the application's event store.
 //
 // It returns the event's offset.
@@ -60,7 +19,7 @@ func (t *transaction) SaveEvent(
 		return 0, err
 	}
 
-	return t.eventStore.saveEvent(&t.ds.db.eventStore, env), nil
+	return t.event.stageSave(&t.ds.db.event, env), nil
 }
 
 // eventStoreRepository is an implementation of eventstore.Repository that
@@ -104,15 +63,16 @@ func (r *eventStoreResult) Next(
 	// are safe to read concurrently without synchronization. Any future append
 	// will either add elements to the tail of the underlying array, or allocate
 	// a new array, neither of which we will see via this slice.
-	items := r.db.eventStore.view(r.index)
+	items := r.db.event.view(r.index)
 	r.db.RUnlock()
 
+	// Iterate through the items looking for a match for the query.
 	for i, it := range items {
 		if r.query.IsMatch(it) {
 			r.index += i + 1
 
-			// Clone item on the way out so inadvertent manipulation does not
-			// affect the data in the data-store.
+			// Clone item on the way out so inadvertent manipulation of the item
+			// by the caller does not affect the data in the event store.
 			return cloneEventStoreItem(it), true, nil
 		}
 	}
@@ -126,4 +86,57 @@ func (r *eventStoreResult) Next(
 func (r *eventStoreResult) Close() error {
 	r.query.MinOffset = math.MaxUint64
 	return nil
+}
+
+// eventStoreChangeSet contains modifications to the event store that have
+// been performed within a transaction but not yet committed.
+type eventStoreChangeSet struct {
+	items []*eventstore.Item
+}
+
+// stageSave adds a "SaveEvent" to the change-set.
+func (cs *eventStoreChangeSet) stageSave(
+	db *eventStoreDatabase,
+	env *envelopespec.Envelope,
+) eventstore.Offset {
+	// Find the offset for the new event based on what's already in the database
+	// and the new events in this change-set.
+	next := eventstore.Offset(
+		len(db.items) + len(cs.items),
+	)
+
+	item := &eventstore.Item{
+		Offset:   next,
+		Envelope: cloneEnvelope(env),
+	}
+
+	cs.items = append(cs.items, item)
+
+	return next
+}
+
+// eventStoreDatabase contains data that is committed to the event store.
+type eventStoreDatabase struct {
+	items []*eventstore.Item
+}
+
+// apply updates the database to include the changes in cs.
+func (db *eventStoreDatabase) apply(cs *eventStoreChangeSet) {
+	db.items = append(db.items, cs.items...)
+}
+
+// view returns a slice of the items starting at a given offset.
+func (db *eventStoreDatabase) view(start int) []*eventstore.Item {
+	if len(db.items) <= start {
+		return nil
+	}
+
+	return db.items[start:]
+}
+
+// clone returns a deep clone of an eventstore.Item.
+func cloneEventStoreItem(i *eventstore.Item) *eventstore.Item {
+	clone := *i
+	clone.Envelope = cloneEnvelope(clone.Envelope)
+	return &clone
 }

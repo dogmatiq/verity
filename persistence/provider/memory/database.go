@@ -4,19 +4,15 @@ import (
 	"sync/atomic"
 
 	"github.com/dogmatiq/infix/internal/x/syncx"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // database encapsulates a single application's data.
 type database struct {
 	syncx.RWMutex
 
-	open       uint32 // atomic
-	eventStore eventStoreCommitted
-	queue      struct {
-		order []*queuestore.Item
-		uniq  map[string]*queuestore.Item
-	}
+	open  uint32 // atomic
+	event eventStoreDatabase
+	queue queueStoreDatabase
 }
 
 // newDatabase returns a new empty database.
