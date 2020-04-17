@@ -11,6 +11,24 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+var (
+	// eventStoreBucketKey is the key for the bucket at the root of the
+	// eventstore.
+	eventStoreBucketKey = []byte("eventstore")
+
+	// eventStoreItemsBucketKey is the key for a child bucket that contains
+	// each event.
+	//
+	// The keys are the event offsets encoded as 8-byte big-endian packets. The
+	// values are envelopespec.Envelope values marshaled using protocol buffers.
+	eventStoreItemsBucketKey = []byte("items")
+
+	// eventStoreNextOffsetKey is the key of a value within the root bucket
+	// that contains the next unused offset, again encoded as 8-byte big-endian
+	// packet.
+	eventStoreNextOffsetKey = []byte("offset")
+)
+
 // SaveEvent persists an event in the application's event store.
 //
 // It returns the event's offset.
@@ -30,14 +48,22 @@ func (t *transaction) SaveEvent(
 		eventStoreBucketKey,
 	)
 
-	events := bboltx.CreateBucketIfNotExists(
+	items := bboltx.CreateBucketIfNotExists(
 		store,
-		eventsBucketKey,
+		eventStoreItemsBucketKey,
 	)
 
-	o := loadNextOffset(store)
-	saveEventStoreItem(events, o, env)
-	storeNextOffset(store, o+1)
+	o := unmarshalEventStoreOffset(
+		store.Get(eventStoreNextOffsetKey),
+	)
+
+	saveEventStoreItem(items, o, env)
+
+	bboltx.Put(
+		store,
+		eventStoreNextOffsetKey,
+		marshalEventStoreOffset(o+1),
+	)
 
 	return o, nil
 }
@@ -80,17 +106,17 @@ func (r *eventStoreResult) Next(
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
-			events, exists := bboltx.TryBucket(
+			items, exists := bboltx.TryBucket(
 				tx,
 				r.appKey,
 				eventStoreBucketKey,
-				eventsBucketKey,
+				eventStoreItemsBucketKey,
 			)
 
 			for exists && !ok {
 				bboltx.Must(ctx.Err()) // Bail if we're taking too long.
 
-				i, exists = loadEventStoreItem(events, r.query.MinOffset)
+				i, exists = loadEventStoreItem(items, r.query.MinOffset)
 				ok = exists && r.query.IsMatch(i)
 
 				r.query.MinOffset++
@@ -107,12 +133,6 @@ func (r *eventStoreResult) Close() error {
 	return nil
 }
 
-var (
-	eventStoreBucketKey = []byte("eventstore")
-	eventsBucketKey     = []byte("events")
-	offsetKey           = []byte("offset")
-)
-
 // marshalEventStoreOffset marshals a stream offset to its binary representation.
 func marshalEventStoreOffset(offset eventstore.Offset) []byte {
 	return marshalUint64(uint64(offset))
@@ -121,18 +141,6 @@ func marshalEventStoreOffset(offset eventstore.Offset) []byte {
 // unmarshalEventStoreOffset unmarshals a stream offset from its binary representation.
 func unmarshalEventStoreOffset(data []byte) eventstore.Offset {
 	return eventstore.Offset(unmarshalUint64(data))
-}
-
-// loadNextOffset returns the next free offset.
-func loadNextOffset(b *bbolt.Bucket) eventstore.Offset {
-	data := b.Get(offsetKey)
-	return unmarshalEventStoreOffset(data)
-}
-
-// storeNextOffset updates the next free offset.
-func storeNextOffset(b *bbolt.Bucket, next eventstore.Offset) {
-	data := marshalEventStoreOffset(next)
-	bboltx.Put(b, offsetKey, data)
 }
 
 // loadEventStoreItem loads the item at a specific offset.
