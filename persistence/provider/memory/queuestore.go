@@ -111,7 +111,7 @@ func (cs *queueStoreChangeSet) stageSave(
 		effectiveRev = effective.Revision
 	}
 
-	// Enforce the optimistic concurrenct control requirements.
+	// Enforce the optimistic concurrency control requirements.
 	if i.Revision != effectiveRev {
 		return false
 	}
@@ -158,7 +158,7 @@ func (cs *queueStoreChangeSet) stageRemove(
 		effective = staged
 	}
 
-	// Enforce the optimistic concurrenct control requirements.
+	// Enforce the optimistic concurrency control requirements.
 	//
 	// effective will be nil if the item is already staged for removal, in which
 	// case from the perspective of this transaction it's trying to remove a

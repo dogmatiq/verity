@@ -9,10 +9,11 @@ import (
 // transaction is an implementation of persistence.Transaction for in-memory
 // data stores.
 type transaction struct {
-	ds      *dataStore
-	hasLock bool
-	event   eventStoreChangeSet
-	queue   queueStoreChangeSet
+	ds        *dataStore
+	hasLock   bool
+	aggregate aggregateStoreChangeSet
+	event     eventStoreChangeSet
+	queue     queueStoreChangeSet
 }
 
 // Commit applies the changes from the transaction.
@@ -31,6 +32,7 @@ func (t *transaction) Commit(ctx context.Context) error {
 		return nil
 	}
 
+	t.ds.db.aggregate.apply(&t.aggregate)
 	t.ds.db.event.apply(&t.event)
 	t.ds.db.queue.apply(&t.queue)
 

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
@@ -33,6 +34,11 @@ func newDataStore(
 		appKey:  k,
 		release: r,
 	}
+}
+
+// AggregateStoreRepository returns application's aggregate store repository.
+func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
+	return &aggregateStoreRepository{ds.db, ds.driver, ds.appKey}
 }
 
 // EventStoreRepository returns the application's event store repository.

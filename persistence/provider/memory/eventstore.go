@@ -94,7 +94,7 @@ type eventStoreChangeSet struct {
 	items []*eventstore.Item
 }
 
-// stageSave adds a "SaveEvent" to the change-set.
+// stageSave adds a "SaveEvent" operation to the change-set.
 func (cs *eventStoreChangeSet) stageSave(
 	db *eventStoreDatabase,
 	env *envelopespec.Envelope,

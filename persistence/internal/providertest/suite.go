@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/infix/persistence/internal/providertest/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/eventstore"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/queuestore"
@@ -57,6 +58,9 @@ func Declare(
 
 			cancel()
 		})
+
+		aggregatestore.DeclareRepositoryTests(&tc)
+		aggregatestore.DeclareTransactionTests(&tc)
 
 		eventstore.DeclareRepositoryTests(&tc)
 		eventstore.DeclareTransactionTests(&tc)
