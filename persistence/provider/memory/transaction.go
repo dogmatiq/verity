@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // transaction is an implementation of persistence.Transaction for in-memory
@@ -13,11 +11,8 @@ import (
 type transaction struct {
 	ds      *dataStore
 	hasLock bool
-
-	uncommitted struct {
-		events []*eventstore.Item
-		queue  map[string]*queuestore.Item
-	}
+	event   eventStoreChangeSet
+	queue   queueStoreChangeSet
 }
 
 // Commit applies the changes from the transaction.
@@ -36,8 +31,8 @@ func (t *transaction) Commit(ctx context.Context) error {
 		return nil
 	}
 
-	t.commitEvents()
-	t.commitQueue()
+	t.ds.db.event.apply(&t.event)
+	t.ds.db.queue.apply(&t.queue)
 
 	return nil
 }

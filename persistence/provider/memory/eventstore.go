@@ -19,27 +19,7 @@ func (t *transaction) SaveEvent(
 		return 0, err
 	}
 
-	next := eventstore.Offset(
-		len(t.ds.db.events) + len(t.uncommitted.events),
-	)
-
-	t.uncommitted.events = append(
-		t.uncommitted.events,
-		&eventstore.Item{
-			Offset:   next,
-			Envelope: cloneEnvelope(env),
-		},
-	)
-
-	return next, nil
-}
-
-// commitEvents commits staged events to the database.
-func (t *transaction) commitEvents() {
-	t.ds.db.events = append(
-		t.ds.db.events,
-		t.uncommitted.events...,
-	)
+	return t.event.stageSave(&t.ds.db.event, env), nil
 }
 
 // eventStoreRepository is an implementation of eventstore.Repository that
@@ -77,22 +57,27 @@ func (r *eventStoreResult) Next(
 	if err := r.db.RLock(ctx); err != nil {
 		return nil, false, err
 	}
-	defer r.db.RUnlock()
 
-	for r.index < len(r.db.events) {
-		if ctx.Err() != nil {
-			return nil, false, ctx.Err()
-		}
+	// We only have to hold the mutex long enough to make the slice that is our
+	// "view" of the items. The individual items are never modified and so they
+	// are safe to read concurrently without synchronization. Any future append
+	// will either add elements to the tail of the underlying array, or allocate
+	// a new array, neither of which we will see via this slice.
+	items := r.db.event.view(r.index)
+	r.db.RUnlock()
 
-		i := r.db.events[r.index]
-		r.index++
+	// Iterate through the items looking for a match for the query.
+	for i, it := range items {
+		if r.query.IsMatch(it) {
+			r.index += i + 1
 
-		if r.query.IsMatch(i) {
-			// Clone item on the way out so inadvertent manipulation does not
-			// affect the data in the data-store.
-			return cloneEventStoreItem(i), true, nil
+			// Clone item on the way out so inadvertent manipulation of the item
+			// by the caller does not affect the data in the event store.
+			return cloneEventStoreItem(it), true, nil
 		}
 	}
+
+	r.index += len(items) + 1
 
 	return nil, false, nil
 }
@@ -101,4 +86,57 @@ func (r *eventStoreResult) Next(
 func (r *eventStoreResult) Close() error {
 	r.query.MinOffset = math.MaxUint64
 	return nil
+}
+
+// eventStoreChangeSet contains modifications to the event store that have
+// been performed within a transaction but not yet committed.
+type eventStoreChangeSet struct {
+	items []*eventstore.Item
+}
+
+// stageSave adds a "SaveEvent" to the change-set.
+func (cs *eventStoreChangeSet) stageSave(
+	db *eventStoreDatabase,
+	env *envelopespec.Envelope,
+) eventstore.Offset {
+	// Find the offset for the new event based on what's already in the database
+	// and the new events in this change-set.
+	next := eventstore.Offset(
+		len(db.items) + len(cs.items),
+	)
+
+	item := &eventstore.Item{
+		Offset:   next,
+		Envelope: cloneEnvelope(env),
+	}
+
+	cs.items = append(cs.items, item)
+
+	return next
+}
+
+// eventStoreDatabase contains data that is committed to the event store.
+type eventStoreDatabase struct {
+	items []*eventstore.Item
+}
+
+// apply updates the database to include the changes in cs.
+func (db *eventStoreDatabase) apply(cs *eventStoreChangeSet) {
+	db.items = append(db.items, cs.items...)
+}
+
+// view returns a slice of the items starting at a given offset.
+func (db *eventStoreDatabase) view(start int) []*eventstore.Item {
+	if len(db.items) <= start {
+		return nil
+	}
+
+	return db.items[start:]
+}
+
+// clone returns a deep clone of an eventstore.Item.
+func cloneEventStoreItem(i *eventstore.Item) *eventstore.Item {
+	clone := *i
+	clone.Envelope = cloneEnvelope(clone.Envelope)
+	return &clone
 }

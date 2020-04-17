@@ -3,21 +3,18 @@ package memory
 import (
 	"sync/atomic"
 
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/syncx"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"google.golang.org/protobuf/proto"
 )
 
 // database encapsulates a single application's data.
 type database struct {
 	syncx.RWMutex
 
-	open   uint32 // atomic
-	events []*eventstore.Item
-	queue  struct {
-		order []*queuestore.Item
-		uniq  map[string]*queuestore.Item
-	}
+	open  uint32 // atomic
+	event eventStoreDatabase
+	queue queueStoreDatabase
 }
 
 // newDatabase returns a new empty database.
@@ -40,4 +37,9 @@ func (db *database) TryOpen() bool {
 // provider.
 func (db *database) Close() {
 	atomic.CompareAndSwapUint32(&db.open, 1, 0)
+}
+
+// cloneEnvelope returns a deep-clone of env.
+func cloneEnvelope(env *envelopespec.Envelope) *envelopespec.Envelope {
+	return proto.Clone(env).(*envelopespec.Envelope)
 }
