@@ -23,6 +23,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
+	createAggregateStoreSchema(ctx, db)
 	createEventStoreSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
@@ -32,6 +33,8 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 // DropSchema drops the schema elements required by the SQLite driver.
 func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
+
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_revision`)
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
 
@@ -43,6 +46,23 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS queue`)
 
 	return nil
+}
+
+// createAggregateStoreSchema creates the schema elements required by the
+// aggregate store subsystem.
+func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE aggregate_revision (
+			app_key 	TEXT NOT NULL,
+			handler_key TEXT NOT NULL,
+			instance_id TEXT NOT NULL,
+			revision    INTEGER NOT NULL DEFAULT 1,
+
+			PRIMARY KEY (app_key, handler_key, instance_id)
+		)`,
+	)
 }
 
 // createEventStoreSchema creates the schema elements required by the event

@@ -38,5 +38,25 @@ func (driver) SelectAggregateRevision(
 	db *sql.DB,
 	ak, hk, id string,
 ) (aggregatestore.Revision, error) {
-	return 0, errors.New("not implemented")
+	row := db.QueryRowContext(
+		ctx,
+		`SELECT
+			r.revision
+		FROM aggregate_revision AS r
+		WHERE app_key = $1
+		AND handler_key = $2
+		AND instance_id = $3`,
+		ak,
+		hk,
+		id,
+	)
+
+	var rev aggregatestore.Revision
+	err := row.Scan(&rev)
+
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+
+	return rev, err
 }
