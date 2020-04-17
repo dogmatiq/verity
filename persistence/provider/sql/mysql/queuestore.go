@@ -17,12 +17,8 @@ func (driver) InsertQueueMessage(
 	tx *sql.Tx,
 	ak string,
 	i *queuestore.Item,
-) (_ bool, err error) {
-	defer sqlx.Recover(&err)
-
-	// Note: ON DUPLICATE KEY UPDATE is used because INSERT IGNORE ignores
-	// more than just key conflicts.
-	res := sqlx.Exec(
+) (bool, error) {
+	return insertIgnore(
 		ctx,
 		tx,
 		`INSERT INTO queue SET
@@ -42,9 +38,7 @@ func (driver) InsertQueueMessage(
 				description = ?,
 				portable_name = ?,
 				media_type = ?,
-				data = ?
-			ON DUPLICATE KEY UPDATE
-				app_key = VALUES(app_key)`,
+				data = ?`,
 		ak,
 		i.FailureCount,
 		i.NextAttemptAt,
@@ -63,17 +57,6 @@ func (driver) InsertQueueMessage(
 		i.Envelope.GetMediaType(),
 		i.Envelope.GetData(),
 	)
-
-	// We use the affected count to check if the row was actually inserted.
-	//
-	// If the row count isn't exactly 1, our insert was ignored.
-	//
-	// Note that MySQL will report 2 affected rows if a single row is actually
-	// changed by ON DUPLICATE KEY UPDATE, though in this case we expect the
-	// failure case to return a 0 because our ON DUPLICATE KEY UPDATE clause
-	// doesn't actually cause any changes.
-	n, err := res.RowsAffected()
-	return n == 1, err
 }
 
 // UpdateQueueMessage updates meta-data about a message that is already on
