@@ -33,7 +33,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func IncrementAggregateRevision()", func() {
 			ginkgo.When("the instance does not exist", func() {
-				ginkgo.XIt("sets the revision to 1", func() {
+				ginkgo.It("sets the revision to 1", func() {
 					incrementRevision(
 						tc.Context,
 						dataStore,
