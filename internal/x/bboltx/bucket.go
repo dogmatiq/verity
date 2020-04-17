@@ -1,7 +1,8 @@
 package bboltx
 
 import (
-	"errors"
+	"bytes"
+	"fmt"
 
 	"go.etcd.io/bbolt"
 )
@@ -53,7 +54,10 @@ func Bucket(p BucketParent, path ...[]byte) *bbolt.Bucket {
 		return b
 	}
 
-	err := errors.New("bucket does not exist")
+	err := fmt.Errorf(
+		"bucket '%s' does not exist",
+		bytes.Join(path, []byte(".")),
+	)
 	panic(PanicSentinel{err})
 }
 

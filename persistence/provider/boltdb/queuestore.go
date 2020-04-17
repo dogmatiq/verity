@@ -11,6 +11,30 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+var (
+	// queueStoreBucketKey is the key for the bucket at the root of the
+	// queuestore.
+	queueStoreBucketKey = []byte("queuestore")
+
+	// queueStoreItemsBucketKey is the key for a child bucket that contains each
+	// queued message.
+	//
+	// The keys are the application-defined message ID. The values are
+	// pb.QueueStoreItem values marshaled using protocol buffers.
+	queueStoreItemsBucketKey = []byte("items")
+
+	// queueStoreOrderBucketKey is the key for a child bucket that is used to
+	// index the queued messages by their next-attempt time.
+	//
+	// The keys are the next-attempt time, represented as RFC3339Nano strings.
+	// The values are buckets indicating which messages are due to be attempted
+	// at that time.
+	//
+	// Within this further sub-bucket, the keys are the application-defined
+	// message ID, and the values are always nil.
+	queueStoreOrderBucketKey = []byte("order")
+)
+
 // SaveMessageToQueue persists a message to the application's message queue.
 //
 // If the message is already on the queue its meta-data is updated.
@@ -28,35 +52,40 @@ func (t *transaction) SaveMessageToQueue(
 		return err
 	}
 
-	messages := bboltx.CreateBucketIfNotExists(
+	// Note, we create all of the buckets before returning any error. That way,
+	// if the transaction gets committed despite the error, all of the buckets
+	// either exist or don't exist.
+	store := bboltx.CreateBucketIfNotExists(
 		t.actual,
 		t.appKey,
-		queueBucketKey,
-		messagesBucketKey,
+		queueStoreBucketKey,
 	)
 
-	old := loadQueueStoreItem(messages, i.ID())
+	items := bboltx.CreateBucketIfNotExists(
+		store,
+		queueStoreItemsBucketKey,
+	)
+
+	order := bboltx.CreateBucketIfNotExists(
+		store,
+		queueStoreOrderBucketKey,
+	)
+
+	old := loadQueueStoreItem(items, i.ID())
 
 	if uint64(i.Revision) != old.GetRevision() {
 		return queuestore.ErrConflict
 	}
 
 	new, data := marshalQueueStoreItem(i, old)
-	bboltx.Put(messages, []byte(i.ID()), data)
+	bboltx.Put(items, []byte(i.ID()), data)
 
 	if new.GetNextAttemptAt() != old.GetNextAttemptAt() {
-		order := bboltx.CreateBucketIfNotExists(
-			t.actual,
-			t.appKey,
-			queueBucketKey,
-			orderBucketKey,
-		)
-
 		if old != nil {
-			removeQueueOrder(order, old)
+			removeQueueStoreOrder(order, old)
 		}
 
-		saveQueueOrder(order, new)
+		saveQueueStoreOrder(order, new)
 	}
 
 	return nil
@@ -78,31 +107,33 @@ func (t *transaction) RemoveMessageFromQueue(
 		return err
 	}
 
-	messages, ok := bboltx.TryBucket(
+	store, ok := bboltx.TryBucket(
 		t.actual,
 		t.appKey,
-		queueBucketKey,
-		messagesBucketKey,
+		queueStoreBucketKey,
 	)
 	if !ok {
 		return queuestore.ErrConflict
 	}
 
-	old := loadQueueStoreItem(messages, i.ID())
+	items := bboltx.Bucket(
+		store,
+		queueStoreItemsBucketKey,
+	)
+
+	old := loadQueueStoreItem(items, i.ID())
 
 	if uint64(i.Revision) != old.GetRevision() {
 		return queuestore.ErrConflict
 	}
 
 	order := bboltx.Bucket(
-		t.actual,
-		t.appKey,
-		queueBucketKey,
-		orderBucketKey,
+		store,
+		queueStoreOrderBucketKey,
 	)
 
-	bboltx.Delete(messages, []byte(i.ID()))
-	removeQueueOrder(order, old)
+	bboltx.Delete(items, []byte(i.ID()))
+	removeQueueStoreOrder(order, old)
 
 	return nil
 }
@@ -126,21 +157,23 @@ func (r *queueStoreRepository) LoadQueueMessages(
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
-			order, exists := bboltx.TryBucket(
+			store, exists := bboltx.TryBucket(
 				tx,
 				r.appKey,
-				queueBucketKey,
-				orderBucketKey,
+				queueStoreBucketKey,
 			)
 			if !exists {
 				return
 			}
 
-			messages := bboltx.Bucket(
-				tx,
-				r.appKey,
-				queueBucketKey,
-				messagesBucketKey,
+			items := bboltx.Bucket(
+				store,
+				queueStoreItemsBucketKey,
+			)
+
+			order := bboltx.Bucket(
+				store,
+				queueStoreOrderBucketKey,
 			)
 
 			orderCursor := order.Cursor()
@@ -151,7 +184,7 @@ func (r *queueStoreRepository) LoadQueueMessages(
 				id, _ := idCursor.First()
 
 				for id != nil {
-					data := messages.Get(id)
+					data := items.Get(id)
 					i := unmarshalQueueStoreItem(data)
 					result = append(result, i)
 
@@ -169,12 +202,6 @@ func (r *queueStoreRepository) LoadQueueMessages(
 
 	return result, nil
 }
-
-var (
-	queueBucketKey    = []byte("queue")
-	messagesBucketKey = []byte("messages")
-	orderBucketKey    = []byte("order")
-)
 
 // unmarshalQueueStoreItem unmarshals a queuestore.Item from its binary
 // representation.
@@ -232,8 +259,8 @@ func loadQueueStoreItem(messages *bbolt.Bucket, id string) *pb.QueueStoreItem {
 	return i
 }
 
-// saveQueueOrder adds a record for i to the order bucket.
-func saveQueueOrder(order *bbolt.Bucket, i *pb.QueueStoreItem) {
+// saveQueueStoreOrder adds a record for i to the order bucket.
+func saveQueueStoreOrder(order *bbolt.Bucket, i *pb.QueueStoreItem) {
 	id := i.GetEnvelope().GetMetaData().GetMessageId()
 
 	bboltx.Put(
@@ -246,8 +273,8 @@ func saveQueueOrder(order *bbolt.Bucket, i *pb.QueueStoreItem) {
 	)
 }
 
-// removeQueueOrder removes the record for i from the order bucket.
-func removeQueueOrder(order *bbolt.Bucket, i *pb.QueueStoreItem) {
+// removeQueueStoreOrder removes the record for i from the order bucket.
+func removeQueueStoreOrder(order *bbolt.Bucket, i *pb.QueueStoreItem) {
 	id := i.GetEnvelope().GetMetaData().GetMessageId()
 
 	bboltx.Delete(
