@@ -48,7 +48,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
 			})
 
-			ginkgo.XIt("returns an error if the context is canceled", func() {
+			ginkgo.It("returns an error if the context is canceled", func() {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
