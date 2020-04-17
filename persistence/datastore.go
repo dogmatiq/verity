@@ -25,11 +25,11 @@ type DataStore interface {
 	// EventStoreRepository returns the application's event store repository.
 	EventStoreRepository() eventstore.Repository
 
-	// QueueStoreRepository returns the application's queue store repository.
-	QueueStoreRepository() queuestore.Repository
-
 	// OffsetStoreRepository returns the application's offset store repository.
 	OffsetStoreRepository() offsetstore.Repository
+
+	// QueueStoreRepository returns the application's queue store repository.
+	QueueStoreRepository() queuestore.Repository
 
 	// Begin starts a new transaction.
 	Begin(ctx context.Context) (Transaction, error)

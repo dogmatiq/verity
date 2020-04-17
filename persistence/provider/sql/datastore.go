@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -44,6 +45,11 @@ func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
 	return &eventStoreRepository{ds.db, ds.driver, ds.appKey}
+}
+
+// OffsetStoreRepository returns the application's event store repository.
+func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
+	return &offsetStoreRepository{ds.db, ds.driver}
 }
 
 // QueueStoreRepository returns the application's queue store repository.

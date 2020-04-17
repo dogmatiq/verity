@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -40,6 +41,7 @@ type DataStoreStub struct {
 	persistence.DataStore
 
 	AggregateStoreRepositoryFunc func() aggregatestore.Repository
+	OffsetStoreRepositoryFunc    func() offsetstore.Repository
 	EventStoreRepositoryFunc     func() eventstore.Repository
 	QueueStoreRepositoryFunc     func() queuestore.Repository
 	BeginFunc                    func(context.Context) (persistence.Transaction, error)
@@ -92,6 +94,25 @@ func (ds *DataStoreStub) EventStoreRepository() eventstore.Repository {
 
 		if r != nil {
 			r = &EventStoreRepositoryStub{Repository: r}
+		}
+
+		return r
+	}
+
+	return nil
+}
+
+// OffsetStoreRepository returns the application's offset store repository.
+func (ds *DataStoreStub) OffsetStoreRepository() offsetstore.Repository {
+	if ds.OffsetStoreRepositoryFunc != nil {
+		return ds.OffsetStoreRepositoryFunc()
+	}
+
+	if ds.DataStore != nil {
+		r := ds.DataStore.OffsetStoreRepository()
+
+		if r != nil {
+			r = &OffsetStoreRepositoryStub{Repository: r}
 		}
 
 		return r
@@ -158,6 +179,7 @@ type TransactionStub struct {
 
 	SaveAggregateMetaDataFunc  func(context.Context, *aggregatestore.MetaData) error
 	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
+	SaveOffsetFunc             func(ctx context.Context, ak string, c, n offsetstore.Offset) error
 	SaveMessageToQueueFunc     func(context.Context, *queuestore.Item) error
 	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Item) error
 
@@ -189,6 +211,24 @@ func (t *TransactionStub) SaveEvent(ctx context.Context, env *envelopespec.Envel
 	}
 
 	return 0, nil
+}
+
+// SaveOffset persists the "next" offset to be consumed for a specific
+// application.
+func (t *TransactionStub) SaveOffset(
+	ctx context.Context,
+	ak string,
+	c, n offsetstore.Offset,
+) error {
+	if t.SaveOffsetFunc != nil {
+		return t.SaveOffsetFunc(ctx, ak, c, n)
+	}
+
+	if t.Transaction != nil {
+		return t.Transaction.SaveOffset(ctx, ak, c, n)
+	}
+
+	return nil
 }
 
 // SaveMessageToQueue persists a message to the application's message queue.
