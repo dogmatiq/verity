@@ -90,7 +90,7 @@ func (ui *UI) main() (state, error) {
 		}
 
 		k := fmt.Sprintf("%d", len(items)+1)
-		v := fmt.Sprintf("login as '%s'", name)
+		v := fmt.Sprintf("sign in as '%s'", name)
 
 		items = append(
 			items,
@@ -107,15 +107,19 @@ func (ui *UI) main() (state, error) {
 }
 
 func (ui *UI) loginAs(id, name string) state {
-	ui.customerID = id
-	ui.customerName = name
-	return ui.customerMain
+	return func() (state, error) {
+		ui.customerID = id
+		ui.customerName = name
+		return ui.customerMain, nil
+	}
 }
 
 func (ui *UI) customerMain() (state, error) {
 	ui.banner("OVERVIEW (%s)", ui.customerName)
 
-	return ui.askMenu()
+	return ui.askMenu(
+		item{"q", "sign out", ui.main},
+	)
 }
 
 func (ui *UI) openAccountForNewCustomer() (state, error) {
