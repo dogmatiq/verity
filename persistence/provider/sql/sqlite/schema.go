@@ -97,7 +97,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE event_filter (
 			id      INTEGER PRIMARY KEY,
-			app_key VARBINARY(255) NOT NULL
+			app_key TEXT NOT NULL
 		)`,
 	)
 
