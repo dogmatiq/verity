@@ -17,6 +17,14 @@ func (c *eventStoreCommitted) apply(u *eventStoreUncommitted) {
 	c.items = append(c.items, u.items...)
 }
 
+func (c *eventStoreCommitted) view(start int) []*eventstore.Item {
+	if len(c.items) <= start {
+		return nil
+	}
+
+	return c.items[start:]
+}
+
 // eventStoreUncommitted contains modifications to the event store that have
 // been performed within a transaction but not yet committed.
 type eventStoreUncommitted struct {
@@ -90,22 +98,26 @@ func (r *eventStoreResult) Next(
 	if err := r.db.RLock(ctx); err != nil {
 		return nil, false, err
 	}
-	defer r.db.RUnlock()
 
-	for r.index < len(r.db.eventStore.items) {
-		if ctx.Err() != nil {
-			return nil, false, ctx.Err()
-		}
+	// We only have to hold the mutex long enough to make the slice that is our
+	// "view" of the items. The individual items are never modified and so they
+	// are safe to read concurrently without synchronization. Any future append
+	// will either add elements to the tail of the underlying array, or allocate
+	// a new array, neither of which we will see via this slice.
+	items := r.db.eventStore.view(r.index)
+	r.db.RUnlock()
 
-		i := r.db.eventStore.items[r.index]
-		r.index++
+	for i, it := range items {
+		if r.query.IsMatch(it) {
+			r.index += i + 1
 
-		if r.query.IsMatch(i) {
 			// Clone item on the way out so inadvertent manipulation does not
 			// affect the data in the data-store.
-			return cloneEventStoreItem(i), true, nil
+			return cloneEventStoreItem(it), true, nil
 		}
 	}
+
+	r.index += len(items) + 1
 
 	return nil, false, nil
 }
