@@ -6,6 +6,30 @@ import (
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"go.etcd.io/bbolt"
+)
+
+var (
+	// aggregateStoreBucketKey is the key for the bucket at the root of the
+	// aggregatestore.
+	//
+	// The keys are application-defined aggregate handler keys. The values are
+	// buckets further split into separate buckets for revisions and snapshots.
+	aggregateStoreBucketKey = []byte("aggregatestore")
+
+	// aggregateStoreRevisionsBucketKey is the key for a child bucket that
+	// contains the current revision of each aggregate instance.
+	//
+	// The keys are application-defined instance IDs. The values are the
+	// instance revisions encoded 8-byte big-endian packets.
+	aggregateStoreRevisionsBucketKey = []byte("revisions")
+
+	// aggregateStoreSnapshotsBucketKey is the key for a child bucket that
+	// contains snapshots of each aggregate instance.
+	//
+	// TODO: https://github.com/dogmatiq/infix/issues/142
+	// Implement aggregate snapshots.
+	aggregateStoreSnapshotsBucketKey = []byte("snapshots")
 )
 
 // IncrementAggregateRevision increments the persisted revision of a an
@@ -34,6 +58,8 @@ func (t *transaction) IncrementAggregateRevision(
 // aggregateStoreRepository is an implementation of aggregatestore.Repository
 // that stores aggregate state in a BoltDB database.
 type aggregateStoreRepository struct {
+	db     *database
+	appKey []byte
 }
 
 // LoadRevision loads the current revision of an aggregate instance.
@@ -42,6 +68,38 @@ type aggregateStoreRepository struct {
 func (r *aggregateStoreRepository) LoadRevision(
 	ctx context.Context,
 	hk, id string,
-) (aggregatestore.Revision, error) {
-	return 0, errors.New("not implemented")
+) (rev aggregatestore.Revision, err error) {
+	defer bboltx.Recover(&err)
+
+	r.db.View(
+		ctx,
+		func(tx *bbolt.Tx) {
+			revisions, exists := bboltx.TryBucket(
+				tx,
+				r.appKey,
+				aggregateStoreBucketKey,
+				[]byte(hk),
+				aggregateStoreRevisionsBucketKey,
+			)
+			if exists {
+				rev = unmarshalAggregateRevision(
+					revisions.Get([]byte(id)),
+				)
+			}
+		},
+	)
+
+	return rev, nil
+}
+
+// marshalAggregateRevision marshals an aggregate revision to its binary
+// representation.
+func marshalAggregateRevision(rev aggregatestore.Revision) []byte {
+	return marshalUint64(uint64(rev))
+}
+
+// unmarshalAggregateRevision unmarshals an aggregate revision from its binary
+// representation.
+func unmarshalAggregateRevision(data []byte) aggregatestore.Revision {
+	return aggregatestore.Revision(unmarshalUint64(data))
 }
