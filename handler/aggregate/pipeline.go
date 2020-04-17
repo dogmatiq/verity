@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/marshalkit"
@@ -23,6 +24,10 @@ type Sink struct {
 	// Handler is the aggregate message handler that implements the
 	// application-specific message handling logic.
 	Handler dogma.AggregateMessageHandler
+
+	// AggregateStore is the repository used to load an aggregate instance's
+	// revisions and snapshots.
+	AggregateStore aggregatestore.Repository
 
 	// EventStore is the repository used to load an aggregate instance's
 	// historical events.
@@ -54,9 +59,17 @@ func (s *Sink) Accept(
 
 	id := s.Handler.RouteCommandToInstance(p.Message)
 
-	r, ok, err := s.load(ctx, id)
+	rev, err := s.AggregateStore.LoadRevision(ctx, s.Identity.Key, id)
 	if err != nil {
 		return err
+	}
+
+	root := s.Handler.New()
+
+	if rev > 0 {
+		if err := s.load(ctx, root, id); err != nil {
+			return err
+		}
 	}
 
 	ds := &scope{
@@ -64,12 +77,16 @@ func (s *Sink) Accept(
 		packer:  s.Packer,
 		handler: s.Identity,
 		id:      id,
-		exists:  ok,
-		root:    r,
+		exists:  rev > 0,
+		root:    root,
 		logger:  s.Logger,
 	}
 
 	s.Handler.HandleCommand(ds, p.Message)
+
+	if len(ds.events) == 0 {
+		return nil
+	}
 
 	tx, err := req.Tx(ctx)
 	if err != nil {
@@ -82,11 +99,16 @@ func (s *Sink) Accept(
 		}
 	}
 
-	return nil
+	return tx.IncrementAggregateRevision(ctx, s.Identity.Key, id, rev)
 }
 
-// load reads an aggregate's state.
-func (s *Sink) load(ctx context.Context, id string) (dogma.AggregateRoot, bool, error) {
+// load applies an aggregate instance's historical events to the root in order
+// to reproduce the current state.
+func (s *Sink) load(
+	ctx context.Context,
+	root dogma.AggregateRoot,
+	id string,
+) error {
 	q := eventstore.Query{
 		// TODO: how do we best configure the filter to deal with events that
 		// the aggregate once produced, but no longer does?
@@ -97,24 +119,20 @@ func (s *Sink) load(ctx context.Context, id string) (dogma.AggregateRoot, bool, 
 
 	res, err := s.EventStore.QueryEvents(ctx, q)
 	if err != nil {
-		return nil, false, err
+		return err
 	}
-
-	r := s.Handler.New()
-	exists := false
 
 	for {
 		i, ok, err := res.Next(ctx)
 		if !ok || err != nil {
-			return r, exists, err
+			return err
 		}
 
 		p, err := parcel.FromEnvelope(s.Marshaler, i.Envelope)
 		if err != nil {
-			return nil, false, err
+			return err
 		}
 
-		exists = true
-		r.ApplyEvent(p.Message)
+		root.ApplyEvent(p.Message)
 	}
 }

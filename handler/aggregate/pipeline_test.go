@@ -15,6 +15,7 @@ import (
 	. "github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -73,11 +74,12 @@ var _ = Describe("type Sink", func() {
 				Name: "<aggregate-name>",
 				Key:  "<aggregate-key>",
 			},
-			Handler:    handler,
-			EventStore: dataStore.EventStoreRepository(),
-			Marshaler:  Marshaler,
-			Packer:     packer,
-			Logger:     logger,
+			Handler:        handler,
+			AggregateStore: dataStore.AggregateStoreRepository(),
+			EventStore:     dataStore.EventStoreRepository(),
+			Marshaler:      Marshaler,
+			Packer:         packer,
+			Logger:         logger,
 		}
 	})
 
@@ -114,51 +116,66 @@ var _ = Describe("type Sink", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("logs about recorded events", func() {
-			handler.HandleCommandFunc = func(
-				s dogma.AggregateCommandScope,
-				_ dogma.Message,
-			) {
-				s.RecordEvent(MessageE1)
-			}
+		When("events are recorded", func() {
+			BeforeEach(func() {
+				handler.HandleCommandFunc = func(
+					s dogma.AggregateCommandScope,
+					_ dogma.Message,
+				) {
+					s.RecordEvent(MessageE1)
+					s.RecordEvent(MessageE2)
+				}
+			})
 
-			err := sink.Accept(ctx, req, res)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(logger.Messages()).To(ContainElement(
-				logging.BufferedLogMessage{
-					Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
-				},
-			))
+			It("returns an error if the transaction cannot be started", func() {
+				req.TxFunc = func(
+					context.Context,
+				) (persistence.ManagedTransaction, error) {
+					return nil, errors.New("<error>")
+				}
+
+				err := sink.Accept(ctx, req, res)
+				Expect(err).To(MatchError("<error>"))
+			})
+
+			It("returns an error if an event can not be recorded", func() {
+				tx.SaveEventFunc = func(
+					context.Context,
+					*envelopespec.Envelope,
+				) (eventstore.Offset, error) {
+					return 0, errors.New("<error>")
+				}
+
+				err := sink.Accept(ctx, req, res)
+				Expect(err).To(MatchError("<error>"))
+			})
+
+			It("returns an error if the revision can not be incremented", func() {
+				tx.IncrementAggregateRevisionFunc = func(
+					context.Context,
+					string,
+					string,
+					aggregatestore.Revision,
+				) error {
+					return errors.New("<error>")
+				}
+
+				err := sink.Accept(ctx, req, res)
+				Expect(err).To(MatchError("<error>"))
+			})
 		})
 
-		It("returns an error if the transaction cannot be started", func() {
-			req.TxFunc = func(
-				context.Context,
-			) (persistence.ManagedTransaction, error) {
-				return nil, errors.New("<error>")
-			}
+		When("no events are recorded", func() {
+			It("it does not start the transaction", func() {
+				req.TxFunc = func(
+					context.Context,
+				) (persistence.ManagedTransaction, error) {
+					Fail("unexpected call")
+					return nil, nil
+				}
 
-			err := sink.Accept(ctx, req, res)
-			Expect(err).To(MatchError("<error>"))
-		})
-
-		It("returns an error if an event can not be recorded", func() {
-			tx.SaveEventFunc = func(
-				context.Context,
-				*envelopespec.Envelope,
-			) (eventstore.Offset, error) {
-				return 0, errors.New("<error>")
-			}
-
-			handler.HandleCommandFunc = func(
-				s dogma.AggregateCommandScope,
-				_ dogma.Message,
-			) {
-				s.RecordEvent(MessageE1)
-			}
-
-			err := sink.Accept(ctx, req, res)
-			Expect(err).To(MatchError("<error>"))
+				sink.Accept(ctx, req, res)
+			})
 		})
 
 		Describe("type scope", func() {
@@ -194,14 +211,12 @@ var _ = Describe("type Sink", func() {
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							p := packer.PackChildEvent(
-								NewParcel("<cause>", MessageC1),
-								MessageE1,
-								sink.Identity,
+							return tx.IncrementAggregateRevision(
+								ctx,
+								sink.Identity.Key,
 								"<instance>",
+								0,
 							)
-							_, err := tx.SaveEvent(ctx, p.Envelope)
-							return err
 						},
 					)
 
@@ -279,6 +294,23 @@ var _ = Describe("type Sink", func() {
 									Envelope: env,
 								},
 							},
+						},
+					))
+				})
+
+				It("logs about recorded events", func() {
+					handler.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						s.RecordEvent(MessageE1)
+					}
+
+					err := sink.Accept(ctx, req, res)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(logger.Messages()).To(ContainElement(
+						logging.BufferedLogMessage{
+							Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
 						},
 					))
 				})
