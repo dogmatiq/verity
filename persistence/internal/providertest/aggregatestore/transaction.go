@@ -98,7 +98,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 				})
 
-				ginkgo.XIt("increments the revision", func() {
+				ginkgo.It("increments the revision", func() {
 					incrementRevision(
 						tc.Context,
 						dataStore,

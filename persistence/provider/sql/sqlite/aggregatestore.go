@@ -3,21 +3,39 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"errors"
 
+	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
-// InsertAggregateRevision inserts an aggregate revision for an aggregate
-// instance.
+// InsertAggregateRevision inserts an aggregate revision (with a value of 1) for
+// an aggregate instance.
 //
 // It returns false if the row already exists.
 func (driver) InsertAggregateRevision(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, hk, id string,
-) (bool, error) {
-	return false, errors.New("not implemented")
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	res := sqlx.Exec(
+		ctx,
+		tx,
+		`INSERT INTO aggregate_revision (
+			app_key,
+			handler_key,
+			instance_id
+		) VALUES (
+			$1, $2, $3
+		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
+		ak,
+		hk,
+		id,
+	)
+
+	n, err := res.RowsAffected()
+	return n == 1, err
 }
 
 // UpdateAggregateRevision increments an aggregate isntance's revision by 1.
@@ -28,8 +46,23 @@ func (driver) UpdateAggregateRevision(
 	tx *sql.Tx,
 	ak, hk, id string,
 	rev aggregatestore.Revision,
-) (bool, error) {
-	return false, errors.New("not implemented")
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
+		ctx,
+		tx,
+		`UPDATE aggregate_revision SET
+			revision = revision + 1
+		WHERE app_key = $1
+		AND handler_key = $2
+		AND instance_id = $3
+		AND revision = $4`,
+		ak,
+		hk,
+		id,
+		rev,
+	), nil
 }
 
 // SelectAggregateRevision selects an aggregate instance's revision.

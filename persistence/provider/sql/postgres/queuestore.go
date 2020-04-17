@@ -17,7 +17,6 @@ func (driver) InsertQueueMessage(
 	ak string,
 	i *queuestore.Item,
 ) (_ bool, err error) {
-
 	defer sqlx.Recover(&err)
 
 	res := sqlx.Exec(

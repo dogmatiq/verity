@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
@@ -11,8 +10,8 @@ import (
 // aggregateStoreDriver is the subset of the Driver interface that is concerned
 // with the aggregatestore subsystem.
 type aggregateStoreDriver interface {
-	// InsertAggregateRevision inserts an aggregate revision for an aggregate
-	// instance.
+	// InsertAggregateRevision inserts an aggregate revision (with a value of 1)
+	// for an aggregate instance.
 	//
 	// It returns false if the row already exists.
 	InsertAggregateRevision(
@@ -57,7 +56,35 @@ func (t *transaction) IncrementAggregateRevision(
 		return err
 	}
 
-	return errors.New("not implemented")
+	var (
+		ok  bool
+		err error
+	)
+
+	if c == 0 {
+		ok, err = t.ds.driver.InsertAggregateRevision(
+			ctx,
+			t.actual,
+			t.ds.appKey,
+			hk,
+			id,
+		)
+	} else {
+		ok, err = t.ds.driver.UpdateAggregateRevision(
+			ctx,
+			t.actual,
+			t.ds.appKey,
+			hk,
+			id,
+			c,
+		)
+	}
+
+	if ok || err != nil {
+		return err
+	}
+
+	return aggregatestore.ErrConflict
 }
 
 // aggregateStoreRepository is an implementation of aggregatestore.Repository
