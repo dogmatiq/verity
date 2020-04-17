@@ -35,7 +35,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				gomega.Expect(rev).To(gomega.BeEquivalentTo(0))
 			})
 
-			ginkgo.XIt("returns the current revision", func() {
+			ginkgo.It("returns the current revision", func() {
 				incrementRevision(
 					tc.Context,
 					dataStore,

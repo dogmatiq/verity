@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -46,7 +45,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
 				})
 
-				ginkgo.XIt("does not increment the revision if the transaction is rolled back", func() {
+				ginkgo.It("does not increment the revision if the transaction is rolled back", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
@@ -65,7 +64,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(0))
 				})
 
-				ginkgo.XIt("does not save the message when an OCC conflict occurs", func() {
+				ginkgo.It("does not save the message when an OCC conflict occurs", func() {
 					err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
@@ -111,7 +110,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
 				})
 
-				ginkgo.XIt("does not update the message if the transaction is rolled-back", func() {
+				ginkgo.It("does not update the message if the transaction is rolled-back", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
@@ -130,9 +129,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
 				})
 
-				table.XDescribeTable(
+				table.DescribeTable(
 					"it does not increment the revision when an OCC conflict occurs",
-					func(conflictingRevision aggregatestore.Revision) {
+					func(conflictingRevision int) {
 						// Increment the revision once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
@@ -152,7 +151,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 									tc.Context,
 									"<handler-key>",
 									"<instance>",
-									conflictingRevision,
+									aggregatestore.Revision(conflictingRevision),
 								)
 								gomega.Expect(err).To(gomega.Equal(aggregatestore.ErrConflict))
 
@@ -162,7 +161,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 						rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-						gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
+						gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
 					},
 					table.Entry("zero", 0),
 					table.Entry("too low", 1),
@@ -171,7 +170,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			})
 
 			ginkgo.When("an instance's revision is incremented more than once in the same transaction", func() {
-				ginkgo.XIt("saves the highest revision", func() {
+				ginkgo.It("saves the highest revision", func() {
 					err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
@@ -199,7 +198,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
 				})
 
-				ginkgo.XIt("uses the uncommitted revision for OCC checks", func() {
+				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
@@ -222,11 +221,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							)
 						},
 					)
-					gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
+					gomega.Expect(err).To(gomega.Equal(aggregatestore.ErrConflict))
 				})
 			})
 
-			ginkgo.XIt("serializes operations from competing transactions", func() {
+			ginkgo.It("serializes operations from competing transactions", func() {
 				ginkgo.By("running several transactions in parallel")
 
 				var g sync.WaitGroup
@@ -242,9 +241,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							for i := 0; i < count; i++ {
 								if err := tx.IncrementAggregateRevision(
 									tc.Context,
-									"<handler-key>",
-									"<instance>",
-									aggregatestore.Revision(count),
+									hk,
+									id,
+									aggregatestore.Revision(i),
 								); err != nil {
 									return err
 								}
