@@ -3,7 +3,9 @@ package memory
 import (
 	"sync/atomic"
 
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/syncx"
+	"google.golang.org/protobuf/proto"
 )
 
 // database encapsulates a single application's data.
@@ -35,4 +37,9 @@ func (db *database) TryOpen() bool {
 // provider.
 func (db *database) Close() {
 	atomic.CompareAndSwapUint32(&db.open, 1, 0)
+}
+
+// cloneEnvelope returns a deep-clone of env.
+func cloneEnvelope(env *envelopespec.Envelope) *envelopespec.Envelope {
+	return proto.Clone(env).(*envelopespec.Envelope)
 }
