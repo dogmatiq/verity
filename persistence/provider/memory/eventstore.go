@@ -8,6 +8,39 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
+// eventStoreCommitted contains data committed to the event-store.
+type eventStoreCommitted struct {
+	items []*eventstore.Item
+}
+
+func (c *eventStoreCommitted) apply(u *eventStoreUncommitted) {
+	c.items = append(c.items, u.items...)
+}
+
+// eventStoreUncommitted contains modifications to the event store that have
+// been performed within a transaction but not yet committed.
+type eventStoreUncommitted struct {
+	items []*eventstore.Item
+}
+
+func (u *eventStoreUncommitted) saveEvent(
+	c *eventStoreCommitted,
+	env *envelopespec.Envelope,
+) eventstore.Offset {
+	next := eventstore.Offset(
+		len(c.items) + len(u.items),
+	)
+
+	item := &eventstore.Item{
+		Offset:   next,
+		Envelope: cloneEnvelope(env),
+	}
+
+	u.items = append(u.items, item)
+
+	return next
+}
+
 // SaveEvent persists an event in the application's event store.
 //
 // It returns the event's offset.
@@ -19,27 +52,7 @@ func (t *transaction) SaveEvent(
 		return 0, err
 	}
 
-	next := eventstore.Offset(
-		len(t.ds.db.events) + len(t.uncommitted.events),
-	)
-
-	t.uncommitted.events = append(
-		t.uncommitted.events,
-		&eventstore.Item{
-			Offset:   next,
-			Envelope: cloneEnvelope(env),
-		},
-	)
-
-	return next, nil
-}
-
-// commitEvents commits staged events to the database.
-func (t *transaction) commitEvents() {
-	t.ds.db.events = append(
-		t.ds.db.events,
-		t.uncommitted.events...,
-	)
+	return t.eventStore.saveEvent(&t.ds.db.eventStore, env), nil
 }
 
 // eventStoreRepository is an implementation of eventstore.Repository that
@@ -79,12 +92,12 @@ func (r *eventStoreResult) Next(
 	}
 	defer r.db.RUnlock()
 
-	for r.index < len(r.db.events) {
+	for r.index < len(r.db.eventStore.items) {
 		if ctx.Err() != nil {
 			return nil, false, ctx.Err()
 		}
 
-		i := r.db.events[r.index]
+		i := r.db.eventStore.items[r.index]
 		r.index++
 
 		if r.query.IsMatch(i) {

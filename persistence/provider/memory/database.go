@@ -4,7 +4,6 @@ import (
 	"sync/atomic"
 
 	"github.com/dogmatiq/infix/internal/x/syncx"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -12,9 +11,9 @@ import (
 type database struct {
 	syncx.RWMutex
 
-	open   uint32 // atomic
-	events []*eventstore.Item
-	queue  struct {
+	open       uint32 // atomic
+	eventStore eventStoreCommitted
+	queue      struct {
 		order []*queuestore.Item
 		uniq  map[string]*queuestore.Item
 	}

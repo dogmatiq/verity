@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -14,9 +13,10 @@ type transaction struct {
 	ds      *dataStore
 	hasLock bool
 
+	eventStore eventStoreUncommitted
+
 	uncommitted struct {
-		events []*eventstore.Item
-		queue  map[string]*queuestore.Item
+		queue map[string]*queuestore.Item
 	}
 }
 
@@ -36,7 +36,7 @@ func (t *transaction) Commit(ctx context.Context) error {
 		return nil
 	}
 
-	t.commitEvents()
+	t.ds.db.eventStore.apply(&t.eventStore)
 	t.commitQueue()
 
 	return nil
