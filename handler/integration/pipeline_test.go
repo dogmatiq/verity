@@ -18,7 +18,7 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
-	"github.com/jmalloc/gomegax"
+	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -182,7 +182,7 @@ var _ = Describe("type Sink", func() {
 						Data:         MessageE1Packet.Data,
 					}
 
-					Expect(res.RecordedEvents).To(gomegax.EqualX(
+					Expect(res.RecordedEvents).To(EqualX(
 						[]pipeline.RecordedEvent{
 							{
 								Parcel: &parcel.Parcel{
