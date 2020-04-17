@@ -12,9 +12,10 @@ import (
 type database struct {
 	syncx.RWMutex
 
-	open  uint32 // atomic
-	event eventStoreDatabase
-	queue queueStoreDatabase
+	open      uint32 // atomic
+	aggregate aggregateStoreDatabase
+	event     eventStoreDatabase
+	queue     queueStoreDatabase
 }
 
 // newDatabase returns a new empty database.

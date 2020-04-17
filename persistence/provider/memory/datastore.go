@@ -26,7 +26,7 @@ func newDataStore(db *database) *dataStore {
 
 // AggregateStoreRepository returns application's aggregate store repository.
 func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
-	return &aggregateStoreRepository{}
+	return &aggregateStoreRepository{ds.db}
 }
 
 // EventStoreRepository returns the application's event store repository.

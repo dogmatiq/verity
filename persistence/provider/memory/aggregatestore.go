@@ -31,6 +31,7 @@ func (t *transaction) IncrementAggregateRevision(
 // aggregateStoreRepository is an implementation of aggregatestore.Repository
 // that stores aggregate state in memory.
 type aggregateStoreRepository struct {
+	db *database
 }
 
 // LoadRevision loads the current revision of an aggregate instance.
@@ -40,5 +41,15 @@ func (r *aggregateStoreRepository) LoadRevision(
 	ctx context.Context,
 	hk, id string,
 ) (aggregatestore.Revision, error) {
-	return 0, errors.New("not implemented")
+	if err := r.db.RLock(ctx); err != nil {
+		return 0, err
+	}
+	defer r.db.RUnlock()
+
+	return r.db.aggregate.revisions[hk][id], nil
+}
+
+// aggregateStoreDatabase contains data that is committed to the aggregate store.
+type aggregateStoreDatabase struct {
+	revisions map[string]map[string]aggregatestore.Revision
 }
