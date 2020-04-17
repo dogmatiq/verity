@@ -10,7 +10,7 @@ import (
 func (ui *UI) banner(f string, v ...interface{}) {
 	head := fmt.Sprintf(
 		"██████  DOGMA BANK • %s  ██",
-		fmt.Sprintf(f, v...),
+		strings.ToUpper(fmt.Sprintf(f, v...)),
 	)
 	tail := "██▓▓▓▒▒░"
 
