@@ -2,7 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"errors"
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
@@ -52,7 +51,29 @@ func (t *transaction) IncrementAggregateRevision(
 		return err
 	}
 
-	return errors.New("not implemented")
+	revisions := bboltx.CreateBucketIfNotExists(
+		t.actual,
+		t.appKey,
+		aggregateStoreBucketKey,
+		[]byte(hk),
+		aggregateStoreRevisionsBucketKey,
+	)
+
+	rev := unmarshalAggregateRevision(
+		revisions.Get([]byte(id)),
+	)
+
+	if c != rev {
+		return aggregatestore.ErrConflict
+	}
+
+	bboltx.Put(
+		revisions,
+		[]byte(id),
+		marshalAggregateRevision(rev+1),
+	)
+
+	return nil
 }
 
 // aggregateStoreRepository is an implementation of aggregatestore.Repository
