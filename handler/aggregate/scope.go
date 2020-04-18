@@ -13,11 +13,15 @@ type scope struct {
 	cause   *parcel.Parcel
 	packer  *parcel.Packer
 	handler *envelopespec.Identity
-	id      string
-	exists  bool
-	root    dogma.AggregateRoot
 	logger  logging.Logger
-	events  []*parcel.Parcel
+
+	id     string
+	root   dogma.AggregateRoot
+	exists bool
+
+	created   bool
+	destroyed bool
+	events    []*parcel.Parcel
 }
 
 // InstanceID returns the ID of the targeted aggregate instance.
@@ -32,23 +36,37 @@ func (s *scope) Create() bool {
 	}
 
 	s.exists = true
+	s.created = true
+
 	return true
 }
 
 // Destroy destroys the targeted instance.
 func (s *scope) Destroy() {
+	if !s.exists {
+		panic("can not destroy non-existent instance")
+	}
 
+	s.exists = false
+	s.destroyed = true
 }
 
 // Root returns the root of the targeted aggregate instance.
 func (s *scope) Root() dogma.AggregateRoot {
-	// TODO: guard against calls when instance does not exist
+	if !s.exists {
+		panic("can not access aggregate root of non-existent instance")
+	}
+
 	return s.root
 }
 
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
+	if !s.exists {
+		panic("can not record event against non-existent instance")
+	}
+
 	p := s.packer.PackChildEvent(
 		s.cause,
 		m,
@@ -56,9 +74,10 @@ func (s *scope) RecordEvent(m dogma.Message) {
 		s.id,
 	)
 
-	mlog.LogProduce(s.logger, p.Envelope)
-
+	s.root.ApplyEvent(m)
 	s.events = append(s.events, p)
+
+	mlog.LogProduce(s.logger, p.Envelope)
 }
 
 // Log records an informational message within the context of the message

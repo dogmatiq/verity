@@ -2,6 +2,7 @@ package aggregate
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
@@ -58,6 +59,13 @@ func (s *Sink) Accept(
 	}
 
 	id := s.Handler.RouteCommandToInstance(p.Message)
+	if id == "" {
+		panic(fmt.Sprintf(
+			"the '%s' aggregate message handler attempted to route a %T command to an empty instance ID",
+			s.Identity.Name,
+			p.Message,
+		))
+	}
 
 	rev, err := s.AggregateStore.LoadRevision(ctx, s.Identity.Key, id)
 	if err != nil {
@@ -65,6 +73,12 @@ func (s *Sink) Accept(
 	}
 
 	root := s.Handler.New()
+	if root == nil {
+		panic(fmt.Sprintf(
+			"the '%s' aggregate message handler returned a nil root from New()",
+			s.Identity.Name,
+		))
+	}
 
 	if rev > 0 {
 		if err := s.load(ctx, root, id); err != nil {
@@ -72,19 +86,38 @@ func (s *Sink) Accept(
 		}
 	}
 
-	ds := &scope{
+	sc := &scope{
 		cause:   p,
 		packer:  s.Packer,
 		handler: s.Identity,
-		id:      id,
-		exists:  rev > 0,
-		root:    root,
 		logger:  s.Logger,
+
+		id:     id,
+		root:   root,
+		exists: rev > 0,
 	}
 
-	s.Handler.HandleCommand(ds, p.Message)
+	s.Handler.HandleCommand(sc, p.Message)
 
-	if len(ds.events) == 0 {
+	if len(sc.events) == 0 {
+		if sc.created {
+			panic(fmt.Sprintf(
+				"the '%s' aggregate message handler created the '%s' instance without recording an event while handling a %T command",
+				s.Identity.Name,
+				id,
+				p.Message,
+			))
+		}
+
+		if sc.destroyed {
+			panic(fmt.Sprintf(
+				"the '%s' aggregate message handler destroyed the '%s' instance without recording an event while handling a %T command",
+				s.Identity.Name,
+				id,
+				p.Message,
+			))
+		}
+
 		return nil
 	}
 
@@ -93,10 +126,15 @@ func (s *Sink) Accept(
 		return err
 	}
 
-	for _, p := range ds.events {
+	for _, p := range sc.events {
 		if _, err := res.RecordEvent(ctx, tx, p); err != nil {
 			return err
 		}
+	}
+
+	if !sc.exists {
+		// TODO: https://github.com/dogmatiq/infix/issues/171
+		panic("not implemented")
 	}
 
 	return tx.IncrementAggregateRevision(ctx, s.Identity.Key, id, rev)
@@ -110,8 +148,9 @@ func (s *Sink) load(
 	id string,
 ) error {
 	q := eventstore.Query{
-		// TODO: how do we best configure the filter to deal with events that
-		// the aggregate once produced, but no longer does?
+		// TODO: https://github.com/dogmatiq/dogma/issues/113
+		// How do we best configure the filter to deal with events that the
+		// aggregate once produced, but no longer does?
 		Filter:              nil,
 		AggregateHandlerKey: s.Identity.Key,
 		AggregateInstanceID: id,

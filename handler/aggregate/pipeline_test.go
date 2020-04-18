@@ -19,7 +19,6 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 	. "github.com/dogmatiq/marshalkit/fixtures"
-	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -122,6 +121,7 @@ var _ = Describe("type Sink", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
+					s.Create()
 					s.RecordEvent(MessageE1)
 					s.RecordEvent(MessageE2)
 				}
@@ -175,164 +175,6 @@ var _ = Describe("type Sink", func() {
 				}
 
 				sink.Accept(ctx, req, res)
-			})
-		})
-
-		Describe("type scope", func() {
-			Describe("func InstanceID()", func() {
-				It("returns the instance ID that the message was routed to", func() {
-					handler.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						Expect(s.InstanceID()).To(Equal("<instance>"))
-					}
-
-					err := sink.Accept(ctx, req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-			})
-
-			Describe("func Create()", func() {
-				It("returns true when the instance does not already exist", func() {
-					handler.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						Expect(s.Create()).To(BeTrue())
-					}
-
-					err := sink.Accept(ctx, req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("returns false when the instance already exists", func() {
-					persistence.WithTransaction(
-						ctx,
-						dataStore,
-						func(tx persistence.ManagedTransaction) error {
-							return tx.IncrementAggregateRevision(
-								ctx,
-								sink.Identity.Key,
-								"<instance>",
-								0,
-							)
-						},
-					)
-
-					handler.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						Expect(s.Create()).To(BeFalse())
-					}
-
-					err := sink.Accept(ctx, req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("returns false when the instance was already via the same scope", func() {
-					handler.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.Create()
-						Expect(s.Create()).To(BeFalse())
-					}
-
-					err := sink.Accept(ctx, req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-			})
-
-			Describe("func Destroy()", func() {
-			})
-
-			Describe("func Root()", func() {
-			})
-
-			Describe("func RecordEvent()", func() {
-				It("produces the correct envelope", func() {
-					handler.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.RecordEvent(MessageE1)
-					}
-
-					err := sink.Accept(ctx, req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-
-					env := &envelopespec.Envelope{
-						MetaData: &envelopespec.MetaData{
-							MessageId:     "0",
-							CausationId:   "<consume>",
-							CorrelationId: "<correlation>",
-							Source: &envelopespec.Source{
-								Application: sink.Packer.Application,
-								Handler:     sink.Identity,
-								InstanceId:  "<instance>",
-							},
-							CreatedAt:   "2000-01-01T00:00:00Z",
-							Description: "{E1}",
-						},
-						PortableName: MessageEPortableName,
-						MediaType:    MessageE1Packet.MediaType,
-						Data:         MessageE1Packet.Data,
-					}
-
-					Expect(res.RecordedEvents).To(EqualX(
-						[]pipeline.RecordedEvent{
-							{
-								Parcel: &parcel.Parcel{
-									Envelope:  env,
-									Message:   MessageE1,
-									CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-								},
-								Persisted: &eventstore.Item{
-									Offset:   0,
-									Envelope: env,
-								},
-							},
-						},
-					))
-				})
-
-				It("logs about recorded events", func() {
-					handler.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.RecordEvent(MessageE1)
-					}
-
-					err := sink.Accept(ctx, req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(logger.Messages()).To(ContainElement(
-						logging.BufferedLogMessage{
-							Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
-						},
-					))
-				})
-			})
-
-			Describe("func RecordEvent()", func() {
-				It("logs using the standard format", func() {
-					handler.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.Log("format %s", "<value>")
-					}
-
-					err := sink.Accept(ctx, req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(logger.Messages()).To(ContainElement(
-						logging.BufferedLogMessage{
-							Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
-						},
-					))
-				})
 			})
 		})
 	})
