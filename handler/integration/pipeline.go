@@ -48,7 +48,7 @@ func (s *Sink) Accept(
 		return err
 	}
 
-	ds := &scope{
+	sc := &scope{
 		cause:   p,
 		packer:  s.Packer,
 		handler: s.Identity,
@@ -62,7 +62,7 @@ func (s *Sink) Accept(
 	)
 	defer cancel()
 
-	if err := s.Handler.HandleCommand(hctx, ds, p.Message); err != nil {
+	if err := s.Handler.HandleCommand(hctx, sc, p.Message); err != nil {
 		return err
 	}
 
@@ -71,7 +71,7 @@ func (s *Sink) Accept(
 		return err
 	}
 
-	for _, p := range ds.events {
+	for _, p := range sc.events {
 		if _, err := res.RecordEvent(ctx, tx, p); err != nil {
 			return err
 		}
