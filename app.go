@@ -16,7 +16,7 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
-	"github.com/dogmatiq/infix/queue"
+	"github.com/dogmatiq/infix/pipeline/queue"
 )
 
 type app struct {

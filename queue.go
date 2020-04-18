@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/infix/queue"
+	"github.com/dogmatiq/infix/pipeline/queue"
 )
 
 // runQueueForApp processes messages from the queue.
