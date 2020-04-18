@@ -10,6 +10,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/parcel"
@@ -21,7 +22,7 @@ import (
 type app struct {
 	Config    configkit.RichApplication
 	DataStore persistence.DataStore
-	Stream    *eventstream.PersistedStream
+	Stream    eventstream.Stream
 	Queue     *queue.Queue
 	Pipeline  pipeline.Pipeline
 	Logger    logging.Logger
@@ -106,8 +107,8 @@ func (e *Engine) newQueue(
 func (e *Engine) newEventStream(
 	cfg configkit.RichApplication,
 	ds persistence.DataStore,
-) *eventstream.PersistedStream {
-	return &eventstream.PersistedStream{
+) eventstream.Stream {
+	return &persistedstream.Stream{
 		App:        cfg.Identity(),
 		Repository: ds.EventStoreRepository(),
 		Marshaler:  e.opts.Marshaler,

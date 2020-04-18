@@ -1,4 +1,4 @@
-package eventstream
+package persistedstream
 
 import (
 	"context"
@@ -7,15 +7,16 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 )
 
-// PersistedStream is an implementation of Stream that reads events from a
+// Stream is an implementation of Stream that reads events from a
 // eventstore.Repository.
-type PersistedStream struct {
+type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity
 
@@ -33,12 +34,12 @@ type PersistedStream struct {
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *PersistedStream) Application() configkit.Identity {
+func (s *Stream) Application() configkit.Identity {
 	return s.App
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *PersistedStream) EventTypes(context.Context) (message.TypeCollection, error) {
+func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
 	return s.Types, nil
 }
 
@@ -52,11 +53,11 @@ func (s *PersistedStream) EventTypes(context.Context) (message.TypeCollection, e
 //
 // It returns an error if any of the event types in f are not supported, as
 // indicated by EventTypes().
-func (s *PersistedStream) Open(
+func (s *Stream) Open(
 	ctx context.Context,
-	o Offset,
+	o eventstream.Offset,
 	f message.TypeCollection,
-) (Cursor, error) {
+) (eventstream.Cursor, error) {
 	if f.Len() == 0 {
 		panic("at least one event type must be specified")
 	}
@@ -82,12 +83,12 @@ func (s *PersistedStream) Open(
 
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
-	c := &persistedCursor{
+	c := &cursor{
 		repository: s.Repository,
 		query:      q,
 		marshaler:  s.Marshaler,
 		cancel:     cancelConsume,
-		events:     make(chan *Event, s.PreFetch),
+		events:     make(chan *eventstream.Event, s.PreFetch),
 	}
 
 	go c.consume(consumeCtx)
@@ -95,14 +96,14 @@ func (s *PersistedStream) Open(
 	return c, nil
 }
 
-// persistedCursor is a Cursor that reads events from an PersistedStream.
-type persistedCursor struct {
+// cursor is an eventstream.Cursor that reads events from the event store.
+type cursor struct {
 	repository eventstore.Repository
 	query      eventstore.Query
 	marshaler  marshalkit.ValueMarshaler
 	once       sync.Once
 	cancel     context.CancelFunc
-	events     chan *Event
+	events     chan *eventstream.Event
 	err        error
 }
 
@@ -113,7 +114,7 @@ type persistedCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *persistedCursor) Next(ctx context.Context) (*Event, error) {
+func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -130,16 +131,16 @@ func (c *persistedCursor) Next(ctx context.Context) (*Event, error) {
 //
 // It returns ErrCursorClosed if the cursor is already closed.
 // Any current or future calls to Next() return ErrCursorClosed.
-func (c *persistedCursor) Close() error {
-	if !c.close(ErrCursorClosed) {
-		return ErrCursorClosed
+func (c *cursor) Close() error {
+	if !c.close(eventstream.ErrCursorClosed) {
+		return eventstream.ErrCursorClosed
 	}
 
 	return nil
 }
 
 // close closes the cursor. It returns false if the cursor was already closed.
-func (c *persistedCursor) close(cause error) bool {
+func (c *cursor) close(cause error) bool {
 	ok := false
 
 	c.once.Do(func() {
@@ -156,7 +157,7 @@ func (c *persistedCursor) close(cause error) bool {
 //
 // It exits when the ctx is canceled or some other error occurs while reading
 // from the underlying cursor.
-func (c *persistedCursor) consume(ctx context.Context) {
+func (c *cursor) consume(ctx context.Context) {
 	defer close(c.events)
 
 	for {
@@ -171,7 +172,7 @@ func (c *persistedCursor) consume(ctx context.Context) {
 
 // execQuery executes a query against the event store to obtain the next batch
 // of events.
-func (c *persistedCursor) execQuery(ctx context.Context) error {
+func (c *cursor) execQuery(ctx context.Context) error {
 	res, err := c.repository.QueryEvents(ctx, c.query)
 	if err != nil {
 		return err
@@ -188,8 +189,8 @@ func (c *persistedCursor) execQuery(ctx context.Context) error {
 			break
 		}
 
-		ev := &Event{
-			Offset: Offset(i.Offset),
+		ev := &eventstream.Event{
+			Offset: eventstream.Offset(i.Offset),
 		}
 
 		ev.Parcel, err = parcel.FromEnvelope(c.marshaler, i.Envelope)

@@ -1,10 +1,10 @@
-package eventstream_test
+package persistedstream_test
 
 import (
 	"context"
 
-	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
+	. "github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type PersistedStream", func() {
+var _ = Describe("type Stream", func() {
 	var dataStore persistence.DataStore
 
 	streamtest.Declare(
@@ -23,7 +23,7 @@ var _ = Describe("type PersistedStream", func() {
 			dataStore, err = provider.Open(ctx, in.Application.Identity().Key)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			stream := &PersistedStream{
+			stream := &Stream{
 				App:        in.Application.Identity(),
 				Types:      in.EventTypes,
 				Repository: dataStore.EventStoreRepository(),
