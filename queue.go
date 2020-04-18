@@ -7,8 +7,8 @@ import (
 	"github.com/dogmatiq/infix/queue"
 )
 
-// runQueuePumpForApp starts a pipeline pump for the message queue.
-func (e *Engine) runQueuePumpForApp(
+// runQueueForApp processes messages from the queue.
+func (e *Engine) runQueueForApp(
 	ctx context.Context,
 	a *app,
 ) error {
@@ -18,13 +18,11 @@ func (e *Engine) runQueuePumpForApp(
 		Semaphore: e.semaphore,
 	}
 
-	if err := p.Run(ctx); err != nil {
-		return fmt.Errorf(
-			"stopped consuming from the queue for %s: %w",
-			a.Config.Identity(),
-			err,
-		)
-	}
+	err := p.Run(ctx)
 
-	return nil
+	return fmt.Errorf(
+		"stopped consuming from the queue for %s: %w",
+		a.Config.Identity(),
+		err,
+	)
 }
