@@ -7,20 +7,18 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/persistence"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 // Engine hosts a Dogma application.
 type Engine struct {
 	opts       *engineOptions
 	dataStores *persistence.DataStoreSet
-	// TODO: https://github.com/dogmatiq/infix/issues/103
-	// Make semaphore size configurable.
-	semaphore handler.Semaphore
-	logger    logging.Logger
+	semaphore  *semaphore.Weighted
+	logger     logging.Logger
 
 	apps      map[string]*app
 	executors map[message.Type]dogma.CommandExecutor
@@ -50,6 +48,7 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 		dataStores: &persistence.DataStoreSet{
 			Provider: opts.PersistenceProvider,
 		},
+		semaphore: semaphore.NewWeighted(int64(opts.ConcurrencyLimit)),
 		logger: loggingx.WithPrefix(
 			opts.Logger,
 			"engine  ",

@@ -129,6 +129,26 @@ var _ = Describe("func WithMessageBackoff()", func() {
 	})
 })
 
+var _ = Describe("func WithConcurrencyLimit()", func() {
+	It("sets the concurrency limit", func() {
+		opts := resolveEngineOptions(
+			WithApplication(TestApplication),
+			WithConcurrencyLimit(10),
+		)
+
+		Expect(opts.ConcurrencyLimit).To(BeEquivalentTo(10))
+	})
+
+	It("uses the default if the limit is zero", func() {
+		opts := resolveEngineOptions(
+			WithApplication(TestApplication),
+			WithConcurrencyLimit(0),
+		)
+
+		Expect(opts.ConcurrencyLimit).To(Equal(DefaultConcurrencyLimit))
+	})
+})
+
 var _ = Describe("func WithMarshaler()", func() {
 	It("sets the marshaler", func() {
 		m := &codec.Marshaler{}

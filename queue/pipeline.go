@@ -3,9 +3,9 @@ package queue
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/pipeline"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 // PipelineSource pops messages from a queue and sends each of them via a
@@ -19,7 +19,7 @@ type PipelineSource struct {
 
 	// Semaphore is used to limit the number of messages being handled
 	// concurrently.
-	Semaphore handler.Semaphore
+	Semaphore *semaphore.Weighted
 }
 
 // Run sends messages from the queue via the pipeline until error occurs or ctx
@@ -36,14 +36,14 @@ func (s *PipelineSource) Run(ctx context.Context) error {
 				return err
 			}
 
-			if err := s.Semaphore.Acquire(ctx); err != nil {
+			if err := s.Semaphore.Acquire(ctx, 1); err != nil {
 				req.Close()
 				return err
 			}
 
 			g.Go(func() error {
 				defer req.Close()
-				defer s.Semaphore.Release()
+				defer s.Semaphore.Release(1)
 				return s.Pipeline(ctx, req)
 			})
 		}
