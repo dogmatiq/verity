@@ -94,7 +94,7 @@ func (s *Stream) Append(parcels ...*parcel.Parcel) {
 	}
 }
 
-// cursor is a Cursor that reads events from a MemoryStream.
+// cursor is a Cursor that reads events from an in-memory stream.
 type cursor struct {
 	stream *Stream
 	offset eventstream.Offset
