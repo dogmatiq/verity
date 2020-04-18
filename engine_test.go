@@ -21,6 +21,37 @@ var _ = Describe("type Engine", func() {
 		app = &Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 				c.Identity("<app-name>", "<app-key>")
+
+				c.RegisterAggregate(&AggregateMessageHandler{
+					ConfigureFunc: func(c dogma.AggregateConfigurer) {
+						c.Identity("<agg-name>", "<agg-key>")
+						c.ConsumesCommandType(MessageC{})
+						c.ProducesEventType(MessageE{})
+					},
+				})
+
+				c.RegisterProcess(&ProcessMessageHandler{
+					ConfigureFunc: func(c dogma.ProcessConfigurer) {
+						c.Identity("<proc-name>", "<proc-key>")
+						c.ConsumesEventType(MessageE{})
+						c.ProducesCommandType(MessageI{})
+					},
+				})
+
+				c.RegisterIntegration(&IntegrationMessageHandler{
+					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+						c.Identity("<int-name>", "<int-key>")
+						c.ConsumesCommandType(MessageI{})
+						c.ProducesEventType(MessageJ{})
+					},
+				})
+
+				c.RegisterProjection(&ProjectionMessageHandler{
+					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
+						c.Identity("<proj-name>", "<proj-key>")
+						c.ConsumesEventType(MessageE{})
+					},
+				})
 			},
 		}
 	})
