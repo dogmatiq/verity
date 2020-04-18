@@ -124,7 +124,7 @@ func (s *Stream) Open(
 
 		// If no error occurred, we hand ownership of cancelConsume() over to the
 		// cursor to be called when the cursor is closed by the user.
-		c := &networkCursor{
+		c := &cursor{
 			stream:    stream,
 			marshaler: s.Marshaler,
 			cancel:    cancelConsume,
@@ -137,8 +137,8 @@ func (s *Stream) Open(
 	}
 }
 
-// networkCursor is a Cursor that reads events from a NetworkStream.
-type networkCursor struct {
+// cursor is a Cursor that reads events from a network stream.
+type cursor struct {
 	stream    messagingspec.EventStream_ConsumeClient
 	marshaler marshalkit.ValueMarshaler
 	once      sync.Once
@@ -154,7 +154,7 @@ type networkCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *networkCursor) Next(ctx context.Context) (*eventstream.Event, error) {
+func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -172,7 +172,7 @@ func (c *networkCursor) Next(ctx context.Context) (*eventstream.Event, error) {
 // It returns ErrCursorClosed if the cursor is already closed.
 //
 // Any current or future calls to Next() return ErrCursorClosed.
-func (c *networkCursor) Close() error {
+func (c *cursor) Close() error {
 	if !c.close(eventstream.ErrCursorClosed) {
 		return eventstream.ErrCursorClosed
 	}
@@ -185,7 +185,7 @@ func (c *networkCursor) Close() error {
 //
 // It exits when the context associated with c.stream is canceled or some other
 // error occurs while reading from the stream.
-func (c *networkCursor) consume() {
+func (c *cursor) consume() {
 	defer close(c.events)
 
 	for {
@@ -199,7 +199,7 @@ func (c *networkCursor) consume() {
 }
 
 // close closes the cursor. It returns false if the cursor was already closed.
-func (c *networkCursor) close(cause error) bool {
+func (c *cursor) close(cause error) bool {
 	ok := false
 
 	c.once.Do(func() {
@@ -213,7 +213,7 @@ func (c *networkCursor) close(cause error) bool {
 
 // recv waits for the next event from the stream, unmarshals it and sends it
 // over the c.events channel.
-func (c *networkCursor) recv() error {
+func (c *cursor) recv() error {
 	// We can't pass ctx to Recv(), but the stream is already bound to a context.
 	res, err := c.stream.Recv()
 	if err != nil {

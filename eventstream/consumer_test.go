@@ -12,6 +12,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger/backoff"
@@ -23,7 +24,7 @@ var _ = Describe("type Consumer", func() {
 	var (
 		ctx       context.Context
 		cancel    func()
-		mstream   *MemoryStream
+		mstream   *memorystream.Stream
 		stream    *EventStreamStub
 		eshandler *EventStreamHandlerStub
 		consumer  *Consumer
@@ -64,7 +65,7 @@ var _ = Describe("type Consumer", func() {
 			Parcel: NewParcel("<message-5>", MessageB3),
 		}
 
-		mstream = &MemoryStream{
+		mstream = &memorystream.Stream{
 			App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 			Types: message.NewTypeSet(
 				MessageAType,
