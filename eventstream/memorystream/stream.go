@@ -1,4 +1,4 @@
-package eventstream
+package memorystream
 
 import (
 	"context"
@@ -6,11 +6,12 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/parcel"
 )
 
-// MemoryStream is an in-memory event stream.
-type MemoryStream struct {
+// Stream is an in-memory event stream.
+type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity
 
@@ -19,16 +20,16 @@ type MemoryStream struct {
 
 	m      sync.Mutex
 	ready  chan struct{}
-	events []*Event
+	events []*eventstream.Event
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *MemoryStream) Application() configkit.Identity {
+func (s *Stream) Application() configkit.Identity {
 	return s.App
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *MemoryStream) EventTypes(context.Context) (message.TypeCollection, error) {
+func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
 	return s.Types, nil
 }
 
@@ -42,11 +43,11 @@ func (s *MemoryStream) EventTypes(context.Context) (message.TypeCollection, erro
 //
 // It returns an error if any of the event types in f are not supported, as
 // indicated by EventTypes().
-func (s *MemoryStream) Open(
+func (s *Stream) Open(
 	ctx context.Context,
-	o Offset,
+	o eventstream.Offset,
 	f message.TypeCollection,
-) (Cursor, error) {
+) (eventstream.Cursor, error) {
 	if f.Len() == 0 {
 		panic("at least one event type must be specified")
 	}
@@ -55,7 +56,7 @@ func (s *MemoryStream) Open(
 		return nil, ctx.Err()
 	}
 
-	return &memoryCursor{
+	return &cursor{
 		stream: s,
 		offset: o,
 		closed: make(chan struct{}),
@@ -64,11 +65,11 @@ func (s *MemoryStream) Open(
 }
 
 // Append appends events to the stream.
-func (s *MemoryStream) Append(parcels ...*parcel.Parcel) {
+func (s *Stream) Append(parcels ...*parcel.Parcel) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	o := Offset(len(s.events))
+	o := eventstream.Offset(len(s.events))
 
 	for _, p := range parcels {
 		t := message.TypeOf(p.Message)
@@ -78,7 +79,7 @@ func (s *MemoryStream) Append(parcels ...*parcel.Parcel) {
 
 		s.events = append(
 			s.events,
-			&Event{
+			&eventstream.Event{
 				Offset: o,
 				Parcel: p,
 			},
@@ -93,10 +94,10 @@ func (s *MemoryStream) Append(parcels ...*parcel.Parcel) {
 	}
 }
 
-// memoryCursor is a Cursor that reads events from a MemoryStream.
-type memoryCursor struct {
-	stream *MemoryStream
-	offset Offset
+// cursor is a Cursor that reads events from a MemoryStream.
+type cursor struct {
+	stream *Stream
+	offset eventstream.Offset
 	filter message.TypeCollection
 
 	once   sync.Once
@@ -110,13 +111,13 @@ type memoryCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *memoryCursor) Next(ctx context.Context) (*Event, error) {
+func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, ErrCursorClosed
+			return nil, eventstream.ErrCursorClosed
 		default:
 		}
 
@@ -130,7 +131,7 @@ func (c *memoryCursor) Next(ctx context.Context) (*Event, error) {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-c.closed:
-			return nil, ErrCursorClosed
+			return nil, eventstream.ErrCursorClosed
 		case <-ready:
 			continue // keep to see coverage
 		}
@@ -141,8 +142,8 @@ func (c *memoryCursor) Next(ctx context.Context) (*Event, error) {
 //
 // It returns ErrCursorClosed if the cursor is already closed.
 // Any current or future calls to Next() return ErrCursorClosed.
-func (c *memoryCursor) Close() error {
-	err := ErrCursorClosed
+func (c *cursor) Close() error {
+	err := eventstream.ErrCursorClosed
 
 	c.once.Do(func() {
 		err = nil
@@ -154,11 +155,11 @@ func (c *memoryCursor) Close() error {
 
 // get returns the next relevant event, or if the end of the stream is reached,
 // it returns a "ready" channel that is closed when an event is appended.
-func (c *memoryCursor) get() (*Event, <-chan struct{}) {
+func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	c.stream.m.Lock()
 	defer c.stream.m.Unlock()
 
-	for Offset(len(c.stream.events)) > c.offset {
+	for eventstream.Offset(len(c.stream.events)) > c.offset {
 		offset := c.offset
 		c.offset++
 

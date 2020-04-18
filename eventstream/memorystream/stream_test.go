@@ -1,4 +1,4 @@
-package eventstream_test
+package memorystream_test
 
 import (
 	"context"
@@ -7,18 +7,18 @@ import (
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
+	. "github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type MemoryStream", func() {
+var _ = Describe("type Stream", func() {
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
-			stream := &MemoryStream{
+			stream := &Stream{
 				App:   in.Application.Identity(),
 				Types: in.EventTypes,
 			}
@@ -34,12 +34,12 @@ var _ = Describe("type MemoryStream", func() {
 	)
 })
 
-var _ = Describe("type MemoryStream", func() {
+var _ = Describe("type Stream", func() {
 	Describe("func Append()", func() {
 		It("panics if the message type is not supported", func() {
 			p := NewParcel("<id>", MessageA1)
 
-			stream := &MemoryStream{
+			stream := &Stream{
 				App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
 				Types: message.NewTypeSet(
 					MessageBType,
