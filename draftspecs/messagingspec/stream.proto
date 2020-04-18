@@ -43,7 +43,7 @@ message ConsumeRequest{
   // event at that offset is one of the requested message types.
   uint64 offset = 2;
 
-  // types is the set of message types to include in the results.
+  // Types is the set of message types to include in the results.
   repeated string types = 3;
 }
 

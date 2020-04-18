@@ -8,9 +8,10 @@ import (
 	"github.com/dogmatiq/configkit"
 	configapi "github.com/dogmatiq/configkit/api"
 	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/eventstream/networkstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
 	"google.golang.org/grpc"
 )
@@ -59,16 +60,26 @@ func (e *Engine) registerConfigServer(ctx context.Context, s *grpc.Server) error
 
 // registerConfigServer registers the EventStream server with the gRPC server.
 func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) error {
-	streams := map[string]eventstream.Stream{}
+	var options []networkstream.ServerOption
 
 	for k, a := range e.apps {
-		streams[k] = a.Stream
+		options = append(
+			options,
+			networkstream.WithApplication(
+				k,
+				a.DataStore.EventStoreRepository(),
+				a.Config.
+					MessageTypes().
+					Produced.
+					FilterByRole(message.EventRole),
+			),
+		)
 	}
 
-	eventstream.RegisterServer(
+	networkstream.RegisterServer(
 		s,
 		e.opts.Marshaler,
-		streams,
+		options...,
 	)
 
 	return nil
@@ -146,7 +157,7 @@ func (e *Engine) runDiscoveredApp(ctx context.Context, a *discovery.Application)
 	// stream.Consumer always retries until ctx is canceled.
 	_ = e.runStreamConsumersForEachApp(
 		ctx,
-		&eventstream.NetworkStream{
+		&networkstream.Stream{
 			App:       a.Identity(),
 			Client:    messagingspec.NewEventStreamClient(a.Client.Connection),
 			Marshaler: e.opts.Marshaler,

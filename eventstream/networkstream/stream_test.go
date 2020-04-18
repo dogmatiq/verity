@@ -1,4 +1,4 @@
-package eventstream_test
+package networkstream_test
 
 import (
 	"context"
@@ -10,28 +10,27 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
-	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
+	. "github.com/dogmatiq/infix/eventstream/networkstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 )
 
-var _ = Describe("type NetworkStream", func() {
+var _ = Describe("type Stream", func() {
 	var (
-		listener net.Listener
-		server   *grpc.Server
+		dataStore persistence.DataStore
+		listener  net.Listener
+		server    *grpc.Server
 	)
 
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
-			source := &MemoryStream{
-				App:   in.Application.Identity(),
-				Types: in.EventTypes,
-			}
+			dataStore = NewDataStoreStub()
 
 			var err error
 			listener, err = net.Listen("tcp", ":")
@@ -41,9 +40,11 @@ var _ = Describe("type NetworkStream", func() {
 			RegisterServer(
 				server,
 				in.Marshaler,
-				map[string]Stream{
-					"<app-key>": source,
-				},
+				WithApplication(
+					"<app-key>",
+					dataStore.EventStoreRepository(),
+					in.EventTypes,
+				),
 			)
 
 			go server.Serve(listener)
@@ -55,13 +56,29 @@ var _ = Describe("type NetworkStream", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return streamtest.Out{
-				Stream: &NetworkStream{
+				Stream: &Stream{
 					App:       in.Application.Identity(),
 					Client:    messagingspec.NewEventStreamClient(conn),
 					Marshaler: in.Marshaler,
 				},
-				Append: func(_ context.Context, parcels ...*parcel.Parcel) {
-					source.Append(parcels...)
+				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
+					err := persistence.WithTransaction(
+						ctx,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							for _, p := range parcels {
+								if _, err := tx.SaveEvent(ctx, p.Envelope); err != nil {
+									return err
+								}
+							}
+
+							return nil
+						},
+					)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					// TODO: https://github.com/dogmatiq/infix/issues/74
+					// Wake the server here.
 				},
 			}
 		},
@@ -73,35 +90,32 @@ var _ = Describe("type NetworkStream", func() {
 			if server != nil {
 				server.Stop()
 			}
+
+			dataStore.Close()
 		},
 	)
 })
 
-var _ = Describe("type NetworkStream", func() {
+var _ = Describe("type Stream", func() {
 	var (
-		ctx      context.Context
-		cancel   func()
-		listener net.Listener
-		server   *grpc.Server
-		conn     *grpc.ClientConn
-		source   *MemoryStream
-		stream   *NetworkStream
-		types    message.TypeSet
-		pcl      *parcel.Parcel
+		ctx       context.Context
+		cancel    func()
+		dataStore persistence.DataStore
+		listener  net.Listener
+		server    *grpc.Server
+		conn      *grpc.ClientConn
+		stream    *Stream
+		types     message.TypeSet
+		pcl       *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		dataStore = NewDataStoreStub()
 
 		pcl = NewParcel("<message-1>", MessageA1)
 
 		types = message.NewTypeSet(MessageAType)
-		source = &MemoryStream{
-			Types: message.TypesOf(
-				pcl.Message,
-			),
-		}
-		source.Append(pcl)
 
 		var err error
 		listener, err = net.Listen("tcp", ":")
@@ -111,9 +125,11 @@ var _ = Describe("type NetworkStream", func() {
 		RegisterServer(
 			server,
 			Marshaler,
-			map[string]Stream{
-				"<app-key>": source,
-			},
+			WithApplication(
+				"<app-key>",
+				dataStore.EventStoreRepository(),
+				types,
+			),
 		)
 
 		go server.Serve(listener)
@@ -124,7 +140,7 @@ var _ = Describe("type NetworkStream", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		stream = &NetworkStream{
+		stream = &Stream{
 			App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
 			Client:    messagingspec.NewEventStreamClient(conn),
 			Marshaler: Marshaler,
@@ -144,6 +160,8 @@ var _ = Describe("type NetworkStream", func() {
 			conn.Close()
 		}
 
+		dataStore.Close()
+
 		cancel()
 	})
 
@@ -159,7 +177,7 @@ var _ = Describe("type NetworkStream", func() {
 		})
 	})
 
-	Describe("func Eventypes()", func() {
+	Describe("func EventTypes()", func() {
 		It("returns an error if the message types can not be queried", func() {
 			conn.Close()
 

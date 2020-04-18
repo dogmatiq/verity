@@ -42,7 +42,7 @@ type ConsumeRequest struct {
 	// The offset of the message returned will be greater than this value if the
 	// event at that offset is one of the requested message types.
 	Offset uint64 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
-	// types is the set of message types to include in the results.
+	// Types is the set of message types to include in the results.
 	Types []string `protobuf:"bytes,3,rep,name=types,proto3" json:"types,omitempty"`
 }
 
