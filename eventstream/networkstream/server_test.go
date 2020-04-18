@@ -1,18 +1,17 @@
-package eventstream_test
+package networkstream_test
 
 import (
 	"context"
-	"errors"
 	"net"
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
-	"github.com/dogmatiq/infix/eventstream"
-	. "github.com/dogmatiq/infix/eventstream"
+	. "github.com/dogmatiq/infix/eventstream/networkstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -24,13 +23,12 @@ import (
 
 var _ = Describe("type server", func() {
 	var (
-		ctx      context.Context
-		cancel   func()
-		mstream  *MemoryStream
-		stream   *EventStreamStub
-		listener net.Listener
-		server   *grpc.Server
-		client   messagingspec.EventStreamClient
+		ctx       context.Context
+		cancel    func()
+		dataStore persistence.DataStore
+		listener  net.Listener
+		server    *grpc.Server
+		client    messagingspec.EventStreamClient
 
 		parcel0, parcel1, parcel2, parcel3 *parcel.Parcel
 	)
@@ -38,23 +36,19 @@ var _ = Describe("type server", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
+		dataStore = NewDataStoreStub()
+
 		parcel0 = NewParcel("<message-0>", MessageA1)
 		parcel1 = NewParcel("<message-1>", MessageB1)
 		parcel2 = NewParcel("<message-2>", MessageA2)
 		parcel3 = NewParcel("<message-3>", MessageB2)
 
-		mstream = &MemoryStream{
-			Types: message.TypesOf(
-				parcel0.Message,
-				parcel1.Message,
-				parcel2.Message,
-				parcel3.Message,
-			),
-		}
-
-		stream = &EventStreamStub{
-			Stream: mstream,
-		}
+		types := message.TypesOf(
+			parcel0.Message,
+			parcel1.Message,
+			parcel2.Message,
+			parcel3.Message,
+		)
 
 		var err error
 		listener, err = net.Listen("tcp", ":")
@@ -64,9 +58,11 @@ var _ = Describe("type server", func() {
 		RegisterServer(
 			server,
 			Marshaler,
-			map[string]eventstream.Stream{
-				"<app-key>": stream,
-			},
+			WithApplication(
+				"<app-key>",
+				dataStore.EventStoreRepository(),
+				types,
+			),
 		)
 
 		go server.Serve(listener)
@@ -89,20 +85,40 @@ var _ = Describe("type server", func() {
 			server.Stop()
 		}
 
+		dataStore.Close()
+
 		cancel()
 	})
 
 	Describe("func Consume()", func() {
 		BeforeEach(func() {
-			mstream.Append(
+			parcels := []*parcel.Parcel{
 				parcel0,
 				parcel1,
 				parcel2,
 				parcel3,
+			}
+
+			err := persistence.WithTransaction(
+				ctx,
+				dataStore,
+				func(tx persistence.ManagedTransaction) error {
+					for _, p := range parcels {
+						if _, err := tx.SaveEvent(ctx, p.Envelope); err != nil {
+							return err
+						}
+					}
+
+					return nil
+				},
 			)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// TODO: https://github.com/dogmatiq/infix/issues/74
+			// Wake the server here.
 		})
 
-		It("exposes the messages from the underlying stream", func() {
+		It("exposes messages from the event store", func() {
 			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"MessageA", "MessageB"},
@@ -287,25 +303,6 @@ var _ = Describe("type server", func() {
 					},
 				),
 			))
-		})
-
-		It("returns an error if the underlying stream returns an error", func() {
-			stream.EventTypesFunc = func(
-				context.Context,
-			) (message.TypeCollection, error) {
-				return nil, errors.New("<error>")
-			}
-
-			req := &messagingspec.MessageTypesRequest{
-				ApplicationKey: "<app-key>",
-			}
-
-			_, err := client.EventTypes(ctx, req)
-
-			s, ok := status.FromError(err)
-			Expect(ok).To(BeTrue())
-			Expect(s.Message()).To(Equal("<error>"))
-			Expect(s.Code()).To(Equal(codes.Unknown))
 		})
 	})
 })

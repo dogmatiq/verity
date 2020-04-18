@@ -1,4 +1,4 @@
-package eventstream
+package networkstream
 
 import (
 	"context"
@@ -7,13 +7,14 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/marshalkit"
 )
 
-// NetworkStream is an implementation of Stream that consumes messages via
-// the dogma.messaging.v1 EventStream gRPC API.
-type NetworkStream struct {
+// Stream is an implementation of Stream that consumes messages via the
+// dogma.messaging.v1 EventStream gRPC API.
+type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity
 
@@ -28,12 +29,12 @@ type NetworkStream struct {
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *NetworkStream) Application() configkit.Identity {
+func (s *Stream) Application() configkit.Identity {
 	return s.App
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *NetworkStream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
+func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
 	req := &messagingspec.MessageTypesRequest{
 		ApplicationKey: s.App.Key,
 	}
@@ -66,11 +67,11 @@ func (s *NetworkStream) EventTypes(ctx context.Context) (message.TypeCollection,
 //
 // It returns an error if any of the event types in f are not supported, as
 // indicated by EventTypes().
-func (s *NetworkStream) Open(
+func (s *Stream) Open(
 	ctx context.Context,
-	o Offset,
+	o eventstream.Offset,
 	f message.TypeCollection,
-) (Cursor, error) {
+) (eventstream.Cursor, error) {
 	if f.Len() == 0 {
 		panic("at least one event type must be specified")
 	}
@@ -127,7 +128,7 @@ func (s *NetworkStream) Open(
 			stream:    stream,
 			marshaler: s.Marshaler,
 			cancel:    cancelConsume,
-			events:    make(chan *Event, s.PreFetch),
+			events:    make(chan *eventstream.Event, s.PreFetch),
 		}
 
 		go c.consume()
@@ -142,7 +143,7 @@ type networkCursor struct {
 	marshaler marshalkit.ValueMarshaler
 	once      sync.Once
 	cancel    context.CancelFunc
-	events    chan *Event
+	events    chan *eventstream.Event
 	err       error
 }
 
@@ -153,7 +154,7 @@ type networkCursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
-func (c *networkCursor) Next(ctx context.Context) (*Event, error) {
+func (c *networkCursor) Next(ctx context.Context) (*eventstream.Event, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -172,8 +173,8 @@ func (c *networkCursor) Next(ctx context.Context) (*Event, error) {
 //
 // Any current or future calls to Next() return ErrCursorClosed.
 func (c *networkCursor) Close() error {
-	if !c.close(ErrCursorClosed) {
-		return ErrCursorClosed
+	if !c.close(eventstream.ErrCursorClosed) {
+		return eventstream.ErrCursorClosed
 	}
 
 	return nil
@@ -219,8 +220,8 @@ func (c *networkCursor) recv() error {
 		return err
 	}
 
-	ev := &Event{
-		Offset: Offset(res.Offset),
+	ev := &eventstream.Event{
+		Offset: eventstream.Offset(res.Offset),
 	}
 
 	ev.Parcel, err = parcel.FromEnvelope(c.marshaler, res.GetEnvelope())

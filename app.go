@@ -19,11 +19,12 @@ import (
 )
 
 type app struct {
-	Config   configkit.RichApplication
-	Stream   *eventstream.PersistedStream
-	Queue    *queue.Queue
-	Pipeline pipeline.Pipeline
-	Logger   logging.Logger
+	Config    configkit.RichApplication
+	DataStore persistence.DataStore
+	Stream    *eventstream.PersistedStream
+	Queue     *queue.Queue
+	Pipeline  pipeline.Pipeline
+	Logger    logging.Logger
 }
 
 // initApp initializes the engine to handle the app represented by cfg.
@@ -60,11 +61,12 @@ func (e *Engine) initApp(
 	p := e.newPipeline(cfg, q, l)
 
 	a := &app{
-		Config:   cfg,
-		Stream:   s,
-		Queue:    q,
-		Pipeline: p,
-		Logger:   l,
+		Config:    cfg,
+		DataStore: ds,
+		Stream:    s,
+		Queue:     q,
+		Pipeline:  p,
+		Logger:    l,
 	}
 
 	if e.apps == nil {
