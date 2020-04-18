@@ -111,7 +111,7 @@ func (e *Engine) run(ctx context.Context) error {
 		})
 
 		g.Go(func() error {
-			return e.runQueuePumpForApp(ctx, a)
+			return e.runQueueForApp(ctx, a)
 		})
 
 		g.Go(func() error {

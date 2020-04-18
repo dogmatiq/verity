@@ -21,6 +21,37 @@ var _ = Describe("type Engine", func() {
 		app = &Application{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 				c.Identity("<app-name>", "<app-key>")
+
+				c.RegisterAggregate(&AggregateMessageHandler{
+					ConfigureFunc: func(c dogma.AggregateConfigurer) {
+						c.Identity("<agg-name>", "<agg-key>")
+						c.ConsumesCommandType(MessageC{})
+						c.ProducesEventType(MessageE{})
+					},
+				})
+
+				c.RegisterProcess(&ProcessMessageHandler{
+					ConfigureFunc: func(c dogma.ProcessConfigurer) {
+						c.Identity("<proc-name>", "<proc-key>")
+						c.ConsumesEventType(MessageE{})
+						c.ProducesCommandType(MessageI{})
+					},
+				})
+
+				c.RegisterIntegration(&IntegrationMessageHandler{
+					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+						c.Identity("<int-name>", "<int-key>")
+						c.ConsumesCommandType(MessageI{})
+						c.ProducesEventType(MessageJ{})
+					},
+				})
+
+				c.RegisterProjection(&ProjectionMessageHandler{
+					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
+						c.Identity("<proj-name>", "<proj-key>")
+						c.ConsumesEventType(MessageE{})
+					},
+				})
 			},
 		}
 	})
@@ -35,6 +66,12 @@ var _ = Describe("type Engine", func() {
 		It("allows the app to be provided via the WithApplication() option", func() {
 			Expect(func() {
 				New(nil, WithApplication(app))
+			}).NotTo(Panic())
+		})
+
+		It("provides default values for networking", func() {
+			Expect(func() {
+				New(app, WithNetworking())
 			}).NotTo(Panic())
 		})
 
@@ -78,6 +115,17 @@ var _ = Describe("type Engine", func() {
 				WithPersistence(&memory.Provider{}), // avoid default BoltDB location
 			)
 			Expect(err).To(MatchError(context.Canceled))
+		})
+
+		It("returns an error if networking is enabled but no discovered is specified", func() {
+			err := Run(
+				ctx,
+				app,
+				WithPersistence(&memory.Provider{}), // avoid default BoltDB location
+				WithNetworking(),
+			)
+			// TODO: https://github.com/dogmatiq/configkit/issues/58
+			Expect(err).To(MatchError("discoverer stopped: no API discovery configured, see infix.WithDiscoverer()"))
 		})
 	})
 })
