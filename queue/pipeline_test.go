@@ -6,7 +6,6 @@ import (
 
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -15,6 +14,7 @@ import (
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"golang.org/x/sync/semaphore"
 )
 
 var _ = Describe("type PipelineSource", func() {
@@ -38,7 +38,7 @@ var _ = Describe("type PipelineSource", func() {
 
 		source = &PipelineSource{
 			Queue:     queue,
-			Semaphore: handler.NewSemaphore(1),
+			Semaphore: semaphore.NewWeighted(1),
 		}
 
 		p := NewParcel("<id>", MessageA1)
@@ -81,9 +81,9 @@ var _ = Describe("type PipelineSource", func() {
 		})
 
 		It("returns an error if the context is canceled while waiting for the sempahore", func() {
-			err := source.Semaphore.Acquire(ctx)
+			err := source.Semaphore.Acquire(ctx, 1)
 			Expect(err).ShouldNot(HaveOccurred())
-			defer source.Semaphore.Release()
+			defer source.Semaphore.Release(1)
 
 			go func() {
 				time.Sleep(100 * time.Millisecond)

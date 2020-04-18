@@ -6,9 +6,9 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
+	"golang.org/x/sync/semaphore"
 )
 
 // Handler handles events consumed from a stream.
@@ -39,7 +39,7 @@ type Consumer struct {
 
 	// Semaphore is used to limit the number of messages being handled
 	// concurrently.
-	Semaphore handler.Semaphore
+	Semaphore *semaphore.Weighted
 
 	// BackoffStrategy is the strategy used to delay restarting the consumer
 	// after a failure. If it is nil, backoff.DefaultStrategy is used.
@@ -164,10 +164,10 @@ func (c *Consumer) consumeNext(ctx context.Context, cur Cursor) error {
 		c.backoff.Reset()
 	}
 
-	if err := c.Semaphore.Acquire(ctx); err != nil {
+	if err := c.Semaphore.Acquire(ctx, 1); err != nil {
 		return err
 	}
-	defer c.Semaphore.Release()
+	defer c.Semaphore.Release(1)
 
 	if err := c.Handler.HandleEvent(ctx, c.offset, ev); err != nil {
 		c.handlerFailed = true

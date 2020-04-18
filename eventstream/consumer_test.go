@@ -14,10 +14,10 @@ import (
 	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"golang.org/x/sync/semaphore"
 )
 
 var _ = Describe("type Consumer", func() {
@@ -95,6 +95,7 @@ var _ = Describe("type Consumer", func() {
 			),
 			Handler:         eshandler,
 			BackoffStrategy: backoff.Constant(10 * time.Millisecond),
+			Semaphore:       semaphore.NewWeighted(1),
 			Logger:          logging.DiscardLogger{},
 		}
 	})
@@ -239,11 +240,9 @@ var _ = Describe("type Consumer", func() {
 		})
 
 		It("returns if the context is canceled while waiting for the sempahore", func() {
-			consumer.Semaphore = handler.NewSemaphore(1)
-
-			err := consumer.Semaphore.Acquire(ctx)
+			err := consumer.Semaphore.Acquire(ctx, 1)
 			Expect(err).ShouldNot(HaveOccurred())
-			defer consumer.Semaphore.Release()
+			defer consumer.Semaphore.Release(1)
 
 			go func() {
 				time.Sleep(100 * time.Millisecond)

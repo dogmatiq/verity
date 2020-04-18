@@ -3,6 +3,7 @@ package infix
 import (
 	"fmt"
 	"reflect"
+	"runtime"
 	"time"
 
 	"github.com/dogmatiq/configkit"
@@ -41,6 +42,12 @@ var (
 		linger.FullJitter,
 		linger.Limiter(0, 1*time.Hour),
 	)
+
+	// DefaultConcurrencyLimit is the default number of messages to handle
+	// concurrently.
+	//
+	// It is overridden by the WithConcurrencyLimit() option.
+	DefaultConcurrencyLimit = uint(runtime.GOMAXPROCS(0) * 2)
 
 	// DefaultLogger is the default target for log messages produced by the
 	// engine.
@@ -113,6 +120,16 @@ func WithMessageBackoff(s backoff.Strategy) EngineOption {
 	}
 }
 
+// WithConcurrencyLimit returns an engine option that limits the number of
+// messages that will be handled at the same time.
+//
+// If this option is omitted or n non-positive DefaultConcurrencyLimit is used.
+func WithConcurrencyLimit(n uint) EngineOption {
+	return func(opts *engineOptions) {
+		opts.ConcurrencyLimit = n
+	}
+}
+
 // NewDefaultMarshaler returns the default marshaler to use for the given
 // applications.
 //
@@ -166,6 +183,7 @@ type engineOptions struct {
 	PersistenceProvider persistence.Provider
 	MessageTimeout      time.Duration
 	MessageBackoff      backoff.Strategy
+	ConcurrencyLimit    uint
 	Marshaler           marshalkit.Marshaler
 	Logger              logging.Logger
 	Network             *networkOptions
@@ -194,6 +212,10 @@ func resolveEngineOptions(options ...EngineOption) *engineOptions {
 
 	if opts.MessageBackoff == nil {
 		opts.MessageBackoff = DefaultMessageBackoff
+	}
+
+	if opts.ConcurrencyLimit <= 0 {
+		opts.ConcurrencyLimit = DefaultConcurrencyLimit
 	}
 
 	if opts.Marshaler == nil {
