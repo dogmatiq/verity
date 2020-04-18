@@ -2,6 +2,7 @@ package infix
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -40,7 +41,7 @@ var (
 	// It is overridden by the WithDiscoverer() option.
 	DefaultDiscoverer = func(context.Context, discovery.TargetObserver) error {
 		// TODO: https://github.com/dogmatiq/configkit/issues/58
-		panic("no API discovery configured, see infix.WithDiscoverer()")
+		return errors.New("no API discovery configured, see infix.WithDiscoverer()")
 	}
 )
 

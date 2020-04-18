@@ -137,8 +137,8 @@ var _ = Describe("func WithDiscoverer()", func() {
 			WithDiscoverer(nil),
 		)
 
-		Expect(func() {
-			opts.Discoverer(context.Background(), nil)
-		}).To(Panic())
+		err := opts.Discoverer(context.Background(), nil)
+		// TODO: https://github.com/dogmatiq/configkit/issues/58
+		Expect(err).To(MatchError("no API discovery configured, see infix.WithDiscoverer()"))
 	})
 })

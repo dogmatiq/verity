@@ -69,6 +69,12 @@ var _ = Describe("type Engine", func() {
 			}).NotTo(Panic())
 		})
 
+		It("provides default values for networking", func() {
+			Expect(func() {
+				New(app, WithNetworking())
+			}).NotTo(Panic())
+		})
+
 		It("panics if no apps are provided", func() {
 			Expect(func() {
 				New(nil)
@@ -109,6 +115,17 @@ var _ = Describe("type Engine", func() {
 				WithPersistence(&memory.Provider{}), // avoid default BoltDB location
 			)
 			Expect(err).To(MatchError(context.Canceled))
+		})
+
+		It("returns an error if networking is enabled but no discovered is specified", func() {
+			err := Run(
+				ctx,
+				app,
+				WithPersistence(&memory.Provider{}), // avoid default BoltDB location
+				WithNetworking(),
+			)
+			// TODO: https://github.com/dogmatiq/configkit/issues/58
+			Expect(err).To(MatchError("discoverer stopped: no API discovery configured, see infix.WithDiscoverer()"))
 		})
 	})
 })
