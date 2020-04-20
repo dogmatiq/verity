@@ -18,6 +18,7 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
+	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -255,6 +256,12 @@ var _ = Describe("type Sink", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
+			It("returns an error if one of the historical events can not be unmarshaled", func() {
+				sink.Marshaler = &codec.Marshaler{} // an empty marshaler cannot unmarshal anything
+				err := sink.Accept(ctx, req, res)
+				Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
+			})
+
 			When("when the instance is subsequently destroyed", func() {
 				BeforeEach(func() {
 					destroyReq, _ := NewPipelineRequestStub(
@@ -363,6 +370,95 @@ var _ = Describe("type Sink", func() {
 					s.RecordEvent(MessageE1)
 					s.RecordEvent(MessageE2)
 				}
+			})
+
+			It("saves the recorded events", func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+				defer cancel()
+
+				err := sink.Accept(ctx, req, res)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				err = req.Ack(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				res, err := eventRepo.QueryEvents(ctx, eventstore.Query{})
+				defer res.Close()
+
+				i, ok, err := res.Next(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(ok).To(BeTrue())
+				Expect(i).To(EqualX(
+					&eventstore.Item{
+						Offset: 0,
+						Envelope: &envelopespec.Envelope{
+							MetaData: &envelopespec.MetaData{
+								MessageId:     "0",
+								CausationId:   "<consume>",
+								CorrelationId: "<correlation>",
+								Source: &envelopespec.Source{
+									Application: packer.Application,
+									Handler:     sink.Identity,
+									InstanceId:  "<instance>",
+								},
+								CreatedAt:   "2000-01-01T00:00:00Z",
+								Description: "{E1}",
+							},
+							PortableName: MessageEPortableName,
+							MediaType:    MessageE1Packet.MediaType,
+							Data:         MessageE1Packet.Data,
+						},
+					},
+				))
+
+				i, ok, err = res.Next(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(ok).To(BeTrue())
+				Expect(i).To(EqualX(
+					&eventstore.Item{
+						Offset: 1,
+						Envelope: &envelopespec.Envelope{
+							MetaData: &envelopespec.MetaData{
+								MessageId:     "1",
+								CausationId:   "<consume>",
+								CorrelationId: "<correlation>",
+								Source: &envelopespec.Source{
+									Application: packer.Application,
+									Handler:     sink.Identity,
+									InstanceId:  "<instance>",
+								},
+								CreatedAt:   "2000-01-01T00:00:01Z",
+								Description: "{E2}",
+							},
+							PortableName: MessageEPortableName,
+							MediaType:    MessageE2Packet.MediaType,
+							Data:         MessageE2Packet.Data,
+						},
+					},
+				))
+			})
+
+			It("updates the instance's meta-data", func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+				defer cancel()
+
+				err := sink.Accept(ctx, req, res)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				err = req.Ack(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				md, err := aggregateRepo.LoadMetaData(ctx, "<aggregate-key>", "<instance>")
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(md).To(Equal(
+					&aggregatestore.MetaData{
+						HandlerKey: "<aggregate-key>",
+						InstanceID: "<instance>",
+						Revision:   1,
+						MinOffset:  0,
+						MaxOffset:  2,
+					},
+				))
 			})
 
 			It("returns an error if the transaction cannot be started", func() {
