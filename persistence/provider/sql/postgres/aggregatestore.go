@@ -26,16 +26,16 @@ func (driver) InsertAggregateMetaData(
 			app_key,
 			handler_key,
 			instance_id,
-			min_offset,
-			max_offset
+			begin_offset,
+			end_offset
 		) VALUES (
 			$1, $2, $3, $4, $5
 		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
-		md.MinOffset,
-		md.MaxOffset,
+		md.BeginOffset,
+		md.EndOffset,
 	)
 
 	n, err := res.RowsAffected()
@@ -58,14 +58,14 @@ func (driver) UpdateAggregateMetaData(
 		tx,
 		`UPDATE infix.aggregate_metadata SET
 			revision = revision + 1,
-			min_offset = $1,
-			max_offset = $2
+			begin_offset = $1,
+			end_offset = $2
 		WHERE app_key = $3
 		AND handler_key = $4
 		AND instance_id = $5
 		AND revision = $6`,
-		md.MinOffset,
-		md.MaxOffset,
+		md.BeginOffset,
+		md.EndOffset,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
@@ -83,8 +83,8 @@ func (driver) SelectAggregateMetaData(
 		ctx,
 		`SELECT
 			revision,
-			min_offset,
-			max_offset
+			begin_offset,
+			end_offset
 		FROM infix.aggregate_metadata
 		WHERE app_key = $1
 		AND handler_key = $2
@@ -101,8 +101,8 @@ func (driver) SelectAggregateMetaData(
 
 	err := row.Scan(
 		&md.Revision,
-		&md.MinOffset,
-		&md.MaxOffset,
+		&md.BeginOffset,
+		&md.EndOffset,
 	)
 	if err == sql.ErrNoRows {
 		err = nil

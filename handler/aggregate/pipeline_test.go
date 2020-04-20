@@ -452,11 +452,11 @@ var _ = Describe("type Sink", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(md).To(Equal(
 					&aggregatestore.MetaData{
-						HandlerKey: "<aggregate-key>",
-						InstanceID: "<instance>",
-						Revision:   1,
-						MinOffset:  0,
-						MaxOffset:  2,
+						HandlerKey:  "<aggregate-key>",
+						InstanceID:  "<instance>",
+						Revision:    1,
+						BeginOffset: 0,
+						EndOffset:   2,
 					},
 				))
 			})
