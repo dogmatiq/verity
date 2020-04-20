@@ -10,76 +10,58 @@ import (
 // aggregateStoreDriver is the subset of the Driver interface that is concerned
 // with the aggregatestore subsystem.
 type aggregateStoreDriver interface {
-	// InsertAggregateRevision inserts an aggregate revision (with a value of 1)
-	// for an aggregate instance.
+	// InsertAggregateMetaData inserts meta-data for an aggregate instance.
 	//
 	// It returns false if the row already exists.
-	InsertAggregateRevision(
+	InsertAggregateMetaData(
 		ctx context.Context,
 		tx *sql.Tx,
-		ak, hk, id string,
+		ak string,
+		md *aggregatestore.MetaData,
 	) (bool, error)
 
-	// UpdateAggregateRevision increments an aggregate isntance's revision by 1.
+	// UpdateAggregateMetaData updates meta-data for an aggregate instance.
 	//
-	// It returns false if the row does not exist or rev is not current.
-	UpdateAggregateRevision(
+	// It returns false if the row does not exist or md.Revision is not current.
+	UpdateAggregateMetaData(
 		ctx context.Context,
 		tx *sql.Tx,
-		ak, hk, id string,
-		rev aggregatestore.Revision,
+		ak string,
+		md *aggregatestore.MetaData,
 	) (bool, error)
 
-	// SelectAggregateRevision selects an aggregate instance's revision.
-	SelectAggregateRevision(
+	// SelectAggregateMetaData selects an aggregate instance's meta-data.
+	SelectAggregateMetaData(
 		ctx context.Context,
 		db *sql.DB,
 		ak, hk, id string,
-	) (aggregatestore.Revision, error)
+	) (*aggregatestore.MetaData, error)
 }
 
-// IncrementAggregateRevision increments the persisted revision of a an
-// aggregate instance.
+// SaveAggregateMetaData persists meta-data about an aggregate instance.
 //
-// ak is the aggregate handler's identity key, id is the instance ID.
-//
-// c must be the instance's current revision as persisted, otherwise an
-// optimistic concurrency conflict has occurred, the revision is not saved and
-// ErrConflict is returned.
-func (t *transaction) IncrementAggregateRevision(
+// md.Revision must be the revision of the instance as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the meta-data is
+// not saved and ErrConflict is returned.
+func (t *transaction) SaveAggregateMetaData(
 	ctx context.Context,
-	hk string,
-	id string,
-	c aggregatestore.Revision,
+	md *aggregatestore.MetaData,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	var (
-		ok  bool
-		err error
-	)
-
-	if c == 0 {
-		ok, err = t.ds.driver.InsertAggregateRevision(
-			ctx,
-			t.actual,
-			t.ds.appKey,
-			hk,
-			id,
-		)
-	} else {
-		ok, err = t.ds.driver.UpdateAggregateRevision(
-			ctx,
-			t.actual,
-			t.ds.appKey,
-			hk,
-			id,
-			c,
-		)
+	op := t.ds.driver.InsertAggregateMetaData
+	if md.Revision > 0 {
+		op = t.ds.driver.UpdateAggregateMetaData
 	}
 
+	ok, err := op(
+		ctx,
+		t.actual,
+		t.ds.appKey,
+		md,
+	)
 	if ok || err != nil {
 		return err
 	}
@@ -95,12 +77,12 @@ type aggregateStoreRepository struct {
 	appKey string
 }
 
-// LoadRevision loads the current revision of an aggregate instance.
+// LoadMetaData loads the meta-data for an aggregate instance.
 //
 // ak is the aggregate handler's identity key, id is the instance ID.
-func (r *aggregateStoreRepository) LoadRevision(
+func (r *aggregateStoreRepository) LoadMetaData(
 	ctx context.Context,
 	hk, id string,
-) (aggregatestore.Revision, error) {
-	return r.driver.SelectAggregateRevision(ctx, r.db, r.appKey, hk, id)
+) (*aggregatestore.MetaData, error) {
+	return r.driver.SelectAggregateMetaData(ctx, r.db, r.appKey, hk, id)
 }

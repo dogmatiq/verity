@@ -11,18 +11,18 @@ import (
 type AggregateStoreRepositoryStub struct {
 	aggregatestore.Repository
 
-	LoadRevisionFunc func(context.Context, string, string) (aggregatestore.Revision, error)
+	LoadMetaDataFunc func(context.Context, string, string) (*aggregatestore.MetaData, error)
 }
 
-// LoadRevision loads the current revision of an aggregate instance.
-func (r *AggregateStoreRepositoryStub) LoadRevision(ctx context.Context, hk, id string) (aggregatestore.Revision, error) {
-	if r.LoadRevisionFunc != nil {
-		return r.LoadRevisionFunc(ctx, hk, id)
+// LoadMetaData loads the meta-data for an aggregate instance.
+func (r *AggregateStoreRepositoryStub) LoadMetaData(ctx context.Context, hk, id string) (*aggregatestore.MetaData, error) {
+	if r.LoadMetaDataFunc != nil {
+		return r.LoadMetaDataFunc(ctx, hk, id)
 	}
 
 	if r.Repository != nil {
-		return r.Repository.LoadRevision(ctx, hk, id)
+		return r.Repository.LoadMetaData(ctx, hk, id)
 	}
 
-	return 0, nil
+	return nil, nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -30,38 +31,42 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			tearDown()
 		})
 
-		ginkgo.Describe("func IncrementAggregateRevision()", func() {
+		ginkgo.Describe("func SaveAggregateMetaData()", func() {
 			ginkgo.When("the instance does not exist", func() {
-				ginkgo.It("sets the revision to 1", func() {
-					incrementRevision(
+				ginkgo.It("saves the meta-data with a revision of 1", func() {
+					saveMetaData(
 						tc.Context,
 						dataStore,
-						"<handler-key>",
-						"<instance>",
-						0,
+						&aggregatestore.MetaData{
+							HandlerKey: "<handler-key>",
+							InstanceID: "<instance>",
+						},
 					)
 
-					rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-					gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
+					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
-				ginkgo.It("does not increment the revision if the transaction is rolled back", func() {
+				ginkgo.It("does not save the meta-data if the transaction is rolled back", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							return tx.IncrementAggregateRevision(
+							return tx.SaveAggregateMetaData(
 								tc.Context,
-								"<handler-key>",
-								"<instance>",
-								0,
+								&aggregatestore.MetaData{
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+									MinOffset:  1,
+									MaxOffset:  2,
+								},
 							)
 						},
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-					gomega.Expect(rev).To(gomega.BeEquivalentTo(0))
+					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(0))
 				})
 
 				ginkgo.It("does not save the message when an OCC conflict occurs", func() {
@@ -69,11 +74,13 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							err := tx.IncrementAggregateRevision(
+							err := tx.SaveAggregateMetaData(
 								tc.Context,
-								"<handler-key>",
-								"<instance>",
-								123,
+								&aggregatestore.MetaData{
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+									Revision:   123,
+								},
 							)
 							gomega.Expect(err).To(gomega.Equal(aggregatestore.ErrConflict))
 							return nil // let the transaction commit despite error
@@ -81,52 +88,76 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-					gomega.Expect(rev).To(gomega.BeEquivalentTo(0))
+					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(0))
 				})
 			})
 
 			ginkgo.When("the instance exists", func() {
 				ginkgo.BeforeEach(func() {
-					incrementRevision(
+					saveMetaData(
 						tc.Context,
 						dataStore,
-						"<handler-key>",
-						"<instance>",
-						0,
+						&aggregatestore.MetaData{
+							HandlerKey: "<handler-key>",
+							InstanceID: "<instance>",
+						},
 					)
 				})
 
 				ginkgo.It("increments the revision", func() {
-					incrementRevision(
+					saveMetaData(
 						tc.Context,
 						dataStore,
-						"<handler-key>",
-						"<instance>",
-						1,
+						&aggregatestore.MetaData{
+							HandlerKey: "<handler-key>",
+							InstanceID: "<instance>",
+							Revision:   1,
+							MinOffset:  1,
+							MaxOffset:  2,
+						},
 					)
 
-					rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-					gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
+					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
-				ginkgo.It("does not update the message if the transaction is rolled-back", func() {
+				ginkgo.It("increments the revision even if no meta-data has changed", func() {
+					saveMetaData(
+						tc.Context,
+						dataStore,
+						&aggregatestore.MetaData{
+							HandlerKey: "<handler-key>",
+							InstanceID: "<instance>",
+							Revision:   1,
+						},
+					)
+
+					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
+				})
+
+				ginkgo.It("does not update the meta-data if the transaction is rolled-back", func() {
 					err := common.WithTransactionRollback(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							return tx.IncrementAggregateRevision(
+							return tx.SaveAggregateMetaData(
 								tc.Context,
-								"<handler-key>",
-								"<instance>",
-								1,
+								&aggregatestore.MetaData{
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+									Revision:   1,
+									MinOffset:  1,
+									MaxOffset:  2,
+								},
 							)
 						},
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-					gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
+					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
 				table.DescribeTable(
@@ -135,23 +166,27 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						// Increment the revision once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
-						incrementRevision(
+						saveMetaData(
 							tc.Context,
 							dataStore,
-							"<handler-key>",
-							"<instance>",
-							1,
+							&aggregatestore.MetaData{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   1,
+							},
 						)
 
 						err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
-								err := tx.IncrementAggregateRevision(
+								err := tx.SaveAggregateMetaData(
 									tc.Context,
-									"<handler-key>",
-									"<instance>",
-									aggregatestore.Revision(conflictingRevision),
+									&aggregatestore.MetaData{
+										HandlerKey: "<handler-key>",
+										InstanceID: "<instance>",
+										Revision:   aggregatestore.Revision(conflictingRevision),
+									},
 								)
 								gomega.Expect(err).To(gomega.Equal(aggregatestore.ErrConflict))
 
@@ -160,8 +195,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						)
 						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-						rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-						gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
+						md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+						gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
 					},
 					table.Entry("zero", 0),
 					table.Entry("too low", 1),
@@ -169,33 +204,48 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				)
 			})
 
-			ginkgo.When("an instance's revision is incremented more than once in the same transaction", func() {
-				ginkgo.It("saves the highest revision", func() {
+			ginkgo.When("an instance's meta-data is saved more than once in the same transaction", func() {
+				ginkgo.It("saves the meta-data from the most recent call", func() {
 					err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							if err := tx.IncrementAggregateRevision(
+							if err := tx.SaveAggregateMetaData(
 								tc.Context,
-								"<handler-key>",
-								"<instance>",
-								0,
+								&aggregatestore.MetaData{
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+									MinOffset:  1,
+									MaxOffset:  2,
+								},
 							); err != nil {
 								return err
 							}
 
-							return tx.IncrementAggregateRevision(
+							return tx.SaveAggregateMetaData(
 								tc.Context,
-								"<handler-key>",
-								"<instance>",
-								1,
+								&aggregatestore.MetaData{
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+									Revision:   1,
+									MinOffset:  3,
+									MaxOffset:  4,
+								},
 							)
 						},
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-					gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
+					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					gomega.Expect(md).To(gomega.Equal(
+						&aggregatestore.MetaData{
+							HandlerKey: "<handler-key>",
+							InstanceID: "<instance>",
+							Revision:   2,
+							MinOffset:  3,
+							MaxOffset:  4,
+						},
+					))
 				})
 
 				ginkgo.It("uses the uncommitted revision for OCC checks", func() {
@@ -203,21 +253,23 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							if err := tx.IncrementAggregateRevision(
+							if err := tx.SaveAggregateMetaData(
 								tc.Context,
-								"<handler-key>",
-								"<instance>",
-								0,
+								&aggregatestore.MetaData{
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+								},
 							); err != nil {
 								return err
 							}
 
 							// Note that we are passing the same revision again.
-							return tx.IncrementAggregateRevision(
+							return tx.SaveAggregateMetaData(
 								tc.Context,
-								"<handler-key>",
-								"<instance>",
-								0,
+								&aggregatestore.MetaData{
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+								},
 							)
 						},
 					)
@@ -239,11 +291,15 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
 							for i := 0; i < count; i++ {
-								if err := tx.IncrementAggregateRevision(
+								if err := tx.SaveAggregateMetaData(
 									tc.Context,
-									hk,
-									id,
-									aggregatestore.Revision(i),
+									&aggregatestore.MetaData{
+										HandlerKey: hk,
+										InstanceID: id,
+										Revision:   aggregatestore.Revision(i),
+										MinOffset:  eventstore.Offset(100 + i),
+										MaxOffset:  eventstore.Offset(200 + i),
+									},
 								); err != nil {
 									return err
 								}
@@ -262,14 +318,32 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				go fn("<handler-key-2>", "<instance-a>", 3)
 				g.Wait()
 
-				rev := loadRevision(tc.Context, repository, "<handler-key-1>", "<instance-a>")
-				gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
+				md := loadMetaData(tc.Context, repository, "<handler-key-1>", "<instance-a>")
+				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
+					HandlerKey: "<handler-key-1>",
+					InstanceID: "<instance-a>",
+					Revision:   1,
+					MinOffset:  100,
+					MaxOffset:  200,
+				}))
 
-				rev = loadRevision(tc.Context, repository, "<handler-key-1>", "<instance-b>")
-				gomega.Expect(rev).To(gomega.BeEquivalentTo(2))
+				md = loadMetaData(tc.Context, repository, "<handler-key-1>", "<instance-b>")
+				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
+					HandlerKey: "<handler-key-1>",
+					InstanceID: "<instance-b>",
+					Revision:   2,
+					MinOffset:  101,
+					MaxOffset:  201,
+				}))
 
-				rev = loadRevision(tc.Context, repository, "<handler-key-2>", "<instance-a>")
-				gomega.Expect(rev).To(gomega.BeEquivalentTo(3))
+				md = loadMetaData(tc.Context, repository, "<handler-key-2>", "<instance-a>")
+				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
+					HandlerKey: "<handler-key-2>",
+					InstanceID: "<instance-a>",
+					Revision:   3,
+					MinOffset:  102,
+					MaxOffset:  202,
+				}))
 			})
 		})
 	})

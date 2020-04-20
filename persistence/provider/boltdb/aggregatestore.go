@@ -4,7 +4,10 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
+	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
 
@@ -16,12 +19,12 @@ var (
 	// buckets further split into separate buckets for revisions and snapshots.
 	aggregateStoreBucketKey = []byte("aggregatestore")
 
-	// aggregateStoreRevisionsBucketKey is the key for a child bucket that
-	// contains the current revision of each aggregate instance.
+	// aggregateStoreMetaDataBucketKey is the key for a child bucket that
+	// contains the meta-data for each aggregate instance.
 	//
-	// The keys are application-defined instance IDs. The values are the
-	// instance revisions encoded 8-byte big-endian packets.
-	aggregateStoreRevisionsBucketKey = []byte("revisions")
+	// The keys are application-defined instance IDs. The values are
+	// pb.AggregateStoreMetaData values marshaled using protocol buffers.
+	aggregateStoreMetaDataBucketKey = []byte("metadata")
 
 	// aggregateStoreSnapshotsBucketKey is the key for a child bucket that
 	// contains snapshots of each aggregate instance.
@@ -31,19 +34,14 @@ var (
 	aggregateStoreSnapshotsBucketKey = []byte("snapshots")
 )
 
-// IncrementAggregateRevision increments the persisted revision of a an
-// aggregate instance.
+// SaveAggregateMetaData persists meta-data about an aggregate instance.
 //
-// ak is the aggregate handler's identity key, id is the instance ID.
-//
-// c must be the instance's current revision as persisted, otherwise an
-// optimistic concurrency conflict has occurred, the revision is not saved and
-// ErrConflict is returned.
-func (t *transaction) IncrementAggregateRevision(
+// md.Revision must be the revision of the instance as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the meta-data is
+// not saved and ErrConflict is returned.
+func (t *transaction) SaveAggregateMetaData(
 	ctx context.Context,
-	hk string,
-	id string,
-	c aggregatestore.Revision,
+	md *aggregatestore.MetaData,
 ) (err error) {
 	defer bboltx.Recover(&err)
 
@@ -51,27 +49,22 @@ func (t *transaction) IncrementAggregateRevision(
 		return err
 	}
 
-	revisions := bboltx.CreateBucketIfNotExists(
+	metadata := bboltx.CreateBucketIfNotExists(
 		t.actual,
 		t.appKey,
 		aggregateStoreBucketKey,
-		[]byte(hk),
-		aggregateStoreRevisionsBucketKey,
+		[]byte(md.HandlerKey),
+		aggregateStoreMetaDataBucketKey,
 	)
 
-	rev := unmarshalAggregateRevision(
-		revisions.Get([]byte(id)),
-	)
+	old := loadAggregateStoreMetaData(metadata, md.InstanceID)
 
-	if c != rev {
+	if uint64(md.Revision) != old.GetRevision() {
 		return aggregatestore.ErrConflict
 	}
 
-	bboltx.Put(
-		revisions,
-		[]byte(id),
-		marshalAggregateRevision(rev+1),
-	)
+	data := marshalAggregateStoreMetaData(md)
+	bboltx.Put(metadata, []byte(md.InstanceID), data)
 
 	return nil
 }
@@ -83,44 +76,68 @@ type aggregateStoreRepository struct {
 	appKey []byte
 }
 
-// LoadRevision loads the current revision of an aggregate instance.
+// LoadMetaData loads the meta-data for an aggregate instance.
 //
 // ak is the aggregate handler's identity key, id is the instance ID.
-func (r *aggregateStoreRepository) LoadRevision(
+func (r *aggregateStoreRepository) LoadMetaData(
 	ctx context.Context,
 	hk, id string,
-) (rev aggregatestore.Revision, err error) {
+) (_ *aggregatestore.MetaData, err error) {
 	defer bboltx.Recover(&err)
+
+	md := &aggregatestore.MetaData{
+		HandlerKey: hk,
+		InstanceID: id,
+	}
 
 	r.db.View(
 		ctx,
 		func(tx *bbolt.Tx) {
-			revisions, exists := bboltx.TryBucket(
+			metadata, exists := bboltx.TryBucket(
 				tx,
 				r.appKey,
 				aggregateStoreBucketKey,
 				[]byte(hk),
-				aggregateStoreRevisionsBucketKey,
+				aggregateStoreMetaDataBucketKey,
 			)
+
 			if exists {
-				rev = unmarshalAggregateRevision(
-					revisions.Get([]byte(id)),
-				)
+				pb := loadAggregateStoreMetaData(metadata, id)
+				md.Revision = aggregatestore.Revision(pb.GetRevision())
+				md.MinOffset = eventstore.Offset(pb.GetMinOffset())
+				md.MaxOffset = eventstore.Offset(pb.GetMaxOffset())
 			}
 		},
 	)
 
-	return rev, nil
+	return md, nil
 }
 
-// marshalAggregateRevision marshals an aggregate revision to its binary
-// representation.
-func marshalAggregateRevision(rev aggregatestore.Revision) []byte {
-	return marshalUint64(uint64(rev))
+// marshalAggregateStoreMetaData marshals an aggregatestore.MetaData to its binary
+// representation with an incremented revision.
+func marshalAggregateStoreMetaData(md *aggregatestore.MetaData) []byte {
+	new := &pb.AggregateStoreMetaData{
+		Revision:  uint64(md.Revision + 1),
+		MinOffset: uint64(md.MinOffset),
+		MaxOffset: uint64(md.MaxOffset),
+	}
+
+	data, err := proto.Marshal(new)
+	bboltx.Must(err)
+
+	return data
 }
 
-// unmarshalAggregateRevision unmarshals an aggregate revision from its binary
-// representation.
-func unmarshalAggregateRevision(data []byte) aggregatestore.Revision {
-	return aggregatestore.Revision(unmarshalUint64(data))
+// loadAggregateStoreMetaData loads meta-data from the aggregate store.
+func loadAggregateStoreMetaData(metadata *bbolt.Bucket, id string) *pb.AggregateStoreMetaData {
+	data := metadata.Get([]byte(id))
+	if data == nil {
+		return nil
+	}
+
+	md := &pb.AggregateStoreMetaData{}
+	err := proto.Unmarshal(data, md)
+	bboltx.Must(err)
+
+	return md
 }

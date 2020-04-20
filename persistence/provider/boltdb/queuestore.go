@@ -221,7 +221,7 @@ func unmarshalQueueStoreItem(data []byte) *queuestore.Item {
 }
 
 // marshalQueueStoreItem marshals a queuestore.Item to its binary
-// representation.
+// representation with an incremented revision.
 func marshalQueueStoreItem(
 	i *queuestore.Item,
 	old *pb.QueueStoreItem,

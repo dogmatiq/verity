@@ -34,7 +34,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_revision`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_metadata`)
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
 
@@ -54,11 +54,13 @@ func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE aggregate_revision (
+		`CREATE TABLE aggregate_metadata (
 			app_key 	TEXT NOT NULL,
 			handler_key TEXT NOT NULL,
 			instance_id TEXT NOT NULL,
 			revision    INTEGER NOT NULL DEFAULT 1,
+			min_offset  INTEGER NOT NULL,
+			max_offset  INTEGER NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		)`,
