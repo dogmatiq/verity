@@ -150,12 +150,10 @@ var _ = Describe("type Sink", func() {
 				Expect(err).To(MatchError("<error>"))
 			})
 
-			It("returns an error if the revision can not be incremented", func() {
-				tx.IncrementAggregateRevisionFunc = func(
+			It("returns an error if the meta-data can not be saved", func() {
+				tx.SaveAggregateMetaDataFunc = func(
 					context.Context,
-					string,
-					string,
-					aggregatestore.Revision,
+					*aggregatestore.MetaData,
 				) error {
 					return errors.New("<error>")
 				}
