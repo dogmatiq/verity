@@ -104,8 +104,8 @@ func (r *aggregateStoreRepository) LoadMetaData(
 			if exists {
 				pb := loadAggregateStoreMetaData(metadata, id)
 				md.Revision = aggregatestore.Revision(pb.GetRevision())
-				md.MinOffset = eventstore.Offset(pb.GetMinOffset())
-				md.MaxOffset = eventstore.Offset(pb.GetMaxOffset())
+				md.BeginOffset = eventstore.Offset(pb.GetBeginOffset())
+				md.EndOffset = eventstore.Offset(pb.GetEndOffset())
 			}
 		},
 	)
@@ -117,9 +117,9 @@ func (r *aggregateStoreRepository) LoadMetaData(
 // representation with an incremented revision.
 func marshalAggregateStoreMetaData(md *aggregatestore.MetaData) []byte {
 	new := &pb.AggregateStoreMetaData{
-		Revision:  uint64(md.Revision + 1),
-		MinOffset: uint64(md.MinOffset),
-		MaxOffset: uint64(md.MaxOffset),
+		Revision:    uint64(md.Revision + 1),
+		BeginOffset: uint64(md.BeginOffset),
+		EndOffset:   uint64(md.EndOffset),
 	}
 
 	data, err := proto.Marshal(new)

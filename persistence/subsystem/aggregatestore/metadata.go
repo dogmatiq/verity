@@ -18,15 +18,42 @@ type MetaData struct {
 	// concurrency control.
 	Revision Revision
 
-	// MinOffset specifies the (inclusive) lower-bound of the offset range that
-	// should be searched when reading this instance's historical events. The
-	// event at this offset was NOT necessarily recorded byo this instance.
-	MinOffset eventstore.Offset
-
-	// MaxOffset specifies the (exclusive) upper-bound of the offset range that
-	// should be searched when reading this instance's historical events.
+	// BeginOffset specifies the (inclusive) lower-bound of the event offsets
+	// that should be considered when loading the instance's historical events.
 	//
-	// If non-zero, the event at MaxOffset - 1 is the most recent event recorded
-	// by this instance.
-	MaxOffset eventstore.Offset
+	// It defaults to zero, indicating that there is no minimum. Note that the
+	// event AT this offset was not necessarily recorded by the instance.
+	//
+	// When an instance is destroyed, BeginOffset is set to EndOffset,
+	// preventing any events that were recorded prior destruction from being
+	// "seen" by the handler in the future, without actually deleting historical
+	// events.
+	BeginOffset eventstore.Offset
+
+	// EndOffset specifies the (exclusive) upper-bound of the offset range that
+	// should be searched when reading the instance's historical events.
+	//
+	// It defaults to zero, meaning that the range [BeginOffset, EndOffset) is
+	// empty, and that the instance does not exist.
+	//
+	// If non-zero, EndOffset is the offset after the last event recorded by
+	// the instance.
+	EndOffset eventstore.Offset
+}
+
+// InstanceExists returns true if the instance exists.
+func (md *MetaData) InstanceExists() bool {
+	return md.BeginOffset < md.EndOffset
+}
+
+// MarkInstanceDestroyed marks the instance as destroyed by moving BeginOffset
+// after the offset of the last-recorded event.
+func (md *MetaData) MarkInstanceDestroyed() {
+	md.BeginOffset = md.EndOffset
+}
+
+// SetLastRecordedOffset updates the meta-data to reflect that o was the offset
+// of the most-recent event recorded by the instance.
+func (md *MetaData) SetLastRecordedOffset(o eventstore.Offset) {
+	md.EndOffset = o + 1
 }

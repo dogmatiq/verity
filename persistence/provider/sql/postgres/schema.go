@@ -45,12 +45,12 @@ func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE infix.aggregate_metadata (
-			app_key 	TEXT NOT NULL,
-			handler_key TEXT NOT NULL,
-			instance_id TEXT NOT NULL,
-			revision    BIGINT NOT NULL DEFAULT 1,
-			min_offset  BIGINT NOT NULL,
-			max_offset  BIGINT NOT NULL,
+			app_key      TEXT NOT NULL,
+			handler_key  TEXT NOT NULL,
+			instance_id  TEXT NOT NULL,
+			revision     BIGINT NOT NULL DEFAULT 1,
+			begin_offset BIGINT NOT NULL,
+			end_offset   BIGINT NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		)`,

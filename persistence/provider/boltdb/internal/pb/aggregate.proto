@@ -7,6 +7,6 @@ option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/inter
 // aggregatestore.MetaData.
 message AggregateStoreMetaData{
   uint64 revision = 1;
-  uint64 min_offset = 2;
-  uint64 max_offset = 3;
+  uint64 begin_offset = 2;
+  uint64 end_offset = 3;
 }

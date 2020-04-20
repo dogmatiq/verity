@@ -55,10 +55,10 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							return tx.SaveAggregateMetaData(
 								tc.Context,
 								&aggregatestore.MetaData{
-									HandlerKey: "<handler-key>",
-									InstanceID: "<instance>",
-									MinOffset:  1,
-									MaxOffset:  2,
+									HandlerKey:  "<handler-key>",
+									InstanceID:  "<instance>",
+									BeginOffset: 1,
+									EndOffset:   2,
 								},
 							)
 						},
@@ -110,11 +110,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						tc.Context,
 						dataStore,
 						&aggregatestore.MetaData{
-							HandlerKey: "<handler-key>",
-							InstanceID: "<instance>",
-							Revision:   1,
-							MinOffset:  1,
-							MaxOffset:  2,
+							HandlerKey:  "<handler-key>",
+							InstanceID:  "<instance>",
+							Revision:    1,
+							BeginOffset: 1,
+							EndOffset:   2,
 						},
 					)
 
@@ -145,11 +145,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							return tx.SaveAggregateMetaData(
 								tc.Context,
 								&aggregatestore.MetaData{
-									HandlerKey: "<handler-key>",
-									InstanceID: "<instance>",
-									Revision:   1,
-									MinOffset:  1,
-									MaxOffset:  2,
+									HandlerKey:  "<handler-key>",
+									InstanceID:  "<instance>",
+									Revision:    1,
+									BeginOffset: 1,
+									EndOffset:   2,
 								},
 							)
 						},
@@ -213,10 +213,10 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							if err := tx.SaveAggregateMetaData(
 								tc.Context,
 								&aggregatestore.MetaData{
-									HandlerKey: "<handler-key>",
-									InstanceID: "<instance>",
-									MinOffset:  1,
-									MaxOffset:  2,
+									HandlerKey:  "<handler-key>",
+									InstanceID:  "<instance>",
+									BeginOffset: 1,
+									EndOffset:   2,
 								},
 							); err != nil {
 								return err
@@ -225,11 +225,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							return tx.SaveAggregateMetaData(
 								tc.Context,
 								&aggregatestore.MetaData{
-									HandlerKey: "<handler-key>",
-									InstanceID: "<instance>",
-									Revision:   1,
-									MinOffset:  3,
-									MaxOffset:  4,
+									HandlerKey:  "<handler-key>",
+									InstanceID:  "<instance>",
+									Revision:    1,
+									BeginOffset: 3,
+									EndOffset:   4,
 								},
 							)
 						},
@@ -239,11 +239,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 					gomega.Expect(md).To(gomega.Equal(
 						&aggregatestore.MetaData{
-							HandlerKey: "<handler-key>",
-							InstanceID: "<instance>",
-							Revision:   2,
-							MinOffset:  3,
-							MaxOffset:  4,
+							HandlerKey:  "<handler-key>",
+							InstanceID:  "<instance>",
+							Revision:    2,
+							BeginOffset: 3,
+							EndOffset:   4,
 						},
 					))
 				})
@@ -294,11 +294,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 								if err := tx.SaveAggregateMetaData(
 									tc.Context,
 									&aggregatestore.MetaData{
-										HandlerKey: hk,
-										InstanceID: id,
-										Revision:   aggregatestore.Revision(i),
-										MinOffset:  eventstore.Offset(100 + i),
-										MaxOffset:  eventstore.Offset(200 + i),
+										HandlerKey:  hk,
+										InstanceID:  id,
+										Revision:    aggregatestore.Revision(i),
+										BeginOffset: eventstore.Offset(100 + i),
+										EndOffset:   eventstore.Offset(200 + i),
 									},
 								); err != nil {
 									return err
@@ -320,29 +320,29 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 				md := loadMetaData(tc.Context, repository, "<handler-key-1>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
-					HandlerKey: "<handler-key-1>",
-					InstanceID: "<instance-a>",
-					Revision:   1,
-					MinOffset:  100,
-					MaxOffset:  200,
+					HandlerKey:  "<handler-key-1>",
+					InstanceID:  "<instance-a>",
+					Revision:    1,
+					BeginOffset: 100,
+					EndOffset:   200,
 				}))
 
 				md = loadMetaData(tc.Context, repository, "<handler-key-1>", "<instance-b>")
 				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
-					HandlerKey: "<handler-key-1>",
-					InstanceID: "<instance-b>",
-					Revision:   2,
-					MinOffset:  101,
-					MaxOffset:  201,
+					HandlerKey:  "<handler-key-1>",
+					InstanceID:  "<instance-b>",
+					Revision:    2,
+					BeginOffset: 101,
+					EndOffset:   201,
 				}))
 
 				md = loadMetaData(tc.Context, repository, "<handler-key-2>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
-					HandlerKey: "<handler-key-2>",
-					InstanceID: "<instance-a>",
-					Revision:   3,
-					MinOffset:  102,
-					MaxOffset:  202,
+					HandlerKey:  "<handler-key-2>",
+					InstanceID:  "<instance-a>",
+					Revision:    3,
+					BeginOffset: 102,
+					EndOffset:   202,
 				}))
 			})
 		})

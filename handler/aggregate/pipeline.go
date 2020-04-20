@@ -80,31 +80,21 @@ func (s *Sink) Accept(
 		return err
 	}
 
-	// The events available for this instance are given by the open interval
-	// [min, max).
-	//
-	// If the instance never existed, both will be 0, indicating an empty range.
-	//
-	// If the instance did exist but was destroyed, MinOffset is updated to
-	// equal MaxOffset (that is, after the event recorded when the instance was
-	// destroyed), again indicating an empty range.
-	exists := md.MaxOffset > md.MinOffset
-
-	if exists {
-		if err := s.load(ctx, md, root); err != nil {
-			return err
-		}
-	}
-
 	sc := &scope{
 		cause:   p,
 		packer:  s.Packer,
 		handler: s.Identity,
 		logger:  s.Logger,
+		id:      id,
+		root:    root,
+	}
 
-		id:     id,
-		root:   root,
-		exists: exists,
+	if md.InstanceExists() {
+		sc.exists = true
+
+		if err := s.load(ctx, md, root); err != nil {
+			return err
+		}
 	}
 
 	s.Handler.HandleCommand(sc, p.Message)
@@ -142,7 +132,7 @@ func (s *Sink) load(
 	root dogma.AggregateRoot,
 ) error {
 	q := eventstore.Query{
-		MinOffset: md.MinOffset,
+		MinOffset: md.BeginOffset,
 		// TODO: https://github.com/dogmatiq/dogma/issues/113
 		// How do we best configure the filter to deal with events that the
 		// aggregate once produced, but no longer does?
@@ -184,17 +174,18 @@ func (s *Sink) save(
 		return err
 	}
 
+	var offset eventstore.Offset
 	for _, p := range sc.events {
-		md.MaxOffset, err = res.RecordEvent(ctx, tx, p)
+		offset, err = res.RecordEvent(ctx, tx, p)
 		if err != nil {
 			return err
 		}
 	}
 
-	md.MaxOffset++ // max-offset is exclusive, must be last-offset + 1.
+	md.SetLastRecordedOffset(offset)
 
 	if !sc.exists {
-		md.MinOffset = md.MaxOffset
+		md.MarkInstanceDestroyed()
 	}
 
 	return tx.SaveAggregateMetaData(ctx, md)

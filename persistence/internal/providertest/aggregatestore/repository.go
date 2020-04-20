@@ -42,10 +42,10 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 			ginkgo.It("returns the current persisted meta-data", func() {
 				expect := &aggregatestore.MetaData{
-					HandlerKey: "<handler-key>",
-					InstanceID: "<instance>",
-					MinOffset:  1,
-					MaxOffset:  2,
+					HandlerKey:  "<handler-key>",
+					InstanceID:  "<instance>",
+					BeginOffset: 1,
+					EndOffset:   2,
 				}
 				saveMetaData(tc.Context, dataStore, expect)
 				expect.Revision++
