@@ -70,6 +70,10 @@ var _ = Describe("type Sink", func() {
 	})
 
 	AfterEach(func() {
+		if req != nil {
+			req.Close()
+		}
+
 		if dataStore != nil {
 			dataStore.Close()
 		}
