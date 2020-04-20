@@ -67,6 +67,14 @@ func (s *Sink) Accept(
 		))
 	}
 
+	root := s.Handler.New()
+	if root == nil {
+		panic(fmt.Sprintf(
+			"the '%s' aggregate message handler returned a nil root from New()",
+			s.Identity.Name,
+		))
+	}
+
 	md, err := s.AggregateStore.LoadMetaData(ctx, s.Identity.Key, id)
 	if err != nil {
 		return err
@@ -81,14 +89,6 @@ func (s *Sink) Accept(
 	// equal MaxOffset (that is, after the event recorded when the instance was
 	// destroyed), again indicating an empty range.
 	exists := md.MaxOffset > md.MinOffset
-
-	root := s.Handler.New()
-	if root == nil {
-		panic(fmt.Sprintf(
-			"the '%s' aggregate message handler returned a nil root from New()",
-			s.Identity.Name,
-		))
-	}
 
 	if exists {
 		if err := s.load(ctx, md, root); err != nil {
@@ -131,25 +131,7 @@ func (s *Sink) Accept(
 		return nil
 	}
 
-	tx, err := req.Tx(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, p := range sc.events {
-		md.MaxOffset, err = res.RecordEvent(ctx, tx, p)
-		if err != nil {
-			return err
-		}
-	}
-
-	md.MaxOffset++ // max-offset is exclusive, must be last-offset + 1.
-
-	if !sc.exists {
-		md.MinOffset = md.MaxOffset
-	}
-
-	return tx.SaveAggregateMetaData(ctx, md)
+	return s.save(ctx, req, res, md, sc)
 }
 
 // load applies an aggregate instance's historical events to the root in order
@@ -187,4 +169,33 @@ func (s *Sink) load(
 
 		root.ApplyEvent(p.Message)
 	}
+}
+
+// save persists newly recorded events and updates the instance's meta-data.
+func (s *Sink) save(
+	ctx context.Context,
+	req pipeline.Request,
+	res *pipeline.Response,
+	md *aggregatestore.MetaData,
+	sc *scope,
+) error {
+	tx, err := req.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, p := range sc.events {
+		md.MaxOffset, err = res.RecordEvent(ctx, tx, p)
+		if err != nil {
+			return err
+		}
+	}
+
+	md.MaxOffset++ // max-offset is exclusive, must be last-offset + 1.
+
+	if !sc.exists {
+		md.MinOffset = md.MaxOffset
+	}
+
+	return tx.SaveAggregateMetaData(ctx, md)
 }
