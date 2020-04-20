@@ -18,6 +18,7 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
+	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -253,6 +254,12 @@ var _ = Describe("type Sink", func() {
 
 				err := sink.Accept(ctx, req, res)
 				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("returns an error if one of the historical events can not be unmarshaled", func() {
+				sink.Marshaler = &codec.Marshaler{} // an empty marshaler cannot unmarshal anything
+				err := sink.Accept(ctx, req, res)
+				Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
 			})
 
 			When("when the instance is subsequently destroyed", func() {
