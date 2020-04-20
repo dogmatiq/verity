@@ -17,7 +17,7 @@ var _ = Describe("type MutexNamespace", func() {
 	)
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithTimeout(context.Background(), 20*time.Millisecond)
+		ctx, cancel = context.WithTimeout(context.Background(), 50*time.Millisecond)
 		ns = &MutexNamespace{}
 	})
 
