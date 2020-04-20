@@ -266,7 +266,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(err).To(MatchError("optimistic concurrency conflict"))
 		})
 
-		It("returns the error if the handler returns an error", func() {
+		It("returns an error if the handler returns an error", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
 				_, _, _ []byte,
@@ -285,61 +285,6 @@ var _ = Describe("type StreamAdaptor", func() {
 				},
 			)
 			Expect(err).To(MatchError("<error>"))
-		})
-
-		Describe("type scope", func() {
-			Describe("func RecordedAt()", func() {
-				It("returns the message's created-at time", func() {
-					handler.HandleEventFunc = func(
-						_ context.Context,
-						_, _, _ []byte,
-						s dogma.ProjectionEventScope,
-						_ dogma.Message,
-					) (bool, error) {
-						Expect(s.RecordedAt()).To(BeTemporally("==", pcl.CreatedAt))
-						return true, nil
-					}
-
-					err := adaptor.HandleEvent(
-						context.Background(),
-						0,
-						&eventstream.Event{
-							Offset: 0,
-							Parcel: pcl,
-						},
-					)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-			})
-
-			Describe("func Log()", func() {
-				It("logs using the standard format", func() {
-					handler.HandleEventFunc = func(
-						_ context.Context,
-						_, _, _ []byte,
-						s dogma.ProjectionEventScope,
-						_ dogma.Message,
-					) (bool, error) {
-						s.Log("format %s", "<value>")
-						return true, nil
-					}
-
-					err := adaptor.HandleEvent(
-						context.Background(),
-						0,
-						&eventstream.Event{
-							Offset: 0,
-							Parcel: pcl,
-						},
-					)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(logger.Messages()).To(ContainElement(
-						logging.BufferedLogMessage{
-							Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● format <value>",
-						},
-					))
-				})
-			})
 		})
 	})
 })
