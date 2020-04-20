@@ -22,7 +22,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_revision`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_metadata`)
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
 
@@ -41,11 +41,13 @@ func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE aggregate_revision (
+		`CREATE TABLE aggregate_metadata (
 			app_key     VARBINARY(255) NOT NULL,
 			handler_key VARBINARY(255) NOT NULL,
 			instance_id VARBINARY(255) NOT NULL,
 			revision    BIGINT NOT NULL DEFAULT 1,
+			min_offset  BIGINT NOT NULL,
+			max_offset  BIGINT NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		) ENGINE=InnoDB`,

@@ -6,25 +6,20 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
-// IncrementAggregateRevision increments the persisted revision of a an
-// aggregate instance.
+// SaveAggregateMetaData persists meta-data about an aggregate instance.
 //
-// ak is the aggregate handler's identity key, id is the instance ID.
-//
-// c must be the instance's current revision as persisted, otherwise an
-// optimistic concurrency conflict has occurred, the revision is not saved and
-// ErrConflict is returned.
-func (t *transaction) IncrementAggregateRevision(
+// md.Revision must be the revision of the instance as currently persisted,
+// otherwise an optimistic concurrency conflict has occurred, the meta-data is
+// not saved and ErrConflict is returned.
+func (t *transaction) SaveAggregateMetaData(
 	ctx context.Context,
-	hk string,
-	id string,
-	c aggregatestore.Revision,
+	md *aggregatestore.MetaData,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
 	}
 
-	if t.aggregate.stageIncrement(&t.ds.db.aggregate, hk, id, c) {
+	if t.aggregate.stageSave(&t.ds.db.aggregate, md) {
 		return nil
 	}
 
@@ -37,93 +32,137 @@ type aggregateStoreRepository struct {
 	db *database
 }
 
-// LoadRevision loads the current revision of an aggregate instance.
+// LoadMetaData loads the meta-data for an aggregate instance.
 //
 // ak is the aggregate handler's identity key, id is the instance ID.
-func (r *aggregateStoreRepository) LoadRevision(
+func (r *aggregateStoreRepository) LoadMetaData(
 	ctx context.Context,
 	hk, id string,
-) (aggregatestore.Revision, error) {
+) (*aggregatestore.MetaData, error) {
 	if err := r.db.RLock(ctx); err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer r.db.RUnlock()
 
-	return r.db.aggregate.revisions[hk][id], nil
+	if md, ok := r.db.aggregate.metadata[hk][id]; ok {
+		return cloneAggregateStoreMetaData(md), nil
+	}
+
+	return &aggregatestore.MetaData{
+		HandlerKey: hk,
+		InstanceID: id,
+	}, nil
 }
 
 // aggregateStoreChangeSet contains modifications to the aggregate store that have
 // been performed within a transaction but not yet committed.
 type aggregateStoreChangeSet struct {
-	revisions map[string]map[string]aggregatestore.Revision
+	metadata map[string]map[string]*aggregatestore.MetaData
 }
 
-// stageIncrement adds a "IncrementAggregateRevision" operation to the
-// change-set.
+// stageSave adds a "SaveAggregateMetaData" operation to the change-set.
 //
 // It returns false if there is an OCC conflict.
-func (cs *aggregateStoreChangeSet) stageIncrement(
+func (cs *aggregateStoreChangeSet) stageSave(
 	db *aggregateStoreDatabase,
-	hk string,
-	id string,
-	c aggregatestore.Revision,
+	md *aggregatestore.MetaData,
 ) bool {
-	// Capture the instance ID -> revision map once for this handler to avoid
-	// minimize the number of lookups in cs.revisions.
-	instances := cs.revisions[hk]
+	// Capture the staged instance ID -> meta-data map once for this handler to
+	// minimize the number of lookups in cs.metadata.
+	instances := cs.metadata[md.HandlerKey]
 
-	// Get both the committed item, and the item as it appears with its changes
-	// staged in this change-set.
-	committed := db.revisions[hk][id]
-	staged, changed := instances[id]
+	// Get both the committed meta-data, and the meta-data as it appears with
+	// its changes staged in this change-set.
+	committed := db.metadata[md.HandlerKey][md.InstanceID]
+	staged, changed := instances[md.InstanceID]
 
-	// The "effective" revision is how the revision appears to this transaction.
+	// The "effective" meta-data is how the meta-data appears to this
+	// transaction.
 	effective := committed
 	if changed {
 		effective = staged
 	}
 
+	// Likewise, the "effective" revision is the revision as it appears
+	// including the changes in this transaction.
+	var effectiveRev aggregatestore.Revision
+	if effective != nil {
+		effectiveRev = effective.Revision
+	}
+
 	// Enforce the optimistic concurrency control requirements.
-	if c != effective {
+	if md.Revision != effectiveRev {
 		return false
 	}
 
-	// Add the incremented revision to the change-set.
-	if instances == nil {
-		instances = map[string]aggregatestore.Revision{}
+	if staged == nil {
+		// If we don't have a staged value because this meta-data has not been
+		// modified within this change-set, clone the meta-data we're given and
+		// add it to the change-set.
+		staged = cloneAggregateStoreMetaData(md)
 
-		if cs.revisions == nil {
-			cs.revisions = map[string]map[string]aggregatestore.Revision{}
+		if instances == nil {
+			instances = map[string]*aggregatestore.MetaData{}
+
+			if cs.metadata == nil {
+				cs.metadata = map[string]map[string]*aggregatestore.MetaData{}
+			}
+			cs.metadata[md.HandlerKey] = instances
 		}
-		cs.revisions[hk] = instances
+
+		instances[md.InstanceID] = staged
+	} else {
+		// Otherwise, we already have our own clone, just mutate it to match the
+		// new meta-data.
+		copyAggregateStoreMetaData(staged, md)
 	}
 
-	instances[id] = effective + 1
+	staged.Revision++
 
 	return true
 }
 
 // aggregateStoreDatabase contains data that is committed to the aggregate store.
 type aggregateStoreDatabase struct {
-	revisions map[string]map[string]aggregatestore.Revision
+	metadata map[string]map[string]*aggregatestore.MetaData
 }
 
 // apply updates the database to include the changes in cs.
 func (db *aggregateStoreDatabase) apply(cs *aggregateStoreChangeSet) {
-	for hk, instances := range cs.revisions {
-		committed := db.revisions[hk]
+	for hk, instances := range cs.metadata {
+		committed := db.metadata[hk]
 
 		if committed == nil {
-			committed = map[string]aggregatestore.Revision{}
+			committed = map[string]*aggregatestore.MetaData{}
 
-			if db.revisions == nil {
-				db.revisions = map[string]map[string]aggregatestore.Revision{}
+			if db.metadata == nil {
+				db.metadata = map[string]map[string]*aggregatestore.MetaData{}
 			}
-			db.revisions[hk] = committed
+			db.metadata[hk] = committed
 		}
 
 		for id, rev := range instances {
 			committed[id] = rev
 		}
 	}
+}
+
+// copyAggregateStoreMetaData assigns meta-data from src to dest.
+func copyAggregateStoreMetaData(dest, src *aggregatestore.MetaData) {
+	// Yes, this seems like a bit of a useless function. Right now the entire
+	// struct is copied, but if anything needs to be deeply-cloned, or *not*
+	// copied in the future (as is the case with the queuestore, for example),
+	// it can be handled here.
+	*dest = *src
+}
+
+// cloneAggregateStoreMetaData returns a deep clone of an
+// aggregatestore.MetaData.
+func cloneAggregateStoreMetaData(md *aggregatestore.MetaData) *aggregatestore.MetaData {
+	// Yes, this seems like a bit of a useless function. Right now all of the
+	// values in the struct are scalars so it's a non issue, but if there's
+	// anything that actually needs deep cloning in the future it can be handled
+	// here.
+	clone := *md
+	return &clone
 }

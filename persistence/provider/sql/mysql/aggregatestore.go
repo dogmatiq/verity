@@ -8,66 +8,76 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
-// InsertAggregateRevision inserts an aggregate revision (with a value of 1) for
-// an aggregate instance.
+// InsertAggregateMetaData inserts meta-data for an aggregate instance.
 //
 // It returns false if the row already exists.
-func (driver) InsertAggregateRevision(
+func (driver) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak, hk, id string,
-) (_ bool, err error) {
+	ak string,
+	md *aggregatestore.MetaData,
+) (bool, error) {
 	return insertIgnore(
 		ctx,
 		tx,
-		`INSERT INTO aggregate_revision SET
+		`INSERT INTO aggregate_metadata SET
 			app_key = ?,
 			handler_key = ?,
-			instance_id = ?`,
+			instance_id = ?,
+			min_offset = ?,
+			max_offset = ?`,
 		ak,
-		hk,
-		id,
+		md.HandlerKey,
+		md.InstanceID,
+		md.MinOffset,
+		md.MaxOffset,
 	)
 }
 
-// UpdateAggregateRevision increments an aggregate isntance's revision by 1.
+// UpdateAggregateMetaData updates meta-data for an aggregate instance.
 //
-// It returns false if the row does not exist or rev is not current.
-func (driver) UpdateAggregateRevision(
+// It returns false if the row does not exist or md.Revision is not current.
+func (driver) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak, hk, id string,
-	rev aggregatestore.Revision,
+	ak string,
+	md *aggregatestore.MetaData,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE aggregate_revision SET
-			revision = revision + 1
+		`UPDATE aggregate_metadata SET
+			revision = revision + 1,
+			min_offset = ?,
+			max_offset = ?
 		WHERE app_key = ?
 		AND handler_key = ?
 		AND instance_id = ?
 		AND revision = ?`,
+		md.MinOffset,
+		md.MaxOffset,
 		ak,
-		hk,
-		id,
-		rev,
+		md.HandlerKey,
+		md.InstanceID,
+		md.Revision,
 	), nil
 }
 
-// SelectAggregateRevision selects an aggregate instance's revision.
-func (driver) SelectAggregateRevision(
+// SelectAggregateMetaData selects an aggregate instance's meta-data.
+func (driver) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (aggregatestore.Revision, error) {
+) (*aggregatestore.MetaData, error) {
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
-			r.revision
-		FROM aggregate_revision AS r
+			revision,
+			min_offset,
+			max_offset
+		FROM aggregate_metadata
 		WHERE app_key = ?
 		AND handler_key = ?
 		AND instance_id = ?`,
@@ -76,12 +86,19 @@ func (driver) SelectAggregateRevision(
 		id,
 	)
 
-	var rev aggregatestore.Revision
-	err := row.Scan(&rev)
-
-	if err == sql.ErrNoRows {
-		return 0, nil
+	md := &aggregatestore.MetaData{
+		HandlerKey: hk,
+		InstanceID: id,
 	}
 
-	return rev, err
+	err := row.Scan(
+		&md.Revision,
+		&md.MinOffset,
+		&md.MaxOffset,
+	)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+
+	return md, err
 }

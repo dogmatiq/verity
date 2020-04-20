@@ -156,24 +156,23 @@ func (ds *DataStoreStub) Close() error {
 type TransactionStub struct {
 	persistence.Transaction
 
-	IncrementAggregateRevisionFunc func(context.Context, string, string, aggregatestore.Revision) error
-	SaveEventFunc                  func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
-	SaveMessageToQueueFunc         func(context.Context, *queuestore.Item) error
-	RemoveMessageFromQueueFunc     func(context.Context, *queuestore.Item) error
+	SaveAggregateMetaDataFunc  func(context.Context, *aggregatestore.MetaData) error
+	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
+	SaveMessageToQueueFunc     func(context.Context, *queuestore.Item) error
+	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Item) error
 
 	CommitFunc   func(context.Context) error
 	RollbackFunc func() error
 }
 
-// IncrementAggregateRevision increments the persisted revision of a an
-// aggregate instance.
-func (t *TransactionStub) IncrementAggregateRevision(ctx context.Context, hk, id string, c aggregatestore.Revision) error {
-	if t.IncrementAggregateRevisionFunc != nil {
-		return t.IncrementAggregateRevisionFunc(ctx, hk, id, c)
+// SaveAggregateMetaData persists meta-data about an aggregate instance.
+func (t *TransactionStub) SaveAggregateMetaData(ctx context.Context, md *aggregatestore.MetaData) error {
+	if t.SaveAggregateMetaDataFunc != nil {
+		return t.SaveAggregateMetaDataFunc(ctx, md)
 	}
 
 	if t.Transaction != nil {
-		return t.Transaction.IncrementAggregateRevision(ctx, hk, id, c)
+		return t.Transaction.SaveAggregateMetaData(ctx, md)
 	}
 
 	return nil

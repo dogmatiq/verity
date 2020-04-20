@@ -1,0 +1,12 @@
+syntax = "proto3";
+package infix.persistence.boltdb.v1;
+
+option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb";
+
+// AggregateStoreMetaData is a protocol buffers representation of
+// aggregatestore.MetaData.
+message AggregateStoreMetaData{
+  uint64 revision = 1;
+  uint64 min_offset = 2;
+  uint64 max_offset = 3;
+}

@@ -29,30 +29,36 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			tearDown()
 		})
 
-		ginkgo.Describe("func LoadRevision()", func() {
-			ginkgo.It("returns zero if the instance does not exist", func() {
-				rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-				gomega.Expect(rev).To(gomega.BeEquivalentTo(0))
+		ginkgo.Describe("func LoadMetaData()", func() {
+			ginkgo.It("returns meta-data with zero revision and offsets if the instance does not exist", func() {
+				md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+				gomega.Expect(md).To(gomega.Equal(
+					&aggregatestore.MetaData{
+						HandlerKey: "<handler-key>",
+						InstanceID: "<instance>",
+					},
+				))
 			})
 
-			ginkgo.It("returns the current revision", func() {
-				incrementRevision(
-					tc.Context,
-					dataStore,
-					"<handler-key>",
-					"<instance>",
-					0,
-				)
+			ginkgo.It("returns the current persisted meta-data", func() {
+				expect := &aggregatestore.MetaData{
+					HandlerKey: "<handler-key>",
+					InstanceID: "<instance>",
+					MinOffset:  1,
+					MaxOffset:  2,
+				}
+				saveMetaData(tc.Context, dataStore, expect)
+				expect.Revision++
 
-				rev := loadRevision(tc.Context, repository, "<handler-key>", "<instance>")
-				gomega.Expect(rev).To(gomega.BeEquivalentTo(1))
+				md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+				gomega.Expect(md).To(gomega.Equal(expect))
 			})
 
 			ginkgo.It("returns an error if the context is canceled", func() {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				_, err := repository.LoadRevision(ctx, "<handler-key>", "<instance>")
+				_, err := repository.LoadMetaData(ctx, "<handler-key>", "<instance>")
 				gomega.Expect(err).To(gomega.Equal(context.Canceled))
 			})
 		})

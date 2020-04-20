@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -54,9 +55,9 @@ func declareTransactionTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 
-			ginkgo.Describe("func IncrementAggregateRevision()", func() {
+			ginkgo.Describe("func SaveAggregateMetaData()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.IncrementAggregateRevision(*ctx, "<handler-key>", "<instance>", 0)
+					err := transaction.SaveAggregateMetaData(*ctx, &aggregatestore.MetaData{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
@@ -103,9 +104,9 @@ func declareTransactionTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 
-			ginkgo.Describe("func IncrementAggregateRevision()", func() {
+			ginkgo.Describe("func SaveAggregateMetaData()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.IncrementAggregateRevision(*ctx, "<handler-key>", "<instance>", 0)
+					err := transaction.SaveAggregateMetaData(*ctx, &aggregatestore.MetaData{})
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})

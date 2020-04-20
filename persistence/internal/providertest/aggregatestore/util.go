@@ -8,30 +8,29 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// loadRevision loads an aggregate instance revision.
-func loadRevision(
+// loadMetaData loads aggregate meta-data for a specific instance.
+func loadMetaData(
 	ctx context.Context,
 	r aggregatestore.Repository,
 	hk, id string,
-) aggregatestore.Revision {
-	rev, err := r.LoadRevision(ctx, hk, id)
+) *aggregatestore.MetaData {
+	md, err := r.LoadMetaData(ctx, hk, id)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	return rev
+	return md
 }
 
-// incrementRevision increments the revision of an aggregate instance.
-func incrementRevision(
+// saveMetaData persistes meta-data for an aggregate instance.
+func saveMetaData(
 	ctx context.Context,
 	ds persistence.DataStore,
-	hk, id string,
-	c aggregatestore.Revision,
+	md *aggregatestore.MetaData,
 ) {
 	err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.IncrementAggregateRevision(ctx, hk, id, c)
+			return tx.SaveAggregateMetaData(ctx, md)
 		},
 	)
 

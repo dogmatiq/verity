@@ -72,32 +72,33 @@ func (d errorConverter) LockApplication(
 // aggregatestore
 //
 
-func (d errorConverter) InsertAggregateRevision(
+func (d errorConverter) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak, hk, id string,
+	ak string,
+	md *aggregatestore.MetaData,
 ) (bool, error) {
-	ok, err := d.d.InsertAggregateRevision(ctx, tx, ak, hk, id)
+	ok, err := d.d.InsertAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) UpdateAggregateRevision(
+func (d errorConverter) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak, hk, id string,
-	rev aggregatestore.Revision,
+	ak string,
+	md *aggregatestore.MetaData,
 ) (bool, error) {
-	ok, err := d.d.UpdateAggregateRevision(ctx, tx, ak, hk, id, rev)
+	ok, err := d.d.UpdateAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) SelectAggregateRevision(
+func (d errorConverter) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (aggregatestore.Revision, error) {
-	rev, err := d.d.SelectAggregateRevision(ctx, db, ak, hk, id)
-	return rev, convertContextErrors(ctx, err)
+) (*aggregatestore.MetaData, error) {
+	md, err := d.d.SelectAggregateMetaData(ctx, db, ak, hk, id)
+	return md, convertContextErrors(ctx, err)
 }
 
 //

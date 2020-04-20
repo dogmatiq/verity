@@ -12,18 +12,13 @@ var ErrConflict = errors.New("an optimistic concurrency conflict occured while p
 // Transaction defines the primitive persistence operations for manipulating the
 // aggregate store.
 type Transaction interface {
-	// IncrementAggregateRevision increments the persisted revision of a an
-	// aggregate instance.
+	// SaveAggregateMetaData persists meta-data about an aggregate instance.
 	//
-	// ak is the aggregate handler's identity key, id is the instance ID.
-	//
-	// c must be the instance's current revision as persisted, otherwise an
-	// optimistic concurrency conflict has occurred, the revision is not saved
-	// and ErrConflict is returned.
-	IncrementAggregateRevision(
+	// md.Revision must be the revision of the instance as currently persisted,
+	// otherwise an optimistic concurrency conflict has occurred, the meta-data
+	// is not saved and ErrConflict is returned.
+	SaveAggregateMetaData(
 		ctx context.Context,
-		hk string,
-		id string,
-		c Revision,
+		md *MetaData,
 	) error
 }
