@@ -57,6 +57,12 @@ func NewPipelineRequestStub(
 		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
 			return tx, nil
 		},
+		AckFunc: func(ctx context.Context) error {
+			return tx.Commit(ctx)
+		},
+		CloseFunc: func() error {
+			return tx.Rollback()
+		},
 	}
 
 	return req, tx

@@ -11,6 +11,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/persistedstream"
+	"github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/parcel"
@@ -59,7 +60,7 @@ func (e *Engine) initApp(
 		"@%s  ",
 		cfg.Identity().Name,
 	)
-	p := e.newPipeline(cfg, q, l)
+	p := e.newPipeline(cfg, ds, q, l)
 
 	a := &app{
 		Config:    cfg,
@@ -143,11 +144,13 @@ func (e *Engine) newCommandExecutor(
 // newPipeline returns a new pipeline for a specific app.
 func (e *Engine) newPipeline(
 	cfg configkit.RichApplication,
+	ds persistence.DataStore,
 	q *queue.Queue,
 	l logging.Logger,
 ) pipeline.Pipeline {
 	rf := &routeFactory{
 		opts:   e.opts,
+		ds:     ds,
 		logger: l,
 	}
 
@@ -166,7 +169,9 @@ func (e *Engine) newPipeline(
 // pipeline.
 type routeFactory struct {
 	opts   *engineOptions
+	ds     persistence.DataStore
 	logger logging.Logger
+
 	app    *envelopespec.Identity
 	routes map[message.Type]pipeline.Stage
 }
@@ -178,6 +183,25 @@ func (f *routeFactory) VisitRichApplication(ctx context.Context, cfg configkit.R
 }
 
 func (f *routeFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
+	s := &aggregate.Sink{
+		Identity:       envelopespec.MarshalIdentity(cfg.Identity()),
+		Handler:        cfg.Handler(),
+		AggregateStore: f.ds.AggregateStoreRepository(),
+		EventStore:     f.ds.EventStoreRepository(),
+		Marshaler:      f.opts.Marshaler,
+		Packer: &parcel.Packer{
+			Application: f.app,
+			Marshaler:   f.opts.Marshaler,
+			Produced:    cfg.MessageTypes().Produced,
+			Consumed:    cfg.MessageTypes().Consumed,
+		},
+		Logger: f.logger,
+	}
+
+	for mt := range cfg.MessageTypes().Consumed {
+		f.routes[mt] = pipeline.Terminate(s.Accept)
+	}
+
 	return nil
 }
 
