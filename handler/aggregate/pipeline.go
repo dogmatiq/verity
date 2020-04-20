@@ -141,7 +141,6 @@ func (s *Sink) Accept(
 		if err != nil {
 			return err
 		}
-
 	}
 
 	md.MaxOffset++ // max-offset is exclusive, must be last-offset + 1.
