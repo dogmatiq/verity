@@ -30,6 +30,7 @@ var _ = Describe("type Sink", func() {
 		req       *PipelineRequestStub
 		res       *pipeline.Response
 		handler   *IntegrationMessageHandler
+		packer    *parcel.Packer
 		logger    *logging.BufferedLogger
 		sink      *Sink
 	)
@@ -51,6 +52,13 @@ var _ = Describe("type Sink", func() {
 			},
 		}
 
+		packer = NewPacker(
+			message.TypeRoles{
+				MessageCType: message.CommandRole,
+				MessageEType: message.EventRole,
+			},
+		)
+
 		logger = &logging.BufferedLogger{}
 
 		sink = &Sink{
@@ -59,13 +67,8 @@ var _ = Describe("type Sink", func() {
 				Key:  "<integration-key>",
 			},
 			Handler: handler,
-			Packer: NewPacker(
-				message.TypeRoles{
-					MessageCType: message.CommandRole,
-					MessageEType: message.EventRole,
-				},
-			),
-			Logger: logger,
+			Packer:  packer,
+			Logger:  logger,
 		}
 	})
 
@@ -94,16 +97,7 @@ var _ = Describe("type Sink", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("returns an error if the message cannot be unpacked", func() {
-			req.ParcelFunc = func() (*parcel.Parcel, error) {
-				return nil, errors.New("<error>")
-			}
-
-			err := sink.Accept(context.Background(), req, res)
-			Expect(err).To(MatchError("<error>"))
-		})
-
-		It("logs about recorded events", func() {
+		It("saves the recorded events", func() {
 			handler.HandleCommandFunc = func(
 				_ context.Context,
 				s dogma.IntegrationCommandScope,
@@ -113,13 +107,51 @@ var _ = Describe("type Sink", func() {
 				return nil
 			}
 
-			err := sink.Accept(context.Background(), req, res)
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			err := sink.Accept(ctx, req, res)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(logger.Messages()).To(ContainElement(
-				logging.BufferedLogMessage{
-					Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
+
+			err = req.Ack(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			res, err := dataStore.EventStoreRepository().QueryEvents(ctx, eventstore.Query{})
+			defer res.Close()
+
+			i, ok, err := res.Next(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+			Expect(i).To(EqualX(
+				&eventstore.Item{
+					Offset: 0,
+					Envelope: &envelopespec.Envelope{
+						MetaData: &envelopespec.MetaData{
+							MessageId:     "0",
+							CausationId:   "<consume>",
+							CorrelationId: "<correlation>",
+							Source: &envelopespec.Source{
+								Application: packer.Application,
+								Handler:     sink.Identity,
+							},
+							CreatedAt:   "2000-01-01T00:00:00Z",
+							Description: "{E1}",
+						},
+						PortableName: MessageEPortableName,
+						MediaType:    MessageE1Packet.MediaType,
+						Data:         MessageE1Packet.Data,
+					},
 				},
 			))
+		})
+
+		It("returns an error if the message cannot be unpacked", func() {
+			req.ParcelFunc = func() (*parcel.Parcel, error) {
+				return nil, errors.New("<error>")
+			}
+
+			err := sink.Accept(context.Background(), req, res)
+			Expect(err).To(MatchError("<error>"))
 		})
 
 		It("returns an error if the transaction cannot be started", func() {
@@ -152,78 +184,6 @@ var _ = Describe("type Sink", func() {
 
 			err := sink.Accept(context.Background(), req, res)
 			Expect(err).To(MatchError("<error>"))
-		})
-
-		Describe("type scope", func() {
-			Describe("func RecordEvent()", func() {
-				It("produces the correct envelope", func() {
-					handler.HandleCommandFunc = func(
-						_ context.Context,
-						s dogma.IntegrationCommandScope,
-						_ dogma.Message,
-					) error {
-						s.RecordEvent(MessageE1)
-						return nil
-					}
-
-					err := sink.Accept(context.Background(), req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-
-					env := &envelopespec.Envelope{
-						MetaData: &envelopespec.MetaData{
-							MessageId:     "0",
-							CausationId:   "<consume>",
-							CorrelationId: "<correlation>",
-							Source: &envelopespec.Source{
-								Application: sink.Packer.Application,
-								Handler:     sink.Identity,
-							},
-							CreatedAt:   "2000-01-01T00:00:00Z",
-							Description: "{E1}",
-						},
-						PortableName: MessageEPortableName,
-						MediaType:    MessageE1Packet.MediaType,
-						Data:         MessageE1Packet.Data,
-					}
-
-					Expect(res.RecordedEvents).To(EqualX(
-						[]pipeline.RecordedEvent{
-							{
-								Parcel: &parcel.Parcel{
-									Envelope:  env,
-									Message:   MessageE1,
-									CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-								},
-								Persisted: &eventstore.Item{
-									Offset:   0,
-									Envelope: env,
-								},
-							},
-						},
-					))
-				})
-			})
-
-			Describe("func RecordEvent()", func() {
-				It("logs using the standard format", func() {
-					handler.HandleCommandFunc = func(
-						_ context.Context,
-						s dogma.IntegrationCommandScope,
-						_ dogma.Message,
-					) error {
-						s.Log("format %s", "<value>")
-						return nil
-					}
-
-					err := sink.Accept(context.Background(), req, res)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(logger.Messages()).To(ContainElement(
-						logging.BufferedLogMessage{
-							Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
-						},
-					))
-				})
-			})
 		})
 	})
 })
