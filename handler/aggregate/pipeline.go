@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/internal/x/syncx"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -35,6 +36,8 @@ type Sink struct {
 	// Logger is the target for log messages produced within the handler.
 	// If it is nil, logging.DefaultLogger is used.
 	Logger logging.Logger
+
+	mutexes syncx.MutexNamespace
 }
 
 // Accept handles a message using s.Handler.
@@ -50,6 +53,12 @@ func (s *Sink) Accept(
 
 	id := s.route(p.Message)
 	root := s.new()
+
+	unlock, err := s.mutexes.Lock(ctx, id)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 
 	md, err := s.Loader.Load(ctx, s.Identity.Key, id, root)
 	if err != nil {

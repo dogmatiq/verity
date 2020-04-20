@@ -159,6 +159,42 @@ var _ = Describe("type Sink", func() {
 			}).To(PanicWith("the '<aggregate-name>' aggregate message handler returned a nil root from New()"))
 		})
 
+		It("returns an error if the deadline is exceeded while waiting for instance mutex", func() {
+			blockReq, _ := NewPipelineRequestStub(
+				NewParcel("<blocking>", MessageC1),
+				dataStore,
+			)
+			blockRes := &pipeline.Response{}
+			defer blockReq.Close()
+
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			barrier := make(chan struct{})
+
+			handler.HandleCommandFunc = func(
+				dogma.AggregateCommandScope,
+				dogma.Message,
+			) {
+				close(barrier) // let the test proceed, we now hold the semaphore
+				<-ctx.Done()   // hold it until the test assertions are complete
+			}
+
+			go sink.Accept(ctx, blockReq, blockRes)
+
+			select {
+			case <-barrier:
+			case <-ctx.Done():
+				Expect(ctx.Err()).ShouldNot(HaveOccurred())
+			}
+
+			ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
+			defer cancel()
+
+			err := sink.Accept(ctx, blockReq, blockRes)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+		})
+
 		When("the instance does not exist", func() {
 			It("can be created", func() {
 				handler.HandleCommandFunc = func(
