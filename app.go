@@ -12,6 +12,7 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/handler/aggregate"
+	"github.com/dogmatiq/infix/handler/cache"
 	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/parcel"
@@ -191,6 +192,11 @@ func (f *routeFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichA
 		Identity: envelopespec.MarshalIdentity(cfg.Identity()),
 		Handler:  cfg.Handler(),
 		Loader:   f.loader,
+		Cache: &cache.Cache{
+			// TODO: https://github.com/dogmatiq/infix/issues/193
+			// Make TTL configurable.
+			Logger: f.logger,
+		},
 		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,
