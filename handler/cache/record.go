@@ -58,7 +58,7 @@ func (r *Record) Release() {
 		if logging.IsDebug(r.cache.Logger) {
 			logging.Debug(
 				r.cache.Logger,
-				"record removed (released without keep-alive): %s (%p)",
+				"cache record removed (released without keep-alive): %s (%p)",
 				r.id,
 				r,
 			)
@@ -91,7 +91,7 @@ func (r *Record) evict() {
 		if logging.IsDebug(r.cache.Logger) {
 			logging.Debug(
 				r.cache.Logger,
-				"record marked idle: %s (%p)",
+				"cache record marked idle: %s (%p)",
 				r.id,
 				r,
 			)
@@ -105,7 +105,7 @@ func (r *Record) evict() {
 		if logging.IsDebug(r.cache.Logger) {
 			logging.Debug(
 				r.cache.Logger,
-				"record removed (idle): %s (%p)",
+				"cache record removed (idle): %s (%p)",
 				r.id,
 				r,
 			)
