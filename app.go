@@ -150,8 +150,12 @@ func (e *Engine) newPipeline(
 ) pipeline.Pipeline {
 	rf := &routeFactory{
 		opts:   e.opts,
-		ds:     ds,
 		logger: l,
+		loader: &aggregate.Loader{
+			AggregateStore: ds.AggregateStoreRepository(),
+			EventStore:     ds.EventStoreRepository(),
+			Marshaler:      e.opts.Marshaler,
+		},
 	}
 
 	cfg.AcceptRichVisitor(nil, rf)
@@ -169,7 +173,7 @@ func (e *Engine) newPipeline(
 // pipeline.
 type routeFactory struct {
 	opts   *engineOptions
-	ds     persistence.DataStore
+	loader *aggregate.Loader
 	logger logging.Logger
 
 	app    *envelopespec.Identity
@@ -184,11 +188,9 @@ func (f *routeFactory) VisitRichApplication(ctx context.Context, cfg configkit.R
 
 func (f *routeFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
 	s := &aggregate.Sink{
-		Identity:       envelopespec.MarshalIdentity(cfg.Identity()),
-		Handler:        cfg.Handler(),
-		AggregateStore: f.ds.AggregateStoreRepository(),
-		EventStore:     f.ds.EventStoreRepository(),
-		Marshaler:      f.opts.Marshaler,
+		Identity: envelopespec.MarshalIdentity(cfg.Identity()),
+		Handler:  cfg.Handler(),
+		Loader:   f.loader,
 		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,

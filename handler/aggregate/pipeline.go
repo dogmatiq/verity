@@ -11,7 +11,6 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
-	"github.com/dogmatiq/marshalkit"
 )
 
 // Sink is a pipeline sink that coordinates the handling of messages by a
@@ -26,17 +25,8 @@ type Sink struct {
 	// application-specific message handling logic.
 	Handler dogma.AggregateMessageHandler
 
-	// AggregateStore is the repository used to load an aggregate instance's
-	// revisions and snapshots.
-	AggregateStore aggregatestore.Repository
-
-	// EventStore is the repository used to load an aggregate instance's
-	// historical events.
-	EventStore eventstore.Repository
-
-	// Marshaler is used to marshal/unmarshal aggregate snapshots and historical
-	// events,
-	Marshaler marshalkit.ValueMarshaler
+	// Loader is used to load aggregate instances into memory.
+	Loader *Loader
 
 	// Packer is used to create new parcels for events recorded by the
 	// handler.
@@ -75,7 +65,7 @@ func (s *Sink) Accept(
 		))
 	}
 
-	md, err := s.AggregateStore.LoadMetaData(ctx, s.Identity.Key, id)
+	md, err := s.Loader.Load(ctx, s.Identity.Key, id, root)
 	if err != nil {
 		return err
 	}
@@ -87,78 +77,34 @@ func (s *Sink) Accept(
 		logger:  s.Logger,
 		id:      id,
 		root:    root,
-	}
-
-	if md.InstanceExists() {
-		sc.exists = true
-
-		if err := s.load(ctx, md, root); err != nil {
-			return err
-		}
+		exists:  md.InstanceExists(),
 	}
 
 	s.Handler.HandleCommand(sc, p.Message)
 
-	if len(sc.events) == 0 {
-		if sc.created {
-			panic(fmt.Sprintf(
-				"the '%s' aggregate message handler created the '%s' instance without recording an event while handling a %T command",
-				s.Identity.Name,
-				id,
-				p.Message,
-			))
-		}
-
-		if sc.destroyed {
-			panic(fmt.Sprintf(
-				"the '%s' aggregate message handler destroyed the '%s' instance without recording an event while handling a %T command",
-				s.Identity.Name,
-				id,
-				p.Message,
-			))
-		}
-
-		return nil
+	if len(sc.events) > 0 {
+		return s.save(ctx, req, res, md, sc)
 	}
 
-	return s.save(ctx, req, res, md, sc)
-}
-
-// load applies an aggregate instance's historical events to the root in order
-// to reproduce the current state.
-func (s *Sink) load(
-	ctx context.Context,
-	md *aggregatestore.MetaData,
-	root dogma.AggregateRoot,
-) error {
-	q := eventstore.Query{
-		MinOffset: md.BeginOffset,
-		// TODO: https://github.com/dogmatiq/dogma/issues/113
-		// How do we best configure the filter to deal with events that the
-		// aggregate once produced, but no longer does?
-		Filter:              nil,
-		AggregateHandlerKey: md.HandlerKey,
-		AggregateInstanceID: md.InstanceID,
+	if sc.created {
+		panic(fmt.Sprintf(
+			"the '%s' aggregate message handler created the '%s' instance without recording an event while handling a %T command",
+			s.Identity.Name,
+			id,
+			p.Message,
+		))
 	}
 
-	res, err := s.EventStore.QueryEvents(ctx, q)
-	if err != nil {
-		return err
+	if sc.destroyed {
+		panic(fmt.Sprintf(
+			"the '%s' aggregate message handler destroyed the '%s' instance without recording an event while handling a %T command",
+			s.Identity.Name,
+			id,
+			p.Message,
+		))
 	}
 
-	for {
-		i, ok, err := res.Next(ctx)
-		if !ok || err != nil {
-			return err
-		}
-
-		p, err := parcel.FromEnvelope(s.Marshaler, i.Envelope)
-		if err != nil {
-			return err
-		}
-
-		root.ApplyEvent(p.Message)
-	}
+	return nil
 }
 
 // save persists newly recorded events and updates the instance's meta-data.

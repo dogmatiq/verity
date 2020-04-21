@@ -18,7 +18,6 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
-	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -79,12 +78,14 @@ var _ = Describe("type Sink", func() {
 				Name: "<aggregate-name>",
 				Key:  "<aggregate-key>",
 			},
-			Handler:        handler,
-			AggregateStore: aggregateRepo,
-			EventStore:     eventRepo,
-			Marshaler:      Marshaler,
-			Packer:         packer,
-			Logger:         logger,
+			Handler: handler,
+			Loader: &Loader{
+				AggregateStore: aggregateRepo,
+				EventStore:     eventRepo,
+				Marshaler:      Marshaler,
+			},
+			Packer: packer,
+			Logger: logger,
 		}
 	})
 
@@ -125,7 +126,7 @@ var _ = Describe("type Sink", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("returns an error if the meta-data can not be loaded", func() {
+		It("returns an error if the instance can not be loaded", func() {
 			aggregateRepo.LoadMetaDataFunc = func(
 				context.Context,
 				string,
@@ -256,12 +257,6 @@ var _ = Describe("type Sink", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			It("returns an error if one of the historical events can not be unmarshaled", func() {
-				sink.Marshaler = &codec.Marshaler{} // an empty marshaler cannot unmarshal anything
-				err := sink.Accept(ctx, req, res)
-				Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
-			})
-
 			When("when the instance is subsequently destroyed", func() {
 				BeforeEach(func() {
 					destroyReq, _ := NewPipelineRequestStub(
@@ -295,55 +290,6 @@ var _ = Describe("type Sink", func() {
 					err := sink.Accept(ctx, req, res)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
-
-				When("when the instance is recreated once again", func() {
-					BeforeEach(func() {
-						createReq, _ := NewPipelineRequestStub(
-							NewParcel("<create>", MessageC1),
-							dataStore,
-						)
-						createRes := &pipeline.Response{}
-						defer createReq.Close()
-
-						handler.HandleCommandFunc = func(
-							s dogma.AggregateCommandScope,
-							_ dogma.Message,
-						) {
-							handler.HandleCommandFunc = nil
-							s.Create()
-							s.RecordEvent(MessageE{Value: "<recreated>"})
-						}
-
-						err := sink.Accept(ctx, createReq, createRes)
-						Expect(err).ShouldNot(HaveOccurred())
-
-						err = createReq.Ack(ctx)
-						Expect(err).ShouldNot(HaveOccurred())
-					})
-
-					It("only applies historical events that were recorded since the recreation", func() {
-						root.ApplyEventFunc = func(m dogma.Message, _ interface{}) {
-							Expect(m).To(Equal(
-								MessageE{Value: "<recreated>"},
-							))
-						}
-
-						err := sink.Accept(ctx, req, res)
-						Expect(err).ShouldNot(HaveOccurred())
-					})
-				})
-			})
-
-			It("returns an error if the events can not be loaded", func() {
-				eventRepo.QueryEventsFunc = func(
-					context.Context,
-					eventstore.Query,
-				) (eventstore.Result, error) {
-					return nil, errors.New("<error>")
-				}
-
-				err := sink.Accept(ctx, req, res)
-				Expect(err).To(MatchError("<error>"))
 			})
 
 			It("panics if the instance is destroyed without recording an event", func() {
