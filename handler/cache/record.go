@@ -82,11 +82,21 @@ func (r *Record) evict() {
 	}
 }
 
-// state is an enumeration that describes the records state in the cache.
+// state is an enumeration that describes a record's state in the cache.
 type state int
 
 const (
-	active  state = iota // the record is in the cache, it may be locked or unlocked
-	idle                 // the record has been marked for eviction on the next cycle
-	removed              // the record has been removed from the cache, and is invalid
+	// active means that the record is still in the cache, and was created or
+	// KeepAlive() was called since the last eviction cycle.
+	active state = iota
+
+	// idle means that the record is in the cache, but KeepAlive() has not been
+	// called (and hence it has not been acquired) since the last eviction
+	// cycle. It will be evicted on the next cycle.
+	idle
+
+	// removed means that the record has been removed from the cache and should
+	// not be used. Locking the record's mutex does not guarantee exclusive
+	// access to the instance.
+	removed
 )
