@@ -291,15 +291,18 @@ var _ = Describe("type Sink", func() {
 						// Create() should now return true once again.
 						Expect(s.Create()).To(BeTrue())
 
-						// The root itself should also have been reset to as-new.
+						// The root itself should also have been reset to
+						// as-new. For our test root that means the internal
+						// slice of historical messages should be empty.
 						r := s.Root().(*AggregateRoot)
 						Expect(r.Value).To(Equal(
 							&[]dogma.Message{},
 						))
 
-						// We need to record an event whenever we create to
-						// prevent a panic, we do this after our assertion that
-						// the root is empty otherwise we this event applied.
+						// As per the Dogma API specification, we must record an
+						// event whenever we call Create(). This is done after
+						// the assertion that the root is empty otherwise we
+						// would see this event in the state.
 						s.RecordEvent(MessageE{Value: "<recreated>"})
 					}
 
