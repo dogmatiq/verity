@@ -34,7 +34,7 @@ var _ = Describe("type Cache", func() {
 			record, err = cache.Acquire(ctx, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			record.Instance = "<instance value>"
+			record.Instance = "<value>"
 		})
 
 		It("removes the record from the cache by default", func() {
@@ -57,7 +57,7 @@ var _ = Describe("type Cache", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			defer rec.Release()
 
-			Expect(rec.Instance).To(Equal("<instance value>"))
+			Expect(rec.Instance).To(Equal("<value>"))
 		})
 	})
 })

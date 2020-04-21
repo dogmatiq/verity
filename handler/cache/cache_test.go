@@ -19,7 +19,9 @@ var _ = Describe("type Cache", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-		cache = &Cache{}
+		cache = &Cache{
+			TTL: 10 * time.Millisecond,
+		}
 	})
 
 	AfterEach(func() {
@@ -59,7 +61,7 @@ var _ = Describe("type Cache", func() {
 				record, err = cache.Acquire(ctx, "<id>")
 				Expect(err).ShouldNot(HaveOccurred())
 
-				record.Instance = "<instance value>"
+				record.Instance = "<value>"
 			})
 
 			When("the record is not locked", func() {
@@ -73,7 +75,7 @@ var _ = Describe("type Cache", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer rec.Release()
 
-					Expect(rec.Instance).To(Equal("<instance value>"))
+					Expect(rec.Instance).To(Equal("<value>"))
 				})
 			})
 
@@ -89,7 +91,7 @@ var _ = Describe("type Cache", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					defer rec.Release()
 
-					Expect(rec.Instance).To(Equal("<instance value>"))
+					Expect(rec.Instance).To(Equal("<value>"))
 				})
 
 				It("creates a new record if the locked record is not kept", func() {
@@ -116,6 +118,100 @@ var _ = Describe("type Cache", func() {
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
 			})
+		})
+	})
+
+	Describe("func Run()", func() {
+		It("evicts records that remain idle for two TTL periods", func() {
+			By("adding a record")
+
+			rec, err := cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			rec.Instance = "<value>"
+			rec.KeepAlive()
+			rec.Release()
+
+			By("running the eviction loop for longer than twice the TTL")
+
+			runCtx, cancelRun := context.WithTimeout(ctx, 25*time.Millisecond)
+			defer cancelRun()
+			err = cache.Run(runCtx)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+
+			By("verifying that the value is not retained")
+
+			rec, err = cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			defer rec.Release()
+
+			Expect(rec.Instance).To(BeNil())
+		})
+
+		It("does not evict records that are kept-alive after one TTL period", func() {
+			By("adding a record")
+
+			rec, err := cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			rec.Instance = "<value>"
+			rec.KeepAlive()
+			rec.Release()
+
+			go func() {
+				defer GinkgoRecover()
+
+				time.Sleep(15 * time.Millisecond)
+
+				By("acquiring the record and calling KeepAlive() after the first eviction loop")
+
+				rec, err := cache.Acquire(ctx, "<id>")
+				Expect(err).ShouldNot(HaveOccurred())
+				rec.Instance = "<value>"
+				rec.KeepAlive()
+				rec.Release()
+			}()
+
+			By("running the eviction loop for longer than twice the TTL")
+
+			runCtx, cancelRun := context.WithTimeout(ctx, 25*time.Millisecond)
+			defer cancelRun()
+			err = cache.Run(runCtx)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+
+			By("verifying that the value was retained")
+
+			rec, err = cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			defer rec.Release()
+
+			Expect(rec.Instance).To(Equal("<value>"))
+		})
+
+		It("does not evict locked records", func() {
+			By("adding a record and holding the lock open")
+
+			rec, err := cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			rec.Instance = "<value>"
+
+			By("running the eviction loop for longer than twice the TTL")
+
+			runCtx, cancelRun := context.WithTimeout(ctx, 25*time.Millisecond)
+			defer cancelRun()
+			err = cache.Run(runCtx)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+
+			By("releasing the record only after the eviction loop has stopped")
+
+			rec.KeepAlive()
+			rec.Release()
+
+			By("verifying that the value was retained")
+
+			rec, err = cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			defer rec.Release()
+
+			Expect(rec.Instance).To(Equal("<value>"))
 		})
 	})
 })
