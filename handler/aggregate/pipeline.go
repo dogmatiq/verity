@@ -100,7 +100,7 @@ func (s *Sink) Accept(
 		return err
 	}
 
-	rec.MarkInstanceSaved()
+	rec.KeepAlive()
 
 	return nil
 }
