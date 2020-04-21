@@ -13,6 +13,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/aggregate"
+	"github.com/dogmatiq/infix/handler/cache"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
@@ -73,6 +74,16 @@ var _ = Describe("type Sink", func() {
 
 		logger = &logging.BufferedLogger{}
 
+		handler.NewFunc = func() dogma.AggregateRoot {
+			return &AggregateRoot{
+				Value: &[]dogma.Message{},
+				ApplyEventFunc: func(m dogma.Message, v interface{}) {
+					p := v.(*[]dogma.Message)
+					*p = append(*p, m)
+				},
+			}
+		}
+
 		sink = &Sink{
 			Identity: &envelopespec.Identity{
 				Name: "<aggregate-name>",
@@ -84,6 +95,7 @@ var _ = Describe("type Sink", func() {
 				EventStore:     eventRepo,
 				Marshaler:      Marshaler,
 			},
+			Cache:  &cache.Cache{},
 			Packer: packer,
 			Logger: logger,
 		}
@@ -159,6 +171,42 @@ var _ = Describe("type Sink", func() {
 			}).To(PanicWith("the '<aggregate-name>' aggregate message handler returned a nil root from New()"))
 		})
 
+		It("returns an error if the deadline is exceeded while acquiring the cache record", func() {
+			blockReq, _ := NewPipelineRequestStub(
+				NewParcel("<blocking>", MessageC1),
+				dataStore,
+			)
+			blockRes := &pipeline.Response{}
+			defer blockReq.Close()
+
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			barrier := make(chan struct{})
+
+			handler.HandleCommandFunc = func(
+				dogma.AggregateCommandScope,
+				dogma.Message,
+			) {
+				close(barrier) // let the test proceed, we now hold the lock on the record
+				<-ctx.Done()   // don't unlock until the test assertions are complete
+			}
+
+			go sink.Accept(ctx, blockReq, blockRes)
+
+			select {
+			case <-barrier:
+			case <-ctx.Done():
+				Expect(ctx.Err()).ShouldNot(HaveOccurred())
+			}
+
+			ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
+			defer cancel()
+
+			err := sink.Accept(ctx, blockReq, blockRes)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+		})
+
 		When("the instance does not exist", func() {
 			It("can be created", func() {
 				handler.HandleCommandFunc = func(
@@ -190,8 +238,6 @@ var _ = Describe("type Sink", func() {
 		})
 
 		When("the instance exists", func() {
-			var root *AggregateRoot
-
 			BeforeEach(func() {
 				createReq, _ := NewPipelineRequestStub(
 					NewParcel("<created>", MessageC1),
@@ -215,11 +261,6 @@ var _ = Describe("type Sink", func() {
 
 				err = createReq.Ack(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
-
-				root = &AggregateRoot{}
-				handler.NewFunc = func() dogma.AggregateRoot {
-					return root
-				}
 			})
 
 			It("causes Create() to return false", func() {
@@ -235,18 +276,14 @@ var _ = Describe("type Sink", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			It("applies historical events when loading", func() {
-				var events []dogma.Message
-				root.ApplyEventFunc = func(m dogma.Message, _ interface{}) {
-					events = append(events, m)
-				}
-
+			It("provides a root with the correct state", func() {
 				handler.HandleCommandFunc = func(
-					dogma.AggregateCommandScope,
-					dogma.Message,
+					s dogma.AggregateCommandScope,
+					_ dogma.Message,
 				) {
-					Expect(events).To(Equal(
-						[]dogma.Message{
+					r := s.Root().(*AggregateRoot)
+					Expect(r.Value).To(Equal(
+						&[]dogma.Message{
 							MessageE1,
 							MessageE2,
 						},
@@ -282,9 +319,27 @@ var _ = Describe("type Sink", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				It("does not apply historical events when loading", func() {
-					root.ApplyEventFunc = func(dogma.Message, interface{}) {
-						Fail("unexpected call")
+				It("resets the root state", func() {
+					handler.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						// Create() should now return true once again.
+						Expect(s.Create()).To(BeTrue())
+
+						// The root itself should also have been reset to
+						// as-new. For our test root that means the internal
+						// slice of historical messages should be empty.
+						r := s.Root().(*AggregateRoot)
+						Expect(r.Value).To(Equal(
+							&[]dogma.Message{},
+						))
+
+						// As per the Dogma API specification, we must record an
+						// event whenever we call Create(). This is done after
+						// the assertion that the root is empty otherwise we
+						// would see this event in the state.
+						s.RecordEvent(MessageE{Value: "<recreated>"})
 					}
 
 					err := sink.Accept(ctx, req, res)

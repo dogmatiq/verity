@@ -12,6 +12,7 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/handler/aggregate"
+	"github.com/dogmatiq/infix/handler/cache"
 	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/parcel"
@@ -149,8 +150,9 @@ func (e *Engine) newPipeline(
 	l logging.Logger,
 ) pipeline.Pipeline {
 	rf := &routeFactory{
-		opts:   e.opts,
-		logger: l,
+		opts:         e.opts,
+		appLogger:    l,
+		engineLogger: e.logger,
 		loader: &aggregate.Loader{
 			AggregateStore: ds.AggregateStoreRepository(),
 			EventStore:     ds.EventStoreRepository(),
@@ -172,9 +174,10 @@ func (e *Engine) newPipeline(
 // routeFactory is a configkit.RichVisitor that constructs the messaging
 // pipeline.
 type routeFactory struct {
-	opts   *engineOptions
-	loader *aggregate.Loader
-	logger logging.Logger
+	opts         *engineOptions
+	loader       *aggregate.Loader
+	engineLogger logging.Logger
+	appLogger    logging.Logger
 
 	app    *envelopespec.Identity
 	routes map[message.Type]pipeline.Stage
@@ -191,13 +194,23 @@ func (f *routeFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichA
 		Identity: envelopespec.MarshalIdentity(cfg.Identity()),
 		Handler:  cfg.Handler(),
 		Loader:   f.loader,
+		Cache: &cache.Cache{
+			// TODO: https://github.com/dogmatiq/infix/issues/193
+			// Make TTL configurable.
+			Logger: loggingx.WithPrefix(
+				f.engineLogger,
+				"[cache %s@%s] ",
+				f.app.Name,
+				cfg.Identity().Name,
+			),
+		},
 		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,
 			Produced:    cfg.MessageTypes().Produced,
 			Consumed:    cfg.MessageTypes().Consumed,
 		},
-		Logger: f.logger,
+		Logger: f.appLogger,
 	}
 
 	for mt := range cfg.MessageTypes().Consumed {
@@ -222,7 +235,7 @@ func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.Ric
 			Produced:    cfg.MessageTypes().Produced,
 			Consumed:    cfg.MessageTypes().Consumed,
 		},
-		Logger: f.logger,
+		Logger: f.appLogger,
 	}
 
 	for mt := range cfg.MessageTypes().Consumed {
