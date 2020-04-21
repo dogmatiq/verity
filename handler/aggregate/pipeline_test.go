@@ -74,6 +74,16 @@ var _ = Describe("type Sink", func() {
 
 		logger = &logging.BufferedLogger{}
 
+		handler.NewFunc = func() dogma.AggregateRoot {
+			return &AggregateRoot{
+				Value: &[]dogma.Message{},
+				ApplyEventFunc: func(m dogma.Message, v interface{}) {
+					p := v.(*[]dogma.Message)
+					*p = append(*p, m)
+				},
+			}
+		}
+
 		sink = &Sink{
 			Identity: &envelopespec.Identity{
 				Name: "<aggregate-name>",
@@ -192,8 +202,6 @@ var _ = Describe("type Sink", func() {
 		})
 
 		When("the instance exists", func() {
-			var root *AggregateRoot
-
 			BeforeEach(func() {
 				createReq, _ := NewPipelineRequestStub(
 					NewParcel("<created>", MessageC1),
@@ -217,11 +225,6 @@ var _ = Describe("type Sink", func() {
 
 				err = createReq.Ack(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
-
-				root = &AggregateRoot{}
-				handler.NewFunc = func() dogma.AggregateRoot {
-					return root
-				}
 			})
 
 			It("causes Create() to return false", func() {
@@ -237,18 +240,14 @@ var _ = Describe("type Sink", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			It("applies historical events when loading", func() {
-				var events []dogma.Message
-				root.ApplyEventFunc = func(m dogma.Message, _ interface{}) {
-					events = append(events, m)
-				}
-
+			It("provides a root with the correct state", func() {
 				handler.HandleCommandFunc = func(
-					dogma.AggregateCommandScope,
-					dogma.Message,
+					s dogma.AggregateCommandScope,
+					_ dogma.Message,
 				) {
-					Expect(events).To(Equal(
-						[]dogma.Message{
+					r := s.Root().(*AggregateRoot)
+					Expect(r.Value).To(Equal(
+						&[]dogma.Message{
 							MessageE1,
 							MessageE2,
 						},
@@ -284,9 +283,24 @@ var _ = Describe("type Sink", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				It("does not apply historical events when loading", func() {
-					root.ApplyEventFunc = func(dogma.Message, interface{}) {
-						Fail("unexpected call")
+				It("resets the root state", func() {
+					handler.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						// Create() should now return true once again.
+						Expect(s.Create()).To(BeTrue())
+
+						// The root itself should also have been reset to as-new.
+						r := s.Root().(*AggregateRoot)
+						Expect(r.Value).To(Equal(
+							&[]dogma.Message{},
+						))
+
+						// We need to record an event whenever we create to
+						// prevent a panic, we do this after our assertion that
+						// the root is empty otherwise we this event applied.
+						s.RecordEvent(MessageE{Value: "<recreated>"})
 					}
 
 					err := sink.Accept(ctx, req, res)

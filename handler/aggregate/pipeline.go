@@ -94,7 +94,7 @@ func (s *Sink) Accept(
 		ctx,
 		req,
 		res,
-		inst.metadata,
+		inst,
 		sc,
 	); err != nil {
 		return err
@@ -138,7 +138,7 @@ func (s *Sink) save(
 	ctx context.Context,
 	req pipeline.Request,
 	res *pipeline.Response,
-	md *aggregatestore.MetaData,
+	inst *instance,
 	sc *scope,
 ) error {
 	if len(sc.events) == 0 {
@@ -158,13 +158,21 @@ func (s *Sink) save(
 		}
 	}
 
-	md.SetLastRecordedOffset(offset)
+	inst.metadata.SetLastRecordedOffset(offset)
 
 	if !sc.exists {
-		md.MarkInstanceDestroyed()
+		inst.root = s.new()
+		inst.metadata.MarkInstanceDestroyed()
 	}
 
-	return tx.SaveAggregateMetaData(ctx, md)
+	if err := tx.SaveAggregateMetaData(ctx, inst.metadata); err != nil {
+		return err
+	}
+
+	// update the revision so that it remains current in the cache
+	inst.metadata.Revision++
+
+	return nil
 }
 
 // route returns the instance ID that m is routed to, or panics if the handler
