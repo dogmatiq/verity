@@ -1,6 +1,9 @@
 package cache
 
-import "github.com/dogmatiq/infix/internal/x/syncx"
+import (
+	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/internal/x/syncx"
+)
 
 // Record is an entry in the cache.
 type Record struct {
@@ -51,6 +54,15 @@ func (r *Record) Release() {
 		r.keep = false // for the next acquirer
 	} else {
 		r.remove()
+
+		if logging.IsDebug(r.cache.Logger) {
+			logging.Debug(
+				r.cache.Logger,
+				"record removed (released without keep-alive): %s (%p)",
+				r.id,
+				r,
+			)
+		}
 	}
 
 	r.m.Unlock()
@@ -75,10 +87,29 @@ func (r *Record) evict() {
 		// Mark the record as idle, if it's still idle on the next
 		// tick we'll remove it.
 		r.state = idle
+
+		if logging.IsDebug(r.cache.Logger) {
+			logging.Debug(
+				r.cache.Logger,
+				"record marked idle: %s (%p)",
+				r.id,
+				r,
+			)
+		}
+
 	case idle:
 		// It's still idle, meaning it hasn't been acquired since
 		// the last tick.
 		r.remove()
+
+		if logging.IsDebug(r.cache.Logger) {
+			logging.Debug(
+				r.cache.Logger,
+				"record removed (idle): %s (%p)",
+				r.id,
+				r,
+			)
+		}
 	}
 }
 

@@ -5,11 +5,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/linger"
 )
 
 // DefaultTTL is the default *minimum* period of time to keep cache records in
-// memory after they were last acquired.
+// memory after they were last used.
 const DefaultTTL = 1 * time.Hour
 
 // Cache is an in-memory cache for storing aggregate and process instances for a
@@ -18,6 +19,9 @@ type Cache struct {
 	// TTL is the *minimum* period of time to keep cache records in memory after
 	// they were last used. If it is non-positive, DefaultTTL is used.
 	TTL time.Duration
+
+	// Logger is the target for log messages about modifications to the cache.
+	Logger logging.Logger
 
 	records sync.Map
 }
@@ -35,6 +39,13 @@ func (c *Cache) Acquire(ctx context.Context, id string) (*Record, error) {
 
 		if x, loaded := c.records.LoadOrStore(id, rec); loaded {
 			rec = x.(*Record)
+		} else if logging.IsDebug(c.Logger) {
+			logging.Debug(
+				c.Logger,
+				"record added: %s (%p)",
+				id,
+				rec,
+			)
 		}
 
 		if err := rec.m.Lock(ctx); err != nil {

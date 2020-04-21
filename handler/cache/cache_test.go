@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/handler/cache"
 	. "github.com/dogmatiq/infix/handler/cache"
 	. "github.com/onsi/ginkgo"
@@ -20,7 +21,8 @@ var _ = Describe("type Cache", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 		cache = &Cache{
-			TTL: 10 * time.Millisecond,
+			TTL:    10 * time.Millisecond,
+			Logger: logging.DebugLogger, // use a debug logger to ensure debug logging paths are covered
 		}
 	})
 
