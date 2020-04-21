@@ -21,7 +21,7 @@ var _ = Describe("type Cache", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 		cache = &Cache{
-			TTL:    10 * time.Millisecond,
+			TTL:    20 * time.Millisecond,
 			Logger: logging.DebugLogger, // use a debug logger to ensure debug logging paths are covered
 		}
 	})
@@ -135,7 +135,7 @@ var _ = Describe("type Cache", func() {
 
 			By("running the eviction loop for longer than twice the TTL")
 
-			runCtx, cancelRun := context.WithTimeout(ctx, 25*time.Millisecond)
+			runCtx, cancelRun := context.WithTimeout(ctx, 3*cache.TTL)
 			defer cancelRun()
 			err = cache.Run(runCtx)
 			Expect(err).To(Equal(context.DeadlineExceeded))
@@ -161,7 +161,7 @@ var _ = Describe("type Cache", func() {
 			go func() {
 				defer GinkgoRecover()
 
-				time.Sleep(15 * time.Millisecond)
+				time.Sleep(cache.TTL + (cache.TTL / 2))
 
 				By("acquiring the record and calling KeepAlive() after the first eviction loop")
 
@@ -174,7 +174,7 @@ var _ = Describe("type Cache", func() {
 
 			By("running the eviction loop for longer than twice the TTL")
 
-			runCtx, cancelRun := context.WithTimeout(ctx, 25*time.Millisecond)
+			runCtx, cancelRun := context.WithTimeout(ctx, 3*cache.TTL)
 			defer cancelRun()
 			err = cache.Run(runCtx)
 			Expect(err).To(Equal(context.DeadlineExceeded))
@@ -197,7 +197,7 @@ var _ = Describe("type Cache", func() {
 
 			By("running the eviction loop for longer than twice the TTL")
 
-			runCtx, cancelRun := context.WithTimeout(ctx, 25*time.Millisecond)
+			runCtx, cancelRun := context.WithTimeout(ctx, 3*cache.TTL)
 			defer cancelRun()
 			err = cache.Run(runCtx)
 			Expect(err).To(Equal(context.DeadlineExceeded))
