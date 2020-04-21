@@ -42,7 +42,6 @@ func (c *Cache) Acquire(ctx context.Context, id string) (*Record, error) {
 		}
 
 		if rec.state != removed {
-			rec.state = active
 			return rec, nil
 		}
 

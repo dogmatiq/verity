@@ -21,13 +21,13 @@ type Record struct {
 // the cache.
 func (r *Record) MarkInstanceSaved() {
 	r.saved = true
-	r.cache.records.Delete(r.id)
 }
 
 // Release unlocks this record, allowing the key to be acquired by other
 // callers.
 func (r *Record) Release() {
 	if r.saved {
+		r.state = active
 		r.saved = false
 	} else {
 		r.remove()
