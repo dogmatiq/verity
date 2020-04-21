@@ -13,6 +13,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/aggregate"
+	"github.com/dogmatiq/infix/handler/cache"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
@@ -84,6 +85,7 @@ var _ = Describe("type Sink", func() {
 				EventStore:     eventRepo,
 				Marshaler:      Marshaler,
 			},
+			Cache:  &cache.Cache{},
 			Packer: packer,
 			Logger: logger,
 		}
