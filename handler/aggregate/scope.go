@@ -1,6 +1,8 @@
 package aggregate
 
 import (
+	"fmt"
+
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -89,4 +91,29 @@ func (s *scope) Log(f string, v ...interface{}) {
 		f,
 		v,
 	)
+}
+
+// validate panics if the handler left the scope in an invalid state.
+func (s *scope) validate() {
+	if len(s.events) > 0 {
+		return
+	}
+
+	if s.created {
+		panic(fmt.Sprintf(
+			"the '%s' aggregate message handler created the '%s' instance without recording an event while handling a %T command",
+			s.handler.Name,
+			s.id,
+			s.cause.Message,
+		))
+	}
+
+	if s.destroyed {
+		panic(fmt.Sprintf(
+			"the '%s' aggregate message handler destroyed the '%s' instance without recording an event while handling a %T command",
+			s.handler.Name,
+			s.id,
+			s.cause.Message,
+		))
+	}
 }

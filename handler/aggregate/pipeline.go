@@ -48,22 +48,8 @@ func (s *Sink) Accept(
 		return err
 	}
 
-	id := s.Handler.RouteCommandToInstance(p.Message)
-	if id == "" {
-		panic(fmt.Sprintf(
-			"the '%s' aggregate message handler attempted to route a %T command to an empty instance ID",
-			s.Identity.Name,
-			p.Message,
-		))
-	}
-
-	root := s.Handler.New()
-	if root == nil {
-		panic(fmt.Sprintf(
-			"the '%s' aggregate message handler returned a nil root from New()",
-			s.Identity.Name,
-		))
-	}
+	id := s.route(p.Message)
+	root := s.new()
 
 	md, err := s.Loader.Load(ctx, s.Identity.Key, id, root)
 	if err != nil {
@@ -82,26 +68,10 @@ func (s *Sink) Accept(
 
 	s.Handler.HandleCommand(sc, p.Message)
 
+	sc.validate()
+
 	if len(sc.events) > 0 {
 		return s.save(ctx, req, res, md, sc)
-	}
-
-	if sc.created {
-		panic(fmt.Sprintf(
-			"the '%s' aggregate message handler created the '%s' instance without recording an event while handling a %T command",
-			s.Identity.Name,
-			id,
-			p.Message,
-		))
-	}
-
-	if sc.destroyed {
-		panic(fmt.Sprintf(
-			"the '%s' aggregate message handler destroyed the '%s' instance without recording an event while handling a %T command",
-			s.Identity.Name,
-			id,
-			p.Message,
-		))
 	}
 
 	return nil
@@ -135,4 +105,31 @@ func (s *Sink) save(
 	}
 
 	return tx.SaveAggregateMetaData(ctx, md)
+}
+
+// route returns the instance ID that m is routed to, or panics if the handler
+// returns an empty string.
+func (s *Sink) route(m dogma.Message) string {
+	if id := s.Handler.RouteCommandToInstance(m); id != "" {
+		return id
+	}
+
+	panic(fmt.Sprintf(
+		"the '%s' aggregate message handler attempted to route a %T command to an empty instance ID",
+		s.Identity.Name,
+		m,
+	))
+}
+
+// new returns a new aggregate instance created by the handler, or panics if the
+// handler returns nil.
+func (s *Sink) new() dogma.AggregateRoot {
+	if r := s.Handler.New(); r != nil {
+		return r
+	}
+
+	panic(fmt.Sprintf(
+		"the '%s' aggregate message handler returned a nil root from New()",
+		s.Identity.Name,
+	))
 }
