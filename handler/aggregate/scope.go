@@ -85,7 +85,7 @@ func (s *scope) RecordEvent(m dogma.Message) {
 // Log records an informational message within the context of the message
 // that is being handled.
 func (s *scope) Log(f string, v ...interface{}) {
-	mlog.LogFromHandler(
+	mlog.LogFromScope(
 		s.logger,
 		s.cause.Envelope,
 		f,

@@ -8,8 +8,10 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/handler/projection/resource"
+	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/linger"
 )
 
@@ -19,6 +21,9 @@ const DefaultTimeout = 3 * time.Second
 // StreamAdaptor presents a dogma.ProjectionMessageHandler as an
 // eventstream.Handler.
 type StreamAdaptor struct {
+	// Identity is the handler's identity.
+	Identity *envelopespec.Identity
+
 	// Handler is the projection message handler that handles the events.
 	Handler dogma.ProjectionMessageHandler
 
@@ -57,7 +62,21 @@ func (a *StreamAdaptor) HandleEvent(
 	ctx context.Context,
 	o eventstream.Offset,
 	ev *eventstream.Event,
-) error {
+) (err error) {
+	source := ev.Parcel.Envelope.MetaData.Source.Application
+
+	defer mlog.LogHandlerResult(
+		a.Logger,
+		ev.Parcel.Envelope,
+		a.Identity,
+		configkit.ProjectionHandlerType,
+		&err,
+		"resource %s, expected version: %d, new version: %d",
+		source.Key,
+		o,
+		ev.Offset+1,
+	)
+
 	ctx, cancel := linger.ContextWithTimeout(
 		ctx,
 		a.Handler.TimeoutHint(ev.Parcel.Message),
@@ -68,7 +87,7 @@ func (a *StreamAdaptor) HandleEvent(
 
 	ok, err := a.Handler.HandleEvent(
 		ctx,
-		resource.FromApplicationKey(ev.Parcel.Envelope.MetaData.Source.Application.Key),
+		resource.FromApplicationKey(source.Key),
 		resource.MarshalOffset(o),
 		resource.MarshalOffset(ev.Offset+1),
 		scope{

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 )
@@ -81,9 +82,9 @@ func LogNack(
 	)
 }
 
-// LogFromHandler logs an informational message produced within a Dogma handler
+// LogFromScope logs an informational message produced within a Dogma handler
 // via a scope.
-func LogFromHandler(
+func LogFromScope(
 	log logging.Logger,
 	env *envelopespec.Envelope,
 	f string, v []interface{},
@@ -104,6 +105,75 @@ func LogFromHandler(
 			fmt.Sprintf(f, v...),
 		),
 	)
+}
+
+// LogHandlerResult logs a debug message produced by the engine for a specific
+// Dogma handler.
+//
+// It is designed to be used with defer.
+func LogHandlerResult(
+	log logging.Logger,
+	env *envelopespec.Envelope,
+	handler *envelopespec.Identity,
+	ht configkit.HandlerType,
+	err *error,
+	f string, v ...interface{},
+) {
+	if !logging.IsDebug(log) {
+		return
+	}
+
+	if p := recover(); p != nil {
+		// We don't want to log anything if there was a panic.
+		panic(p)
+	}
+
+	messages := []string{
+		handler.Name,
+	}
+
+	if *err != nil {
+		messages = append(
+			messages,
+			(*err).Error(),
+		)
+	} else {
+		messages = append(
+			messages,
+			"message handled successfully",
+		)
+	}
+
+	if f != "" {
+		messages = append(
+			messages,
+			fmt.Sprintf(f, v...),
+		)
+	}
+
+	logging.Debug(
+		log,
+		String(
+			[]IconWithLabel{
+				MessageIDIcon.WithID(env.MetaData.MessageId),
+				CausationIDIcon.WithID(env.MetaData.CausationId),
+				CorrelationIDIcon.WithID(env.MetaData.CorrelationId),
+			},
+			[]Icon{
+				HandlerTypeIcon(ht),
+				errorIcon(*err),
+			},
+			messages...,
+		),
+	)
+}
+
+func errorIcon(err error) Icon {
+	if err == nil {
+		return ""
+	}
+
+	return ErrorIcon
 }
 
 func retryIcon(n uint) Icon {

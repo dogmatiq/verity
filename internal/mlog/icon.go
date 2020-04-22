@@ -61,9 +61,9 @@ const (
 	// It is a heavy cross, indicating a failure.
 	ErrorIcon Icon = "✖"
 
-	// AggregateIcon is the icon shown when a log message relates to an aggregate
-	// message handler. It is the mathematical "therefore" symbol, representing the
-	// decision making as a result of the message.
+	// AggregateIcon is the icon shown when a log message relates to an
+	// aggregate message handler. It is the mathematical "therefore" symbol,
+	// representing the decision making as a result of the message.
 	AggregateIcon Icon = "∴"
 
 	// ProcessIcon is the icon shown when a log message relates to a process
@@ -76,18 +76,19 @@ const (
 	// representing the integration of two systems.
 	IntegrationIcon Icon = "⨝"
 
-	// ProjectionIcon is the icon shown when a log message relates to a projection
-	// message handler. It is the mathematical "sum" symbol , representing the
-	// aggregation of events.
+	// ProjectionIcon is the icon shown when a log message relates to a
+	// projection message handler. It is the mathematical "sum" symbol ,
+	// representing the aggregation of events.
 	ProjectionIcon Icon = "Σ"
 
-	// SystemIcon is an icon shown when a log message relates to the internals of
-	// the engine. It is a sprocket, representing the inner workings of the
+	// SystemIcon is an icon shown when a log message relates to the internals
+	// of the engine. It is a sprocket, representing the inner workings of the
 	// machine.
 	SystemIcon Icon = "⚙"
 
-	// SeparatorIcon is an icon used to separate strings of unrelated text inside a
-	// log message. It is a large bullet, intended to have a large visual impact.
+	// SeparatorIcon is an icon used to separate strings of unrelated text
+	// inside a log message. It is a large bullet, intended to have a large
+	// visual impact.
 	SeparatorIcon Icon = "●"
 )
 
