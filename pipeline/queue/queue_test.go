@@ -298,16 +298,16 @@ var _ = Describe("type Queue", func() {
 					Envelope: parcel0.Envelope,
 				}
 
-				// It's an implementation detail, but the internal channel used to start
-				// tracking is buffered at the same size as the overall buffer size
-				// limit.
+				// It's an implementation detail, but the internal channel used
+				// to start tracking is buffered at the same size as the overall
+				// buffer size limit.
 				//
-				// We can't set it to zero, because that will fallback to the default.
-				// We also can't start the queue, otherwise it'll start reading from
-				// this channel and nothing will block.
+				// We can't set it to zero, because that will fallback to the
+				// default. We also can't start the queue, otherwise it'll start
+				// reading from this channel and nothing will block.
 				//
-				// Instead, we set it to one, and "fill" the channel with a request to
-				// ensure that it will block.
+				// Instead, we set it to one, and "fill" the channel with a
+				// request to ensure that it will block.
 				queue.BufferSize = 1
 				err := queue.Track(ctx, parcel0, i)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -341,17 +341,55 @@ var _ = Describe("type Queue", func() {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel() // cancel immediately
 
+			// It's an implementation detail, but the internal channel used to
+			// start tracking is buffered at the same size as the overall buffer
+			// size limit.
+			//
+			// We can't set it to zero, because that will fallback to the
+			// default. We also can't start the queue, otherwise it'll start
+			// reading from this channel and nothing will block.
+			//
+			// Instead, we set it to one, and "fill" the channel with a request
+			// to ensure that it will block.
+			queue.BufferSize = 1
+
 			queue.Run(ctx)
 		})
 
 		Describe("func Track()", func() {
 			It("does not block", func() {
-				i := &queuestore.Item{
-					Revision: 1,
-					Envelope: parcel0.Envelope,
-				}
+				err := queue.Track(
+					ctx,
+					parcel0,
+					&queuestore.Item{
+						Revision: 1,
+						Envelope: parcel0.Envelope,
+					},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
 
-				err := queue.Track(ctx, parcel0, i)
+			It("does not block, even if the internal buffer is full", func() {
+				// Fill the buffer.
+				err := queue.Track(
+					ctx,
+					parcel0,
+					&queuestore.Item{
+						Revision: 1,
+						Envelope: parcel0.Envelope,
+					},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Ensure it doesn't lock once full.
+				err = queue.Track(
+					ctx,
+					parcel1,
+					&queuestore.Item{
+						Revision: 1,
+						Envelope: parcel0.Envelope,
+					},
+				)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})

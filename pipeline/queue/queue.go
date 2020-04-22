@@ -135,15 +135,15 @@ func (q *Queue) Track(
 
 	case q.in <- e:
 		logging.Debug(q.Logger, "%s requested tracking successfully", e.item.ID())
-		return nil
 
 	case <-q.done:
 		// Run() has stopped, so nothing will be tracked, but the message has
 		// been persisted so from the perspective of the caller the message has
 		// been queued successfully.
 		logging.Debug(q.Logger, "%s requested tracking, but the queue is not running", e.item.ID())
-		return nil
 	}
+
+	return nil
 }
 
 // Run starts the queue.
