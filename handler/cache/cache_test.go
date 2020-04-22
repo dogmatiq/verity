@@ -158,10 +158,13 @@ var _ = Describe("type Cache", func() {
 			rec.KeepAlive()
 			rec.Release()
 
+			barrier := make(chan struct{})
+
 			go func() {
 				defer GinkgoRecover()
 
-				time.Sleep(cache.TTL + (cache.TTL / 2))
+				barrier <- struct{}{}
+				time.Sleep(cache.TTL + 5*time.Millisecond)
 
 				By("acquiring the record and calling KeepAlive() after the first eviction loop")
 
@@ -174,6 +177,7 @@ var _ = Describe("type Cache", func() {
 
 			By("running the eviction loop for longer than twice the TTL")
 
+			<-barrier
 			runCtx, cancelRun := context.WithTimeout(ctx, 3*cache.TTL)
 			defer cancelRun()
 			err = cache.Run(runCtx)
