@@ -42,7 +42,7 @@ func (c *Cache) Acquire(ctx context.Context, id string) (*Record, error) {
 		} else if logging.IsDebug(c.Logger) {
 			logging.Debug(
 				c.Logger,
-				"cache record added: %s (%p)",
+				"cache record %s added [%p]",
 				id,
 				rec,
 			)

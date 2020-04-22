@@ -41,7 +41,18 @@ func (r *Record) KeepAlive() {
 	// costly marshaling in the happy-path. (The other being avoiding the I/O
 	// roundtrip to the persistence layer).
 	r.keep = true
-	r.state = active
+
+	if r.state == idle {
+		r.state = active
+		if logging.IsDebug(r.cache.Logger) {
+			logging.Debug(
+				r.cache.Logger,
+				"cache record %s marked active [%p]",
+				r.id,
+				r,
+			)
+		}
+	}
 }
 
 // Release unlocks this record, allowing the key to be acquired by other
@@ -58,7 +69,7 @@ func (r *Record) Release() {
 		if logging.IsDebug(r.cache.Logger) {
 			logging.Debug(
 				r.cache.Logger,
-				"cache record removed (released without keep-alive): %s (%p)",
+				"cache record %s removed (released without keep-alive) [%p]",
 				r.id,
 				r,
 			)
@@ -91,7 +102,7 @@ func (r *Record) evict() {
 		if logging.IsDebug(r.cache.Logger) {
 			logging.Debug(
 				r.cache.Logger,
-				"cache record marked idle: %s (%p)",
+				"cache record %s marked idle [%p]",
 				r.id,
 				r,
 			)
@@ -105,7 +116,7 @@ func (r *Record) evict() {
 		if logging.IsDebug(r.cache.Logger) {
 			logging.Debug(
 				r.cache.Logger,
-				"cache record removed (idle): %s (%p)",
+				"cache record %s removed (evicted) [%p]",
 				r.id,
 				r,
 			)
