@@ -109,6 +109,8 @@ func LogFromScope(
 
 // LogHandlerResult logs a debug message produced by the engine for a specific
 // Dogma handler.
+//
+// It is designed to be used with defer.
 func LogHandlerResult(
 	log logging.Logger,
 	env *envelopespec.Envelope,
