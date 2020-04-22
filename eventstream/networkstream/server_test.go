@@ -2,6 +2,7 @@ package networkstream_test
 
 import (
 	"context"
+	"errors"
 	"net"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -23,12 +25,13 @@ import (
 
 var _ = Describe("type server", func() {
 	var (
-		ctx       context.Context
-		cancel    func()
-		dataStore persistence.DataStore
-		listener  net.Listener
-		server    *grpc.Server
-		client    messagingspec.EventStreamClient
+		ctx        context.Context
+		cancel     func()
+		dataStore  persistence.DataStore
+		repository *EventStoreRepositoryStub
+		listener   net.Listener
+		server     *grpc.Server
+		client     messagingspec.EventStreamClient
 
 		parcel0, parcel1, parcel2, parcel3 *parcel.Parcel
 	)
@@ -37,6 +40,7 @@ var _ = Describe("type server", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		dataStore = NewDataStoreStub()
+		repository = dataStore.EventStoreRepository().(*EventStoreRepositoryStub)
 
 		parcel0 = NewParcel("<message-0>", MessageA1)
 		parcel1 = NewParcel("<message-1>", MessageB1)
@@ -60,7 +64,7 @@ var _ = Describe("type server", func() {
 			Marshaler,
 			WithApplication(
 				"<app-key>",
-				dataStore.EventStoreRepository(),
+				repository,
 				types,
 			),
 		)
@@ -192,6 +196,34 @@ var _ = Describe("type server", func() {
 					Envelope: parcel2.Envelope,
 				},
 			))
+		})
+
+		It("returns an error the call to Next() fails", func() {
+			repository.QueryEventsFunc = func(
+				context.Context,
+				eventstore.Query,
+			) (eventstore.Result, error) {
+				return &EventStoreResultStub{
+					NextFunc: func(context.Context) (*eventstore.Item, bool, error) {
+						return nil, false, errors.New("<error>")
+					},
+				}, nil
+			}
+
+			req := &messagingspec.ConsumeRequest{
+				ApplicationKey: "<app-key>",
+				Offset:         4,
+				Types:          []string{"MessageA", "MessageB"},
+			}
+
+			stream, err := client.Consume(ctx, req)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			_, err = stream.Recv()
+
+			s, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(s.Message()).To(Equal("<error>"))
 		})
 
 		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
