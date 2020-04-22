@@ -198,7 +198,31 @@ var _ = Describe("type server", func() {
 			))
 		})
 
-		It("returns an error the call to Next() fails", func() {
+		It("returns an error if the call to QueryEvents() fails", func() {
+			repository.QueryEventsFunc = func(
+				context.Context,
+				eventstore.Query,
+			) (eventstore.Result, error) {
+				return nil, errors.New("<error>")
+			}
+
+			req := &messagingspec.ConsumeRequest{
+				ApplicationKey: "<app-key>",
+				Offset:         4,
+				Types:          []string{"MessageA", "MessageB"},
+			}
+
+			stream, err := client.Consume(ctx, req)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			_, err = stream.Recv()
+
+			s, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(s.Message()).To(Equal("<error>"))
+		})
+
+		It("returns an error if the call to Next() fails", func() {
 			repository.QueryEventsFunc = func(
 				context.Context,
 				eventstore.Query,

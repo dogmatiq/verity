@@ -143,8 +143,13 @@ func (s *server) Consume(
 ) error {
 	ctx := consumer.Context()
 
+	q, err := s.query(req)
+	if err != nil {
+		return err
+	}
+
 	for {
-		qr, err := s.query(ctx, req)
+		qr, err := s.repo.QueryEvents(ctx, q)
 		if err != nil {
 			return err
 		}
@@ -171,7 +176,7 @@ func (s *server) Consume(
 				return err
 			}
 
-			req.Offset++
+			q.MinOffset = i.Offset + 1
 		}
 
 		// TODO: https://github.com/dogmatiq/infix/issues/74
@@ -181,17 +186,13 @@ func (s *server) Consume(
 	}
 }
 
-// query performs a query against the event store for the events specified in
-// the request.
-func (s *server) query(
-	ctx context.Context,
-	req *messagingspec.ConsumeRequest,
-) (eventstore.Result, error) {
+// query returns the eventstore query to use for the given consume request.
+func (s *server) query(req *messagingspec.ConsumeRequest) (eventstore.Query, error) {
 	types := req.GetTypes()
 	var failed []proto.Message
 
 	if len(types) == 0 {
-		return nil, grpcx.Errorf(
+		return eventstore.Query{}, grpcx.Errorf(
 			codes.InvalidArgument,
 			nil,
 			"message types can not be empty",
@@ -208,20 +209,17 @@ func (s *server) query(
 	}
 
 	if len(failed) > 0 {
-		return nil, grpcx.Errorf(
+		return eventstore.Query{}, grpcx.Errorf(
 			codes.InvalidArgument,
 			failed,
 			"unrecognized message type(s)",
 		)
 	}
 
-	return s.repo.QueryEvents(
-		ctx,
-		eventstore.Query{
-			MinOffset: eventstore.Offset(req.GetOffset()),
-			Filter:    eventstore.NewFilter(types...),
-		},
-	)
+	return eventstore.Query{
+		MinOffset: eventstore.Offset(req.GetOffset()),
+		Filter:    eventstore.NewFilter(types...),
+	}, nil
 }
 
 func (s *server) EventTypes(
