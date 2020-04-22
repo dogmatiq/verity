@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/handler/projection"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
@@ -59,6 +60,7 @@ func (e *Engine) runStreamConsumerForProjection(
 		Stream:     s,
 		EventTypes: h.MessageTypes().Consumed,
 		Handler: &projection.StreamAdaptor{
+			Identity:       envelopespec.MarshalIdentity(h.Identity()),
 			Handler:        h.Handler(),
 			DefaultTimeout: e.opts.MessageTimeout,
 			Logger:         a.Logger,

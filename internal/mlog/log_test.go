@@ -82,11 +82,11 @@ var _ = Describe("func LogNack()", func() {
 	})
 })
 
-var _ = Describe("func LogFromHandler()", func() {
+var _ = Describe("func LogFromScope()", func() {
 	It("logs in the correct format", func() {
 		logger := &logging.BufferedLogger{}
 
-		LogFromHandler(
+		LogFromScope(
 			logger,
 			NewEnvelope("<id>", MessageA1),
 			"format %s",

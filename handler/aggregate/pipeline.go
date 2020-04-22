@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/handler/cache"
+	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -53,7 +55,16 @@ func (s *Sink) Accept(
 	ctx context.Context,
 	req pipeline.Request,
 	res *pipeline.Response,
-) error {
+) (err error) {
+	defer mlog.LogHandlerResult(
+		s.Logger,
+		req.Envelope(),
+		s.Identity,
+		configkit.AggregateHandlerType,
+		&err,
+		"",
+	)
+
 	p, err := req.Parcel()
 	if err != nil {
 		return err
