@@ -210,7 +210,8 @@ func (f *routeFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichA
 			Produced:    cfg.MessageTypes().Produced,
 			Consumed:    cfg.MessageTypes().Consumed,
 		},
-		Logger: f.appLogger,
+		LoadTimeout: f.opts.MessageTimeout,
+		Logger:      f.appLogger,
 	}
 
 	for mt := range cfg.MessageTypes().Consumed {

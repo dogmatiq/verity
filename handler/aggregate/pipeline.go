@@ -3,6 +3,7 @@ package aggregate
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
@@ -38,6 +39,10 @@ type Sink struct {
 	// handler.
 	Packer *parcel.Packer
 
+	// LoadTimeout is the timeout duration allowed while loading aggregate
+	// state.
+	LoadTimeout time.Duration
+
 	// Logger is the target for log messages produced within the handler.
 	// If it is nil, logging.DefaultLogger is used.
 	Logger logging.Logger
@@ -72,20 +77,11 @@ func (s *Sink) Accept(
 
 	id := s.route(p.Message)
 
-	// TODO: https://github.com/dogmatiq/infix/issues/191
-	// There is currently no timeout on this context because the handler does
-	// not provide timeout hints. Aggregates should probably just use the
-	// default message timeout at all times.
-	rec, err := s.Cache.Acquire(ctx, id)
+	rec, inst, err := s.load(ctx, id)
 	if err != nil {
 		return err
 	}
 	defer rec.Release()
-
-	inst, err := s.load(ctx, id, rec)
-	if err != nil {
-		return err
-	}
 
 	sc := &scope{
 		cause:   p,
@@ -121,10 +117,22 @@ func (s *Sink) Accept(
 func (s *Sink) load(
 	ctx context.Context,
 	id string,
-	rec *cache.Record,
-) (*instance, error) {
+) (_ *cache.Record, _ *instance, err error) {
+	ctx, cancel := context.WithTimeout(ctx, s.LoadTimeout)
+	defer cancel()
+
+	rec, err := s.Cache.Acquire(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() {
+		if err != nil {
+			rec.Release()
+		}
+	}()
+
 	if rec.Instance != nil {
-		return rec.Instance.(*instance), nil
+		return rec, rec.Instance.(*instance), nil
 	}
 
 	root := s.new()
@@ -135,13 +143,13 @@ func (s *Sink) load(
 		root,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	inst := &instance{md, root}
 	rec.Instance = inst
 
-	return inst, nil
+	return rec, inst, nil
 }
 
 // save persists newly recorded events and updates the instance's meta-data.
