@@ -338,25 +338,64 @@ func Declare(
 						})
 
 						ginkgo.When("consuming starts with messages already on the stream", func() {
-							ginkgo.It("wakes if a message is appended after reaching the end of the stream", func() {
+							ginkgo.It("does not 'duplicate' the last event", func() {
 								// This is a regression test for
 								// https://github.com/dogmatiq/infix/issues/194.
 
-								// Open a cursor at the last message on the stream.
+								ginkgo.By("opening a cursor at the last event on the stream")
+
 								cur, err := out.Stream.Open(ctx, 3, in.EventTypes)
 								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 								defer cur.Close()
 
-								// Consume that last message then start blocking.
+								ginkgo.By("consuming that last event")
+
 								_, err = cur.Next(ctx)
 								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 								go func() {
+									ginkgo.By("appending a new event")
 									time.Sleep(out.AssumeBlockingDuration)
 									out.Append(ctx, event4.Parcel)
 								}()
 
+								ginkgo.By("verifying we get the new event")
+
 								ev, err := cur.Next(ctx)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+								gomega.Expect(ev).To(gomegax.EqualX(event4))
+							})
+
+							ginkgo.It("does not 'duplicate' the last event when a prior event is filtered", func() {
+								// This is a regression test for
+								// https://github.com/dogmatiq/infix/issues/194.
+
+								types := message.NewTypeSet(
+									configkitfixtures.MessageBType,
+									configkitfixtures.MessageCType,
+								)
+
+								ginkgo.By("opening a cursor at an offset with an event that does not match the filter")
+
+								cur, err := out.Stream.Open(ctx, 2, types)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+								defer cur.Close()
+
+								ginkgo.By("consuming the first event after that offset that does match the filte")
+
+								ev, err := cur.Next(ctx)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+								gomega.Expect(ev).To(gomegax.EqualX(event3))
+
+								go func() {
+									ginkgo.By("appending a new event")
+									time.Sleep(out.AssumeBlockingDuration)
+									out.Append(ctx, event4.Parcel)
+								}()
+
+								ginkgo.By("verifying we get the new event")
+
+								ev, err = cur.Next(ctx)
 								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 								gomega.Expect(ev).To(gomegax.EqualX(event4))
 							})
