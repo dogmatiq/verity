@@ -171,6 +171,7 @@ func (s *server) Consume(
 				return err
 			}
 
+			req.Offset++
 		}
 
 		// TODO: https://github.com/dogmatiq/infix/issues/74

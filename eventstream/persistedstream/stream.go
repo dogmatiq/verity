@@ -200,7 +200,7 @@ func (c *cursor) execQuery(ctx context.Context) error {
 
 		select {
 		case c.events <- ev:
-			continue
+			c.query.MinOffset++
 		case <-ctx.Done():
 			return ctx.Err()
 		}

@@ -319,20 +319,47 @@ func Declare(
 					})
 
 					ginkgo.When("waiting for a new message", func() {
-						ginkgo.It("wakes if a message is appended", func() {
-							// Open a cursor after the offset of the existing messages.
-							cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
-							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-							defer cur.Close()
+						ginkgo.When("consuming starts beyond the end of the stream", func() {
+							ginkgo.It("wakes if a message is appended", func() {
+								// Open a cursor after the offset of the existing messages.
+								cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+								defer cur.Close()
 
-							go func() {
-								time.Sleep(out.AssumeBlockingDuration)
-								out.Append(ctx, event4.Parcel)
-							}()
+								go func() {
+									time.Sleep(out.AssumeBlockingDuration)
+									out.Append(ctx, event4.Parcel)
+								}()
 
-							ev, err := cur.Next(ctx)
-							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-							gomega.Expect(ev).To(gomegax.EqualX(event4))
+								ev, err := cur.Next(ctx)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+								gomega.Expect(ev).To(gomegax.EqualX(event4))
+							})
+						})
+
+						ginkgo.When("consuming starts with messages already on the stream", func() {
+							ginkgo.It("wakes if a message is appended after reaching the end of the stream", func() {
+								// This is a regression test for
+								// https://github.com/dogmatiq/infix/issues/194.
+
+								// Open a cursor at the last message on the stream.
+								cur, err := out.Stream.Open(ctx, 3, in.EventTypes)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+								defer cur.Close()
+
+								// Consume that last message then start blocking.
+								_, err = cur.Next(ctx)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+								go func() {
+									time.Sleep(out.AssumeBlockingDuration)
+									out.Append(ctx, event4.Parcel)
+								}()
+
+								ev, err := cur.Next(ctx)
+								gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+								gomega.Expect(ev).To(gomegax.EqualX(event4))
+							})
 						})
 
 						ginkgo.It("returns an error if the cursor is closed", func() {
