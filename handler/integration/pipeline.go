@@ -66,14 +66,7 @@ func (s *Sink) Accept(
 		logger:  s.Logger,
 	}
 
-	hctx, cancel := linger.ContextWithTimeout(
-		ctx,
-		s.Handler.TimeoutHint(p.Message),
-		s.DefaultTimeout,
-	)
-	defer cancel()
-
-	if err := s.Handler.HandleCommand(hctx, sc, p.Message); err != nil {
+	if err := s.handle(ctx, sc, p.Message); err != nil {
 		return err
 	}
 
@@ -89,4 +82,16 @@ func (s *Sink) Accept(
 	}
 
 	return nil
+}
+
+// handle invokes the handler with a timeout based on its timeout hint.
+func (s *Sink) handle(ctx context.Context, sc *scope, m dogma.Message) error {
+	ctx, cancel := linger.ContextWithTimeout(
+		ctx,
+		s.Handler.TimeoutHint(m),
+		s.DefaultTimeout,
+	)
+	defer cancel()
+
+	return s.Handler.HandleCommand(ctx, sc, m)
 }

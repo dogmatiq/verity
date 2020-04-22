@@ -95,9 +95,10 @@ var _ = Describe("type Sink", func() {
 				EventStore:     eventRepo,
 				Marshaler:      Marshaler,
 			},
-			Cache:  &cache.Cache{},
-			Packer: packer,
-			Logger: logger,
+			Cache:       &cache.Cache{},
+			Packer:      packer,
+			LoadTimeout: 1 * time.Second,
+			Logger:      logger,
 		}
 	})
 
