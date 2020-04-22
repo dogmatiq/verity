@@ -27,6 +27,7 @@ var _ = Describe("type Request", func() {
 		cancel           context.CancelFunc
 		dataStore        *DataStoreStub
 		queue            *Queue
+		stopped          chan struct{} // closed after the queue has stopped
 		req              *Request
 		parcel0, parcel1 *parcel.Parcel
 	)
@@ -43,10 +44,15 @@ var _ = Describe("type Request", func() {
 			DataStore: dataStore,
 			Marshaler: Marshaler,
 		}
+
+		stopped = make(chan struct{})
 	})
 
 	JustBeforeEach(func() {
-		go queue.Run(ctx)
+		go func() {
+			defer close(stopped)
+			queue.Run(ctx)
+		}()
 
 		push(ctx, queue, parcel0)
 
@@ -328,6 +334,18 @@ var _ = Describe("type Request", func() {
 			req, err := queue.Pop(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
 			defer req.Close()
+		})
+
+		It("does not block if the queue is no longer running", func() {
+			cancel()
+
+			select {
+			case <-time.After(1 * time.Second):
+				Fail("queue did not stop in time")
+			case <-stopped:
+			}
+
+			req.Close()
 		})
 	})
 })
