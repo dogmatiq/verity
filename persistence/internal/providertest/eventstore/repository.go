@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
@@ -86,6 +87,34 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				o, err := repository.NextEventOffset(tc.Context)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(o).To(gomega.BeEquivalentTo(0))
+			})
+
+			ginkgo.It("returns the offset after the last recorded event", func() {
+				var g sync.WaitGroup
+
+				fn := func(env *envelopespec.Envelope) {
+					defer ginkgo.GinkgoRecover()
+					defer g.Done()
+					saveEvents(tc.Context, dataStore, env)
+				}
+
+				g.Add(3)
+				go fn(item0.Envelope)
+				go fn(item1.Envelope)
+				go fn(item2.Envelope)
+				g.Wait()
+
+				o, err := repository.NextEventOffset(tc.Context)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(o).To(gomega.BeEquivalentTo(3))
+			})
+
+			ginkgo.It("returns an error if the context is canceled", func() {
+				ctx, cancel := context.WithCancel(tc.Context)
+				cancel()
+
+				_, err := repository.NextEventOffset(ctx)
+				gomega.Expect(err).To(gomega.Equal(context.Canceled))
 			})
 		})
 
