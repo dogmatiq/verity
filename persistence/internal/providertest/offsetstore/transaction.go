@@ -3,6 +3,7 @@ package offsetstore
 import (
 	"sync"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
@@ -33,8 +34,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 		ginkgo.Describe("func SaveOffset()", func() {
 			ginkgo.When("application has no previous offsets associated", func() {
 				ginkgo.It("saves an offset", func() {
-					c := offsetstore.Offset(0)
-					n := offsetstore.Offset(1)
+					c := eventstream.Offset(0)
+					n := eventstream.Offset(1)
 					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
 
 					actual := loadOffset(tc.Context, repository, "<source-app-key>")
@@ -42,8 +43,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				})
 
 				ginkgo.It("it does not update the offset when an OCC conflict occurs", func() {
-					c := offsetstore.Offset(1)
-					n := offsetstore.Offset(2)
+					c := eventstream.Offset(1)
+					n := eventstream.Offset(2)
 
 					err := persistence.WithTransaction(
 						tc.Context,
@@ -59,8 +60,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				})
 
 				ginkgo.It("does not save the offset when the transaction is rolled-back", func() {
-					c := offsetstore.Offset(0)
-					n := offsetstore.Offset(1)
+					c := eventstream.Offset(0)
+					n := eventstream.Offset(1)
 
 					err := common.WithTransactionRollback(
 						tc.Context,
@@ -83,11 +84,11 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			ginkgo.When("application has previous offsets associated", func() {
 				var (
-					current offsetstore.Offset
+					current eventstream.Offset
 				)
 
 				ginkgo.BeforeEach(func() {
-					current = offsetstore.Offset(0)
+					current = eventstream.Offset(0)
 					saveOffset(tc.Context, dataStore, "<source-app-key>", current, 5)
 					current = 5
 				})
@@ -101,7 +102,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 				table.DescribeTable(
 					"it does not update the offset when an OCC conflict occurs",
-					func(conflictingOffset offsetstore.Offset) {
+					func(conflictingOffset eventstream.Offset) {
 						err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
@@ -122,9 +123,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						actual := loadOffset(tc.Context, repository, "<source-app-key>")
 						gomega.Expect(actual).To(gomega.BeEquivalentTo(current))
 					},
-					table.Entry("zero", offsetstore.Offset(0)),
-					table.Entry("too low", offsetstore.Offset(1)),
-					table.Entry("too high", offsetstore.Offset(100)),
+					table.Entry("zero", eventstream.Offset(0)),
+					table.Entry("too low", eventstream.Offset(1)),
+					table.Entry("too high", eventstream.Offset(100)),
 				)
 
 				ginkgo.It("does not save the offset when the transaction is rolled-back", func() {
@@ -198,7 +199,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				ginkgo.It("saves offsets concurrently", func() {
 					var g sync.WaitGroup
 
-					fn := func(ak string, n offsetstore.Offset) {
+					fn := func(ak string, n eventstream.Offset) {
 						defer ginkgo.GinkgoRecover()
 						defer g.Done()
 

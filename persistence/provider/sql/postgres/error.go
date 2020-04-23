@@ -6,9 +6,9 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/lib/pq"
 )
@@ -196,7 +196,7 @@ func (d errorConverter) LoadOffset(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) (offsetstore.Offset, error) {
+) (eventstream.Offset, error) {
 	ok, err := d.d.LoadOffset(ctx, db, ak)
 	return ok, convertContextErrors(ctx, err)
 }
@@ -205,7 +205,7 @@ func (d errorConverter) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	c, n offsetstore.Offset,
+	c, n eventstream.Offset,
 ) (bool, error) {
 	ok, err := d.d.InsertOffset(ctx, tx, ak, c, n)
 	return ok, convertContextErrors(ctx, err)
@@ -215,7 +215,7 @@ func (d errorConverter) UpdateOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	c, n offsetstore.Offset,
+	c, n eventstream.Offset,
 ) (bool, error) {
 	ok, err := d.d.UpdateOffset(ctx, tx, ak, c, n)
 	return ok, convertContextErrors(ctx, err)

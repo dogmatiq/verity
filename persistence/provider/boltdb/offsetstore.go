@@ -3,6 +3,7 @@ package boltdb
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"go.etcd.io/bbolt"
@@ -19,7 +20,7 @@ var (
 func (t *transaction) SaveOffset(
 	ctx context.Context,
 	ak string,
-	c, n offsetstore.Offset,
+	c, n eventstream.Offset,
 ) (err error) {
 	defer bboltx.Recover(&err)
 
@@ -57,7 +58,7 @@ type offsetStoreRepository struct {
 func (r *offsetStoreRepository) LoadOffset(
 	ctx context.Context,
 	ak string,
-) (o offsetstore.Offset, err error) {
+) (o eventstream.Offset, err error) {
 	defer bboltx.Recover(&err)
 
 	r.db.View(
@@ -81,12 +82,12 @@ func (r *offsetStoreRepository) LoadOffset(
 
 // marshalOffsetStoreOffset marshals an event stream offset to its binary
 // representation.
-func marshalOffsetStoreOffset(offset offsetstore.Offset) []byte {
+func marshalOffsetStoreOffset(offset eventstream.Offset) []byte {
 	return marshalUint64(uint64(offset))
 }
 
 // unmarshalOffsetStoreOffset unmarshals an event stream offset from its binary
 // representation.
-func unmarshalOffsetStoreOffset(data []byte) offsetstore.Offset {
-	return offsetstore.Offset(unmarshalUint64(data))
+func unmarshalOffsetStoreOffset(data []byte) eventstream.Offset {
+	return eventstream.Offset(unmarshalUint64(data))
 }

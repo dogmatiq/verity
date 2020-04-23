@@ -3,6 +3,7 @@ package offsetstore
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/onsi/gomega"
@@ -14,7 +15,7 @@ func saveOffset(
 	ctx context.Context,
 	ds persistence.DataStore,
 	ak string,
-	c, n offsetstore.Offset,
+	c, n eventstream.Offset,
 ) {
 	err := persistence.WithTransaction(
 		ctx,
@@ -33,7 +34,7 @@ func loadOffset(
 	ctx context.Context,
 	repository offsetstore.Repository,
 	ak string,
-) offsetstore.Offset {
+) eventstream.Offset {
 	o, err := repository.LoadOffset(ctx, ak)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 

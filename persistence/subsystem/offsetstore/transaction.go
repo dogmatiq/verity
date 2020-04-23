@@ -3,6 +3,8 @@ package offsetstore
 import (
 	"context"
 	"errors"
+
+	"github.com/dogmatiq/infix/eventstream"
 )
 
 // ErrConflict is returned by transaction operations when a persisted
@@ -24,6 +26,6 @@ type Transaction interface {
 	SaveOffset(
 		ctx context.Context,
 		ak string,
-		c, n Offset,
+		c, n eventstream.Offset,
 	) error
 }

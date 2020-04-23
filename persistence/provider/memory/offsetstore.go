@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 )
 
@@ -11,7 +12,7 @@ import (
 func (t *transaction) SaveOffset(
 	ctx context.Context,
 	ak string,
-	c, n offsetstore.Offset,
+	c, n eventstream.Offset,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
@@ -27,7 +28,7 @@ func (t *transaction) SaveOffset(
 // offsetStoreChangeSet contains modifications to the offset store that have
 // been performed within a transaction but not yet committed.
 type offsetStoreChangeSet struct {
-	items map[string]offsetstore.Offset
+	items map[string]eventstream.Offset
 }
 
 // stageSave adds a "SaveOffset" operation to the change-set.
@@ -36,7 +37,7 @@ type offsetStoreChangeSet struct {
 func (cs *offsetStoreChangeSet) stageSave(
 	db *offsetStoreDatabase,
 	ak string,
-	c, n offsetstore.Offset,
+	c, n eventstream.Offset,
 ) bool {
 
 	// Get both the committed item, and the item as it appears with its changes
@@ -56,7 +57,7 @@ func (cs *offsetStoreChangeSet) stageSave(
 	}
 
 	if cs.items == nil {
-		cs.items = map[string]offsetstore.Offset{}
+		cs.items = map[string]eventstream.Offset{}
 	}
 
 	cs.items[ak] = n
@@ -75,7 +76,7 @@ type offsetStoreRepository struct {
 func (r *offsetStoreRepository) LoadOffset(
 	ctx context.Context,
 	ak string,
-) (offsetstore.Offset, error) {
+) (eventstream.Offset, error) {
 	if err := r.db.RLock(ctx); err != nil {
 		return 0, err
 	}
@@ -86,13 +87,13 @@ func (r *offsetStoreRepository) LoadOffset(
 
 // offsetStoreDatabase contains data that is committed to the offset store.
 type offsetStoreDatabase struct {
-	items map[string]offsetstore.Offset
+	items map[string]eventstream.Offset
 }
 
 // apply updates the database to include the changes in cs.
 func (db *offsetStoreDatabase) apply(cs *offsetStoreChangeSet) {
 	if db.items == nil {
-		db.items = map[string]offsetstore.Offset{}
+		db.items = map[string]eventstream.Offset{}
 	}
 
 	for k, v := range cs.items {

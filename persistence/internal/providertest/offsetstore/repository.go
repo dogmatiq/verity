@@ -3,6 +3,7 @@ package offsetstore
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
@@ -43,8 +44,8 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 			ginkgo.When("application has previous offsets associated", func() {
 				ginkgo.It("returns the current offset", func() {
-					c := offsetstore.Offset(0)
-					n := offsetstore.Offset(1)
+					c := eventstream.Offset(0)
+					n := eventstream.Offset(1)
 					saveOffset(tc.Context, dataStore, "<source-app-key>", c, n)
 
 					actual, err := repository.LoadOffset(

@@ -3,6 +3,7 @@ package fixtures
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 )
 
@@ -11,7 +12,7 @@ import (
 type OffsetStoreRepositoryStub struct {
 	offsetstore.Repository
 
-	LoadOffsetFunc func(ctx context.Context, ak string) (offsetstore.Offset, error)
+	LoadOffsetFunc func(ctx context.Context, ak string) (eventstream.Offset, error)
 }
 
 // LoadOffset loads the offset associated with a specific application.
@@ -20,7 +21,7 @@ type OffsetStoreRepositoryStub struct {
 func (r *OffsetStoreRepositoryStub) LoadOffset(
 	ctx context.Context,
 	ak string,
-) (offsetstore.Offset, error) {
+) (eventstream.Offset, error) {
 	if r.LoadOffsetFunc != nil {
 		return r.LoadOffsetFunc(ctx, ak)
 	}

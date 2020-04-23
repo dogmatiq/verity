@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 )
 
 // LoadOffset loads the last offset associated with the given application
@@ -14,8 +14,8 @@ func (driver) LoadOffset(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) (offsetstore.Offset, error) {
-	var o offsetstore.Offset
+) (eventstream.Offset, error) {
+	var o eventstream.Offset
 
 	row := db.QueryRowContext(
 		ctx,
@@ -40,7 +40,7 @@ func (driver) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	_, n offsetstore.Offset,
+	_, n eventstream.Offset,
 ) (bool, error) {
 	return insertIgnore(
 		ctx,
@@ -60,7 +60,7 @@ func (driver) UpdateOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	c, n offsetstore.Offset,
+	c, n eventstream.Offset,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
