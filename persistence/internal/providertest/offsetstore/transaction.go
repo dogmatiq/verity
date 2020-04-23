@@ -122,9 +122,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						actual := loadOffset(tc.Context, repository, "<source-app-key>")
 						gomega.Expect(actual).To(gomega.BeEquivalentTo(current))
 					},
-					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					table.Entry("zero", offsetstore.Offset(0)),
+					table.Entry("too low", offsetstore.Offset(1)),
+					table.Entry("too high", offsetstore.Offset(100)),
 				)
 
 				ginkgo.It("does not save the offset when the transaction is rolled-back", func() {
