@@ -76,6 +76,32 @@ type eventStoreRepository struct {
 	appKey []byte
 }
 
+// NextEventOffset returns the next "unused" offset within the store.
+func (r *eventStoreRepository) NextEventOffset(
+	ctx context.Context,
+) (next eventstore.Offset, err error) {
+	defer bboltx.Recover(&err)
+
+	r.db.View(
+		ctx,
+		func(tx *bbolt.Tx) {
+			store, exists := bboltx.TryBucket(
+				tx,
+				r.appKey,
+				eventStoreBucketKey,
+			)
+
+			if exists {
+				next = unmarshalEventStoreOffset(
+					store.Get(eventStoreNextOffsetKey),
+				)
+			}
+		},
+	)
+
+	return next, err
+}
+
 // QueryEvents queries events in the repository.
 func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
@@ -125,7 +151,7 @@ func (r *eventStoreResult) Next(
 		},
 	)
 
-	return
+	return i, ok, err
 }
 
 // Close closes the cursor.

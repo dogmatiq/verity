@@ -28,6 +28,20 @@ type eventStoreRepository struct {
 	db *database
 }
 
+// NextEventOffset returns the next "unused" offset within the store.
+func (r *eventStoreRepository) NextEventOffset(
+	ctx context.Context,
+) (eventstore.Offset, error) {
+	if err := r.db.RLock(ctx); err != nil {
+		return 0, err
+	}
+
+	next := eventstore.Offset(len(r.db.event.items))
+	r.db.RUnlock()
+
+	return next, nil
+}
+
 // QueryEvents queries events in the repository.
 func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,

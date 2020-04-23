@@ -152,6 +152,15 @@ func (d errorConverter) PurgeEventFilters(
 	return convertContextErrors(ctx, err)
 }
 
+func (d errorConverter) SelectNextEventOffset(
+	ctx context.Context,
+	db *sql.DB,
+	ak string,
+) (eventstore.Offset, error) {
+	next, err := d.d.SelectNextEventOffset(ctx, db, ak)
+	return next, convertContextErrors(ctx, err)
+}
+
 func (d errorConverter) SelectEvents(
 	ctx context.Context,
 	db *sql.DB,
