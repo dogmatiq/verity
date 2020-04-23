@@ -157,6 +157,29 @@ func (driver) PurgeEventFilters(
 	return err
 }
 
+// SelectNextEventOffset selects the next "unused" offset from the event store.
+func (driver) SelectNextEventOffset(
+	ctx context.Context,
+	db *sql.DB,
+	ak string,
+) (eventstore.Offset, error) {
+	row := db.QueryRowContext(
+		ctx,
+		`SELECT
+			next_offset
+		FROM infix.event_offset`,
+	)
+
+	var next eventstore.Offset
+
+	err := row.Scan(&next)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+
+	return next, err
+}
+
 // SelectEvents selects events from the eventstore that match the given query.
 //
 // f is a filter ID, as returned by InsertEventFilter(). If the query does not

@@ -56,6 +56,14 @@ type eventStoreDriver interface {
 		ak string,
 	) error
 
+	// SelectNextEventOffset selects the next "unused" offset from the
+	// eventstore.
+	SelectNextEventOffset(
+		ctx context.Context,
+		db *sql.DB,
+		ak string,
+	) (eventstore.Offset, error)
+
 	// SelectEvents selects events from the eventstore that match the given
 	// query.
 	//
@@ -112,6 +120,17 @@ type eventStoreRepository struct {
 	db     *sql.DB
 	driver Driver
 	appKey string
+}
+
+// NextEventOffset returns the next "unused" offset within the store.
+func (r *eventStoreRepository) NextEventOffset(
+	ctx context.Context,
+) (eventstore.Offset, error) {
+	return r.driver.SelectNextEventOffset(
+		ctx,
+		r.db,
+		r.appKey,
+	)
 }
 
 // QueryEvents queries events in the repository.

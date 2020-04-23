@@ -83,7 +83,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func NextEventOffset()", func() {
 			ginkgo.It("returns zero if the store is empty", func() {
-				o, err := repository.NextEventOffset(ctx)
+				o, err := repository.NextEventOffset(tc.Context)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(o).To(gomega.BeEquivalentTo(0))
 			})
