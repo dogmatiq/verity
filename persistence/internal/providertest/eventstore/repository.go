@@ -81,6 +81,14 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			tearDown()
 		})
 
+		ginkgo.Describe("func NextEventOffset()", func() {
+			ginkgo.It("returns zero if the store is empty", func() {
+				o, err := repository.NextEventOffset(ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(o).To(gomega.BeEquivalentTo(0))
+			})
+		})
+
 		ginkgo.Describe("func QueryEvents()", func() {
 			ginkgo.It("returns an empty result if the store is empty", func() {
 				items := queryEvents(tc.Context, repository, eventstore.Query{})

@@ -6,6 +6,9 @@ import (
 
 // Repository is an interface for reading persisted event messages.
 type Repository interface {
+	// NextEventOffset returns the next "unused" offset within the store.
+	NextEventOffset(ctx context.Context) (Offset, error)
+
 	// QueryEvents queries events in the repository.
 	QueryEvents(ctx context.Context, q Query) (Result, error)
 }
