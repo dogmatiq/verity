@@ -39,7 +39,6 @@ func (cs *offsetStoreChangeSet) stageSave(
 	ak string,
 	c, n eventstream.Offset,
 ) bool {
-
 	// Get both the committed item, and the item as it appears with its changes
 	// staged in this change-set.
 	committed := db.items[ak]

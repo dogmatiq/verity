@@ -175,22 +175,6 @@ func (d errorConverter) ScanEvent(
 // offsetstore
 //
 
-// LoadOffset loads the last offset associated with the given application
-// key.
-//
-// If there is no offset associated with the given application key, the
-// offset is returned as zero and error as nil.
-
-// InsertOffset inserts a new offset associated with the given application
-// key.
-//
-// It returns false if the row already exists.
-
-// UpdateOffset updates the offset associated with the given application
-// key.
-//
-// It returns false if the row does not exist or c is not the current
-// offset associated with the given application key.
 
 func (d errorConverter) LoadOffset(
 	ctx context.Context,
