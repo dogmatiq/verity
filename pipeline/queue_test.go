@@ -1,4 +1,4 @@
-package queue_test
+package pipeline_test
 
 import (
 	"context"
@@ -10,20 +10,20 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/pipeline"
-	. "github.com/dogmatiq/infix/pipeline/queue"
+	. "github.com/dogmatiq/infix/pipeline"
+	"github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/sync/semaphore"
 )
 
-var _ = Describe("type PipelineSource", func() {
+var _ = Describe("type QueueSource", func() {
 	var (
 		ctx       context.Context
 		cancel    context.CancelFunc
 		dataStore persistence.DataStore
-		queue     *Queue
-		source    *PipelineSource
+		source    *QueueSource
 	)
 
 	BeforeEach(func() {
@@ -31,22 +31,37 @@ var _ = Describe("type PipelineSource", func() {
 
 		dataStore = NewDataStoreStub()
 
-		queue = &Queue{
-			DataStore: dataStore,
-			Marshaler: Marshaler,
-		}
-
-		source = &PipelineSource{
-			Queue:     queue,
+		source = &QueueSource{
+			Queue: &queue.Queue{
+				DataStore: dataStore,
+				Marshaler: Marshaler,
+			},
 			Semaphore: semaphore.NewWeighted(1),
 		}
 
 		p := NewParcel("<id>", MessageA1)
-		push(ctx, queue, p)
+		i := &queuestore.Item{
+			NextAttemptAt: time.Now(),
+			Envelope:      p.Envelope,
+		}
+
+		err := persistence.WithTransaction(
+			ctx,
+			dataStore,
+			func(tx persistence.ManagedTransaction) error {
+				return tx.SaveMessageToQueue(ctx, i)
+			},
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		i.Revision++
+
+		err = source.Queue.Track(ctx, p, i)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	JustBeforeEach(func() {
-		go queue.Run(ctx)
+		go source.Queue.Run(ctx)
 	})
 
 	AfterEach(func() {
@@ -96,12 +111,12 @@ var _ = Describe("type PipelineSource", func() {
 	})
 })
 
-var _ = Describe("func TrackEnqueuedMessages()", func() {
+var _ = Describe("func TrackWithQueue()", func() {
 	var (
 		ctx       context.Context
 		cancel    context.CancelFunc
 		dataStore persistence.DataStore
-		queue     *Queue
+		mqueue    *queue.Queue
 		observer  pipeline.QueueObserver
 		pcl       *parcel.Parcel
 		item      *queuestore.Item
@@ -113,12 +128,12 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		pcl = NewParcel("<id>", MessageA1)
 		dataStore = NewDataStoreStub()
 
-		queue = &Queue{
+		mqueue = &queue.Queue{
 			DataStore: dataStore,
 			Marshaler: Marshaler,
 		}
 
-		observer = TrackEnqueuedCommands(queue)
+		observer = TrackWithQueue(mqueue)
 
 		item = &queuestore.Item{
 			NextAttemptAt: time.Now(),
@@ -152,8 +167,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		go queue.Run(ctx)
-		req, err := queue.Pop(ctx)
+		go mqueue.Run(ctx)
+		req, err := mqueue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(req.MessageID()).To(Equal("<id>"))
 		req.Close()
@@ -170,8 +185,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		//
 		// Instead, we set it to one, and "fill" the channel with a request to
 		// ensure that it will block.
-		queue.BufferSize = 1
-		err := queue.Track(ctx, pcl, item)
+		mqueue.BufferSize = 1
+		err := mqueue.Track(ctx, pcl, item)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Setup a short deadline for the test.

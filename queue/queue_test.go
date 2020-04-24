@@ -10,8 +10,7 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
-	"github.com/dogmatiq/infix/pipeline/queue"
-	. "github.com/dogmatiq/infix/pipeline/queue"
+	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -22,7 +21,7 @@ import (
 // the queue then begins tracking it.
 func push(
 	ctx context.Context,
-	q *queue.Queue,
+	q *Queue,
 	p *parcel.Parcel,
 	nextOptional ...time.Time,
 ) {

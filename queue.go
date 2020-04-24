@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/infix/pipeline/queue"
+	"github.com/dogmatiq/infix/pipeline"
 )
 
 // runQueueForApp processes messages from the queue.
@@ -12,7 +12,7 @@ func (e *Engine) runQueueForApp(
 	ctx context.Context,
 	a *app,
 ) error {
-	p := &queue.PipelineSource{
+	p := &pipeline.QueueSource{
 		Queue:     a.Queue,
 		Pipeline:  a.Pipeline.Accept,
 		Semaphore: e.semaphore,
