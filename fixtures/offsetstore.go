@@ -16,8 +16,6 @@ type OffsetStoreRepositoryStub struct {
 }
 
 // LoadOffset loads the offset associated with a specific application.
-//
-// ak is the application's identity key.
 func (r *OffsetStoreRepositoryStub) LoadOffset(
 	ctx context.Context,
 	ak string,
