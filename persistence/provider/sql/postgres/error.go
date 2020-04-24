@@ -180,8 +180,8 @@ func (d errorConverter) LoadOffset(
 	db *sql.DB,
 	ak, sk string,
 ) (eventstream.Offset, error) {
-	ok, err := d.d.LoadOffset(ctx, db, ak, sk)
-	return ok, convertContextErrors(ctx, err)
+	o, err := d.d.LoadOffset(ctx, db, ak, sk)
+	return o, convertContextErrors(ctx, err)
 }
 
 func (d errorConverter) InsertOffset(

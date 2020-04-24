@@ -22,10 +22,13 @@ func (driver) LoadOffset(
 
 	row := db.QueryRowContext(
 		ctx,
-		`SELECT next_offset
+		`SELECT
+			next_offset
 		FROM offset_store
-		WHERE app_key = $1 AND source_app_key = $2`,
-		ak, sk,
+		WHERE app_key = $1
+		AND source_app_key = $2`,
+		ak,
+		sk,
 	)
 
 	if err := row.Scan(&o); err != nil {
@@ -48,11 +51,15 @@ func (driver) InsertOffset(
 	res, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO offset_store (
-			app_key, source_app_key, next_offset
+			app_key,
+			source_app_key,
+			next_offset
 		) VALUES (
 			$1, $2, $3
 		) ON CONFLICT (app_key, source_app_key) DO NOTHING`,
-		ak, sk, n,
+		ak, 
+		sk, 
+		n,
 	)
 	if err != nil {
 		return false, err
@@ -80,7 +87,12 @@ func (driver) UpdateOffset(
 		tx,
 		`UPDATE offset_store
 		SET next_offset = $1
-		WHERE app_key = $2 AND source_app_key = $3 AND next_offset = $4`,
-		n, ak, sk, c,
+		WHERE app_key = $2
+		AND source_app_key = $3
+		AND next_offset = $4`,
+		n, 
+		ak, 
+		sk, 
+		c,
 	), nil
 }

@@ -13,7 +13,7 @@ import (
 var ErrConflict = errors.New("an optimistic concurrency conflict occured while persisting to the offset store")
 
 // Transaction defines the primitive persistence operations for manipulating
-// the application event stream offset.
+// the offset store.
 type Transaction interface {
 	// SaveOffset persists the "next" offset to be consumed for a specific
 	// application.

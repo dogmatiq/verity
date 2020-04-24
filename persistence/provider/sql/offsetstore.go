@@ -30,7 +30,7 @@ type offsetStoreDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak, sk string,
-		c, n eventstream.Offset,
+		n eventstream.Offset,
 	) (bool, error)
 
 	// UpdateOffset updates the offset associated with the given source

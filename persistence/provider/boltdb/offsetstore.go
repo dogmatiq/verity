@@ -28,7 +28,6 @@ func (t *transaction) SaveOffset(
 		return err
 	}
 
-	bak := []byte(ak)
 	store := bboltx.CreateBucketIfNotExists(
 		t.actual,
 		t.appKey,
@@ -36,14 +35,18 @@ func (t *transaction) SaveOffset(
 	)
 
 	o := unmarshalOffsetStoreOffset(
-		store.Get(bak),
+		store.Get([]byte(ak)),
 	)
 
 	if c != o {
 		return offsetstore.ErrConflict
 	}
 
-	bboltx.Put(store, bak, marshalOffsetStoreOffset(n))
+	bboltx.Put(
+		store, 
+		[]byte(ak),
+		marshalOffsetStoreOffset(n),
+	)
 
 	return nil
 }
@@ -71,10 +74,8 @@ func (r *offsetStoreRepository) LoadOffset(
 				r.appKey,
 				offsetStoreBucketKey,
 			); exists {
-				bak := []byte(ak)
-
 				o = unmarshalOffsetStoreOffset(
-					store.Get(bak),
+					store.Get( []byte(ak)),
 				)
 			}
 		},

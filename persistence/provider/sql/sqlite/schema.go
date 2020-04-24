@@ -145,9 +145,9 @@ func createOffsetStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE offset_store (
-			app_key TEXT NOT NULL,
+			app_key        TEXT NOT NULL,
 			source_app_key TEXT NOT NULL,
-			next_offset    INTEGER NOT NULL DEFAULT 1,
+			next_offset    INTEGER NOT NULL,
 
 			PRIMARY KEY (app_key, source_app_key)
 		)`,

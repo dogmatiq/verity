@@ -28,7 +28,7 @@ func (t *transaction) SaveOffset(
 // offsetStoreChangeSet contains modifications to the offset store that have
 // been performed within a transaction but not yet committed.
 type offsetStoreChangeSet struct {
-	items map[string]eventstream.Offset
+	offsets map[string]eventstream.Offset
 }
 
 // stageSave adds a "SaveOffset" operation to the change-set.
@@ -39,12 +39,11 @@ func (cs *offsetStoreChangeSet) stageSave(
 	ak string,
 	c, n eventstream.Offset,
 ) bool {
-	// Get both the committed item, and the item as it appears with its changes
-	// staged in this change-set.
+	// Get both the committed offset, and the staged offset from this change-set.
 	committed := db.items[ak]
 	staged, changed := cs.items[ak]
 
-	// The "effective" item is how the item appears to this transaction.
+	// The "effective" value is how the offset appears to this transaction.
 	effective := committed
 	if changed {
 		effective = staged
@@ -86,7 +85,7 @@ func (r *offsetStoreRepository) LoadOffset(
 
 // offsetStoreDatabase contains data that is committed to the offset store.
 type offsetStoreDatabase struct {
-	items map[string]eventstream.Offset
+	offsets map[string]eventstream.Offset
 }
 
 // apply updates the database to include the changes in cs.
