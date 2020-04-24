@@ -11,7 +11,7 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	. "github.com/dogmatiq/infix/pipeline/queue"
+	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/golang/protobuf/proto"
 	. "github.com/onsi/ginkgo"

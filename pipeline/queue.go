@@ -1,23 +1,23 @@
-package queue
+package pipeline
 
 import (
 	"context"
 
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
-	"github.com/dogmatiq/infix/pipeline"
+	"github.com/dogmatiq/infix/queue"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
 
-// PipelineSource pops messages from a queue and sends each of them via a
+// QueueSource pops messages from a queue buffer and sends each of them via a
 // pipeline in a separate goroutine.
-type PipelineSource struct {
+type QueueSource struct {
 	// Queue is the message queue to consume.
-	Queue *Queue
+	Queue *queue.Queue
 
 	// Pipeline is the entry-point of the messaging pipeline.
-	Pipeline pipeline.Port
+	Pipeline Port
 
 	// Semaphore is used to limit the number of messages being handled
 	// concurrently.
@@ -26,7 +26,7 @@ type PipelineSource struct {
 
 // Run sends messages from the queue via the pipeline until error occurs or ctx
 // is canceled.
-func (s *PipelineSource) Run(ctx context.Context) error {
+func (s *QueueSource) Run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Perform the actual popping logic in a goroutine managed by g. That way
@@ -61,9 +61,9 @@ func (s *PipelineSource) Run(ctx context.Context) error {
 	return g.Wait()
 }
 
-// TrackEnqueuedCommands returns a pipeline observer that calls q.Track() for
+// TrackWithQueue returns a pipeline observer that calls q.Track() for
 // each message that is enqueued.
-func TrackEnqueuedCommands(q *Queue) pipeline.QueueObserver {
+func TrackWithQueue(q *queue.Queue) QueueObserver {
 	return func(
 		ctx context.Context,
 		parcels []*parcel.Parcel,

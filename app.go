@@ -18,7 +18,7 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
-	"github.com/dogmatiq/infix/pipeline/queue"
+	"github.com/dogmatiq/infix/queue"
 )
 
 type app struct {
@@ -164,7 +164,7 @@ func (e *Engine) newPipeline(
 
 	return pipeline.Pipeline{
 		pipeline.WhenMessageEnqueued(
-			queue.TrackEnqueuedCommands(q),
+			pipeline.TrackWithQueue(q),
 		),
 		pipeline.Acknowledge(e.opts.MessageBackoff, l),
 		pipeline.RouteByType(rf.routes),
