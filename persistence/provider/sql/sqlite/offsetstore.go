@@ -32,6 +32,10 @@ func (driver) LoadOffset(
 	)
 
 	if err := row.Scan(&o); err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+
 		return 0, err
 	}
 

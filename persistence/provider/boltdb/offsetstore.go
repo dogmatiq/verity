@@ -43,7 +43,7 @@ func (t *transaction) SaveOffset(
 	}
 
 	bboltx.Put(
-		store, 
+		store,
 		[]byte(ak),
 		marshalOffsetStoreOffset(n),
 	)
@@ -75,7 +75,7 @@ func (r *offsetStoreRepository) LoadOffset(
 				offsetStoreBucketKey,
 			); exists {
 				o = unmarshalOffsetStoreOffset(
-					store.Get( []byte(ak)),
+					store.Get([]byte(ak)),
 				)
 			}
 		},

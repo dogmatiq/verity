@@ -96,10 +96,5 @@ func (r *offsetStoreRepository) LoadOffset(
 	ctx context.Context,
 	ak string,
 ) (eventstream.Offset, error) {
-	o, err := r.d.LoadOffset(ctx, r.db, r.appKey, ak)
-	if err == sql.ErrNoRows {
-		return 0, nil
-	}
-
-	return o, err
+	return r.d.LoadOffset(ctx, r.db, r.appKey, ak)
 }
