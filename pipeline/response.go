@@ -15,25 +15,10 @@ import (
 // It encapsulates the messages that were produced, so they may be observed by
 // other components of the engine.
 type Response struct {
-	// EnqueuedMessages contains the messages that were enqueued during handling
-	// of the request.
-	EnqueuedMessages []EnqueuedMessage
-
-	// RecordedEvents contains the events that were recorded during handling of
-	// the request.
-	RecordedEvents []RecordedEvent
-}
-
-// EnqueuedMessage contains a message that was enqueued via a scope.
-type EnqueuedMessage struct {
-	Parcel    *parcel.Parcel
-	Persisted *queuestore.Item
-}
-
-// RecordedEvent contains an event that was recorded via a scope.
-type RecordedEvent struct {
-	Parcel    *parcel.Parcel
-	Persisted *eventstore.Item
+	queueParcels []*parcel.Parcel
+	queueItems   []*queuestore.Item
+	eventParcels []*parcel.Parcel
+	eventItems   []*eventstore.Item
 }
 
 // EnqueueMessage is a helper method that adds a message to the queue and
@@ -59,13 +44,8 @@ func (r *Response) EnqueueMessage(
 
 	i.Revision++
 
-	r.EnqueuedMessages = append(
-		r.EnqueuedMessages,
-		EnqueuedMessage{
-			Parcel:    p,
-			Persisted: i,
-		},
-	)
+	r.queueParcels = append(r.queueParcels, p)
+	r.queueItems = append(r.queueItems, i)
 
 	return nil
 }
@@ -82,16 +62,13 @@ func (r *Response) RecordEvent(
 		return 0, err
 	}
 
-	r.RecordedEvents = append(
-		r.RecordedEvents,
-		RecordedEvent{
-			Parcel: p,
-			Persisted: &eventstore.Item{
-				Offset:   o,
-				Envelope: p.Envelope,
-			},
-		},
-	)
+	i := &eventstore.Item{
+		Offset:   o,
+		Envelope: p.Envelope,
+	}
+
+	r.eventParcels = append(r.eventParcels, p)
+	r.eventItems = append(r.eventItems, i)
 
 	return o, nil
 }

@@ -55,21 +55,19 @@ var _ = Describe("type Response", func() {
 			Expect(called).To(BeTrue())
 		})
 
-		It("adds the message to the response", func() {
+		It("sets the next-attempt time to now for commands", func() {
+			pcl.ScheduledFor = time.Time{}
+
+			tx.SaveMessageToQueueFunc = func(
+				_ context.Context,
+				i *queuestore.Item,
+			) error {
+				Expect(i.NextAttemptAt).To(BeTemporally("~", time.Now()))
+				return nil
+			}
+
 			err := res.EnqueueMessage(context.Background(), tx, pcl)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(res.EnqueuedMessages).To(EqualX(
-				[]EnqueuedMessage{
-					{
-						Parcel: pcl,
-						Persisted: &queuestore.Item{
-							Revision:      1,
-							NextAttemptAt: now,
-							Envelope:      pcl.Envelope,
-						},
-					},
-				},
-			))
 		})
 
 		It("sets the next attempt time to the scheduled-at time for timeouts", func() {
@@ -115,22 +113,6 @@ var _ = Describe("type Response", func() {
 			_, err := res.RecordEvent(context.Background(), tx, pcl)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
-		})
-
-		It("adds the message to the response", func() {
-			_, err := res.RecordEvent(context.Background(), tx, pcl)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(res.RecordedEvents).To(EqualX(
-				[]RecordedEvent{
-					{
-						Parcel: pcl,
-						Persisted: &eventstore.Item{
-							Offset:   0,
-							Envelope: pcl.Envelope,
-						},
-					},
-				},
-			))
 		})
 
 		It("returns the offset", func() {

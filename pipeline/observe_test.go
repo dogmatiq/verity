@@ -43,19 +43,21 @@ var _ = Context("observer stages", func() {
 
 			fn := func(
 				ctx context.Context,
-				messages []EnqueuedMessage,
+				parcels []*parcel.Parcel,
+				items []*queuestore.Item,
 			) error {
 				called = true
 
-				Expect(messages).To(EqualX(
-					[]EnqueuedMessage{
+				Expect(parcels).To(EqualX(
+					[]*parcel.Parcel{pcl},
+				))
+
+				Expect(items).To(EqualX(
+					[]*queuestore.Item{
 						{
-							Parcel: pcl,
-							Persisted: &queuestore.Item{
-								Revision:      1,
-								NextAttemptAt: now,
-								Envelope:      pcl.Envelope,
-							},
+							Revision:      1,
+							NextAttemptAt: now,
+							Envelope:      pcl.Envelope,
 						},
 					},
 				))
@@ -76,7 +78,8 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if no messages were enqueued", func() {
 			fn := func(
 				context.Context,
-				[]EnqueuedMessage,
+				[]*parcel.Parcel,
+				[]*queuestore.Item,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -91,7 +94,8 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if the next stage fails", func() {
 			fn := func(
 				context.Context,
-				[]EnqueuedMessage,
+				[]*parcel.Parcel,
+				[]*queuestore.Item,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -113,7 +117,8 @@ var _ = Context("observer stages", func() {
 		It("returns an error if an observer function fails", func() {
 			fn := func(
 				context.Context,
-				[]EnqueuedMessage,
+				[]*parcel.Parcel,
+				[]*queuestore.Item,
 			) error {
 				return errors.New("<error>")
 			}
@@ -134,18 +139,20 @@ var _ = Context("observer stages", func() {
 
 			fn := func(
 				ctx context.Context,
-				messages []RecordedEvent,
+				parcels []*parcel.Parcel,
+				items []*eventstore.Item,
 			) error {
 				called = true
 
-				Expect(messages).To(EqualX(
-					[]RecordedEvent{
+				Expect(parcels).To(EqualX(
+					[]*parcel.Parcel{pcl},
+				))
+
+				Expect(items).To(EqualX(
+					[]*eventstore.Item{
 						{
-							Parcel: pcl,
-							Persisted: &eventstore.Item{
-								Offset:   0,
-								Envelope: pcl.Envelope,
-							},
+							Offset:   0,
+							Envelope: pcl.Envelope,
 						},
 					},
 				))
@@ -167,7 +174,8 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if no messages were enqueued", func() {
 			fn := func(
 				context.Context,
-				[]RecordedEvent,
+				[]*parcel.Parcel,
+				[]*eventstore.Item,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -182,7 +190,8 @@ var _ = Context("observer stages", func() {
 		It("does not call the observer function if the next stage fails", func() {
 			fn := func(
 				context.Context,
-				[]RecordedEvent,
+				[]*parcel.Parcel,
+				[]*eventstore.Item,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -204,7 +213,8 @@ var _ = Context("observer stages", func() {
 		It("returns an error if an observer function fails", func() {
 			fn := func(
 				context.Context,
-				[]RecordedEvent,
+				[]*parcel.Parcel,
+				[]*eventstore.Item,
 			) error {
 				return errors.New("<error>")
 			}

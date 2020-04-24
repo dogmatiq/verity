@@ -147,12 +147,8 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 	It("tracks messages when they are enqueued", func() {
 		err := observer(
 			ctx,
-			[]pipeline.EnqueuedMessage{
-				{
-					Parcel:    pcl,
-					Persisted: item,
-				},
-			},
+			[]*parcel.Parcel{pcl},
+			[]*queuestore.Item{item},
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -164,11 +160,6 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 	})
 
 	It("returns an error if the context deadline is exceeded", func() {
-		m := pipeline.EnqueuedMessage{
-			Parcel:    pcl,
-			Persisted: item,
-		}
-
 		// It's an implementation detail, but the internal channel used to start
 		// tracking is buffered at the same size as the overall buffer size
 		// limit.
@@ -180,14 +171,18 @@ var _ = Describe("func TrackEnqueuedMessages()", func() {
 		// Instead, we set it to one, and "fill" the channel with a request to
 		// ensure that it will block.
 		queue.BufferSize = 1
-		err := queue.Track(ctx, m.Parcel, m.Persisted)
+		err := queue.Track(ctx, pcl, item)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Setup a short deadline for the test.
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 		defer cancel()
 
-		err = observer(ctx, []pipeline.EnqueuedMessage{m})
+		err = observer(
+			ctx,
+			[]*parcel.Parcel{pcl},
+			[]*queuestore.Item{item},
+		)
 		Expect(err).To(Equal(context.DeadlineExceeded))
 	})
 })
