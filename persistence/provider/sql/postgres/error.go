@@ -175,33 +175,32 @@ func (d errorConverter) ScanEvent(
 // offsetstore
 //
 
-
 func (d errorConverter) LoadOffset(
 	ctx context.Context,
 	db *sql.DB,
-	ak string,
+	ak, sk string,
 ) (eventstream.Offset, error) {
-	ok, err := d.d.LoadOffset(ctx, db, ak)
+	ok, err := d.d.LoadOffset(ctx, db, ak, sk)
 	return ok, convertContextErrors(ctx, err)
 }
 
 func (d errorConverter) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak string,
+	ak, sk string,
 	c, n eventstream.Offset,
 ) (bool, error) {
-	ok, err := d.d.InsertOffset(ctx, tx, ak, c, n)
+	ok, err := d.d.InsertOffset(ctx, tx, ak, sk, c, n)
 	return ok, convertContextErrors(ctx, err)
 }
 
 func (d errorConverter) UpdateOffset(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak string,
+	ak, sk string,
 	c, n eventstream.Offset,
 ) (bool, error) {
-	ok, err := d.d.UpdateOffset(ctx, tx, ak, c, n)
+	ok, err := d.d.UpdateOffset(ctx, tx, ak, sk, c, n)
 	return ok, convertContextErrors(ctx, err)
 }
 

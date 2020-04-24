@@ -45,7 +45,7 @@ func (ds *dataStore) EventStoreRepository() eventstore.Repository {
 
 // OffsetStoreRepository returns the application's event store repository.
 func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
-	return &offsetStoreRepository{ds.db}
+	return &offsetStoreRepository{ds.db, ds.appKey}
 }
 
 // QueueStoreRepository returns the application's queue store repository.

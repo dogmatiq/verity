@@ -11,37 +11,37 @@ import (
 // offsetStoreDriver is the subset of the Driver interface that is concerned
 // with the offsetstore subsystem.
 type offsetStoreDriver interface {
-	// LoadOffset loads the last offset associated with the given application
-	// key.
+	// LoadOffset loads the last offset associated with the given source
+	// application key sk. ak is the 'owner' application key.
 	//
-	// If there is no offset associated with the given application key, the
-	// offset is returned as zero and error as nil.
+	// If there is no offset associated with the given source application key,
+	// the offset is returned as zero and error as nil.
 	LoadOffset(
 		ctx context.Context,
 		db *sql.DB,
-		ak string,
+		ak, sk string,
 	) (eventstream.Offset, error)
 
-	// InsertOffset inserts a new offset associated with the given application
-	// key.
+	// InsertOffset inserts a new offset associated with the given source
+	// application key sk. ak is the 'owner' application key.
 	//
 	// It returns false if the row already exists.
 	InsertOffset(
 		ctx context.Context,
 		tx *sql.Tx,
-		ak string,
+		ak, sk string,
 		c, n eventstream.Offset,
 	) (bool, error)
 
-	// UpdateOffset updates the offset associated with the given application
-	// key.
+	// UpdateOffset updates the offset associated with the given source
+	// application key sk. ak is the 'owner' application key.
 	//
-	// It returns false if the row does not exist or c is not the current
-	// offset associated with the given application key.
+	// It returns false if the row does not exist or c is not the current offset
+	// associated with the given application key.
 	UpdateOffset(
 		ctx context.Context,
 		tx *sql.Tx,
-		ak string,
+		ak, sk string,
 		c, n eventstream.Offset,
 	) (bool, error)
 }
@@ -65,6 +65,7 @@ func (t *transaction) SaveOffset(
 	ok, err := op(
 		ctx,
 		t.actual,
+		t.ds.appKey,
 		ak,
 		c, n,
 	)
@@ -79,8 +80,9 @@ func (t *transaction) SaveOffset(
 // stores the event stream offset associated with a specific application in an
 // SQL database.
 type offsetStoreRepository struct {
-	db *sql.DB
-	d  Driver
+	db     *sql.DB
+	d      Driver
+	appKey string
 }
 
 // LoadOffset loads the offset associated with a specific application.
@@ -88,7 +90,7 @@ func (r *offsetStoreRepository) LoadOffset(
 	ctx context.Context,
 	ak string,
 ) (eventstream.Offset, error) {
-	o, err := r.d.LoadOffset(ctx, r.db, ak)
+	o, err := r.d.LoadOffset(ctx, r.db, r.appKey, ak)
 	if err == sql.ErrNoRows {
 		return 0, nil
 	}

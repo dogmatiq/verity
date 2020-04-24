@@ -8,12 +8,15 @@ import (
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 )
 
-// LoadOffset loads the last offset associated with the given application
-// key.
+// LoadOffset loads the last offset associated with the given source
+// application key sk. ak is the 'owner' application key.
+//
+// If there is no offset associated with the given source application key,
+// the offset is returned as zero and error as nil.
 func (driver) LoadOffset(
 	ctx context.Context,
 	db *sql.DB,
-	ak string,
+	ak, sk string,
 ) (eventstream.Offset, error) {
 	var o eventstream.Offset
 
@@ -21,8 +24,8 @@ func (driver) LoadOffset(
 		ctx,
 		`SELECT next_offset
 		FROM offset_store
-		WHERE source_app_key = ?`,
-		ak,
+		WHERE app_key = ? AND source_app_key = ?`,
+		ak, sk,
 	)
 
 	if err := row.Scan(&o); err != nil {
@@ -32,34 +35,33 @@ func (driver) LoadOffset(
 	return o, nil
 }
 
-// InsertOffset inserts a new offset associated with the given application
-// key.
+// InsertOffset inserts a new offset associated with the given source
+// application key sk. ak is the 'owner' application key.
 //
 // It returns false if the row already exists.
 func (driver) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak string,
+	ak, sk string,
 	_, n eventstream.Offset,
 ) (bool, error) {
 	return insertIgnore(
 		ctx,
 		tx,
-		`INSERT INTO offset_store VALUES(?, ?)`,
-		ak,
-		n,
+		`INSERT INTO offset_store VALUES(?, ?, ?)`,
+		ak, sk, n,
 	)
 }
 
-// UpdateOffset updates the offset associated with the given application
-// key.
+// UpdateOffset updates the offset associated with the given source
+// application key sk. ak is the 'owner' application key.
 //
-// It returns false if the row does not exist or c is not the current
-// offset associated with the given application key.
+// It returns false if the row does not exist or c is not the current offset
+// associated with the given application key.
 func (driver) UpdateOffset(
 	ctx context.Context,
 	tx *sql.Tx,
-	ak string,
+	ak, sk string,
 	c, n eventstream.Offset,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
@@ -69,7 +71,7 @@ func (driver) UpdateOffset(
 		tx,
 		`UPDATE offset_store
 		SET next_offset = ?
-		WHERE source_app_key = ? AND next_offset = ?`,
-		n, ak, c,
+		WHERE app_key = ? AND source_app_key = ? AND next_offset = ?`,
+		n, ak, sk, c,
 	), nil
 }

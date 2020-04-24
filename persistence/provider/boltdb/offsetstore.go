@@ -31,6 +31,7 @@ func (t *transaction) SaveOffset(
 	bak := []byte(ak)
 	store := bboltx.CreateBucketIfNotExists(
 		t.actual,
+		t.appKey,
 		offsetStoreBucketKey,
 	)
 
@@ -51,7 +52,8 @@ func (t *transaction) SaveOffset(
 // stores the event stream offset associated with a specific application in a
 // BoltDB database.
 type offsetStoreRepository struct {
-	db *database
+	db     *database
+	appKey []byte
 }
 
 // LoadOffset loads the offset associated with a specific application.
@@ -66,6 +68,7 @@ func (r *offsetStoreRepository) LoadOffset(
 		func(tx *bbolt.Tx) {
 			if store, exists := bboltx.TryBucket(
 				tx,
+				r.appKey,
 				offsetStoreBucketKey,
 			); exists {
 				bak := []byte(ak)
