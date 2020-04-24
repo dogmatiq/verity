@@ -43,7 +43,7 @@ func (driver) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, sk string,
-	_, n eventstream.Offset,
+	n eventstream.Offset,
 ) (bool, error) {
 	return insertIgnore(
 		ctx,

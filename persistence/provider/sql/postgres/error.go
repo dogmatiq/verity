@@ -188,9 +188,9 @@ func (d errorConverter) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, sk string,
-	c, n eventstream.Offset,
+	n eventstream.Offset,
 ) (bool, error) {
-	ok, err := d.d.InsertOffset(ctx, tx, ak, sk, c, n)
+	ok, err := d.d.InsertOffset(ctx, tx, ak, sk, n)
 	return ok, convertContextErrors(ctx, err)
 }
 

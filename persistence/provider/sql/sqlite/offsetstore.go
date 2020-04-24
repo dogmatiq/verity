@@ -46,7 +46,7 @@ func (driver) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, sk string,
-	_, n eventstream.Offset,
+	n eventstream.Offset,
 ) (bool, error) {
 	res, err := tx.ExecContext(
 		ctx,
@@ -57,8 +57,8 @@ func (driver) InsertOffset(
 		) VALUES (
 			$1, $2, $3
 		) ON CONFLICT (app_key, source_app_key) DO NOTHING`,
-		ak, 
-		sk, 
+		ak,
+		sk,
 		n,
 	)
 	if err != nil {
@@ -90,9 +90,9 @@ func (driver) UpdateOffset(
 		WHERE app_key = $2
 		AND source_app_key = $3
 		AND next_offset = $4`,
-		n, 
-		ak, 
-		sk, 
+		n,
+		ak,
+		sk,
 		c,
 	), nil
 }

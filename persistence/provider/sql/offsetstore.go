@@ -57,20 +57,26 @@ func (t *transaction) SaveOffset(
 		return err
 	}
 
-	op := t.ds.driver.InsertOffset
 	if c > 0 {
-		op = t.ds.driver.UpdateOffset
-	}
-
-	ok, err := op(
-		ctx,
-		t.actual,
-		t.ds.appKey,
-		ak,
-		c, n,
-	)
-	if ok || err != nil {
-		return err
+		if ok, err := t.ds.driver.UpdateOffset(
+			ctx,
+			t.actual,
+			t.ds.appKey,
+			ak,
+			c, n,
+		); ok || err != nil {
+			return err
+		}
+	} else {
+		if ok, err := t.ds.driver.InsertOffset(
+			ctx,
+			t.actual,
+			t.ds.appKey,
+			ak,
+			n,
+		); ok || err != nil {
+			return err
+		}
 	}
 
 	return offsetstore.ErrConflict
