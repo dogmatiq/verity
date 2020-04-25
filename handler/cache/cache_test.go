@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/handler/cache"
 	. "github.com/dogmatiq/infix/handler/cache"
+	"github.com/dogmatiq/linger"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -150,6 +151,18 @@ var _ = Describe("type Cache", func() {
 		})
 
 		It("does not evict records that are kept-alive after one TTL period", func() {
+			runCtx, cancelRun := context.WithCancel(ctx)
+			defer cancelRun()
+
+			barrier := make(chan struct{})
+			go func() {
+				By("running the eviction loop in the background")
+				barrier <- struct{}{}
+				cache.Run(runCtx)
+				barrier <- struct{}{}
+			}()
+
+			<-barrier
 			By("adding a record")
 
 			rec, err := cache.Acquire(ctx, "<id>")
@@ -158,30 +171,28 @@ var _ = Describe("type Cache", func() {
 			rec.KeepAlive()
 			rec.Release()
 
-			barrier := make(chan struct{})
+			By("waiting longer than one TTL period")
 
-			go func() {
-				defer GinkgoRecover()
+			time.Sleep(
+				linger.Multiply(cache.TTL, 1.25),
+			)
 
-				barrier <- struct{}{}
-				time.Sleep(cache.TTL + 5*time.Millisecond)
+			By("acquiring the record and calling KeepAlive()")
 
-				By("acquiring the record and calling KeepAlive() after the first eviction loop")
+			rec, err = cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			rec.Instance = "<value>"
+			rec.KeepAlive()
+			rec.Release()
 
-				rec, err := cache.Acquire(ctx, "<id>")
-				Expect(err).ShouldNot(HaveOccurred())
-				rec.Instance = "<value>"
-				rec.KeepAlive()
-				rec.Release()
-			}()
+			By("waiting another TTL period")
 
-			By("running the eviction loop for longer than twice the TTL")
+			time.Sleep(cache.TTL)
 
+			By("stopping the eviction loop")
+
+			cancelRun()
 			<-barrier
-			runCtx, cancelRun := context.WithTimeout(ctx, 3*cache.TTL)
-			defer cancelRun()
-			err = cache.Run(runCtx)
-			Expect(err).To(Equal(context.DeadlineExceeded))
 
 			By("verifying that the value was retained")
 
