@@ -378,7 +378,8 @@ func (q *Queue) init() {
 		// Allocate capcity for our limit +1 element used to detect overflow.
 		q.tracked = make(map[string]struct{}, limit+1)
 
-		// Buffered to avoid blocking in Track(), doesn't *need* to be == limit.
+		// Buffered to avoid blocking in Track(), doesn't strictly *need* to be
+		// the same size as limit.
 		q.in = make(chan *elem, limit)
 
 		q.done = make(chan struct{})
