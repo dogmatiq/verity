@@ -52,7 +52,7 @@ func (driver) InsertOffset(
 		ctx,
 		tx,
 		`INSERT INTO offset_store SET
-			app_key_id = ?,
+			app_key = ?,
 			source_app_key = ?,
 			next_offset = ?`,
 		ak,
