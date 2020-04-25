@@ -57,29 +57,44 @@ func (t *transaction) SaveOffset(
 		return err
 	}
 
-	if c > 0 {
-		if ok, err := t.ds.driver.UpdateOffset(
-			ctx,
-			t.actual,
-			t.ds.appKey,
-			ak,
-			c, n,
-		); ok || err != nil {
-			return err
-		}
-	} else {
-		if ok, err := t.ds.driver.InsertOffset(
-			ctx,
-			t.actual,
-			t.ds.appKey,
-			ak,
-			n,
-		); ok || err != nil {
-			return err
-		}
+	if ok, err := t.upsertOffset(
+		ctx,
+		t.actual,
+		ak,
+		c, n,
+	); ok || err != nil {
+		return err
 	}
 
 	return offsetstore.ErrConflict
+}
+
+// upsertOffset calls driver's method UpdateOffset() if the source application
+// current offset is greater than zero. Otherwise, it call driver's method
+// InsertOffset().
+func (t *transaction) upsertOffset(
+	ctx context.Context,
+	tx *sql.Tx,
+	sk string,
+	c, n eventstream.Offset,
+) (bool, error) {
+	if c > 0 {
+		return t.ds.driver.UpdateOffset(
+			ctx,
+			tx,
+			t.ds.appKey,
+			sk,
+			c, n,
+		)
+	}
+
+	return t.ds.driver.InsertOffset(
+		ctx,
+		t.actual,
+		t.ds.appKey,
+		sk,
+		n,
+	)
 }
 
 // offsetStoreRepository is an implementation of offsetstore.Repository that
