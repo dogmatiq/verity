@@ -16,8 +16,8 @@ type QueueSource struct {
 	// Queue is the message queue to consume.
 	Queue *queue.Queue
 
-	// Pipeline is the entry-point of the messaging pipeline.
-	Pipeline Port
+	// Pipeline is the messaging pipeline.
+	Pipeline Pipeline
 
 	// Semaphore is used to limit the number of messages being handled
 	// concurrently.
