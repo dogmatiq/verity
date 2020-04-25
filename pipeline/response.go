@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/infix/internal/pooling"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -44,6 +45,11 @@ func (r *Response) EnqueueMessage(
 
 	i.Revision++
 
+	if r.queueParcels == nil {
+		r.queueParcels = pooling.ParcelSlice.Get(1)
+		r.queueItems = pooling.QueueStoreItemSlice.Get(1)
+	}
+
 	r.queueParcels = append(r.queueParcels, p)
 	r.queueItems = append(r.queueItems, i)
 
@@ -65,6 +71,11 @@ func (r *Response) RecordEvent(
 	i := &eventstore.Item{
 		Offset:   o,
 		Envelope: p.Envelope,
+	}
+
+	if r.eventParcels == nil {
+		r.eventParcels = pooling.ParcelSlice.Get(1)
+		r.eventItems = pooling.EventStoreItemSlice.Get(1)
 	}
 
 	r.eventParcels = append(r.eventParcels, p)
