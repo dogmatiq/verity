@@ -18,8 +18,6 @@ func (driver) LoadOffset(
 	db *sql.DB,
 	ak, sk string,
 ) (eventstream.Offset, error) {
-	var o eventstream.Offset
-
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
@@ -31,15 +29,13 @@ func (driver) LoadOffset(
 		sk,
 	)
 
-	if err := row.Scan(&o); err != nil {
-		if err == sql.ErrNoRows {
-			return 0, nil
-		}
-
-		return 0, err
+	var o eventstream.Offset
+	err := row.Scan(&o)
+	if err == sql.ErrNoRows {
+		err = nil
 	}
 
-	return o, nil
+	return o, err
 }
 
 // InsertOffset inserts a new offset associated with the given source
@@ -89,8 +85,8 @@ func (driver) UpdateOffset(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE offset_store
-		SET next_offset = $1
+		`UPDATE offset_store SET
+			next_offset = $1
 		WHERE app_key = $2
 		AND source_app_key = $3
 		AND next_offset = $4`,

@@ -18,25 +18,24 @@ func (driver) LoadOffset(
 	db *sql.DB,
 	ak, sk string,
 ) (eventstream.Offset, error) {
-	var o eventstream.Offset
-
 	row := db.QueryRowContext(
 		ctx,
-		`SELECT next_offset
+		`SELECT
+			next_offset
 		FROM offset_store
-		WHERE app_key = ? AND source_app_key = ?`,
-		ak, sk,
+		WHERE app_key = ?
+		AND source_app_key = ?`,
+		ak,
+		sk,
 	)
 
-	if err := row.Scan(&o); err != nil {
-		if err == sql.ErrNoRows {
-			return 0, nil
-		}
-
-		return 0, err
+	var o eventstream.Offset
+	err := row.Scan(&o)
+	if err == sql.ErrNoRows {
+		err = nil
 	}
 
-	return o, nil
+	return o, err
 }
 
 // InsertOffset inserts a new offset associated with the given source
@@ -52,8 +51,13 @@ func (driver) InsertOffset(
 	return insertIgnore(
 		ctx,
 		tx,
-		`INSERT INTO offset_store VALUES(?, ?, ?)`,
-		ak, sk, n,
+		`INSERT INTO offset_store SET
+			app_key_id = ?,
+			source_app_key = ?,
+			next_offset = ?`,
+		ak,
+		sk,
+		n,
 	)
 }
 
@@ -73,9 +77,14 @@ func (driver) UpdateOffset(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE offset_store
-		SET next_offset = ?
-		WHERE app_key = ? AND source_app_key = ? AND next_offset = ?`,
-		n, ak, sk, c,
+		`UPDATE offset_store SET
+			next_offset = ?
+		WHERE app_key = ?
+		AND source_app_key = ?
+		AND next_offset = ?`,
+		n,
+		ak,
+		sk,
+		c,
 	), nil
 }
