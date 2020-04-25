@@ -32,7 +32,7 @@ type Out struct {
 }
 
 // DefaultTestTimeout is the default test timeout.
-const DefaultTestTimeout = 3 * time.Second
+const DefaultTestTimeout = 10 * time.Second
 
 // TestContext encapsulates the shared test context passed to the tests for each
 // provider sub-system.
