@@ -8,6 +8,10 @@ import (
 	"github.com/dogmatiq/configkit/message"
 )
 
+// ErrTruncated indicates that a cursor can not be opened because the requested
+// offset is on a portion of the event stream that has been truncated.
+var ErrTruncated = errors.New("can not open cursor, stream is truncated")
+
 // A Stream is an ordered sequence of event messages.
 type Stream interface {
 	// Application returns the identity of the application that owns the stream.

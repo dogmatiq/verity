@@ -10,9 +10,9 @@ import (
 
 // cursor is a Cursor that reads events from an in-memory stream.
 type cursor struct {
-	stream *Stream
 	offset uint64
 	filter message.TypeCollection
+	head   *node
 
 	once   sync.Once
 	closed chan struct{}
@@ -26,28 +26,38 @@ type cursor struct {
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
 func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-c.closed:
+		return nil, eventstream.ErrCursorClosed
+	default:
+	}
+
 	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-c.closed:
-			return nil, eventstream.ErrCursorClosed
-		default:
+		// Advance the head node until we reach the one that contains c.offset.
+		for c.offset >= c.head.end {
+			head, err := c.head.advance(ctx, c.closed)
+			if err != nil {
+				return nil, err
+			}
+
+			c.head = head
 		}
 
-		env, ready := c.get()
+		index := int(c.offset - c.head.begin)
 
-		if ready == nil {
-			return env, nil
-		}
+		// Iterate the parcels in the node to find one that matches the filter.
+		for _, p := range c.head.parcels[index:] {
+			o := c.offset
+			c.offset++
 
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-c.closed:
-			return nil, eventstream.ErrCursorClosed
-		case <-ready:
-			continue // keep to see coverage
+			if c.filter.HasM(p.Message) {
+				return &eventstream.Event{
+					Offset: o,
+					Parcel: p,
+				}, nil
+			}
 		}
 	}
 }
@@ -65,28 +75,4 @@ func (c *cursor) Close() error {
 	})
 
 	return err
-}
-
-// get returns the next relevant event, or if the end of the stream is reached,
-// it returns a "ready" channel that is closed when an event is appended.
-func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
-	c.stream.m.Lock()
-	defer c.stream.m.Unlock()
-
-	for uint64(len(c.stream.events)) > c.offset {
-		offset := c.offset
-		c.offset++
-
-		ev := c.stream.events[offset]
-
-		if c.filter.HasM(ev.Parcel.Message) {
-			return ev, nil
-		}
-	}
-
-	if c.stream.ready == nil {
-		c.stream.ready = make(chan struct{})
-	}
-
-	return nil, c.stream.ready
 }
