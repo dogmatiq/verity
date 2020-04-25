@@ -382,7 +382,7 @@ var _ = Describe("type Queue", func() {
 				)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				// Ensure it doesn't lock once full.
+				// Ensure it doesn't block once full.
 				err = queue.Track(
 					ctx,
 					parcel1,
