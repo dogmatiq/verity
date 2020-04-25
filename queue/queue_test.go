@@ -261,7 +261,7 @@ var _ = Describe("type Queue", func() {
 			})
 
 			When("a message is tracked while loading from the store", func() {
-				It("does not duplicate the message", func() {
+				BeforeEach(func() {
 					repository.LoadQueueMessagesFunc = func(
 						ctx context.Context,
 						n int,
@@ -269,7 +269,9 @@ var _ = Describe("type Queue", func() {
 						push(ctx, queue, parcel0)
 						return repository.Repository.LoadQueueMessages(ctx, n)
 					}
+				})
 
+				It("does not duplicate the message", func() {
 					// We expect to get the pushed message once.
 					req, err := queue.Pop(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
