@@ -63,12 +63,13 @@ func (n *node) advance(
 	done := atomic.LoadPointer(&n.done)
 
 	if done == nil {
-		// There's no existing "wake" channel, we have to try to make our own.
+		// There's no existing done channel, we'll try to set one.
 		ch := pooling.DoneChannels.Get()
 		done = unsafe.Pointer(&ch)
 
 		if !atomic.CompareAndSwapPointer(&n.done, nil, done) {
-			// Another goroutine beat us to the punch.
+			// Another goroutine beat us to the punch, we'll use their channel
+			// instead and return our un-closed channel to the pool.
 			pooling.DoneChannels.PutUnchecked(ch)
 			done = atomic.LoadPointer(&n.done)
 		}
