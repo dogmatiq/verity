@@ -34,7 +34,7 @@ type Stream struct {
 
 	m       sync.Mutex
 	reorder pqueue.Queue
-	tail    *node
+	tail    unsafe.Pointer // atomic (*node)
 	head    unsafe.Pointer // atomic (*node)
 	size    int
 }
@@ -72,19 +72,42 @@ func (s *Stream) Open(
 		panic("at least one event type must be specified")
 	}
 
-	n := s.loadHead()
+	// Load the tail first to see if the requested offset is at or after the
+	// batch within. If it is, we don't have to step through all of the nodes in
+	// the list to find out offset.
+	n := s.loadTail()
 
 	if n == nil {
+		// If the node is nil then the list is uninitialized. Initialize it with
+		// an empty node and begin waiting.
 		s.m.Lock()
-		s.init()
+		n = s.init()
 		s.m.Unlock()
-
-		n = s.loadHead()
 	}
 
 	for !n.acquire() {
-		// n has been invalidated which means there's a new s.head.
+		// CODE COVERAGE: The tail node we just loaded has been invalidated,
+		// which is highly unlikely. In order for this branch to be executed
+		// s.tail to have been updated *and* n became s.head at some point *and*
+		// it was truncated from the buffer while it was at s.head, all since we
+		// called s.loadTail() the last time.
+		n = s.loadTail()
+	}
+
+	if o < n.begin {
+		// Our requested offset is NOT at or after the tail node, so now we have
+		// to load the head and step through the list until we find the node
+		// that contains the offset we want.
+
+		n.release() // release the tail node
+
 		n = s.loadHead()
+		for !n.acquire() {
+			// CODE COVERAGE: The head node we *just* loaded has been
+			// invalidated and replaced with a new head node. This hard to time
+			// correctly in a test, but likely to occur in production.
+			n = s.loadHead()
+		}
 	}
 
 	if o < n.begin {
@@ -113,17 +136,19 @@ func (s *Stream) Add(
 	}
 
 	s.m.Lock()
-
-	s.init()
 	s.grow(n)
 	s.shrink()
-
 	s.m.Unlock()
 }
 
 // grow adds the node to the buffer, advancing s.tail if possible.
 func (s *Stream) grow(n *node) {
-	if n.begin < s.tail.end {
+	tail := s.loadTail()
+	if tail == nil {
+		tail = s.init()
+	}
+
+	if n.begin < tail.end {
 		// These events are earlier than what we're expecting next so we just
 		// discard them. This "should never happen" provided that b.NextOffset
 		// is populated before new events are allowed to be produced when the
@@ -135,7 +160,7 @@ func (s *Stream) grow(n *node) {
 	// in the size for the purpose of enforcing the size limit.
 	s.size += len(n.parcels)
 
-	if n.begin > s.tail.end {
+	if n.begin > tail.end {
 		// These events has arrived out of order, keep the node in the reorder
 		// queue until it can be linked to its preceeding node.
 		s.reorder.Push(n)
@@ -146,7 +171,8 @@ func (s *Stream) grow(n *node) {
 	// that follow on from this one before linking n to s.tail. This ensures any
 	// reads that pass through these nodes will always take the fast-path of
 	// node.advance().
-	tail := n
+	orig := tail
+	tail = n
 	for {
 		if x, ok := s.reorder.Peek(); ok {
 			x := x.(*node)
@@ -163,11 +189,11 @@ func (s *Stream) grow(n *node) {
 
 	// Finally, we link the chain of nodes we've just made with the original
 	// s.tail, waking any reads that had hit the tail.
-	s.tail.link(n)
-	s.tail = tail
+	orig.link(n)
+	s.storeTail(tail)
 }
 
-// shrink advances b.head until s.size is below the buffer size.
+// shrink advances s.head until s.size is below the buffer size.
 func (s *Stream) shrink() {
 	limit := s.BufferSize
 	if limit <= 0 {
@@ -194,28 +220,43 @@ func (s *Stream) shrink() {
 	}
 }
 
-// init sets up b.head and s.tail with an initial empty batch based on
+// init sets up s.head and s.tail with an initial empty batch based on
 // b.NextOffset.
-func (s *Stream) init() {
-	if s.tail != nil {
-		return
+//
+// It assumes s.m is already locked.
+func (s *Stream) init() *node {
+	n := s.loadHead()
+
+	if n == nil {
+		n = &node{
+			begin: s.FirstOffset,
+			end:   s.FirstOffset,
+			refs:  1, // hold a ref for the stream itself
+		}
+
+		s.storeHead(n)
+		s.storeTail(n)
 	}
 
-	s.tail = &node{
-		begin: s.FirstOffset,
-		end:   s.FirstOffset,
-		refs:  1, // hold a ref for the stream itself
-	}
-
-	s.storeHead(s.tail)
+	return n
 }
 
-// loadHead atomically loads the node pointed to by b.head.
+// loadHead atomically loads the node pointed to by s.head.
 func (s *Stream) loadHead() *node {
 	return (*node)(atomic.LoadPointer(&s.head))
 }
 
-// storeHead atomically updates b.head to point to *n.
+// storeHead atomically updates s.head to point to *n.
 func (s *Stream) storeHead(n *node) {
 	atomic.StorePointer(&s.head, unsafe.Pointer(n))
+}
+
+// loadTail atomically loads the node pointed to by s.tail.
+func (s *Stream) loadTail() *node {
+	return (*node)(atomic.LoadPointer(&s.tail))
+}
+
+// storeTail atomically updates s.tail to point to *n.
+func (s *Stream) storeTail(n *node) {
+	atomic.StorePointer(&s.tail, unsafe.Pointer(n))
 }
