@@ -13,6 +13,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 
 	createAggregateStoreSchema(ctx, db)
 	createEventStoreSchema(ctx, db)
+	createOffsetStoreSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
 	return nil
@@ -29,6 +30,8 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
+
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS offset_store`)
 
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS queue`)
 
@@ -113,6 +116,22 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			portable_name VARBINARY(255) NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)
+		) ENGINE=InnoDB`,
+	)
+}
+
+// createOffsetStoreSchema creates the schema elements required by the
+// offset store subsystem.
+func createOffsetStoreSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE offset_store (
+			app_key VARBINARY(255) NOT NULL,
+			source_app_key VARBINARY(255) NOT NULL,
+			next_offset    BIGINT NOT NULL,
+
+			PRIMARY KEY (app_key, source_app_key)
 		) ENGINE=InnoDB`,
 	)
 }

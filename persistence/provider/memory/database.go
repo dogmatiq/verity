@@ -15,6 +15,7 @@ type database struct {
 	open      uint32 // atomic
 	aggregate aggregateStoreDatabase
 	event     eventStoreDatabase
+	offset    offsetStoreDatabase
 	queue     queueStoreDatabase
 }
 

@@ -13,6 +13,7 @@ type transaction struct {
 	hasLock   bool
 	aggregate aggregateStoreChangeSet
 	event     eventStoreChangeSet
+	offset    offsetStoreChangeSet
 	queue     queueStoreChangeSet
 }
 
@@ -34,6 +35,7 @@ func (t *transaction) Commit(ctx context.Context) error {
 
 	t.ds.db.aggregate.apply(&t.aggregate)
 	t.ds.db.event.apply(&t.event)
+	t.ds.db.offset.apply(&t.offset)
 	t.ds.db.queue.apply(&t.queue)
 
 	return nil

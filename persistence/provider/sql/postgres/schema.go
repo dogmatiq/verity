@@ -27,6 +27,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 
 	createAggregateStoreSchema(ctx, db)
 	createEventStoreSchema(ctx, db)
+	createOffsetStoreSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
 	return tx.Commit()
@@ -121,6 +122,22 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			portable_name TEXT NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)
+		)`,
+	)
+}
+
+// createOffsetStoreSchema creates the schema elements required by the offset
+// store subsystem.
+func createOffsetStoreSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.offset_store (
+			app_key        TEXT NOT NULL,
+			source_app_key TEXT NOT NULL,
+			next_offset    BIGINT NOT NULL,
+
+			PRIMARY KEY (app_key, source_app_key)
 		)`,
 	)
 }

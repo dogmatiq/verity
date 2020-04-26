@@ -14,6 +14,7 @@ import (
 type Driver interface {
 	aggregateStoreDriver
 	eventStoreDriver
+	offsetStoreDriver
 	queueDriver
 
 	// Begin starts a transaction for use in a peristence.Transaction.

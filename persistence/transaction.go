@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -19,6 +20,7 @@ type Transaction interface {
 	aggregatestore.Transaction
 	eventstore.Transaction
 	queuestore.Transaction
+	offsetstore.Transaction
 
 	// Commit applies the changes from the transaction.
 	Commit(ctx context.Context) error
@@ -33,6 +35,7 @@ type ManagedTransaction interface {
 	aggregatestore.Transaction
 	eventstore.Transaction
 	queuestore.Transaction
+	offsetstore.Transaction
 }
 
 // WithTransaction executes fn inside a transaction.
