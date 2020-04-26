@@ -8,10 +8,6 @@ import (
 	"github.com/dogmatiq/configkit/message"
 )
 
-// ErrTruncated indicates that a cursor can not be opened because the requested
-// offset is on a portion of the event stream that has been truncated.
-var ErrTruncated = errors.New("can not open cursor, stream is truncated")
-
 // A Stream is an ordered sequence of event messages.
 type Stream interface {
 	// Application returns the identity of the application that owns the stream.
@@ -33,9 +29,15 @@ type Stream interface {
 	Open(ctx context.Context, o uint64, f message.TypeCollection) (Cursor, error)
 }
 
-// ErrCursorClosed is returned by Cursor.Next() and Close() if the
-// stream is closed.
-var ErrCursorClosed = errors.New("stream cursor is closed")
+var (
+	// ErrCursorClosed is returned by Cursor.Next() and Close() if the
+	// stream is closed.
+	ErrCursorClosed = errors.New("stream cursor is closed")
+
+	// ErrTruncated indicates that a cursor can not be opened because the requested
+	// offset is on a portion of the event stream that has been truncated.
+	ErrTruncated = errors.New("can not open cursor, stream is truncated")
+)
 
 // A Cursor reads events from a stream.
 //
@@ -48,6 +50,9 @@ type Cursor interface {
 	//
 	// If the stream is closed before or during a call to Next(), it returns
 	// ErrCursorClosed.
+	//
+	// It returns ErrTruncated if the next event can not be obtained because it
+	// occupies a portion of the stream that has been truncated.
 	Next(ctx context.Context) (*Event, error)
 
 	// Close discards the cursor.

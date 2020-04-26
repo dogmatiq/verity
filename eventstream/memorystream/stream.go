@@ -51,8 +51,8 @@ func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
 
 // Open returns a cursor that reads events from the stream.
 //
-// o is the offset of the first event to read. The first event on a stream
-// is always at offset 0.
+// o is the offset of the first event to read. The first event on a stream is
+// always at offset 0.
 //
 // f is the set of "filter" event types to be returned by Cursor.Next(). Any
 // other event types are ignored.
