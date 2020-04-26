@@ -85,29 +85,11 @@ func (s *Stream) Open(
 		s.m.Unlock()
 	}
 
-	for !n.acquire() {
-		// CODE COVERAGE: The tail node we just loaded has been invalidated,
-		// which is highly unlikely. In order for this branch to be executed
-		// s.tail to have been updated *and* n became s.head at some point *and*
-		// it was truncated from the buffer while it was at s.head, all since we
-		// called s.loadTail() the last time.
-		n = s.loadTail()
-	}
-
 	if o < n.begin {
-		// Our requested offset is NOT at or after the tail node, so now we have
-		// to load the head and step through the list until we find the node
-		// that contains the offset we want.
-
-		n.release() // release the tail node
-
+		// Our requested offset is NOT at or after the tail node, so we the node
+		// at the head of the list and step through the list until we find the
+		// node that contains the offset we want.
 		n = s.loadHead()
-		for !n.acquire() {
-			// CODE COVERAGE: The head node we *just* loaded has been
-			// invalidated and replaced with a new head node. This hard to time
-			// correctly in a test, but likely to occur in production.
-			n = s.loadHead()
-		}
 	}
 
 	if o < n.begin {
@@ -132,7 +114,6 @@ func (s *Stream) Add(
 		begin:   begin,
 		end:     begin + uint64(len(parcels)),
 		parcels: parcels,
-		refs:    1, // hold a ref for the stream itself
 	}
 
 	s.m.Lock()
@@ -212,12 +193,11 @@ func (s *Stream) shrink() {
 	// because we still hold the lock on b.m.
 	for s.size > limit && head.next != nil {
 		s.size -= len(head.parcels)
-
-		// Replace the old head with the new one.
-		s.storeHead(head.next)
-		head.release()
 		head = head.next
 	}
+
+	// Replace the old head with the new one.
+	s.storeHead(head)
 }
 
 // init sets up s.head and s.tail with an initial empty batch based on
@@ -231,7 +211,6 @@ func (s *Stream) init() *node {
 		n = &node{
 			begin: s.FirstOffset,
 			end:   s.FirstOffset,
-			refs:  1, // hold a ref for the stream itself
 		}
 
 		s.storeHead(n)

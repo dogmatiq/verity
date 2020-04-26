@@ -71,7 +71,6 @@ func (c *cursor) Close() error {
 
 	c.once.Do(func() {
 		err = nil
-		c.head.release()
 		close(c.closed)
 	})
 
