@@ -162,13 +162,14 @@ func (e *Engine) newPipeline(
 
 	cfg.AcceptRichVisitor(nil, rf)
 
-	return pipeline.Pipeline{
-		pipeline.WhenMessageEnqueued(
-			pipeline.TrackWithQueue(q),
+	return pipeline.New(
+		pipeline.TrackWithQueue(q),
+		nil,
+		pipeline.NewSequence(
+			pipeline.Acknowledge(e.opts.MessageBackoff, l),
+			pipeline.RouteByType(rf.routes),
 		),
-		pipeline.Acknowledge(e.opts.MessageBackoff, l),
-		pipeline.RouteByType(rf.routes),
-	}
+	)
 }
 
 // routeFactory is a configkit.RichVisitor that constructs the messaging
