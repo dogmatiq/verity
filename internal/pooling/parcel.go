@@ -6,8 +6,8 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 )
 
-// ParcelSlice is a pool of []*parcel.Parcel.
-var ParcelSlice parcelSlice
+// ParcelSlices is a pool of []*parcel.Parcel.
+var ParcelSlices parcelSlice
 
 type parcelSlice sync.Pool
 

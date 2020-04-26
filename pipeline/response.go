@@ -46,8 +46,8 @@ func (r *Response) EnqueueMessage(
 	i.Revision++
 
 	if r.queueParcels == nil {
-		r.queueParcels = pooling.ParcelSlice.Get(1)
-		r.queueItems = pooling.QueueStoreItemSlice.Get(1)
+		r.queueParcels = pooling.ParcelSlices.Get(1)
+		r.queueItems = pooling.QueueStoreItemSlices.Get(1)
 	}
 
 	r.queueParcels = append(r.queueParcels, p)
@@ -74,8 +74,8 @@ func (r *Response) RecordEvent(
 	}
 
 	if r.eventParcels == nil {
-		r.eventParcels = pooling.ParcelSlice.Get(1)
-		r.eventItems = pooling.EventStoreItemSlice.Get(1)
+		r.eventParcels = pooling.ParcelSlices.Get(1)
+		r.eventItems = pooling.EventStoreItemSlices.Get(1)
 	}
 
 	r.eventParcels = append(r.eventParcels, p)

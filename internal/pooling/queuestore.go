@@ -6,8 +6,8 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
-// QueueStoreItemSlice is a pool of []*queuestore.Item.
-var QueueStoreItemSlice queueStoreItemSlice
+// QueueStoreItemSlices is a pool of []*queuestore.Item.
+var QueueStoreItemSlices queueStoreItemSlice
 
 type queueStoreItemSlice sync.Pool
 

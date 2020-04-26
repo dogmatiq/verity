@@ -6,8 +6,8 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
-// EventStoreItemSlice is a pool of []*eventstore.Item.
-var EventStoreItemSlice eventStoreItemSlice
+// EventStoreItemSlices is a pool of []*eventstore.Item.
+var EventStoreItemSlices eventStoreItemSlice
 
 type eventStoreItemSlice sync.Pool
 
