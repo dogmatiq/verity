@@ -12,7 +12,7 @@ import (
 type cursor struct {
 	offset uint64
 	filter message.TypeCollection
-	head   *node
+	node   *node
 
 	once   sync.Once
 	closed chan struct{}
@@ -39,19 +39,19 @@ func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 
 	for {
 		// Advance the head node until we reach the one that contains c.offset.
-		for c.offset >= c.head.end {
-			head, err := c.head.advance(ctx, c.closed)
+		for c.offset >= c.node.end {
+			head, err := c.node.advance(ctx, c.closed)
 			if err != nil {
 				return nil, err
 			}
 
-			c.head = head
+			c.node = head
 		}
 
-		index := int(c.offset - c.head.begin)
+		index := int(c.offset - c.node.begin)
 
 		// Iterate the parcels in the node to find one that matches the filter.
-		for _, p := range c.head.parcels[index:] {
+		for _, p := range c.node.parcels[index:] {
 			o := c.offset
 			c.offset++
 
