@@ -82,6 +82,11 @@ func (s *Stream) Open(
 		n = s.loadHead()
 	}
 
+	for !n.acquire() {
+		// n has been invalidated which means there's a new s.head.
+		n = s.loadHead()
+	}
+
 	if o < n.begin {
 		return nil, eventstream.ErrTruncated
 	}
@@ -104,6 +109,7 @@ func (s *Stream) Add(
 		begin:   begin,
 		end:     begin + uint64(len(parcels)),
 		parcels: parcels,
+		refs:    1, // hold a ref for the stream itself
 	}
 
 	s.m.Lock()
@@ -155,8 +161,8 @@ func (s *Stream) grow(n *node) {
 		break
 	}
 
-	// Finally, we link s.tail.next with n and replace it with the new tail,
-	// waking any reads that had hit the tail.
+	// Finally, we link the chain of nodes we've just made with the original
+	// s.tail, waking any reads that had hit the tail.
 	s.tail.link(n)
 	s.tail = tail
 }
@@ -180,11 +186,12 @@ func (s *Stream) shrink() {
 	// because we still hold the lock on b.m.
 	for s.size > limit && head.next != nil {
 		s.size -= len(head.parcels)
+
+		// Replace the old head with the new one.
+		s.storeHead(head.next)
+		head.release()
 		head = head.next
 	}
-
-	// Replace the old head with the new one.
-	s.storeHead(head)
 }
 
 // init sets up b.head and s.tail with an initial empty batch based on
@@ -197,6 +204,7 @@ func (s *Stream) init() {
 	s.tail = &node{
 		begin: s.FirstOffset,
 		end:   s.FirstOffset,
+		refs:  1, // hold a ref for the stream itself
 	}
 
 	s.storeHead(s.tail)
