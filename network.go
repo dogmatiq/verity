@@ -106,7 +106,7 @@ func (e *Engine) runDiscoverer(ctx context.Context) error {
 					// tasks to observer sets, including tasks that return
 					// errors. Perhaps a task-with-error could panic if the
 					// error is not context.Canceled.
-					inspector.Run(ctx, c) // nolint:errcheck - error is always context.Canceled
+					inspector.Run(ctx, c) // nolint:errcheck // error is always context cancelation
 
 					// TODO: why is this needed? it's probably a remnant from
 					// when logging was performed with a defer.
@@ -128,7 +128,7 @@ func (e *Engine) runDiscoverer(ctx context.Context) error {
 					// tasks to observer sets, including tasks that return
 					// errors. Perhaps a task-with-error could panic if the
 					// error is not context.Canceled.
-					connector.Run(ctx, t) // nolint:errcheck - error is always context.Canceled
+					connector.Run(ctx, t) // nolint:errcheck // error is always context cancelation
 				},
 			},
 		),
