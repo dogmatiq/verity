@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
@@ -180,7 +179,7 @@ type TransactionStub struct {
 
 	SaveAggregateMetaDataFunc  func(context.Context, *aggregatestore.MetaData) error
 	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
-	SaveOffsetFunc             func(ctx context.Context, ak string, c, n eventstream.Offset) error
+	SaveOffsetFunc             func(ctx context.Context, ak string, c, n uint64) error
 	SaveMessageToQueueFunc     func(context.Context, *queuestore.Item) error
 	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Item) error
 
@@ -219,7 +218,7 @@ func (t *TransactionStub) SaveEvent(ctx context.Context, env *envelopespec.Envel
 func (t *TransactionStub) SaveOffset(
 	ctx context.Context,
 	ak string,
-	c, n eventstream.Offset,
+	c, n uint64,
 ) error {
 	if t.SaveOffsetFunc != nil {
 		return t.SaveOffsetFunc(ctx, ak, c, n)

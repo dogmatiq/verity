@@ -5,7 +5,7 @@ import (
 )
 
 // Offset is the position of an event within the store.
-type Offset uint64
+type Offset = uint64
 
 // Item is a message persisted in the event store.
 type Item struct {

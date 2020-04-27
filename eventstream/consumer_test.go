@@ -10,7 +10,6 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/fixtures"
@@ -109,7 +108,7 @@ var _ = Describe("type Consumer", func() {
 			var events []*Event
 			eshandler.HandleEventFunc = func(
 				_ context.Context,
-				_ eventstream.Offset,
+				_ uint64,
 				ev *Event,
 			) error {
 				events = append(events, ev)
@@ -146,14 +145,14 @@ var _ = Describe("type Consumer", func() {
 		It("restarts the consumer if opening the stream returns an error", func() {
 			stream.OpenFunc = func(
 				context.Context,
-				eventstream.Offset,
+				uint64,
 				message.TypeCollection,
 			) (Cursor, error) {
 				stream.OpenFunc = nil
 
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
-					_ eventstream.Offset,
+					_ uint64,
 					ev *Event,
 				) error {
 					Expect(ev).To(Equal(event0))
@@ -176,7 +175,7 @@ var _ = Describe("type Consumer", func() {
 
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
-					_ eventstream.Offset,
+					_ uint64,
 					ev *Event,
 				) error {
 					Expect(ev).To(Equal(event0))
@@ -194,12 +193,12 @@ var _ = Describe("type Consumer", func() {
 		It("restarts the consumer when the handler returns an error", func() {
 			eshandler.HandleEventFunc = func(
 				context.Context,
-				eventstream.Offset,
+				uint64,
 				*Event,
 			) error {
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
-					_ eventstream.Offset,
+					_ uint64,
 					ev *Event,
 				) error {
 					Expect(ev).To(Equal(event0))
@@ -224,7 +223,7 @@ var _ = Describe("type Consumer", func() {
 			eshandler.NextOffsetFunc = func(
 				context.Context,
 				configkit.Identity,
-			) (eventstream.Offset, error) {
+			) (uint64, error) {
 				return 0, errors.New("<error>")
 			}
 
@@ -258,7 +257,7 @@ var _ = Describe("type Consumer", func() {
 				eshandler.NextOffsetFunc = func(
 					_ context.Context,
 					id configkit.Identity,
-				) (eventstream.Offset, error) {
+				) (uint64, error) {
 					Expect(id).To(Equal(
 						configkit.MustNewIdentity("<app-name>", "<app-key>"),
 					))
@@ -267,7 +266,7 @@ var _ = Describe("type Consumer", func() {
 
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
-					_ eventstream.Offset,
+					_ uint64,
 					ev *Event,
 				) error {
 					Expect(ev).To(Equal(event2))
@@ -283,13 +282,13 @@ var _ = Describe("type Consumer", func() {
 				eshandler.NextOffsetFunc = func(
 					context.Context,
 					configkit.Identity,
-				) (eventstream.Offset, error) {
+				) (uint64, error) {
 					return 2, nil
 				}
 
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
-					o eventstream.Offset,
+					o uint64,
 					_ *Event,
 				) error {
 					Expect(o).To(BeNumerically("==", 2))
@@ -304,19 +303,19 @@ var _ = Describe("type Consumer", func() {
 			It("restarts the consumer when a conflict occurs", func() {
 				eshandler.HandleEventFunc = func(
 					context.Context,
-					eventstream.Offset,
+					uint64,
 					*Event,
 				) error {
 					eshandler.NextOffsetFunc = func(
 						context.Context,
 						configkit.Identity,
-					) (eventstream.Offset, error) {
+					) (uint64, error) {
 						return 2, nil
 					}
 
 					eshandler.HandleEventFunc = func(
 						_ context.Context,
-						_ eventstream.Offset,
+						_ uint64,
 						ev *Event,
 					) error {
 						Expect(ev).To(Equal(event2))
@@ -335,14 +334,14 @@ var _ = Describe("type Consumer", func() {
 				eshandler.NextOffsetFunc = func(
 					context.Context,
 					configkit.Identity,
-				) (eventstream.Offset, error) {
+				) (uint64, error) {
 					eshandler.NextOffsetFunc = nil
 					return 0, errors.New("<error>")
 				}
 
 				eshandler.HandleEventFunc = func(
 					_ context.Context,
-					_ eventstream.Offset,
+					_ uint64,
 					ev *Event,
 				) error {
 					Expect(ev).To(Equal(event0))

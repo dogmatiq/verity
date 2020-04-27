@@ -165,7 +165,7 @@ func (s *server) Consume(
 			}
 
 			res := &messagingspec.ConsumeResponse{
-				Offset:   uint64(i.Offset),
+				Offset:   i.Offset,
 				Envelope: i.Envelope,
 			}
 

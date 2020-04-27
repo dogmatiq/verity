@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 )
 
@@ -20,7 +19,7 @@ type offsetStoreDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak, sk string,
-	) (eventstream.Offset, error)
+	) (uint64, error)
 
 	// InsertOffset inserts a new offset associated with the given source
 	// application key sk. ak is the 'owner' application key.
@@ -30,7 +29,7 @@ type offsetStoreDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak, sk string,
-		n eventstream.Offset,
+		n uint64,
 	) (bool, error)
 
 	// UpdateOffset updates the offset associated with the given source
@@ -42,7 +41,7 @@ type offsetStoreDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak, sk string,
-		c, n eventstream.Offset,
+		c, n uint64,
 	) (bool, error)
 }
 
@@ -51,7 +50,7 @@ type offsetStoreDriver interface {
 func (t *transaction) SaveOffset(
 	ctx context.Context,
 	ak string,
-	c, n eventstream.Offset,
+	c, n uint64,
 ) error {
 	if err := t.begin(ctx); err != nil {
 		return err
@@ -76,7 +75,7 @@ func (t *transaction) upsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	sk string,
-	c, n eventstream.Offset,
+	c, n uint64,
 ) (bool, error) {
 	if c > 0 {
 		return t.ds.driver.UpdateOffset(
@@ -110,6 +109,6 @@ type offsetStoreRepository struct {
 func (r *offsetStoreRepository) LoadOffset(
 	ctx context.Context,
 	ak string,
-) (eventstream.Offset, error) {
+) (uint64, error) {
 	return r.d.LoadOffset(ctx, r.db, r.appKey, ak)
 }

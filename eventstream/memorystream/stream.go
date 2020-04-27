@@ -45,7 +45,7 @@ func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
 // indicated by EventTypes().
 func (s *Stream) Open(
 	ctx context.Context,
-	o eventstream.Offset,
+	o uint64,
 	f message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	if f.Len() == 0 {
@@ -69,7 +69,7 @@ func (s *Stream) Append(parcels ...*parcel.Parcel) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	o := eventstream.Offset(len(s.events))
+	o := uint64(len(s.events))
 
 	for _, p := range parcels {
 		t := message.TypeOf(p.Message)

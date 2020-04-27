@@ -11,7 +11,7 @@ import (
 // cursor is a Cursor that reads events from an in-memory stream.
 type cursor struct {
 	stream *Stream
-	offset eventstream.Offset
+	offset uint64
 	filter message.TypeCollection
 
 	once   sync.Once
@@ -73,7 +73,7 @@ func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
 	c.stream.m.Lock()
 	defer c.stream.m.Unlock()
 
-	for eventstream.Offset(len(c.stream.events)) > c.offset {
+	for uint64(len(c.stream.events)) > c.offset {
 		offset := c.offset
 		c.offset++
 

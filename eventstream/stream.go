@@ -26,7 +26,7 @@ type Stream interface {
 	//
 	// It returns an error if any of the event types in f are not supported, as
 	// indicated by EventTypes().
-	Open(ctx context.Context, o Offset, f message.TypeCollection) (Cursor, error)
+	Open(ctx context.Context, o uint64, f message.TypeCollection) (Cursor, error)
 }
 
 // ErrCursorClosed is returned by Cursor.Next() and Close() if the

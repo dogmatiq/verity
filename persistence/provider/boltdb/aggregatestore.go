@@ -118,8 +118,8 @@ func (r *aggregateStoreRepository) LoadMetaData(
 func marshalAggregateStoreMetaData(md *aggregatestore.MetaData) []byte {
 	new := &pb.AggregateStoreMetaData{
 		Revision:    uint64(md.Revision + 1),
-		BeginOffset: uint64(md.BeginOffset),
-		EndOffset:   uint64(md.EndOffset),
+		BeginOffset: md.BeginOffset,
+		EndOffset:   md.EndOffset,
 	}
 
 	data, err := proto.Marshal(new)
