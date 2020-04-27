@@ -389,6 +389,7 @@ var _ = Describe("type Sink", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 
 				res, err := eventRepo.QueryEvents(ctx, eventstore.Query{})
+				Expect(err).ShouldNot(HaveOccurred())
 				defer res.Close() // nolint
 
 				i, ok, err := res.Next(ctx)
