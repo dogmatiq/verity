@@ -26,4 +26,8 @@ sqlite:
 	go test -count=1 ./persistence/provider/sql/sqlite
 
 modgraph:
-	modgraph --hide draftspecs --hide fixtures --hide cmd | dot  -Tpng -o /tmp/graph.png; open /tmp/graph.png
+	modgraph \
+		--hide-shallow . \
+		--hide draftspecs \
+		--hide fixtures \
+		--hide cmd | dot  -Tpng -o /tmp/graph.png; open /tmp/graph.png
