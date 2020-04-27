@@ -1,65 +1,58 @@
 package memorystream
 
 import (
-	"context"
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/containerx/pqueue"
 	"github.com/dogmatiq/infix/parcel"
 )
 
 // node is a member of a singly-linked list of contiguous "batches" of events.
 type node struct {
+	// the fields below are immutable and may be read at any time.
 	begin   uint64
 	end     uint64
 	parcels []*parcel.Parcel
 
-	done unsafe.Pointer // atomic (*chan struct{})
-	next *node
+	linked unsafe.Pointer // atomic (*chan struct{}), closed when next is populated
+	next   *node          // the next node in the list
 }
 
-// advance returns the next node in the list.
-// It blocks until the next node is linked or or ctx is canceled.
-func (n *node) advance(
-	ctx context.Context,
-	closed <-chan struct{},
-) (*node, error) {
-	done := atomic.LoadPointer(&n.done)
+// ready returns a channel that is closed when n.next is ready for reading.
+//
+// It returns nil if n.next is ready now. This value must be checked because a
+// read from a nil channel blocks forever.
+func (n *node) ready() <-chan struct{} {
+	ptr := atomic.LoadPointer(&n.linked)
 
-	if done == nil {
-		// There's no existing done channel, we'll try to set one.
+	if ptr == nil {
 		ch := make(chan struct{})
-		done = unsafe.Pointer(&ch)
+		ptr = unsafe.Pointer(&ch)
 
-		if !atomic.CompareAndSwapPointer(&n.done, nil, done) {
+		if !atomic.CompareAndSwapPointer(&n.linked, nil, ptr) {
 			// CODE COVERAGE: Another goroutine managed to initialize the
-			// channel since we called LoadPointer(). We have to use the their
-			// channel otherwise at least one of us will go un-notified.
-			done = atomic.LoadPointer(&n.done)
+			// channel since we called LoadPointer(), which is hard to time
+			// correctly in tests.
+			//
+			// Note, we have to use the the existing channel otherwise at least
+			// one reader will go un-notified when link() is called.
+			ptr = atomic.LoadPointer(&n.linked)
 		}
 	}
 
-	if done == closedChan {
-		return n.next, nil
+	if ptr == closedChan {
+		return nil
 	}
 
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-closed:
-		return nil, eventstream.ErrCursorClosed
-	case <-*(*chan struct{})(done):
-		return n.next, nil
-	}
+	return *(*chan struct{})(ptr)
 }
 
-// link sets n.next and wakes any blocked calls to advance().
+// link sets n.next and closes the "linked" channel.
 func (n *node) link(next *node) {
 	n.next = next
 
-	ptr := atomic.SwapPointer(&n.done, closedChan)
+	ptr := atomic.SwapPointer(&n.linked, closedChan)
 
 	if ptr != nil && ptr != closedChan {
 		ch := *(*chan struct{})(ptr)
@@ -73,8 +66,9 @@ func (n *node) Less(v pqueue.Elem) bool {
 	return n.begin < v.(*node).begin
 }
 
-// closedChan is a pointer to a "pre-closed done channel". It is used as a
-// sentinel value to avoid waiting on the channel if it's known to be closed.
+// closedChan is a pointer to a "pre-closed channel". It is used to avoid
+// creating a new channel just to close it, and as a sentinel value to avoid
+// waiting on the channel if it's known to be closed.
 var closedChan unsafe.Pointer
 
 func init() {

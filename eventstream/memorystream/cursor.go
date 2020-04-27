@@ -37,20 +37,24 @@ func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 	default:
 	}
 
+	// The offset we want is before the node we have, we must have requested an
+	// offset that has already been truncated from the buffer.
+	if c.offset < c.node.begin {
+		return nil, eventstream.ErrTruncated
+	}
+
 	for {
-		// Advance the head node until we reach the one that contains c.offset.
+		// Repeatedly advance the cursor's node until we reach the one that
+		// contains c.offset.
 		for c.offset >= c.node.end {
-			head, err := c.node.advance(ctx, c.closed)
-			if err != nil {
+			if err := c.advance(ctx); err != nil {
 				return nil, err
 			}
-
-			c.node = head
 		}
 
+		// Find the index of c.offset within c.node and start iterating from
+		// that point until we find an event that matches our filter.
 		index := int(c.offset - c.node.begin)
-
-		// Iterate the parcels in the node to find one that matches the filter.
 		for _, p := range c.node.parcels[index:] {
 			o := c.offset
 			c.offset++
@@ -78,4 +82,20 @@ func (c *cursor) Close() error {
 	})
 
 	return err
+}
+
+// advance advances c.node to the next node in the linked list.
+func (c *cursor) advance(ctx context.Context) error {
+	if ch := c.node.ready(); ch != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-c.closed:
+			return eventstream.ErrCursorClosed
+		case <-ch:
+		}
+	}
+
+	c.node = c.node.next
+	return nil
 }

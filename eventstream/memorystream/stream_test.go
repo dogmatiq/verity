@@ -189,9 +189,10 @@ func expectEventsToBeTruncated(
 ) {
 	for o := begin; o < end; o++ {
 		cur, err := s.Open(ctx, o, s.Types)
-		if cur != nil {
-			cur.Close()
-		}
+		Expect(err).ShouldNot(HaveOccurred())
+		defer cur.Close()
+
+		_, err = cur.Next(ctx)
 		Expect(err).To(
 			Equal(eventstream.ErrTruncated),
 			fmt.Sprintf("expected event at offset %d to be truncated", o),

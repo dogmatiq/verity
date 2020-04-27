@@ -27,10 +27,11 @@ const DefaultBufferSize = 100
 // The stream is "self truncating", dropping the oldest events when the size
 // exceeds some pre-defined limit.
 //
-// The stream's buffer is implemented as a singly-linked list. Each node in the
-// list contains a "batch" of events that were added by a single call to Add().
-// When used as event store cache, each batch correlates to the events produced
-// within a single transaction (which is most likely a single event).
+// The stream's buffer is implemented as an append-only singly-linked list. Each
+// node in the list contains an immutable "batch" of events that were added by a
+// single call to Add(). When used as event store cache, each batch correlates
+// to the events produced within a single transaction (which is most likely a
+// single event).
 //
 // This approach allows the oldest events to be truncated without invalidating
 // the list nodes, which in turn allows the stream's cursor to be lock-free.
@@ -102,11 +103,6 @@ func (s *Stream) Open(
 		panic("at least one event type must be specified")
 	}
 
-	if o < s.FirstOffset {
-		// Fail fast if this offset will never appear in the buffer.
-		return nil, eventstream.ErrTruncated
-	}
-
 	// Load the tail of the linked-list first to see if the requested offset is
 	// at or after the batch within. This should be the common case when used as
 	// event store cache because the memory stream is only queried when no more
@@ -124,12 +120,6 @@ func (s *Stream) Open(
 		// within or after the tail node, so have to scan the entire list
 		// starting at the head.
 		n = s.loadHead()
-
-		if o < n.begin {
-			// The requested offset is even older than the head of the list,
-			// meaning these events have already been truncated.
-			return nil, eventstream.ErrTruncated
-		}
 	}
 
 	return &cursor{
@@ -186,7 +176,7 @@ func (s *Stream) grow(n *node) {
 	s.size += len(n.parcels)
 
 	if n.begin > tail.end {
-		// These events has arrived out of order, keep the node in the reorder
+		// These events have arrived out of order, keep the node in the reorder
 		// queue until it can be linked to its preceeding node.
 		s.reorder.Push(n)
 		return
