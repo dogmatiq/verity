@@ -93,7 +93,7 @@ func (c *cursor) execQuery(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer res.Close() // nolint
+	defer res.Close()
 
 	for {
 		i, ok, err := res.Next(ctx)

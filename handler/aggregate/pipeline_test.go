@@ -195,7 +195,7 @@ var _ = Describe("type Sink", func() {
 				<-ctx.Done()   // don't unlock until the test assertions are complete
 			}
 
-			go sink.Accept(ctx, blockReq, blockRes) // nolint
+			go sink.Accept(ctx, blockReq, blockRes)
 
 			select {
 			case <-barrier:
@@ -390,7 +390,7 @@ var _ = Describe("type Sink", func() {
 
 				res, err := eventRepo.QueryEvents(ctx, eventstore.Query{})
 				Expect(err).ShouldNot(HaveOccurred())
-				defer res.Close() // nolint
+				defer res.Close()
 
 				i, ok, err := res.Next(ctx)
 				Expect(err).ShouldNot(HaveOccurred())

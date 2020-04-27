@@ -61,7 +61,7 @@ var _ = Describe("type QueueSource", func() {
 	})
 
 	JustBeforeEach(func() {
-		go source.Queue.Run(ctx) // nolint
+		go source.Queue.Run(ctx)
 	})
 
 	AfterEach(func() {
@@ -167,7 +167,7 @@ var _ = Describe("func TrackWithQueue()", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		go mqueue.Run(ctx) // nolint
+		go mqueue.Run(ctx)
 		req, err := mqueue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(req.MessageID()).To(Equal("<id>"))

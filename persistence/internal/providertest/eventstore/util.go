@@ -62,7 +62,7 @@ func queryEvents(
 ) []*eventstore.Item {
 	res, err := r.QueryEvents(ctx, q)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	defer res.Close() // nolint
+	defer res.Close()
 
 	var items []*eventstore.Item
 

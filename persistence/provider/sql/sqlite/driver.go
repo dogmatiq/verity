@@ -81,7 +81,7 @@ func (d driver) insertLock(
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
-	defer tx.Rollback() // nolint
+	defer tx.Rollback()
 
 	now := time.Now()
 	sqlx.Exec(

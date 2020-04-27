@@ -221,7 +221,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			ginkgo.It("does not return an error if events exist beyond the end offset", func() {
 				res, err := repository.QueryEvents(tc.Context, eventstore.Query{})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer res.Close() // nolint
+				defer res.Close()
 
 				saveEvents(
 					tc.Context,
@@ -243,7 +243,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				ginkgo.It("returns an error if the context is canceled", func() {
 					res, err := repository.QueryEvents(tc.Context, eventstore.Query{})
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer res.Close() // nolint
+					defer res.Close()
 
 					ctx, cancel := context.WithCancel(tc.Context)
 					cancel()

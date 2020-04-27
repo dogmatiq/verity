@@ -69,7 +69,7 @@ func (t *transaction) begin(ctx context.Context) error {
 // end rolls-back the actual transaction and marks the transaction as ended.
 func (t *transaction) end() {
 	if t.actual != nil {
-		t.actual.Rollback() // nolint:errcheck // already ended or other error occurred
+		t.actual.Rollback()
 		t.actual = nil
 	}
 

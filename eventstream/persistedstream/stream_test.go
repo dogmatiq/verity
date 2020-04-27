@@ -35,7 +35,7 @@ var _ = Describe("type Stream", func() {
 				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
 					tx, err := dataStore.Begin(ctx)
 					Expect(err).ShouldNot(HaveOccurred())
-					defer tx.Rollback() // nolint
+					defer tx.Rollback()
 
 					for _, p := range parcels {
 						_, err = tx.SaveEvent(

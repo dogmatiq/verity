@@ -31,7 +31,7 @@ var _ = Describe("type database", func() {
 
 			tx, err := ds.Begin(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			defer tx.Rollback() // nolint
+			defer tx.Rollback()
 
 			// Perform a write to cause the actual transaction to be started.
 			_, err = tx.SaveEvent(ctx, nil)

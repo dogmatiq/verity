@@ -47,7 +47,7 @@ var _ = Describe("type Stream", func() {
 				),
 			)
 
-			go server.Serve(listener) // nolint
+			go server.Serve(listener)
 
 			conn, err := grpc.Dial(
 				listener.Addr().String(),
@@ -132,7 +132,7 @@ var _ = Describe("type Stream", func() {
 			),
 		)
 
-		go server.Serve(listener) // nolint
+		go server.Serve(listener)
 
 		conn, err = grpc.Dial(
 			listener.Addr().String(),

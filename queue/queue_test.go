@@ -89,7 +89,7 @@ var _ = Describe("type Queue", func() {
 
 	When("the queue is running", func() {
 		JustBeforeEach(func() {
-			go queue.Run(ctx) // nolint
+			go queue.Run(ctx)
 		})
 
 		Describe("func Pop()", func() {

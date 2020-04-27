@@ -103,7 +103,7 @@ func (driver) InsertEventFilter(
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
-	defer tx.Rollback() // nolint
+	defer tx.Rollback()
 
 	id := sqlx.Insert(
 		ctx,
@@ -145,7 +145,7 @@ func (driver) DeleteEventFilter(
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
-	defer tx.Rollback() // nolint
+	defer tx.Rollback()
 
 	sqlx.Exec(
 		ctx,
@@ -173,7 +173,7 @@ func (driver) PurgeEventFilters(
 	ak string,
 ) (err error) {
 	tx := sqlx.Begin(ctx, db)
-	defer tx.Rollback() // nolint
+	defer tx.Rollback()
 
 	sqlx.Exec(
 		ctx,

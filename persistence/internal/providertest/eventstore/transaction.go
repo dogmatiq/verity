@@ -72,14 +72,14 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			ginkgo.It("blocks if another in-flight transaction has saved events", func() {
 				tx1, err := dataStore.Begin(tc.Context)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer tx1.Rollback() // nolint
+				defer tx1.Rollback()
 
 				_, err = tx1.SaveEvent(tc.Context, env0)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 				tx2, err := dataStore.Begin(tc.Context)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer tx2.Rollback() // nolint
+				defer tx2.Rollback()
 
 				ctx, cancel := context.WithTimeout(tc.Context, 50*time.Millisecond)
 				defer cancel()

@@ -53,7 +53,7 @@ var _ = Describe("type Request", func() {
 		var req *Request
 
 		JustBeforeEach(func() {
-			go queue.Run(ctx) // nolint
+			go queue.Run(ctx)
 
 			push(ctx, queue, parcel0)
 
