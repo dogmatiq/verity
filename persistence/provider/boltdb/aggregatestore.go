@@ -58,7 +58,7 @@ func (t *transaction) SaveAggregateMetaData(
 
 	old := loadAggregateStoreMetaData(metadata, md.InstanceID)
 
-	if uint64(md.Revision) != old.GetRevision() {
+	if md.Revision != old.GetRevision() {
 		return aggregatestore.ErrConflict
 	}
 
@@ -116,7 +116,7 @@ func (r *aggregateStoreRepository) LoadMetaData(
 // representation with an incremented revision.
 func marshalAggregateStoreMetaData(md *aggregatestore.MetaData) []byte {
 	new := &pb.AggregateStoreMetaData{
-		Revision:    uint64(md.Revision + 1),
+		Revision:    md.Revision + 1,
 		BeginOffset: md.BeginOffset,
 		EndOffset:   md.EndOffset,
 	}

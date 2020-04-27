@@ -31,7 +31,7 @@ func MarshalOffsetInto(buf []byte, o uint64) []byte {
 		return buf[:0]
 	}
 
-	binary.BigEndian.PutUint64(buf, uint64(o)-1)
+	binary.BigEndian.PutUint64(buf, o-1)
 
 	return buf[:8]
 }

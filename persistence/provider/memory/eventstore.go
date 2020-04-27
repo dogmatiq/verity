@@ -36,10 +36,10 @@ func (r *eventStoreRepository) NextEventOffset(
 		return 0, err
 	}
 
-	next := uint64(len(r.db.event.items))
+	next := len(r.db.event.items)
 	r.db.RUnlock()
 
-	return next, nil
+	return uint64(next), nil
 }
 
 // QueryEvents queries events in the repository.

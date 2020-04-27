@@ -73,7 +73,7 @@ func (t *transaction) SaveMessageToQueue(
 
 	old := loadQueueStoreItem(items, i.ID())
 
-	if uint64(i.Revision) != old.GetRevision() {
+	if i.Revision != old.GetRevision() {
 		return queuestore.ErrConflict
 	}
 
@@ -123,7 +123,7 @@ func (t *transaction) RemoveMessageFromQueue(
 
 	old := loadQueueStoreItem(items, i.ID())
 
-	if uint64(i.Revision) != old.GetRevision() {
+	if i.Revision != old.GetRevision() {
 		return queuestore.ErrConflict
 	}
 
@@ -227,7 +227,7 @@ func marshalQueueStoreItem(
 	old *pb.QueueStoreItem,
 ) (*pb.QueueStoreItem, []byte) {
 	new := &pb.QueueStoreItem{
-		Revision:      uint64(i.Revision + 1),
+		Revision:      i.Revision + 1,
 		FailureCount:  uint64(i.FailureCount),
 		NextAttemptAt: i.NextAttemptAt.Format(time.RFC3339Nano),
 		Envelope:      old.GetEnvelope(),
