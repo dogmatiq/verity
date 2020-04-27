@@ -102,9 +102,6 @@ func (q *Queue) Update(e Elem) bool {
 type item struct {
 	elem Elem
 
-	// id is the element's unique ID.
-	id int
-
 	// the index of the item within the heap.
 	index int
 }

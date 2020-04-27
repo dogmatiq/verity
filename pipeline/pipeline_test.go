@@ -26,16 +26,6 @@ func fail(context.Context, Request, *Response) error {
 	return errors.New("<failed>")
 }
 
-// fail is a Sink that always panics.
-func fatal(context.Context, Request, *Response) error {
-	panic("<fatal>")
-}
-
-// noop is a stage that forwards to the next stage without doing anything.
-func noop(ctx context.Context, req Request, res *Response, next Sink) error {
-	return next(ctx, req, res)
-}
-
 var _ = Describe("func New()", func() {
 	var (
 		now    time.Time
