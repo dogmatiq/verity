@@ -214,7 +214,7 @@ func resolveEngineOptions(options ...EngineOption) *engineOptions {
 		opts.MessageBackoff = DefaultMessageBackoff
 	}
 
-	if opts.ConcurrencyLimit <= 0 {
+	if opts.ConcurrencyLimit == 0 {
 		opts.ConcurrencyLimit = DefaultConcurrencyLimit
 	}
 
