@@ -213,7 +213,7 @@ func unmarshalQueueStoreItem(data []byte) *queuestore.Item {
 	bboltx.Must(err)
 
 	return &queuestore.Item{
-		Revision:      queuestore.Revision(i.Revision),
+		Revision:      i.Revision,
 		FailureCount:  uint(i.FailureCount),
 		NextAttemptAt: next,
 		Envelope:      i.Envelope,

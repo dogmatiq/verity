@@ -6,13 +6,9 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 )
 
-// Revision is the version of a message on the queue, used for optimistic
-// concurrency control.
-type Revision uint64
-
 // Item is a message persisted in the queue store.
 type Item struct {
-	Revision      Revision
+	Revision      uint64
 	FailureCount  uint
 	NextAttemptAt time.Time
 	Envelope      *envelopespec.Envelope

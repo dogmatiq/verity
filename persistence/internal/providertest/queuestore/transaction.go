@@ -128,7 +128,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
 								clone := *item0
-								clone.Revision = queuestore.Revision(conflictingRevision)
+								clone.Revision = uint64(conflictingRevision)
 								clone.NextAttemptAt = clone.NextAttemptAt.Add(1 * time.Hour)
 
 								err := tx.SaveMessageToQueue(tc.Context, &clone)
@@ -316,7 +316,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
 								clone := *item0
-								clone.Revision = queuestore.Revision(conflictingRevision)
+								clone.Revision = uint64(conflictingRevision)
 
 								err := tx.RemoveMessageFromQueue(tc.Context, &clone)
 								gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
@@ -344,7 +344,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
 								clone := *item0
-								clone.Revision = queuestore.Revision(conflictingRevision)
+								clone.Revision = uint64(conflictingRevision)
 
 								err := tx.RemoveMessageFromQueue(tc.Context, &clone)
 								gomega.Expect(err).To(gomega.Equal(queuestore.ErrConflict))
