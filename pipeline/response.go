@@ -56,7 +56,7 @@ func (r *Response) RecordEvent(
 	ctx context.Context,
 	tx persistence.ManagedTransaction,
 	p *parcel.Parcel,
-) (eventstore.Offset, error) {
+) (uint64, error) {
 	o, err := tx.SaveEvent(ctx, p.Envelope)
 	if err != nil {
 		return 0, err

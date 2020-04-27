@@ -178,7 +178,7 @@ type TransactionStub struct {
 	persistence.Transaction
 
 	SaveAggregateMetaDataFunc  func(context.Context, *aggregatestore.MetaData) error
-	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (eventstore.Offset, error)
+	SaveEventFunc              func(context.Context, *envelopespec.Envelope) (uint64, error)
 	SaveOffsetFunc             func(ctx context.Context, ak string, c, n uint64) error
 	SaveMessageToQueueFunc     func(context.Context, *queuestore.Item) error
 	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Item) error
@@ -201,7 +201,7 @@ func (t *TransactionStub) SaveAggregateMetaData(ctx context.Context, md *aggrega
 }
 
 // SaveEvent persists an event in the application's event store.
-func (t *TransactionStub) SaveEvent(ctx context.Context, env *envelopespec.Envelope) (eventstore.Offset, error) {
+func (t *TransactionStub) SaveEvent(ctx context.Context, env *envelopespec.Envelope) (uint64, error) {
 	if t.SaveEventFunc != nil {
 		return t.SaveEventFunc(ctx, env)
 	}

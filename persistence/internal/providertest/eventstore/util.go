@@ -14,7 +14,7 @@ func saveEvent(
 	ctx context.Context,
 	ds persistence.DataStore,
 	env *envelopespec.Envelope,
-) eventstore.Offset {
+) uint64 {
 	tx, err := ds.Begin(ctx)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer tx.Rollback()

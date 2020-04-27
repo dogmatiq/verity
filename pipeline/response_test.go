@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/jmalloc/gomegax"
@@ -104,7 +103,7 @@ var _ = Describe("type Response", func() {
 			tx.SaveEventFunc = func(
 				_ context.Context,
 				env *envelopespec.Envelope,
-			) (eventstore.Offset, error) {
+			) (uint64, error) {
 				called = true
 				Expect(env).To(EqualX(pcl.Envelope))
 				return 0, nil
@@ -119,7 +118,7 @@ var _ = Describe("type Response", func() {
 			tx.SaveEventFunc = func(
 				context.Context,
 				*envelopespec.Envelope,
-			) (eventstore.Offset, error) {
+			) (uint64, error) {
 				return 123, nil
 			}
 
@@ -132,7 +131,7 @@ var _ = Describe("type Response", func() {
 			tx.SaveEventFunc = func(
 				context.Context,
 				*envelopespec.Envelope,
-			) (eventstore.Offset, error) {
+			) (uint64, error) {
 				return 0, errors.New("<error>")
 			}
 

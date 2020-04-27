@@ -13,7 +13,6 @@ import (
 	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/pipeline"
 )
 
@@ -169,7 +168,7 @@ func (s *Sink) save(
 		return err
 	}
 
-	var offset eventstore.Offset
+	var offset uint64
 	for _, p := range sc.events {
 		offset, err = res.RecordEvent(ctx, tx, p)
 		if err != nil {

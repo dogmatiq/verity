@@ -15,5 +15,5 @@ type Transaction interface {
 	SaveEvent(
 		ctx context.Context,
 		env *envelopespec.Envelope,
-	) (Offset, error)
+	) (uint64, error)
 }

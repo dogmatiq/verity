@@ -217,7 +217,7 @@ func (s *server) query(req *messagingspec.ConsumeRequest) (eventstore.Query, err
 	}
 
 	return eventstore.Query{
-		MinOffset: eventstore.Offset(req.GetOffset()),
+		MinOffset: req.GetOffset(),
 		Filter:    eventstore.NewFilter(types...),
 	}, nil
 }

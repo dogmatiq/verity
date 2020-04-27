@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -297,8 +296,8 @@ func DeclareTransactionTests(tc *common.TestContext) {
 										HandlerKey:  hk,
 										InstanceID:  id,
 										Revision:    aggregatestore.Revision(i),
-										BeginOffset: eventstore.Offset(100 + i),
-										EndOffset:   eventstore.Offset(200 + i),
+										BeginOffset: uint64(100 + i),
+										EndOffset:   uint64(200 + i),
 									},
 								); err != nil {
 									return err

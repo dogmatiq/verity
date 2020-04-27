@@ -63,7 +63,7 @@ func (s *Stream) Open(
 	}
 
 	q := eventstore.Query{
-		MinOffset: eventstore.Offset(o),
+		MinOffset: o,
 	}
 
 	f.Range(func(mt message.Type) bool {

@@ -1,7 +1,5 @@
 package aggregatestore
 
-import "github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-
 // Revision is the version of an aggregate instance, used for optimistic
 // concurrency control.
 type Revision uint64
@@ -28,7 +26,7 @@ type MetaData struct {
 	// preventing any events that were recorded prior destruction from being
 	// "seen" by the handler in the future, without actually deleting historical
 	// events.
-	BeginOffset eventstore.Offset
+	BeginOffset uint64
 
 	// EndOffset specifies the (exclusive) upper-bound of the offset range that
 	// should be searched when reading the instance's historical events.
@@ -38,7 +36,7 @@ type MetaData struct {
 	//
 	// If non-zero, EndOffset is the offset after the last event recorded by
 	// the instance.
-	EndOffset eventstore.Offset
+	EndOffset uint64
 }
 
 // InstanceExists returns true if the instance exists.
@@ -54,6 +52,6 @@ func (md *MetaData) MarkInstanceDestroyed() {
 
 // SetLastRecordedOffset updates the meta-data to reflect that o was the offset
 // of the most-recent event recorded by the instance.
-func (md *MetaData) SetLastRecordedOffset(o eventstore.Offset) {
+func (md *MetaData) SetLastRecordedOffset(o uint64) {
 	md.EndOffset = o + 1
 }

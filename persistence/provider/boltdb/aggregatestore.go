@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
@@ -104,8 +103,8 @@ func (r *aggregateStoreRepository) LoadMetaData(
 			if exists {
 				pb := loadAggregateStoreMetaData(metadata, id)
 				md.Revision = aggregatestore.Revision(pb.GetRevision())
-				md.BeginOffset = eventstore.Offset(pb.GetBeginOffset())
-				md.EndOffset = eventstore.Offset(pb.GetEndOffset())
+				md.BeginOffset = pb.GetBeginOffset()
+				md.EndOffset = pb.GetEndOffset()
 			}
 		},
 	)

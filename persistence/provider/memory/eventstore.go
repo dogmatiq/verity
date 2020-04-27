@@ -14,7 +14,7 @@ import (
 func (t *transaction) SaveEvent(
 	ctx context.Context,
 	env *envelopespec.Envelope,
-) (eventstore.Offset, error) {
+) (uint64, error) {
 	if err := t.begin(ctx); err != nil {
 		return 0, err
 	}
@@ -31,12 +31,12 @@ type eventStoreRepository struct {
 // NextEventOffset returns the next "unused" offset within the store.
 func (r *eventStoreRepository) NextEventOffset(
 	ctx context.Context,
-) (eventstore.Offset, error) {
+) (uint64, error) {
 	if err := r.db.RLock(ctx); err != nil {
 		return 0, err
 	}
 
-	next := eventstore.Offset(len(r.db.event.items))
+	next := uint64(len(r.db.event.items))
 	r.db.RUnlock()
 
 	return next, nil
@@ -112,10 +112,10 @@ type eventStoreChangeSet struct {
 func (cs *eventStoreChangeSet) stageSave(
 	db *eventStoreDatabase,
 	env *envelopespec.Envelope,
-) eventstore.Offset {
+) uint64 {
 	// Find the offset for the new event based on what's already in the database
 	// and the new events in this change-set.
-	next := eventstore.Offset(
+	next := uint64(
 		len(db.items) + len(cs.items),
 	)
 
