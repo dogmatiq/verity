@@ -94,7 +94,7 @@ func (driver) InsertEventFilter(
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
-	defer tx.Rollback()
+	defer tx.Rollback() // nolint
 
 	id := sqlx.QueryInt64(
 		ctx,

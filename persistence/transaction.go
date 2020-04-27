@@ -51,7 +51,7 @@ func WithTransaction(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() // nolint
 
 	if err := fn(tx); err != nil {
 		return err

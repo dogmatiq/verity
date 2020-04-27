@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence"
+	"go.uber.org/multierr"
 )
 
 // Driver is an implementation of sql.Driver for PostgreSQL.
@@ -45,8 +46,11 @@ func (driver) LockApplication(
 
 	tx := sqlx.Begin(ctx, db)
 	defer func() {
-		if r == nil {
-			tx.Rollback()
+		if err != nil {
+			err = multierr.Append(
+				err,
+				tx.Rollback(),
+			)
 		}
 	}()
 

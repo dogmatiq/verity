@@ -15,17 +15,20 @@ func saveEvent(
 	ds persistence.DataStore,
 	env *envelopespec.Envelope,
 ) uint64 {
-	tx, err := ds.Begin(ctx)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	defer tx.Rollback()
+	var offset uint64
 
-	o, err := tx.SaveEvent(ctx, env)
+	err := persistence.WithTransaction(
+		ctx,
+		ds,
+		func(tx persistence.ManagedTransaction) error {
+			var err error
+			offset, err = tx.SaveEvent(ctx, env)
+			return err
+		},
+	)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	err = tx.Commit(ctx)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-	return o
+	return offset
 }
 
 // saveEvents persists the given events to the store.
@@ -59,7 +62,7 @@ func queryEvents(
 ) []*eventstore.Item {
 	res, err := r.QueryEvents(ctx, q)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	defer res.Close()
+	defer res.Close() // nolint
 
 	var items []*eventstore.Item
 

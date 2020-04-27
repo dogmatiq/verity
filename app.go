@@ -160,7 +160,9 @@ func (e *Engine) newPipeline(
 		},
 	}
 
-	cfg.AcceptRichVisitor(nil, rf)
+	if err := cfg.AcceptRichVisitor(nil, rf); err != nil {
+		panic(err)
+	}
 
 	return pipeline.New(
 		pipeline.TrackWithQueue(q),

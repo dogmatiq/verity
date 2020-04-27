@@ -158,7 +158,8 @@ var _ = Describe("type Sink", func() {
 			}
 
 			Expect(func() {
-				sink.Accept(ctx, req, res)
+				err := sink.Accept(ctx, req, res)
+				Expect(err).ShouldNot(HaveOccurred())
 			}).To(PanicWith("the '<aggregate-name>' aggregate message handler attempted to route a fixtures.MessageC command to an empty instance ID"))
 		})
 
@@ -168,7 +169,8 @@ var _ = Describe("type Sink", func() {
 			}
 
 			Expect(func() {
-				sink.Accept(ctx, req, res)
+				err := sink.Accept(ctx, req, res)
+				Expect(err).ShouldNot(HaveOccurred())
 			}).To(PanicWith("the '<aggregate-name>' aggregate message handler returned a nil root from New()"))
 		})
 
@@ -193,7 +195,7 @@ var _ = Describe("type Sink", func() {
 				<-ctx.Done()   // don't unlock until the test assertions are complete
 			}
 
-			go sink.Accept(ctx, blockReq, blockRes)
+			go sink.Accept(ctx, blockReq, blockRes) // nolint
 
 			select {
 			case <-barrier:
@@ -233,7 +235,8 @@ var _ = Describe("type Sink", func() {
 				}
 
 				Expect(func() {
-					sink.Accept(ctx, req, res)
+					err := sink.Accept(ctx, req, res)
+					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("the '<aggregate-name>' aggregate message handler created the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
 			})
 		})
@@ -357,7 +360,8 @@ var _ = Describe("type Sink", func() {
 				}
 
 				Expect(func() {
-					sink.Accept(ctx, req, res)
+					err := sink.Accept(ctx, req, res)
+					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("the '<aggregate-name>' aggregate message handler destroyed the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
 			})
 		})
@@ -385,7 +389,7 @@ var _ = Describe("type Sink", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 
 				res, err := eventRepo.QueryEvents(ctx, eventstore.Query{})
-				defer res.Close()
+				defer res.Close() // nolint
 
 				i, ok, err := res.Next(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -508,7 +512,8 @@ var _ = Describe("type Sink", func() {
 					return nil, nil
 				}
 
-				sink.Accept(ctx, req, res)
+				err := sink.Accept(ctx, req, res)
+				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})
 	})

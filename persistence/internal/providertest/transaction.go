@@ -37,7 +37,7 @@ func declareTransactionTests(
 
 		ginkgo.AfterEach(func() {
 			if transaction != nil {
-				transaction.Rollback()
+				transaction.Rollback() // nolint:errcheck
 			}
 
 			if dataStore != nil {

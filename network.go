@@ -102,7 +102,11 @@ func (e *Engine) runDiscoverer(ctx context.Context) error {
 			logger,
 			&discovery.ClientExecutor{
 				Task: func(ctx context.Context, c *discovery.Client) {
-					inspector.Run(ctx, c)
+					// TODO: add convenience methods to configkit for adding
+					// tasks to observer sets, including tasks that return
+					// errors. Perhaps a task-with-error could panic if the
+					// error is not context.Canceled.
+					inspector.Run(ctx, c) // nolint:errcheck - error is always context.Canceled
 
 					// TODO: why is this needed? it's probably a remnant from
 					// when logging was performed with a defer.
@@ -120,11 +124,11 @@ func (e *Engine) runDiscoverer(ctx context.Context) error {
 			logger,
 			&discovery.TargetExecutor{
 				Task: func(ctx context.Context, t *discovery.Target) {
-					// TODO: add convenience methods to configkit for adding tasks
-					// to observer sets, including tasks that return errors. Perhaps
-					// a task-with-error could panic if the error is not
-					// context.Canceled.
-					connector.Run(ctx, t)
+					// TODO: add convenience methods to configkit for adding
+					// tasks to observer sets, including tasks that return
+					// errors. Perhaps a task-with-error could panic if the
+					// error is not context.Canceled.
+					connector.Run(ctx, t) // nolint:errcheck - error is always context.Canceled
 				},
 			},
 		),

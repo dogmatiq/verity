@@ -50,7 +50,7 @@ var _ = Describe("type Executor", func() {
 	})
 
 	JustBeforeEach(func() {
-		go queue.Run(ctx)
+		go queue.Run(ctx) // nolint
 	})
 
 	AfterEach(func() {

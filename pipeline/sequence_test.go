@@ -47,7 +47,8 @@ var _ = Describe("type Pipeline", func() {
 			seq := NewSequence()
 
 			Expect(func() {
-				seq(context.Background(), nil, nil)
+				err := seq(context.Background(), nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
 			}).To(Panic())
 		})
 	})

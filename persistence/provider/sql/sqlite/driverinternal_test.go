@@ -36,7 +36,7 @@ var _ = Describe("type driver", func() {
 			"<app-key>",
 		)
 		Expect(err).ShouldNot(HaveOccurred())
-		defer release()
+		defer release() // nolint
 
 		sqlx.Exec(
 			ctx,

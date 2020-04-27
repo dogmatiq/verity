@@ -69,7 +69,7 @@ var _ = Describe("type server", func() {
 			),
 		)
 
-		go server.Serve(listener)
+		go server.Serve(listener) // nolint
 
 		conn, err := grpc.Dial(
 			listener.Addr().String(),

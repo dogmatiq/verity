@@ -75,7 +75,7 @@ func (t *transaction) begin(ctx context.Context) error {
 // the transaction as ended.
 func (t *transaction) end() {
 	if t.actual != nil {
-		t.actual.Rollback()
+		t.actual.Rollback() // nolint:errcheck - already ended or other error occurred
 		t.ds.db.End()
 		t.actual = nil
 	}

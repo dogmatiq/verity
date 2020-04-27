@@ -69,7 +69,8 @@ func declareDataStoreTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(tx).NotTo(gomega.BeNil())
 
-				tx.Rollback()
+				err = tx.Rollback()
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 		})
 
@@ -88,7 +89,7 @@ func declareDataStoreTests(
 
 				tx, err := dataStore.Begin(*ctx)
 				if tx != nil {
-					tx.Rollback()
+					tx.Rollback() // nolint:errcheck
 				}
 				gomega.Expect(err).To(gomega.Equal(persistence.ErrDataStoreClosed))
 			})
@@ -102,7 +103,7 @@ func declareDataStoreTests(
 					// ensure it happens before the data-store is closed.
 					tx, err := dataStore.Begin(*ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					defer tx.Rollback()
+					defer tx.Rollback() // nolint
 
 					result := make(chan error, 1)
 					go func() {

@@ -183,7 +183,10 @@ func (p *provider) open(
 	}
 	defer func() {
 		if err != nil {
-			release()
+			err = multierr.Append(
+				err,
+				release(),
+			)
 		}
 	}()
 
