@@ -3,7 +3,6 @@ package memorystream_test
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/dogmatiq/configkit"
@@ -27,19 +26,10 @@ var _ = Describe("type Stream", func() {
 				Types: in.EventTypes,
 			}
 
-			var (
-				m    sync.Mutex
-				next uint64
-			)
-
 			return streamtest.Out{
 				Stream: stream,
 				Append: func(_ context.Context, parcels ...*parcel.Parcel) {
-					m.Lock()
-					defer m.Unlock()
-
-					stream.Add(next, parcels)
-					next += uint64(len(parcels))
+					stream.Append(parcels...)
 				},
 			}
 		},

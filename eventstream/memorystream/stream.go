@@ -130,6 +130,21 @@ func (s *Stream) Open(
 	}, nil
 }
 
+// Append adds a batch of events to the stream's buffer.
+//
+// This is a convenience method useful for testing.
+func (s *Stream) Append(parcels ...*parcel.Parcel) {
+	s.m.Lock()
+	tail := s.loadTail()
+	if tail == nil {
+		s.grow(s.FirstOffset, parcels)
+	} else {
+		s.grow(tail.end, parcels)
+	}
+	s.shrink()
+	s.m.Unlock()
+}
+
 // Add adds a batch of events to the stream's buffer.
 //
 // begin is the offset of the first event in the batch.
@@ -142,14 +157,8 @@ func (s *Stream) Add(
 	begin uint64,
 	parcels []*parcel.Parcel,
 ) {
-	n := &node{
-		begin:   begin,
-		end:     begin + uint64(len(parcels)),
-		parcels: parcels,
-	}
-
 	s.m.Lock()
-	s.grow(n)
+	s.grow(begin, parcels)
 	s.shrink()
 	s.m.Unlock()
 }
@@ -157,10 +166,19 @@ func (s *Stream) Add(
 // grow adds a node to the buffer or the reordering queue, as appropriate.
 //
 // It assumes s.m is already locked.
-func (s *Stream) grow(n *node) {
+func (s *Stream) grow(
+	begin uint64,
+	parcels []*parcel.Parcel,
+) {
 	tail := s.loadTail()
 	if tail == nil {
 		tail = s.init()
+	}
+
+	n := &node{
+		begin:   begin,
+		end:     begin + uint64(len(parcels)),
+		parcels: parcels,
 	}
 
 	if n.begin < tail.end {
