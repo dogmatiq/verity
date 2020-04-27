@@ -106,7 +106,7 @@ func (c *cursor) execQuery(ctx context.Context) error {
 		}
 
 		ev := &eventstream.Event{
-			Offset: eventstream.Offset(i.Offset),
+			Offset: i.Offset,
 		}
 
 		ev.Parcel, err = parcel.FromEnvelope(c.marshaler, i.Envelope)

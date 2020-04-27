@@ -165,7 +165,7 @@ func (s *server) Consume(
 			}
 
 			res := &messagingspec.ConsumeResponse{
-				Offset:   uint64(i.Offset),
+				Offset:   i.Offset,
 				Envelope: i.Envelope,
 			}
 
@@ -217,7 +217,7 @@ func (s *server) query(req *messagingspec.ConsumeRequest) (eventstore.Query, err
 	}
 
 	return eventstore.Query{
-		MinOffset: eventstore.Offset(req.GetOffset()),
+		MinOffset: req.GetOffset(),
 		Filter:    eventstore.NewFilter(types...),
 	}, nil
 }

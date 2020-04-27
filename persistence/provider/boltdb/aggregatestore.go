@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
@@ -59,7 +58,7 @@ func (t *transaction) SaveAggregateMetaData(
 
 	old := loadAggregateStoreMetaData(metadata, md.InstanceID)
 
-	if uint64(md.Revision) != old.GetRevision() {
+	if md.Revision != old.GetRevision() {
 		return aggregatestore.ErrConflict
 	}
 
@@ -103,9 +102,9 @@ func (r *aggregateStoreRepository) LoadMetaData(
 
 			if exists {
 				pb := loadAggregateStoreMetaData(metadata, id)
-				md.Revision = aggregatestore.Revision(pb.GetRevision())
-				md.BeginOffset = eventstore.Offset(pb.GetBeginOffset())
-				md.EndOffset = eventstore.Offset(pb.GetEndOffset())
+				md.Revision = pb.GetRevision()
+				md.BeginOffset = pb.GetBeginOffset()
+				md.EndOffset = pb.GetEndOffset()
 			}
 		},
 	)
@@ -117,9 +116,9 @@ func (r *aggregateStoreRepository) LoadMetaData(
 // representation with an incremented revision.
 func marshalAggregateStoreMetaData(md *aggregatestore.MetaData) []byte {
 	new := &pb.AggregateStoreMetaData{
-		Revision:    uint64(md.Revision + 1),
-		BeginOffset: uint64(md.BeginOffset),
-		EndOffset:   uint64(md.EndOffset),
+		Revision:    md.Revision + 1,
+		BeginOffset: md.BeginOffset,
+		EndOffset:   md.EndOffset,
 	}
 
 	data, err := proto.Marshal(new)

@@ -14,7 +14,7 @@ type EventStreamStub struct {
 
 	ApplicationFunc func() configkit.Identity
 	EventTypesFunc  func(context.Context) (message.TypeCollection, error)
-	OpenFunc        func(context.Context, eventstream.Offset, message.TypeCollection) (eventstream.Cursor, error)
+	OpenFunc        func(context.Context, uint64, message.TypeCollection) (eventstream.Cursor, error)
 }
 
 // Application returns the identity of the application that owns the stream.
@@ -46,7 +46,7 @@ func (s *EventStreamStub) EventTypes(ctx context.Context) (message.TypeCollectio
 // Open returns a cursor that reads events from the stream.
 func (s *EventStreamStub) Open(
 	ctx context.Context,
-	offset eventstream.Offset,
+	offset uint64,
 	types message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	if s.OpenFunc != nil {
@@ -65,8 +65,8 @@ func (s *EventStreamStub) Open(
 type EventStreamHandlerStub struct {
 	eventstream.Handler
 
-	NextOffsetFunc  func(context.Context, configkit.Identity) (eventstream.Offset, error)
-	HandleEventFunc func(context.Context, eventstream.Offset, *eventstream.Event) error
+	NextOffsetFunc  func(context.Context, configkit.Identity) (uint64, error)
+	HandleEventFunc func(context.Context, uint64, *eventstream.Event) error
 }
 
 // NextOffset returns the offset of the next event to be consumed from a
@@ -74,7 +74,7 @@ type EventStreamHandlerStub struct {
 func (h *EventStreamHandlerStub) NextOffset(
 	ctx context.Context,
 	id configkit.Identity,
-) (eventstream.Offset, error) {
+) (uint64, error) {
 	if h.NextOffsetFunc != nil {
 		return h.NextOffsetFunc(ctx, id)
 	}
@@ -89,7 +89,7 @@ func (h *EventStreamHandlerStub) NextOffset(
 // HandleEvent handles an event obtained from the event stream.
 func (h *EventStreamHandlerStub) HandleEvent(
 	ctx context.Context,
-	o eventstream.Offset,
+	o uint64,
 	ev *eventstream.Event,
 ) error {
 	if h.HandleEventFunc != nil {

@@ -19,13 +19,13 @@ type eventStoreDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-	) (eventstore.Offset, error)
+	) (uint64, error)
 
 	// InsertEvent saves an event to the eventstore at a specific offset.
 	InsertEvent(
 		ctx context.Context,
 		tx *sql.Tx,
-		o eventstore.Offset,
+		o uint64,
 		env *envelopespec.Envelope,
 	) error
 
@@ -62,7 +62,7 @@ type eventStoreDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
-	) (eventstore.Offset, error)
+	) (uint64, error)
 
 	// SelectEvents selects events from the eventstore that match the given
 	// query.
@@ -90,7 +90,7 @@ type eventStoreDriver interface {
 func (t *transaction) SaveEvent(
 	ctx context.Context,
 	env *envelopespec.Envelope,
-) (_ eventstore.Offset, err error) {
+) (_ uint64, err error) {
 	if err := t.begin(ctx); err != nil {
 		return 0, err
 	}
@@ -125,7 +125,7 @@ type eventStoreRepository struct {
 // NextEventOffset returns the next "unused" offset within the store.
 func (r *eventStoreRepository) NextEventOffset(
 	ctx context.Context,
-) (eventstore.Offset, error) {
+) (uint64, error) {
 	return r.driver.SelectNextEventOffset(
 		ctx,
 		r.db,

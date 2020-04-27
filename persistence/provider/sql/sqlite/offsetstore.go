@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 )
 
@@ -17,7 +16,7 @@ func (driver) LoadOffset(
 	ctx context.Context,
 	db *sql.DB,
 	ak, sk string,
-) (eventstream.Offset, error) {
+) (uint64, error) {
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
@@ -29,7 +28,7 @@ func (driver) LoadOffset(
 		sk,
 	)
 
-	var o eventstream.Offset
+	var o uint64
 	err := row.Scan(&o)
 	if err == sql.ErrNoRows {
 		err = nil
@@ -46,7 +45,7 @@ func (driver) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, sk string,
-	n eventstream.Offset,
+	n uint64,
 ) (bool, error) {
 	res, err := tx.ExecContext(
 		ctx,
@@ -78,7 +77,7 @@ func (driver) UpdateOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, sk string,
-	c, n eventstream.Offset,
+	c, n uint64,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 

@@ -7,7 +7,7 @@ import (
 // Repository is an interface for reading persisted event messages.
 type Repository interface {
 	// NextEventOffset returns the next "unused" offset within the store.
-	NextEventOffset(ctx context.Context) (Offset, error)
+	NextEventOffset(ctx context.Context) (uint64, error)
 
 	// QueryEvents queries events in the repository.
 	QueryEvents(ctx context.Context, q Query) (Result, error)
@@ -45,7 +45,7 @@ func (f Filter) Remove(n string) {
 type Query struct {
 	// MinOffset specifies the (inclusive) lower-bound of the offset range to
 	// include in the results.
-	MinOffset Offset
+	MinOffset uint64
 
 	// Filter is the set of event types to include in the results, specified
 	// using the "portable type name".

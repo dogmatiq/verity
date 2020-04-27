@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -110,7 +109,7 @@ func (d errorConverter) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-) (eventstore.Offset, error) {
+) (uint64, error) {
 	o, err := d.d.UpdateNextOffset(ctx, tx, ak)
 	return o, convertContextErrors(ctx, err)
 }
@@ -118,7 +117,7 @@ func (d errorConverter) UpdateNextOffset(
 func (d errorConverter) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
-	o eventstore.Offset,
+	o uint64,
 	env *envelopespec.Envelope,
 ) error {
 	err := d.d.InsertEvent(ctx, tx, o, env)
@@ -157,7 +156,7 @@ func (d errorConverter) SelectNextEventOffset(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) (eventstore.Offset, error) {
+) (uint64, error) {
 	next, err := d.d.SelectNextEventOffset(ctx, db, ak)
 	return next, convertContextErrors(ctx, err)
 }
@@ -188,7 +187,7 @@ func (d errorConverter) LoadOffset(
 	ctx context.Context,
 	db *sql.DB,
 	ak, sk string,
-) (eventstream.Offset, error) {
+) (uint64, error) {
 	o, err := d.d.LoadOffset(ctx, db, ak, sk)
 	return o, convertContextErrors(ctx, err)
 }
@@ -197,7 +196,7 @@ func (d errorConverter) InsertOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, sk string,
-	n eventstream.Offset,
+	n uint64,
 ) (bool, error) {
 	ok, err := d.d.InsertOffset(ctx, tx, ak, sk, n)
 	return ok, convertContextErrors(ctx, err)
@@ -207,7 +206,7 @@ func (d errorConverter) UpdateOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak, sk string,
-	c, n eventstream.Offset,
+	c, n uint64,
 ) (bool, error) {
 	ok, err := d.d.UpdateOffset(ctx, tx, ak, sk, c, n)
 	return ok, convertContextErrors(ctx, err)

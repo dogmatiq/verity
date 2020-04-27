@@ -104,7 +104,7 @@ func (cs *queueStoreChangeSet) stageSave(
 
 	// Likewise, the "effective" revision is the revision as it appears
 	// including the changes in this transaction.
-	var effectiveRev queuestore.Revision
+	var effectiveRev uint64
 	if effective != nil {
 		// effective will be nil if the item is staged for removal, in which
 		// case the effective revision is 0 again.

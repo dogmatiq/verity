@@ -67,7 +67,7 @@ func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error)
 // indicated by EventTypes().
 func (s *Stream) Open(
 	ctx context.Context,
-	o eventstream.Offset,
+	o uint64,
 	f message.TypeCollection,
 ) (eventstream.Cursor, error) {
 	if f.Len() == 0 {
@@ -98,7 +98,7 @@ func (s *Stream) Open(
 
 	req := &messagingspec.ConsumeRequest{
 		ApplicationKey: s.App.Key,
-		Offset:         uint64(o),
+		Offset:         o,
 		Types:          marshalMessageTypes(s.Marshaler, f),
 	}
 

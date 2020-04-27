@@ -16,7 +16,7 @@ func (driver) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-) (_ eventstore.Offset, err error) {
+) (_ uint64, err error) {
 	defer sqlx.Recover(&err)
 
 	sqlx.Exec(
@@ -41,14 +41,14 @@ func (driver) UpdateNextOffset(
 		ak,
 	)
 
-	return eventstore.Offset(next), nil
+	return uint64(next), nil
 }
 
 // InsertEvent saves an event to the eventstore at a specific offset.
 func (driver) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
-	o eventstore.Offset,
+	o uint64,
 	env *envelopespec.Envelope,
 ) error {
 	_, err := tx.ExecContext(
@@ -203,7 +203,7 @@ func (driver) SelectNextEventOffset(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) (eventstore.Offset, error) {
+) (uint64, error) {
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
@@ -211,7 +211,7 @@ func (driver) SelectNextEventOffset(
 		FROM event_offset`,
 	)
 
-	var next eventstore.Offset
+	var next uint64
 
 	err := row.Scan(&next)
 	if err == sql.ErrNoRows {

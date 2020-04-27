@@ -94,7 +94,7 @@ func (c *cursor) recv() error {
 	}
 
 	ev := &eventstream.Event{
-		Offset: eventstream.Offset(res.Offset),
+		Offset: res.Offset,
 	}
 
 	ev.Parcel, err = parcel.FromEnvelope(c.marshaler, res.GetEnvelope())

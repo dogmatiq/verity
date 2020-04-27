@@ -169,7 +169,7 @@ var _ = Describe("type Sink", func() {
 			tx.SaveEventFunc = func(
 				context.Context,
 				*envelopespec.Envelope,
-			) (eventstore.Offset, error) {
+			) (uint64, error) {
 				return 0, errors.New("<error>")
 			}
 

@@ -36,7 +36,7 @@ var (
 func (t *transaction) SaveEvent(
 	ctx context.Context,
 	env *envelopespec.Envelope,
-) (_ eventstore.Offset, err error) {
+) (_ uint64, err error) {
 	defer bboltx.Recover(&err)
 
 	if err := t.begin(ctx); err != nil {
@@ -54,7 +54,7 @@ func (t *transaction) SaveEvent(
 		eventStoreItemsBucketKey,
 	)
 
-	o := unmarshalEventStoreOffset(
+	o := unmarshalUint64(
 		store.Get(eventStoreNextOffsetKey),
 	)
 
@@ -63,7 +63,7 @@ func (t *transaction) SaveEvent(
 	bboltx.Put(
 		store,
 		eventStoreNextOffsetKey,
-		marshalEventStoreOffset(o+1),
+		marshalUint64(o+1),
 	)
 
 	return o, nil
@@ -79,7 +79,7 @@ type eventStoreRepository struct {
 // NextEventOffset returns the next "unused" offset within the store.
 func (r *eventStoreRepository) NextEventOffset(
 	ctx context.Context,
-) (next eventstore.Offset, err error) {
+) (next uint64, err error) {
 	defer bboltx.Recover(&err)
 
 	r.db.View(
@@ -92,7 +92,7 @@ func (r *eventStoreRepository) NextEventOffset(
 			)
 
 			if exists {
-				next = unmarshalEventStoreOffset(
+				next = unmarshalUint64(
 					store.Get(eventStoreNextOffsetKey),
 				)
 			}
@@ -160,22 +160,12 @@ func (r *eventStoreResult) Close() error {
 	return nil
 }
 
-// marshalEventStoreOffset marshals a stream offset to its binary representation.
-func marshalEventStoreOffset(offset eventstore.Offset) []byte {
-	return marshalUint64(uint64(offset))
-}
-
-// unmarshalEventStoreOffset unmarshals a stream offset from its binary representation.
-func unmarshalEventStoreOffset(data []byte) eventstore.Offset {
-	return eventstore.Offset(unmarshalUint64(data))
-}
-
 // loadEventStoreItem loads the item at a specific offset.
 func loadEventStoreItem(
 	events *bbolt.Bucket,
-	o eventstore.Offset,
+	o uint64,
 ) (*eventstore.Item, bool) {
-	k := marshalEventStoreOffset(o)
+	k := marshalUint64(o)
 	v := events.Get(k)
 
 	if v == nil {
@@ -194,10 +184,10 @@ func loadEventStoreItem(
 // saveEventStoreItem writes an event to the store at a specific offset.
 func saveEventStoreItem(
 	events *bbolt.Bucket,
-	o eventstore.Offset,
+	o uint64,
 	env *envelopespec.Envelope,
 ) {
-	k := marshalEventStoreOffset(o)
+	k := marshalUint64(o)
 	v, err := proto.Marshal(env)
 	bboltx.Must(err)
 	bboltx.Put(events, k, v)

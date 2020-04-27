@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -185,7 +184,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 									&aggregatestore.MetaData{
 										HandlerKey: "<handler-key>",
 										InstanceID: "<instance>",
-										Revision:   aggregatestore.Revision(conflictingRevision),
+										Revision:   uint64(conflictingRevision),
 									},
 								)
 								gomega.Expect(err).To(gomega.Equal(aggregatestore.ErrConflict))
@@ -296,9 +295,9 @@ func DeclareTransactionTests(tc *common.TestContext) {
 									&aggregatestore.MetaData{
 										HandlerKey:  hk,
 										InstanceID:  id,
-										Revision:    aggregatestore.Revision(i),
-										BeginOffset: eventstore.Offset(100 + i),
-										EndOffset:   eventstore.Offset(200 + i),
+										Revision:    uint64(i),
+										BeginOffset: uint64(100 + i),
+										EndOffset:   uint64(200 + i),
 									},
 								); err != nil {
 									return err

@@ -43,7 +43,7 @@ type StreamAdaptor struct {
 func (a *StreamAdaptor) NextOffset(
 	ctx context.Context,
 	id configkit.Identity,
-) (eventstream.Offset, error) {
+) (uint64, error) {
 	res := resource.FromApplicationKey(id.Key)
 
 	buf, err := a.Handler.ResourceVersion(ctx, res)
@@ -60,7 +60,7 @@ func (a *StreamAdaptor) NextOffset(
 // the next call to NextOffset() will return ev.Offset + 1.
 func (a *StreamAdaptor) HandleEvent(
 	ctx context.Context,
-	o eventstream.Offset,
+	o uint64,
 	ev *eventstream.Event,
 ) (err error) {
 	source := ev.Parcel.Envelope.MetaData.Source.Application

@@ -17,13 +17,13 @@ type Handler interface {
 	// specific application's event stream.
 	//
 	// id is the identity of the source application.
-	NextOffset(ctx context.Context, id configkit.Identity) (Offset, error)
+	NextOffset(ctx context.Context, id configkit.Identity) (uint64, error)
 
 	// HandleEvent handles an event obtained from the event stream.
 	//
 	// o must be the offset that would be returned by NextOffset(). On success,
 	// the next call to NextOffset() will return ev.Offset + 1.
-	HandleEvent(ctx context.Context, o Offset, ev *Event) error
+	HandleEvent(ctx context.Context, o uint64, ev *Event) error
 }
 
 // Consumer reads events from a stream in order to handle them.
@@ -49,7 +49,7 @@ type Consumer struct {
 	// If it is nil, logging.DefaultLogger is used.
 	Logger logging.Logger
 
-	offset        Offset
+	offset        uint64
 	backoff       backoff.Counter
 	handlerFailed bool
 }
