@@ -184,7 +184,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 									&aggregatestore.MetaData{
 										HandlerKey: "<handler-key>",
 										InstanceID: "<instance>",
-										Revision:   aggregatestore.Revision(conflictingRevision),
+										Revision:   uint64(conflictingRevision),
 									},
 								)
 								gomega.Expect(err).To(gomega.Equal(aggregatestore.ErrConflict))
@@ -295,7 +295,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 									&aggregatestore.MetaData{
 										HandlerKey:  hk,
 										InstanceID:  id,
-										Revision:    aggregatestore.Revision(i),
+										Revision:    uint64(i),
 										BeginOffset: uint64(100 + i),
 										EndOffset:   uint64(200 + i),
 									},

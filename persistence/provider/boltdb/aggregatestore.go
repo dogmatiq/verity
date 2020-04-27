@@ -102,7 +102,7 @@ func (r *aggregateStoreRepository) LoadMetaData(
 
 			if exists {
 				pb := loadAggregateStoreMetaData(metadata, id)
-				md.Revision = aggregatestore.Revision(pb.GetRevision())
+				md.Revision = pb.GetRevision()
 				md.BeginOffset = pb.GetBeginOffset()
 				md.EndOffset = pb.GetEndOffset()
 			}

@@ -1,9 +1,5 @@
 package aggregatestore
 
-// Revision is the version of an aggregate instance, used for optimistic
-// concurrency control.
-type Revision uint64
-
 // MetaData contains meta-data about an aggregate instance.
 type MetaData struct {
 	// HandlerKey is the identity key of the aggregate message handler.
@@ -14,7 +10,7 @@ type MetaData struct {
 
 	// Revision is the instance's version, used to enforce optimistic
 	// concurrency control.
-	Revision Revision
+	Revision uint64
 
 	// BeginOffset specifies the (inclusive) lower-bound of the event offsets
 	// that should be considered when loading the instance's historical events.

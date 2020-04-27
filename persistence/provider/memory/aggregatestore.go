@@ -85,7 +85,7 @@ func (cs *aggregateStoreChangeSet) stageSave(
 
 	// Likewise, the "effective" revision is the revision as it appears
 	// including the changes in this transaction.
-	var effectiveRev aggregatestore.Revision
+	var effectiveRev uint64
 	if effective != nil {
 		effectiveRev = effective.Revision
 	}
