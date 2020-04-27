@@ -160,7 +160,7 @@ func (e *Engine) newPipeline(
 		},
 	}
 
-	if err := cfg.AcceptRichVisitor(nil, rf); err != nil {
+	if err := cfg.AcceptRichVisitor(context.Background(), rf); err != nil {
 		panic(err)
 	}
 
