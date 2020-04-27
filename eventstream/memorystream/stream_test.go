@@ -93,13 +93,21 @@ var _ = Describe("type Stream", func() {
 			})
 		})
 
-		When("the events are older than the oldest events already in the stream", func() {
+		When("all of the events are older than the oldest events already in the stream", func() {
 			It("discards the events", func() {
 				addEvents(stream, 100, 101)
 				addEvents(stream, 98, 99)
 
 				expectEventsToBeTruncated(ctx, stream, 98, 99)
 				expectEventsToBeAvailable(ctx, stream, 100, 101)
+			})
+		})
+
+		When("some of the events are older than the oldest events already in the stream", func() {
+			It("does not discard the events", func() {
+				addEvents(stream, 99, 100)
+
+				expectEventsToBeAvailable(ctx, stream, 99, 100)
 			})
 		})
 

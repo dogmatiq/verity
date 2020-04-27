@@ -181,7 +181,7 @@ func (s *Stream) grow(
 		parcels: parcels,
 	}
 
-	if n.begin < tail.end {
+	if n.end <= tail.begin {
 		// These events are earlier than what we're expecting next so we just
 		// discard them. This "should never happen" provided that s.FirstOffset
 		// is populated before new events are allowed to be produced when the
