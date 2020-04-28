@@ -119,7 +119,7 @@ var _ = Describe("type Stream", func() {
 				addEvents(stream, 102, 103)
 
 				expectEventsToBeTruncated(ctx, stream, 100, 100)
-				expectEventsToBeAvailable(ctx, stream, 102, 103)
+				expectEventsToBeAvailable(ctx, stream, 101, 103)
 			})
 
 			It("drops the oldest events if a single call exceeds the buffer size", func() {
@@ -127,7 +127,7 @@ var _ = Describe("type Stream", func() {
 
 				addEvents(stream, 100, 103)
 				expectEventsToBeTruncated(ctx, stream, 100, 100)
-				expectEventsToBeAvailable(ctx, stream, 102, 103)
+				expectEventsToBeAvailable(ctx, stream, 101, 103)
 			})
 		})
 	})
