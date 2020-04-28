@@ -30,6 +30,9 @@ type cursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
+//
+// It returns ErrTruncated if the next event can not be obtained because it
+// occupies a portion of the stream that has been truncated.
 func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 	select {
 	case <-ctx.Done():

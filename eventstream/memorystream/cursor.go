@@ -10,9 +10,9 @@ import (
 
 // cursor is a Cursor that reads events from an in-memory stream.
 type cursor struct {
-	stream *Stream
 	offset uint64
 	filter message.TypeCollection
+	node   *node
 
 	once   sync.Once
 	closed chan struct{}
@@ -25,29 +25,36 @@ type cursor struct {
 //
 // If the stream is closed before or during a call to Next(), it returns
 // ErrCursorClosed.
+//
+// It returns ErrTruncated if the next event can not be obtained because it
+// occupies a portion of the stream that has been truncated.
 func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-c.closed:
+		return nil, eventstream.ErrCursorClosed
+	default:
+	}
+
+	// The offset we want is before the node we have, we must have requested an
+	// offset that has already been truncated from the buffer.
+	if c.offset < c.node.offset {
+		return nil, eventstream.ErrTruncated
+	}
+
 	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-c.closed:
-			return nil, eventstream.ErrCursorClosed
-		default:
+		ev, err := c.wait(ctx)
+		if err != nil {
+			return nil, err
 		}
 
-		env, ready := c.get()
+		if ev.Offset == c.offset {
+			c.offset++
 
-		if ready == nil {
-			return env, nil
-		}
-
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-c.closed:
-			return nil, eventstream.ErrCursorClosed
-		case <-ready:
-			continue // keep to see coverage
+			if c.filter.HasM(ev.Parcel.Message) {
+				return ev, nil
+			}
 		}
 	}
 }
@@ -67,26 +74,22 @@ func (c *cursor) Close() error {
 	return err
 }
 
-// get returns the next relevant event, or if the end of the stream is reached,
-// it returns a "ready" channel that is closed when an event is appended.
-func (c *cursor) get() (*eventstream.Event, <-chan struct{}) {
-	c.stream.m.Lock()
-	defer c.stream.m.Unlock()
-
-	for uint64(len(c.stream.events)) > c.offset {
-		offset := c.offset
-		c.offset++
-
-		ev := c.stream.events[offset]
-
-		if c.filter.HasM(ev.Parcel.Message) {
-			return ev, nil
+// wait blocks until the event in c.node is available, then returns it.
+// c.node advances to the next node on success.
+func (c *cursor) wait(ctx context.Context) (*eventstream.Event, error) {
+	if ch := c.node.ready(); ch != nil {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-c.closed:
+			return nil, eventstream.ErrCursorClosed
+		case <-ch:
+			break // keep to see coverage
 		}
 	}
 
-	if c.stream.ready == nil {
-		c.stream.ready = make(chan struct{})
-	}
+	ev := c.node.event
+	c.node = c.node.next
 
-	return nil, c.stream.ready
+	return ev, nil
 }
