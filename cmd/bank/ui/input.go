@@ -90,27 +90,40 @@ type item struct {
 	next state
 }
 
-func (ui *UI) askMenu(items ...item) (state, error) {
-	states := map[string]state{}
-
+func (ui *UI) askMenu(
+	fn func() ([]item, error),
+) (state, error) {
+	showOptions := true
 	var options string
 
-	for _, it := range items {
-		k := fmt.Sprintf("%s", it.key)
-		states[k] = it.next
-		options += fmt.Sprintf("   %s) %s\n", k, it.desc)
-	}
-
 	for {
-		ui.println(" Select an option …")
-		ui.println("")
-		ui.println(options)
+		items, err := fn()
+		if err != nil {
+			return nil, err
+		}
+
+		prev := options
+		options = ""
+
+		states := map[string]state{}
+		for _, it := range items {
+			k := fmt.Sprintf("%s", it.key)
+			states[k] = it.next
+			options += fmt.Sprintf("   %s) %s\n", k, it.desc)
+		}
+
+		if showOptions || prev != options {
+			ui.println(" Select an option …")
+			ui.println("")
+			ui.println(options)
+		}
 
 		for {
 			v := ui.askTextRaw()
 
 			if v == "" {
 				if ui.flushLog() {
+					showOptions = true
 					break
 				}
 

@@ -68,42 +68,46 @@ func (ui *UI) execute(m dogma.Message) {
 func (ui *UI) main() (state, error) {
 	ui.banner("MAIN MENU")
 
-	rows, err := ui.DB.QueryContext(
-		ui.ctx,
-		`SELECT
-			id,
-			name
-		FROM customer
-		ORDER BY name`,
+	return ui.askMenu(
+		func() ([]item, error) {
+			rows, err := ui.DB.QueryContext(
+				ui.ctx,
+				`SELECT
+				id,
+				name
+			FROM customer
+			ORDER BY name`,
+			)
+			if err != nil {
+				return nil, err
+			}
+			defer rows.Close()
+
+			var items []item
+
+			for rows.Next() {
+				var id, name string
+				if err := rows.Scan(&id, &name); err != nil {
+					return nil, err
+				}
+
+				k := fmt.Sprintf("%d", len(items)+1)
+				v := fmt.Sprintf("sign in as '%s'", name)
+
+				items = append(
+					items,
+					item{k, v, ui.loginAs(id, name)},
+				)
+			}
+
+			rows.Close()
+
+			items = append(items, item{"n", "open an account for a new customer", ui.openAccountForNewCustomer})
+			items = append(items, item{"q", "quit", nil})
+
+			return items, nil
+		},
 	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var items []item
-
-	for rows.Next() {
-		var id, name string
-		if err := rows.Scan(&id, &name); err != nil {
-			return nil, err
-		}
-
-		k := fmt.Sprintf("%d", len(items)+1)
-		v := fmt.Sprintf("sign in as '%s'", name)
-
-		items = append(
-			items,
-			item{k, v, ui.loginAs(id, name)},
-		)
-	}
-
-	rows.Close()
-
-	items = append(items, item{"n", "open an account for a new customer", ui.openAccountForNewCustomer})
-	items = append(items, item{"q", "quit", nil})
-
-	return ui.askMenu(items...)
 }
 
 func (ui *UI) loginAs(id, name string) state {
@@ -118,7 +122,11 @@ func (ui *UI) customerMain() (state, error) {
 	ui.banner("OVERVIEW (%s)", ui.customerName)
 
 	return ui.askMenu(
-		item{"q", "sign out", ui.main},
+		func() ([]item, error) {
+			return []item{
+				{"q", "sign out", ui.main},
+			}, nil
+		},
 	)
 }
 
