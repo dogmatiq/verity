@@ -125,7 +125,7 @@ func (s *Stream) Open(
 	}, nil
 }
 
-// Append adds events to the the tail of the stream.
+// Append adds events to the tail of the stream.
 func (s *Stream) Append(parcels ...*parcel.Parcel) {
 	s.m.Lock()
 
@@ -181,7 +181,7 @@ func (s *Stream) grow(ev *eventstream.Event) {
 		return
 	}
 
-	// Regardless of whether this event need to be reordered or not we include
+	// Regardless of whether this event needs to be reordered or not we include
 	// it in the size for the purpose of enforcing the size limit.
 	s.size++
 
