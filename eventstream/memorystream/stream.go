@@ -20,21 +20,19 @@ const DefaultBufferSize = 100
 // an in-memory buffer.
 //
 // It is primarily intended as a cache of the most recent events from an
-// application's event store. The implementation details reflect and favor that
-// use case, though it is a well-behaved stream implementation that can also be
+// application's event store. While implementation details reflect and favor
+// that use case, it is a well-behaved stream implementation that can also be
 // used for testing and prototyping.
 //
 // The stream is "self truncating", dropping the oldest events when the size
-// exceeds some pre-defined limit.
+// exceeds a pre-defined limit.
 //
 // The stream's buffer is implemented as an append-only singly-linked list. Each
-// node in the list contains an immutable "batch" of events that were added by a
-// single call to Add(). When used as event store cache, each batch correlates
-// to the events produced within a single transaction (which is most likely a
-// single event).
-//
-// This approach allows the oldest events to be truncated without invalidating
-// the list nodes, which in turn allows the stream's cursor to be lock-free.
+// node in the list contains a single event. A linked list is used to allow the
+// oldest events to be truncated from the buffer without invalidating cursors
+// that may still be iterating through those events. Coupled with the use of
+// atomic operations for reading the head and tail of the linked list, the
+// stream's cursor implementation is lock-free.
 type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity
@@ -46,10 +44,11 @@ type Stream struct {
 	//
 	// This value is used to quickly reject Open() calls that ask for events
 	// that will never be buffered, rather than waiting until they timeout, or
-	// worse yet block forever if their context has no deadline.
+	// worse yet blocking forever if their context has no deadline.
 	//
-	// When used an event store cache this should be set to the next unused
-	// offset in the event store before new events are allowed to be produced.
+	// When the stream is used as an event store cache, this should be set to
+	// the next unused offset in the event store before new events are allowed
+	// to be produced.
 	FirstOffset uint64
 
 	// BufferSize is the maximum number of messages to buffer in memory. If it
@@ -57,16 +56,11 @@ type Stream struct {
 	//
 	// When the number of buffered events exceeds this limit, the oldest nodes
 	// in the buffer are truncated until the size falls below the limit again.
-	//
-	// The number of events in memory will not necessarily be maintained at or
-	// near this limit. Old events are truncated in batches, which could
-	// theoretically contain a large proportion of the buffered events.
-	// Additionaly, the tail node is never truncated.
 	BufferSize int
 
 	m          sync.Mutex
 	head, tail unsafe.Pointer // atomic (*node), guarded by m for writes only in order to keep 'size' accurate
-	reorder    pqueue.Queue   // priority queue of batches that arrive out of order
+	reorder    pqueue.Queue   // priority queue of events that arrive out of order
 	size       int            // total number of buffered events, including those in the reorder queue
 }
 
@@ -104,21 +98,22 @@ func (s *Stream) Open(
 	}
 
 	// Load the tail of the linked-list first to see if the requested offset is
-	// at or after the batch within. This should be the common case when used as
+	// the next expected offset. This should be the common case when used as
 	// event store cache because the memory stream is only queried when no more
 	// events can be loaded from the persistence store.
 	n := s.loadTail()
 
 	if n == nil {
 		// If the tail is nil then the list is uninitialized. We initialize it
-		// to a single node containing an empty batch of events.
+		// with a node that will contain the as-yet-unknown event at
+		// c.FirstOffset.
 		s.m.Lock()
 		n = s.init()
 		s.m.Unlock()
-	} else if o < n.begin {
-		// We already have an initialized list, and the requested offset is not
-		// within or after the tail node, so have to scan the entire list
-		// starting at the head.
+	} else if o < n.offset {
+		// We already have an initialized list, and the requested offset is for
+		// an historical event. Starting at the head, the cursor will scan
+		// through the list nodes until it finds the desired offset.
 		n = s.loadHead()
 	}
 
@@ -130,101 +125,93 @@ func (s *Stream) Open(
 	}, nil
 }
 
-// Append adds a batch of events to the stream's buffer.
-//
-// This is a convenience method useful for testing.
+// Append adds events to the the tail of the stream.
 func (s *Stream) Append(parcels ...*parcel.Parcel) {
 	s.m.Lock()
+
 	tail := s.loadTail()
-	if tail == nil {
-		s.grow(s.FirstOffset, parcels)
-	} else {
-		s.grow(tail.end, parcels)
+	offset := s.FirstOffset
+	if tail != nil {
+		offset = tail.offset
 	}
+
+	for _, p := range parcels {
+		s.grow(&eventstream.Event{
+			Offset: offset,
+			Parcel: p,
+		})
+		offset++
+	}
+
 	s.shrink()
+
 	s.m.Unlock()
 }
 
-// Add adds a batch of events to the stream's buffer.
+// Add events to the stream's buffer.
 //
-// begin is the offset of the first event in the batch.
-//
-// Batches do not need to be added in order. If begin does not follow directly
-// from the most recent event already in the buffer the batch is added to a
-// "reordering" queue and only made available to cursors when the "gap" has been
-// closed.
-func (s *Stream) Add(
-	begin uint64,
-	parcels []*parcel.Parcel,
-) {
+// The events do not necessarily have to be in order. Any out of order events
+// are added to the "reordering" queue until sufficient events have been added
+// to close the "gap", at which point they are made visible to open cursors.
+func (s *Stream) Add(events []*eventstream.Event) {
 	s.m.Lock()
-	s.grow(begin, parcels)
+
+	for _, ev := range events {
+		s.grow(ev)
+	}
+
 	s.shrink()
+
 	s.m.Unlock()
 }
 
-// grow adds a node to the buffer or the reordering queue, as appropriate.
-//
+// grow adds an event to the buffer or the reordering queue, as appropriate.
 // It assumes s.m is already locked.
-func (s *Stream) grow(
-	begin uint64,
-	parcels []*parcel.Parcel,
-) {
+func (s *Stream) grow(ev *eventstream.Event) {
 	tail := s.loadTail()
 	if tail == nil {
 		tail = s.init()
 	}
 
-	n := &node{
-		begin:   begin,
-		end:     begin + uint64(len(parcels)),
-		parcels: parcels,
-	}
-
-	if n.end <= tail.begin {
-		// These events are earlier than what we're expecting next so we just
-		// discard them. This "should never happen" provided that s.FirstOffset
-		// is populated before new events are allowed to be produced when the
+	if ev.Offset < tail.offset {
+		// This event is earlier than what we're expecting next so we just
+		// discard it. This "should never happen" provided that s.FirstOffset is
+		// populated before new events are allowed to be produced when the
 		// engine first starts.
 		return
 	}
 
-	// Regardless of whether these events need to be reordered we include them
-	// in the size for the purpose of enforcing the size limit.
-	s.size += len(n.parcels)
+	// Regardless of whether this event need to be reordered or not we include
+	// it in the size for the purpose of enforcing the size limit.
+	s.size++
 
-	if n.begin > tail.end {
-		// These events have arrived out of order, keep the node in the reorder
-		// queue until it can be linked to its preceeding node.
-		s.reorder.Push(n)
+	if ev.Offset > tail.offset {
+		// This events has arrived out of order, we keep it in the reorder queue
+		// until we are given the event that immediately preceeds it.
+		s.reorder.Push((*elem)(ev))
 		return
 	}
 
-	// These events are the ones we were expecting next. First, we we make the
-	// longest chain possible using the nodes from the reorderer queue before
-	// linking s.tail to n. This ensures any cursor reads that pass through
-	// these nodes will always take the fast-path of node.advance(), at the cost
-	// of holding the mutex lock a little longer.
-	orig := tail
-	tail = n
+	// We were given the event we expected next. We resolve the tail node with
+	// ev, and continue to do so using events from the reordering queue so long
+	// as we have a contiguous series of offsets.
 	for {
-		if x, ok := s.reorder.Peek(); ok {
-			x := x.(*node)
-			if x.begin == tail.end {
-				s.reorder.Pop()
-				tail.link(x)
-				tail = x
-				continue
-			}
+		tail.resolve(ev)
+		tail = tail.next
+		s.storeTail(tail)
+
+		e, ok := s.reorder.Peek()
+		if !ok {
+			return
 		}
 
-		break
-	}
+		ev = (*eventstream.Event)(e.(*elem))
+		if ev.Offset != tail.offset {
+			return
+		}
 
-	// Finally, we link the chain of nodes we've just made with the original
-	// s.tail, waking any cursors that had hit the tail.
-	orig.link(n)
-	s.storeTail(tail)
+		s.reorder.Pop()
+	}
 }
 
 // shrink advances s.head until s.size is below the buffer size.
@@ -248,7 +235,7 @@ func (s *Stream) shrink() {
 	// because we still hold the lock on the mutex any node.link() calls have
 	// already been made for this call to Add().
 	for s.size > limit && head.next != nil {
-		s.size -= len(head.parcels)
+		s.size--
 		head = head.next
 	}
 
@@ -263,11 +250,7 @@ func (s *Stream) init() *node {
 	n := s.loadHead()
 
 	if n == nil {
-		n = &node{
-			begin: s.FirstOffset,
-			end:   s.FirstOffset,
-		}
-
+		n = &node{offset: s.FirstOffset}
 		s.storeHead(n)
 		s.storeTail(n)
 	}
@@ -293,4 +276,12 @@ func (s *Stream) loadTail() *node {
 // storeTail atomically updates s.tail to point to *n.
 func (s *Stream) storeTail(n *node) {
 	atomic.StorePointer(&s.tail, unsafe.Pointer(n))
+}
+
+// elem is a version of eventstream.Event that implements pqueue.Elem.
+// It allows events to be stored in the "reorder" queue.
+type elem eventstream.Event
+
+func (e *elem) Less(v pqueue.Elem) bool {
+	return e.Offset < v.(*elem).Offset
 }

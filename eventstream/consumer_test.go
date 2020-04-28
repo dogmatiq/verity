@@ -13,7 +13,6 @@ import (
 	. "github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -77,16 +76,13 @@ var _ = Describe("type Consumer", func() {
 			Stream: mstream,
 		}
 
-		mstream.Add(
-			0,
-			[]*parcel.Parcel{
-				event0.Parcel,
-				event1.Parcel,
-				event2.Parcel,
-				event3.Parcel,
-				event4.Parcel,
-				event5.Parcel,
-			},
+		mstream.Append(
+			event0.Parcel,
+			event1.Parcel,
+			event2.Parcel,
+			event3.Parcel,
+			event4.Parcel,
+			event5.Parcel,
 		)
 
 		eshandler = &EventStreamHandlerStub{}

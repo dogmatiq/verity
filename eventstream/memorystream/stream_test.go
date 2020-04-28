@@ -104,28 +104,31 @@ var _ = Describe("type Stream", func() {
 		})
 
 		When("some of the events are older than the oldest events already in the stream", func() {
-			It("does not discard the events", func() {
-				addEvents(stream, 99, 100)
+			It("discards only the older events", func() {
+				addEvents(stream, 99, 101)
 
-				expectEventsToBeAvailable(ctx, stream, 99, 100)
+				expectEventsToBeAvailable(ctx, stream, 100, 101)
 			})
 		})
 
-		It("drops the oldest batch of events when the max buffer size is reached", func() {
-			stream.BufferSize = 3
+		When("the maximum buffer size is exceeded", func() {
+			It("drops old events when the max buffer size is reached", func() {
+				stream.BufferSize = 3
 
-			addEvents(stream, 100, 101)
-			addEvents(stream, 102, 103)
+				addEvents(stream, 100, 101)
+				addEvents(stream, 102, 103)
 
-			expectEventsToBeTruncated(ctx, stream, 100, 101)
-			expectEventsToBeAvailable(ctx, stream, 102, 103)
-		})
+				expectEventsToBeTruncated(ctx, stream, 100, 100)
+				expectEventsToBeAvailable(ctx, stream, 102, 103)
+			})
 
-		It("does not drop the latest batch even if it exceeds the max buffer size", func() {
-			stream.BufferSize = 3
+			It("drops the oldest events if a single call exceeds the buffer size", func() {
+				stream.BufferSize = 3
 
-			addEvents(stream, 100, 104)
-			expectEventsToBeAvailable(ctx, stream, 100, 104)
+				addEvents(stream, 100, 103)
+				expectEventsToBeTruncated(ctx, stream, 100, 100)
+				expectEventsToBeAvailable(ctx, stream, 102, 103)
+			})
 		})
 	})
 })
@@ -135,22 +138,25 @@ func addEvents(
 	s *Stream,
 	begin, end uint64,
 ) {
-	var parcels []*parcel.Parcel
+	var events []*eventstream.Event
 
 	for o := begin; o <= end; o++ {
 		id := fmt.Sprintf("<event-%d>", o)
-		parcels = append(
-			parcels,
-			NewParcel(
-				id,
-				MessageE{
-					Value: id,
-				},
-			),
+		events = append(
+			events,
+			&eventstream.Event{
+				Offset: o,
+				Parcel: NewParcel(
+					id,
+					MessageE{
+						Value: id,
+					},
+				),
+			},
 		)
 	}
 
-	s.Add(begin, parcels)
+	s.Add(events)
 }
 
 // expectEventsToBeAvailable asserts that the events in the range [begin, end]

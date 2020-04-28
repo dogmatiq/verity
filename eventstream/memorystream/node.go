@@ -4,40 +4,38 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/dogmatiq/infix/internal/x/containerx/pqueue"
-	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/infix/eventstream"
 )
 
-// node is a member of a singly-linked list of contiguous "batches" of events.
+// node is a member of a singly-linked list used to store historical events in
+// memory.
 type node struct {
-	// the fields below are immutable and may be read at any time.
-	begin   uint64
-	end     uint64
-	parcels []*parcel.Parcel
-
-	linked unsafe.Pointer // atomic (*chan struct{}), closed when next is populated
-	next   *node          // the next node in the list
+	offset   uint64             // immutable, can be read at any time
+	resolved unsafe.Pointer     // atomic (*chan struct{}), closed when resolved
+	event    *eventstream.Event // guarded by resolved channel
+	next     *node              // guarded by resolved channel
 }
 
-// ready returns a channel that is closed when n.next is ready for reading.
+// ready returns a channel that is closed when n.event and n.next have been
+// populated.
 //
-// It returns nil if n.next is ready now. This value must be checked because a
-// read from a nil channel blocks forever.
+// It returns nil if the values are ready now. This value MUST be checked
+// because a read from a nil channel blocks forever.
 func (n *node) ready() <-chan struct{} {
-	ptr := atomic.LoadPointer(&n.linked)
+	ptr := atomic.LoadPointer(&n.resolved)
 
 	if ptr == nil {
 		ch := make(chan struct{})
 		ptr = unsafe.Pointer(&ch)
 
-		if !atomic.CompareAndSwapPointer(&n.linked, nil, ptr) {
+		if !atomic.CompareAndSwapPointer(&n.resolved, nil, ptr) {
 			// CODE COVERAGE: Another goroutine managed to initialize the
 			// channel since we called LoadPointer(), which is hard to time
 			// correctly in tests.
 			//
 			// Note, we have to use the the existing channel otherwise at least
 			// one reader will go un-notified when link() is called.
-			ptr = atomic.LoadPointer(&n.linked)
+			ptr = atomic.LoadPointer(&n.resolved)
 		}
 	}
 
@@ -48,22 +46,17 @@ func (n *node) ready() <-chan struct{} {
 	return *(*chan struct{})(ptr)
 }
 
-// link sets n.next and closes the "linked" channel.
-func (n *node) link(next *node) {
-	n.next = next
+// resolve populates n.event and n.next and closes the "resolved" channel.
+func (n *node) resolve(ev *eventstream.Event) {
+	n.event = ev
+	n.next = &node{offset: n.offset + 1}
 
-	ptr := atomic.SwapPointer(&n.linked, closedChan)
+	ptr := atomic.SwapPointer(&n.resolved, closedChan)
 
 	if ptr != nil && ptr != closedChan {
 		ch := *(*chan struct{})(ptr)
 		close(ch)
 	}
-}
-
-// Less returns true if n contains events before v. It is implemented to satisfy
-// the pqueue.Elem interface so that nodes can be used on the reorder queue.
-func (n *node) Less(v pqueue.Elem) bool {
-	return n.begin < v.(*node).begin
 }
 
 // closedChan is a pointer to a "pre-closed channel". It is used to avoid

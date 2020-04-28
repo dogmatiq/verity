@@ -39,31 +39,21 @@ func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
 
 	// The offset we want is before the node we have, we must have requested an
 	// offset that has already been truncated from the buffer.
-	if c.offset < c.node.begin {
+	if c.offset < c.node.offset {
 		return nil, eventstream.ErrTruncated
 	}
 
 	for {
-		// Repeatedly advance the cursor's node until we reach the one that
-		// contains c.offset.
-		for c.offset >= c.node.end {
-			if err := c.advance(ctx); err != nil {
-				return nil, err
-			}
+		ev, err := c.wait(ctx)
+		if err != nil {
+			return nil, err
 		}
 
-		// Find the index of c.offset within c.node and start iterating from
-		// that point until we find an event that matches our filter.
-		index := int(c.offset - c.node.begin)
-		for _, p := range c.node.parcels[index:] {
-			o := c.offset
+		if ev.Offset == c.offset {
 			c.offset++
 
-			if c.filter.HasM(p.Message) {
-				return &eventstream.Event{
-					Offset: o,
-					Parcel: p,
-				}, nil
+			if c.filter.HasM(ev.Parcel.Message) {
+				return ev, nil
 			}
 		}
 	}
@@ -84,18 +74,22 @@ func (c *cursor) Close() error {
 	return err
 }
 
-// advance advances c.node to the next node in the linked list.
-func (c *cursor) advance(ctx context.Context) error {
+// wait blocks until the event in c.node is available, then returns it.
+// c.node advances to the next node on success.
+func (c *cursor) wait(ctx context.Context) (*eventstream.Event, error) {
 	if ch := c.node.ready(); ch != nil {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		case <-c.closed:
-			return eventstream.ErrCursorClosed
+			return nil, eventstream.ErrCursorClosed
 		case <-ch:
+			break // keep to see coverage
 		}
 	}
 
+	ev := c.node.event
 	c.node = c.node.next
-	return nil
+
+	return ev, nil
 }
