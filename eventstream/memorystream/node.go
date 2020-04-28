@@ -34,7 +34,7 @@ func (n *node) ready() <-chan struct{} {
 			// correctly in tests.
 			//
 			// Note, we have to use the the existing channel otherwise at least
-			// one reader will go un-notified when link() is called.
+			// one reader will go un-notified when resolve() is called.
 			ptr = atomic.LoadPointer(&n.resolved)
 		}
 	}

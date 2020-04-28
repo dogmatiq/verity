@@ -231,9 +231,10 @@ func (s *Stream) shrink() {
 	head := s.loadHead()
 
 	// Continue to replace head with head.next until we're under the limit or we
-	// reach the tail. We can read head.next here without using node.next()
-	// because we still hold the lock on the mutex any node.link() calls have
-	// already been made for this call to Add().
+	// reach the tail.
+	//
+	// We can read head.next here without using node.ready() because s.m is
+	// still locked, and any node.resolve() calls have already been made.
 	for s.size > limit && head.next != nil {
 		s.size--
 		head = head.next
