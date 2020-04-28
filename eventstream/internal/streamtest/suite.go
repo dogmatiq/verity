@@ -210,7 +210,11 @@ func Declare(
 				ginkgo.It("panics if no event types are specified", func() {
 					gomega.Expect(func() {
 						types := message.NewTypeSet()
-						out.Stream.Open(ctx, 0, types)
+						cur, err := out.Stream.Open(ctx, 0, types)
+						if cur != nil {
+							cur.Close()
+						}
+						gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					}).To(gomega.Panic())
 				})
 
@@ -446,15 +450,16 @@ func Declare(
 
 							// start the cursors
 							for i := 0; i < cursors; i++ {
-								go func() error {
-									linger.SleepX(
+								go func() {
+									defer g.Done()
+									defer ginkgo.GinkgoRecover()
+
+									err := linger.SleepX(
 										ctx,
 										linger.FullJitter,
 										out.AssumeBlockingDuration,
 									)
-
-									defer g.Done()
-									defer ginkgo.GinkgoRecover()
+									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 									cur, err := out.Stream.Open(ctx, 4, in.EventTypes)
 									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -464,8 +469,6 @@ func Declare(
 									ev, err := cur.Next(ctx)
 									gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 									gomega.Expect(ev).To(gomegax.EqualX(event4))
-
-									return nil
 								}()
 							}
 

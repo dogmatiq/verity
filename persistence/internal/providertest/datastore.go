@@ -69,7 +69,8 @@ func declareDataStoreTests(
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(tx).NotTo(gomega.BeNil())
 
-				tx.Rollback()
+				err = tx.Rollback()
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 		})
 

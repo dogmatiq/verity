@@ -222,13 +222,14 @@ var _ = Describe("type Queue", func() {
 		Describe("func Track()", func() {
 			It("panics if the message has not been persisted", func() {
 				Expect(func() {
-					queue.Track(
+					err := queue.Track(
 						ctx,
 						parcel0,
 						&queuestore.Item{
 							Revision: 0, // 0 == not persisted
 						},
 					)
+					Expect(err).ShouldNot(HaveOccurred())
 				}).To(Panic())
 			})
 
@@ -354,7 +355,8 @@ var _ = Describe("type Queue", func() {
 			// to ensure that it will block.
 			queue.BufferSize = 1
 
-			queue.Run(ctx)
+			err := queue.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
 		})
 
 		Describe("func Track()", func() {

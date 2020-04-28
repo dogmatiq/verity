@@ -24,13 +24,6 @@ var (
 	// The keys are application-defined instance IDs. The values are
 	// pb.AggregateStoreMetaData values marshaled using protocol buffers.
 	aggregateStoreMetaDataBucketKey = []byte("metadata")
-
-	// aggregateStoreSnapshotsBucketKey is the key for a child bucket that
-	// contains snapshots of each aggregate instance.
-	//
-	// TODO: https://github.com/dogmatiq/infix/issues/142
-	// Implement aggregate snapshots.
-	aggregateStoreSnapshotsBucketKey = []byte("snapshots")
 )
 
 // SaveAggregateMetaData persists meta-data about an aggregate instance.

@@ -156,9 +156,15 @@ var _ = Describe("type Cache", func() {
 
 			barrier := make(chan struct{})
 			go func() {
+				defer GinkgoRecover()
+
 				By("running the eviction loop in the background")
+
 				barrier <- struct{}{}
-				cache.Run(runCtx)
+
+				err := cache.Run(runCtx)
+				Expect(err).To(Equal(context.Canceled))
+
 				barrier <- struct{}{}
 			}()
 

@@ -102,6 +102,10 @@ func (e *Engine) runDiscoverer(ctx context.Context) error {
 			logger,
 			&discovery.ClientExecutor{
 				Task: func(ctx context.Context, c *discovery.Client) {
+					// TODO: add convenience methods to configkit for adding
+					// tasks to observer sets, including tasks that return
+					// errors. Perhaps a task-with-error could panic if the
+					// error is not context.Canceled.
 					inspector.Run(ctx, c)
 
 					// TODO: why is this needed? it's probably a remnant from
@@ -120,10 +124,10 @@ func (e *Engine) runDiscoverer(ctx context.Context) error {
 			logger,
 			&discovery.TargetExecutor{
 				Task: func(ctx context.Context, t *discovery.Target) {
-					// TODO: add convenience methods to configkit for adding tasks
-					// to observer sets, including tasks that return errors. Perhaps
-					// a task-with-error could panic if the error is not
-					// context.Canceled.
+					// TODO: add convenience methods to configkit for adding
+					// tasks to observer sets, including tasks that return
+					// errors. Perhaps a task-with-error could panic if the
+					// error is not context.Canceled.
 					connector.Run(ctx, t)
 				},
 			},
