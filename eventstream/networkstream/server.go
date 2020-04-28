@@ -2,13 +2,11 @@ package networkstream
 
 import (
 	"context"
-	"time"
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
@@ -17,19 +15,19 @@ import (
 
 // ServerOption configures the behavior of a server.
 type ServerOption struct {
-	key   string
-	repo  eventstore.Repository
-	types message.TypeCollection
+	key    string
+	stream eventstream.Stream
+	types  message.TypeCollection
 }
 
 // WithApplication returns a server option that configures the server to server
 // events for a specific application.
 func WithApplication(
 	ak string,
-	r eventstore.Repository,
+	s eventstream.Stream,
 	types message.TypeCollection,
 ) ServerOption {
-	return ServerOption{ak, r, types}
+	return ServerOption{ak, s, types}
 }
 
 // RegisterServer registers an event stream server for the given streams.
@@ -47,9 +45,9 @@ func RegisterServer(
 
 	for _, opt := range options {
 		svr := &server{
-			repo:  opt.repo,
-			types: map[string]struct{}{},
-			resp:  &messagingspec.MessageTypesResponse{},
+			stream: opt.stream,
+			types:  map[string]message.Type{},
+			resp:   &messagingspec.MessageTypesResponse{},
 		}
 
 		d.apps[opt.key] = svr
@@ -57,7 +55,7 @@ func RegisterServer(
 		opt.types.Range(func(mt message.Type) bool {
 			n := marshalkit.MustMarshalType(m, mt.ReflectType())
 
-			svr.types[n] = struct{}{}
+			svr.types[n] = mt
 			svr.resp.MessageTypes = append(
 				svr.resp.MessageTypes,
 				&messagingspec.MessageType{
@@ -132,9 +130,9 @@ func (d *dispatcher) EventTypes(
 // server is an implementation of the dogma.messaging.v1 EventStream service for
 // a single application.
 type server struct {
-	repo  eventstore.Repository
-	types map[string]struct{}
-	resp  *messagingspec.MessageTypesResponse
+	stream eventstream.Stream
+	types  map[string]message.Type
+	resp   *messagingspec.MessageTypesResponse
 }
 
 func (s *server) Consume(
@@ -143,64 +141,54 @@ func (s *server) Consume(
 ) error {
 	ctx := consumer.Context()
 
-	q, err := s.query(req)
+	types, err := s.unmarshalTypes(req)
 	if err != nil {
 		return err
 	}
 
+	cur, err := s.stream.Open(ctx, req.GetOffset(), types)
+	if err != nil {
+		return err
+	}
+	defer cur.Close()
+
 	for {
-		qr, err := s.repo.QueryEvents(ctx, q)
+		ev, err := cur.Next(ctx)
 		if err != nil {
 			return err
 		}
-		defer qr.Close()
 
-		for {
-			i, ok, err := qr.Next(ctx)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				break
-			}
-
-			res := &messagingspec.ConsumeResponse{
-				Offset:   i.Offset,
-				Envelope: i.Envelope,
-			}
-
-			if err := consumer.Send(res); err != nil {
-				// CODE COVERAGE: It's difficult to get the server to fail to
-				// send, possibly because of the outbound network buffer, or
-				// some in-process buffering on the server side.
-				return err
-			}
-
-			q.MinOffset = i.Offset + 1
+		res := &messagingspec.ConsumeResponse{
+			Offset:   ev.Offset,
+			Envelope: ev.Parcel.Envelope,
 		}
 
-		// TODO: https://github.com/dogmatiq/infix/issues/74
-		if err := linger.Sleep(ctx, 50*time.Millisecond); err != nil {
+		if err := consumer.Send(res); err != nil {
+			// CODE COVERAGE: It's difficult to get the server to fail to
+			// send, possibly because of the outbound network buffer, or
+			// some in-process buffering on the server side.
 			return err
 		}
 	}
 }
 
-// query returns the eventstore query to use for the given consume request.
-func (s *server) query(req *messagingspec.ConsumeRequest) (eventstore.Query, error) {
-	types := req.GetTypes()
-	var failed []proto.Message
+func (s *server) EventTypes(
+	context.Context,
+	*messagingspec.MessageTypesRequest,
+) (*messagingspec.MessageTypesResponse, error) {
+	return s.resp, nil
+}
 
-	if len(types) == 0 {
-		return eventstore.Query{}, grpcx.Errorf(
-			codes.InvalidArgument,
-			nil,
-			"message types can not be empty",
-		)
-	}
+func (s *server) unmarshalTypes(req *messagingspec.ConsumeRequest) (message.TypeCollection, error) {
+	var (
+		types  = message.TypeSet{}
+		failed []proto.Message
+	)
 
-	for _, n := range types {
-		if _, ok := s.types[n]; !ok {
+	for _, n := range req.GetTypes() {
+		if mt, ok := s.types[n]; ok {
+			types.Add(mt)
+		} else {
 			failed = append(
 				failed,
 				&messagingspec.UnrecognizedMessage{Name: n},
@@ -209,22 +197,20 @@ func (s *server) query(req *messagingspec.ConsumeRequest) (eventstore.Query, err
 	}
 
 	if len(failed) > 0 {
-		return eventstore.Query{}, grpcx.Errorf(
+		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
 			failed,
 			"unrecognized message type(s)",
 		)
 	}
 
-	return eventstore.Query{
-		MinOffset: req.GetOffset(),
-		Filter:    eventstore.NewFilter(types...),
-	}, nil
-}
+	if len(types) == 0 {
+		return nil, grpcx.Errorf(
+			codes.InvalidArgument,
+			nil,
+			"message types can not be empty",
+		)
+	}
 
-func (s *server) EventTypes(
-	context.Context,
-	*messagingspec.MessageTypesRequest,
-) (*messagingspec.MessageTypesResponse, error) {
-	return s.resp, nil
+	return types, nil
 }

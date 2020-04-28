@@ -11,10 +11,10 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
+	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/eventstream/networkstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,14 +23,16 @@ import (
 
 var _ = Describe("type Stream", func() {
 	var (
-		dataStore persistence.DataStore
-		listener  net.Listener
-		server    *grpc.Server
+		stream   *memorystream.Stream
+		listener net.Listener
+		server   *grpc.Server
 	)
 
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
-			dataStore = NewDataStoreStub()
+			stream = &memorystream.Stream{
+				Types: in.EventTypes,
+			}
 
 			var err error
 			listener, err = net.Listen("tcp", ":")
@@ -42,7 +44,7 @@ var _ = Describe("type Stream", func() {
 				in.Marshaler,
 				WithApplication(
 					"<app-key>",
-					dataStore.EventStoreRepository(),
+					stream,
 					in.EventTypes,
 				),
 			)
@@ -62,23 +64,7 @@ var _ = Describe("type Stream", func() {
 					Marshaler: in.Marshaler,
 				},
 				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
-					err := persistence.WithTransaction(
-						ctx,
-						dataStore,
-						func(tx persistence.ManagedTransaction) error {
-							for _, p := range parcels {
-								if _, err := tx.SaveEvent(ctx, p.Envelope); err != nil {
-									return err
-								}
-							}
-
-							return nil
-						},
-					)
-					Expect(err).ShouldNot(HaveOccurred())
-
-					// TODO: https://github.com/dogmatiq/infix/issues/74
-					// Wake the server here.
+					stream.Append(parcels...)
 				},
 			}
 		},
@@ -90,28 +76,27 @@ var _ = Describe("type Stream", func() {
 			if server != nil {
 				server.Stop()
 			}
-
-			dataStore.Close()
 		},
 	)
 })
 
 var _ = Describe("type Stream", func() {
 	var (
-		ctx       context.Context
-		cancel    func()
-		dataStore persistence.DataStore
-		listener  net.Listener
-		server    *grpc.Server
-		conn      *grpc.ClientConn
-		stream    *Stream
-		types     message.TypeSet
-		pcl       *parcel.Parcel
+		ctx      context.Context
+		cancel   func()
+		mstream  *memorystream.Stream
+		listener net.Listener
+		server   *grpc.Server
+		conn     *grpc.ClientConn
+		stream   *Stream
+		types    message.TypeSet
+		pcl      *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-		dataStore = NewDataStoreStub()
+
+		mstream = &memorystream.Stream{}
 
 		pcl = NewParcel("<message-1>", MessageA1)
 
@@ -127,7 +112,7 @@ var _ = Describe("type Stream", func() {
 			Marshaler,
 			WithApplication(
 				"<app-key>",
-				dataStore.EventStoreRepository(),
+				mstream,
 				types,
 			),
 		)
@@ -159,8 +144,6 @@ var _ = Describe("type Stream", func() {
 		if conn != nil {
 			conn.Close()
 		}
-
-		dataStore.Close()
 
 		cancel()
 	})

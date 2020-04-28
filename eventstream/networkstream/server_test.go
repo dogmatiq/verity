@@ -2,18 +2,16 @@ package networkstream_test
 
 import (
 	"context"
-	"errors"
 	"net"
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
+	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/eventstream/networkstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -25,22 +23,18 @@ import (
 
 var _ = Describe("type server", func() {
 	var (
-		ctx        context.Context
-		cancel     func()
-		dataStore  persistence.DataStore
-		repository *EventStoreRepositoryStub
-		listener   net.Listener
-		server     *grpc.Server
-		client     messagingspec.EventStreamClient
+		ctx      context.Context
+		cancel   func()
+		stream   *memorystream.Stream
+		listener net.Listener
+		server   *grpc.Server
+		client   messagingspec.EventStreamClient
 
 		parcel0, parcel1, parcel2, parcel3 *parcel.Parcel
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-
-		dataStore = NewDataStoreStub()
-		repository = dataStore.EventStoreRepository().(*EventStoreRepositoryStub)
 
 		parcel0 = NewParcel("<message-0>", MessageA1)
 		parcel1 = NewParcel("<message-1>", MessageB1)
@@ -54,6 +48,10 @@ var _ = Describe("type server", func() {
 			parcel3.Message,
 		)
 
+		stream = &memorystream.Stream{
+			Types: types,
+		}
+
 		var err error
 		listener, err = net.Listen("tcp", ":")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -64,7 +62,7 @@ var _ = Describe("type server", func() {
 			Marshaler,
 			WithApplication(
 				"<app-key>",
-				repository,
+				stream,
 				types,
 			),
 		)
@@ -89,37 +87,17 @@ var _ = Describe("type server", func() {
 			server.Stop()
 		}
 
-		dataStore.Close()
-
 		cancel()
 	})
 
 	Describe("func Consume()", func() {
 		BeforeEach(func() {
-			parcels := []*parcel.Parcel{
+			stream.Append(
 				parcel0,
 				parcel1,
 				parcel2,
 				parcel3,
-			}
-
-			err := persistence.WithTransaction(
-				ctx,
-				dataStore,
-				func(tx persistence.ManagedTransaction) error {
-					for _, p := range parcels {
-						if _, err := tx.SaveEvent(ctx, p.Envelope); err != nil {
-							return err
-						}
-					}
-
-					return nil
-				},
 			)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			// TODO: https://github.com/dogmatiq/infix/issues/74
-			// Wake the server here.
 		})
 
 		It("exposes messages from the event store", func() {
@@ -196,58 +174,6 @@ var _ = Describe("type server", func() {
 					Envelope: parcel2.Envelope,
 				},
 			))
-		})
-
-		It("returns an error if the call to QueryEvents() fails", func() {
-			repository.QueryEventsFunc = func(
-				context.Context,
-				eventstore.Query,
-			) (eventstore.Result, error) {
-				return nil, errors.New("<error>")
-			}
-
-			req := &messagingspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
-				Offset:         4,
-				Types:          []string{"MessageA", "MessageB"},
-			}
-
-			stream, err := client.Consume(ctx, req)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			_, err = stream.Recv()
-
-			s, ok := status.FromError(err)
-			Expect(ok).To(BeTrue())
-			Expect(s.Message()).To(Equal("<error>"))
-		})
-
-		It("returns an error if the call to Next() fails", func() {
-			repository.QueryEventsFunc = func(
-				context.Context,
-				eventstore.Query,
-			) (eventstore.Result, error) {
-				return &EventStoreResultStub{
-					NextFunc: func(context.Context) (*eventstore.Item, bool, error) {
-						return nil, false, errors.New("<error>")
-					},
-				}, nil
-			}
-
-			req := &messagingspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
-				Offset:         4,
-				Types:          []string{"MessageA", "MessageB"},
-			}
-
-			stream, err := client.Consume(ctx, req)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			_, err = stream.Recv()
-
-			s, ok := status.FromError(err)
-			Expect(ok).To(BeTrue())
-			Expect(s.Message()).To(Equal("<error>"))
 		})
 
 		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
