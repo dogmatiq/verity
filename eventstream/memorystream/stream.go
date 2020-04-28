@@ -112,7 +112,7 @@ func (s *Stream) Open(
 		s.m.Unlock()
 	} else if o < n.offset {
 		// We already have an initialized list, and the requested offset is for
-		// an historical event. Starting at the head, the cursor will scan
+		// a historical event. Starting at the head, the cursor will scan
 		// through the list nodes until it finds the desired offset.
 		n = s.loadHead()
 	}

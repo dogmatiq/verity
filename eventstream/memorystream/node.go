@@ -33,7 +33,7 @@ func (n *node) ready() <-chan struct{} {
 			// channel since we called LoadPointer(), which is hard to time
 			// correctly in tests.
 			//
-			// Note, we have to use the the existing channel otherwise at least
+			// Note, we have to use the existing channel otherwise at least
 			// one reader will go un-notified when resolve() is called.
 			ptr = atomic.LoadPointer(&n.resolved)
 		}
