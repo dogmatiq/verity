@@ -12,6 +12,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream/networkstream"
+	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
 	"google.golang.org/grpc"
 )
@@ -67,7 +68,21 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 			options,
 			networkstream.WithApplication(
 				k,
-				a.EventStream,
+				&persistedstream.Stream{
+					App:        a.Config.Identity(),
+					Repository: a.DataStore.EventStoreRepository(),
+					Marshaler: networkstream.NoopUnmarshaler{
+						Marshaler: e.opts.Marshaler,
+					},
+					Cache: a.EventCache,
+					// TODO: https://github.com/dogmatiq/infix/issues/76
+					// Make pre-fetch buffer size configurable.
+					PreFetch: 10,
+					Types: a.Config.
+						MessageTypes().
+						Produced.
+						FilterByRole(message.EventRole),
+				},
 				a.Config.
 					MessageTypes().
 					Produced.
