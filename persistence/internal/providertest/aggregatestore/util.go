@@ -26,7 +26,7 @@ func saveMetaData(
 	ds persistence.DataStore,
 	md *aggregatestore.MetaData,
 ) {
-	err := persistence.WithTransaction(
+	_, err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {

@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
@@ -19,7 +20,11 @@ func (t *transaction) SaveEvent(
 		return 0, err
 	}
 
-	return t.event.stageSave(&t.ds.db.event, env), nil
+	t.result.EventItems = append(
+		t.result.EventItems,
+	)
+
+	return t.event.stageSave(&t.ds.db.event, t.result, env), nil
 }
 
 // eventStoreRepository is an implementation of eventstore.Repository that
@@ -111,6 +116,7 @@ type eventStoreChangeSet struct {
 // stageSave adds a "SaveEvent" operation to the change-set.
 func (cs *eventStoreChangeSet) stageSave(
 	db *eventStoreDatabase,
+	result *persistence.TransactionResult,
 	env *envelopespec.Envelope,
 ) uint64 {
 	// Find the offset for the new event based on what's already in the database
@@ -125,6 +131,8 @@ func (cs *eventStoreChangeSet) stageSave(
 	}
 
 	cs.items = append(cs.items, item)
+
+	result.EventItems = append(result.EventItems, item)
 
 	return next
 }

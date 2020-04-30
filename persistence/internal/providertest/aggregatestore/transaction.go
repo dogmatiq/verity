@@ -69,7 +69,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				})
 
 				ginkgo.It("does not save the message when an OCC conflict occurs", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -175,7 +175,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							},
 						)
 
-						err := persistence.WithTransaction(
+						_, err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
@@ -205,7 +205,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			ginkgo.When("an instance's meta-data is saved more than once in the same transaction", func() {
 				ginkgo.It("saves the meta-data from the most recent call", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -285,7 +285,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 					defer ginkgo.GinkgoRecover()
 					defer g.Done()
 
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {

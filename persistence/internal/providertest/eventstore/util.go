@@ -17,7 +17,7 @@ func saveEvent(
 ) uint64 {
 	var offset uint64
 
-	err := persistence.WithTransaction(
+	_, err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
@@ -37,7 +37,7 @@ func saveEvents(
 	ds persistence.DataStore,
 	envelopes ...*envelopespec.Envelope,
 ) {
-	err := persistence.WithTransaction(
+	_, err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {

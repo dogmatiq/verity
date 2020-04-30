@@ -12,25 +12,30 @@ import (
 type transaction struct {
 	ds     *dataStore
 	actual *sql.Tx
+	result *persistence.TransactionResult
 }
 
 // Commit applies the changes from the transaction.
-func (t *transaction) Commit(ctx context.Context) error {
+func (t *transaction) Commit(
+	ctx context.Context,
+) (*persistence.TransactionResult, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return nil, persistence.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return err
+		return nil, err
 	}
 
 	if t.actual != nil {
-		return t.actual.Commit()
+		if err := t.actual.Commit(); err != nil {
+			return nil, err
+		}
 	}
 
-	return nil
+	return t.result, nil
 }
 
 // Rollback aborts the transaction.
@@ -63,6 +68,8 @@ func (t *transaction) begin(ctx context.Context) error {
 		t.actual, err = t.ds.driver.Begin(ctx, t.ds.db)
 	}
 
+	t.result = &persistence.TransactionResult{}
+
 	return err
 }
 
@@ -74,4 +81,5 @@ func (t *transaction) end() {
 	}
 
 	t.ds = nil
+	t.result = nil
 }

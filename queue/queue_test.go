@@ -35,7 +35,7 @@ func push(
 		Envelope:      p.Envelope,
 	}
 
-	err := persistence.WithTransaction(
+	_, err := persistence.WithTransaction(
 		ctx,
 		q.DataStore,
 		func(tx persistence.ManagedTransaction) error {
@@ -194,7 +194,7 @@ var _ = Describe("type Queue", func() {
 						},
 					}
 
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {

@@ -15,7 +15,7 @@ func saveMessages(
 	ds persistence.DataStore,
 	items ...*queuestore.Item,
 ) {
-	err := persistence.WithTransaction(
+	_, err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
@@ -40,7 +40,7 @@ func removeMessages(
 	ds persistence.DataStore,
 	items ...*queuestore.Item,
 ) {
-	err := persistence.WithTransaction(
+	_, err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {

@@ -107,7 +107,7 @@ var _ = Describe("type Loader", func() {
 					InstanceID: "<instance>",
 				}
 
-				err := persistence.WithTransaction(
+				_, err := persistence.WithTransaction(
 					ctx,
 					dataStore,
 					func(tx persistence.ManagedTransaction) error {
@@ -184,7 +184,7 @@ var _ = Describe("type Loader", func() {
 
 			When("the instance has been destroyed", func() {
 				BeforeEach(func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -209,7 +209,7 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("only loads events that were recorded after the destruction", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {

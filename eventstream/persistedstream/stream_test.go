@@ -42,7 +42,7 @@ var _ = Describe("type Stream", func() {
 			return streamtest.Out{
 				Stream: stream,
 				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -59,7 +59,6 @@ var _ = Describe("type Stream", func() {
 									},
 								})
 							}
-
 							return nil
 						},
 					)

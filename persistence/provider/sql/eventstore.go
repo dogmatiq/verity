@@ -106,12 +106,24 @@ func (t *transaction) SaveEvent(
 
 	next--
 
-	return next, t.ds.driver.InsertEvent(
+	if err := t.ds.driver.InsertEvent(
 		ctx,
 		t.actual,
 		next,
 		env,
+	); err != nil {
+		return 0, err
+	}
+
+	t.result.EventItems = append(
+		t.result.EventItems,
+		&eventstore.Item{
+			Offset:   next,
+			Envelope: env,
+		},
 	)
+
+	return next, nil
 }
 
 // eventStoreRepository is an implementation of eventstore.Repository that

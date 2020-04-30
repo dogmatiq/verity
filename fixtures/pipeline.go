@@ -58,7 +58,8 @@ func NewPipelineRequestStub(
 			return tx, nil
 		},
 		AckFunc: func(ctx context.Context) error {
-			return tx.Commit(ctx)
+			_, err := tx.Commit(ctx)
+			return err
 		},
 		CloseFunc: func() error {
 			return tx.Rollback()

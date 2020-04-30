@@ -51,7 +51,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			})
 
 			ginkgo.It("returns the offset of the event for subsequent calls in the same transaction", func() {
-				err := persistence.WithTransaction(
+				_, err := persistence.WithTransaction(
 					tc.Context,
 					dataStore,
 					func(tx persistence.ManagedTransaction) error {
