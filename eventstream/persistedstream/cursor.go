@@ -3,12 +3,11 @@ package persistedstream
 import (
 	"context"
 	"sync"
-	"time"
 
+	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -17,6 +16,8 @@ type cursor struct {
 	repository eventstore.Repository
 	query      eventstore.Query
 	marshaler  marshalkit.ValueMarshaler
+	cache      eventstream.Stream
+	filter     message.TypeCollection
 	once       sync.Once
 	cancel     context.CancelFunc
 	events     chan *eventstream.Event
@@ -80,18 +81,57 @@ func (c *cursor) consume(ctx context.Context) {
 	defer close(c.events)
 
 	for {
-		err := c.execQuery(ctx)
+		if err := c.consumeFromStore(ctx); err != nil {
+			c.close(err)
+			return
+		}
 
-		if err != nil {
+		if err := c.consumeFromCache(ctx); err != nil {
 			c.close(err)
 			return
 		}
 	}
 }
 
-// execQuery executes a query against the event store to obtain the next batch
-// of events.
-func (c *cursor) execQuery(ctx context.Context) error {
+// consumeFromCache attempts to obtain events from the in-memory cache.
+//
+// A nil return value indicates that the cache does not have the required events
+// and that the event store should be queried instead.
+func (c *cursor) consumeFromCache(ctx context.Context) error {
+	cur, err := c.cache.Open(ctx, c.query.MinOffset, c.filter)
+	if err != nil {
+		return err
+	}
+	defer cur.Close()
+
+	for {
+		ev, err := cur.Next(ctx)
+		if err == eventstream.ErrTruncated {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		if err := c.send(ctx, ev); err != nil {
+			return err
+		}
+	}
+}
+
+// consumeFromStore attempts to obtain events from the event store.
+//
+// A nil return value indicates that the requested offset is not in the store so
+// that the cache (which blocks until new events are recorded) should be used
+// instead.
+func (c *cursor) consumeFromStore(ctx context.Context) error {
+	// Query the "next" offset before we run our event query. When we exhaust
+	// the result of QueryEvents() we know we've at least checked up to this
+	// offset, even if the event AT this offset doesn't match our filter.
+	next, err := c.repository.NextEventOffset(ctx)
+	if err != nil {
+		return err
+	}
+
 	res, err := c.repository.QueryEvents(ctx, c.query)
 	if err != nil {
 		return err
@@ -105,7 +145,16 @@ func (c *cursor) execQuery(ctx context.Context) error {
 		}
 
 		if !ok {
-			break
+			// We've run out of events from the store, so we bail to consume
+			// from the recent event cache instead.
+
+			if next > c.query.MinOffset {
+				// There were more events after the last event that matched our
+				// filter, we skip over all of them when we hit the cache.
+				c.query.MinOffset = next
+			}
+
+			return nil
 		}
 
 		ev := &eventstream.Event{
@@ -117,17 +166,19 @@ func (c *cursor) execQuery(ctx context.Context) error {
 			return err
 		}
 
-		select {
-		case c.events <- ev:
-			c.query.MinOffset = i.Offset + 1
-		case <-ctx.Done():
-			return ctx.Err()
+		if err := c.send(ctx, ev); err != nil {
+			return err
 		}
 	}
+}
 
-	// TODO: https://github.com/dogmatiq/infix/issues/74
-	//
-	// use a signaling channel to wake the consumer when an event is saved to
-	// the store.
-	return linger.Sleep(ctx, 100*time.Millisecond)
+// send writes ev to c.events.
+func (c *cursor) send(ctx context.Context, ev *eventstream.Event) error {
+	select {
+	case c.events <- ev:
+		c.query.MinOffset = ev.Offset + 1
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

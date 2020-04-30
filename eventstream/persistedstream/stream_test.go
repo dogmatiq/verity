@@ -3,7 +3,9 @@ package persistedstream_test
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
+	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
@@ -23,29 +25,44 @@ var _ = Describe("type Stream", func() {
 			dataStore, err = provider.Open(ctx, in.Application.Identity().Key)
 			Expect(err).ShouldNot(HaveOccurred())
 
+			cache := &memorystream.Stream{
+				// don't cache the first event from our tests so we force use of
+				// both the cache and the event store.
+				FirstOffset: 1,
+			}
+
 			stream := &Stream{
 				App:        in.Application.Identity(),
 				Types:      in.EventTypes,
 				Repository: dataStore.EventStoreRepository(),
 				Marshaler:  in.Marshaler,
+				Cache:      cache,
 			}
 
 			return streamtest.Out{
 				Stream: stream,
 				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
-					tx, err := dataStore.Begin(ctx)
-					Expect(err).ShouldNot(HaveOccurred())
-					defer tx.Rollback()
+					err := persistence.WithTransaction(
+						ctx,
+						dataStore,
+						func(tx persistence.ManagedTransaction) error {
+							for _, p := range parcels {
+								o, err := tx.SaveEvent(ctx, p.Envelope)
+								if err != nil {
+									return err
+								}
 
-					for _, p := range parcels {
-						_, err = tx.SaveEvent(
-							ctx,
-							p.Envelope,
-						)
-						Expect(err).ShouldNot(HaveOccurred())
-					}
+								cache.Add([]*eventstream.Event{
+									{
+										Offset: o,
+										Parcel: p,
+									},
+								})
+							}
 
-					err = tx.Commit(ctx)
+							return nil
+						},
+					)
 					Expect(err).ShouldNot(HaveOccurred())
 				},
 			}
