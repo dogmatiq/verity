@@ -81,12 +81,12 @@ func (c *cursor) consume(ctx context.Context) {
 	defer close(c.events)
 
 	for {
-		if err := c.consumeFromStore(ctx); err != nil {
+		if err := c.consumeFromCache(ctx); err != nil {
 			c.close(err)
 			return
 		}
 
-		if err := c.consumeFromCache(ctx); err != nil {
+		if err := c.consumeFromStore(ctx); err != nil {
 			c.close(err)
 			return
 		}
