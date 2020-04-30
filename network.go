@@ -67,7 +67,7 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 			options,
 			networkstream.WithApplication(
 				k,
-				a.Stream,
+				a.EventStream,
 				a.Config.
 					MessageTypes().
 					Produced.

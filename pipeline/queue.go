@@ -61,8 +61,8 @@ func (s *QueueSource) Run(ctx context.Context) error {
 	return g.Wait()
 }
 
-// TrackWithQueue returns a pipeline observer that calls q.Track() for
-// each message that is enqueued.
+// TrackWithQueue returns an observer that calls q.Track() for each message that
+// is enqueued.
 func TrackWithQueue(q *queue.Queue) QueueObserver {
 	return func(
 		ctx context.Context,

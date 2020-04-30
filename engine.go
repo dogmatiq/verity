@@ -115,7 +115,7 @@ func (e *Engine) run(ctx context.Context) error {
 		})
 
 		g.Go(func() error {
-			return e.runStreamConsumersForEachApp(ctx, a.Stream)
+			return e.runStreamConsumersForEachApp(ctx, a.EventStream)
 		})
 	}
 

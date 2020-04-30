@@ -10,6 +10,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/infix/eventstream/memorystream"
 	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/handler/cache"
@@ -22,12 +23,13 @@ import (
 )
 
 type app struct {
-	Config    configkit.RichApplication
-	DataStore persistence.DataStore
-	Stream    eventstream.Stream
-	Queue     *queue.Queue
-	Pipeline  pipeline.Pipeline
-	Logger    logging.Logger
+	Config      configkit.RichApplication
+	DataStore   persistence.DataStore
+	EventCache  *memorystream.Stream
+	EventStream *persistedstream.Stream
+	Queue       *queue.Queue
+	Pipeline    pipeline.Pipeline
+	Logger      logging.Logger
 }
 
 // initApp initializes the engine to handle the app represented by cfg.
@@ -53,23 +55,29 @@ func (e *Engine) initApp(
 		)
 	}
 
+	c, err := e.newEventCache(ctx, cfg, ds)
+	if err != nil {
+		return err
+	}
+
 	q := e.newQueue(cfg, ds)
-	s := e.newEventStream(cfg, ds)
+	s := e.newEventStream(cfg, ds, c)
 	x := e.newCommandExecutor(cfg, q)
 	l := loggingx.WithPrefix(
 		e.opts.Logger,
 		"@%s  ",
 		cfg.Identity().Name,
 	)
-	p := e.newPipeline(cfg, ds, q, l)
+	p := e.newPipeline(cfg, ds, q, c, l)
 
 	a := &app{
-		Config:    cfg,
-		DataStore: ds,
-		Stream:    s,
-		Queue:     q,
-		Pipeline:  p,
-		Logger:    l,
+		Config:      cfg,
+		DataStore:   ds,
+		EventCache:  c,
+		EventStream: s,
+		Queue:       q,
+		Pipeline:    p,
+		Logger:      l,
 	}
 
 	if e.apps == nil {
@@ -105,15 +113,43 @@ func (e *Engine) newQueue(
 	}
 }
 
+// newEventCache returns a new memory stream used as the event cache.
+func (e *Engine) newEventCache(
+	ctx context.Context,
+	cfg configkit.RichApplication,
+	ds persistence.DataStore,
+) (*memorystream.Stream, error) {
+	r := ds.EventStoreRepository()
+
+	next, err := r.NextEventOffset(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &memorystream.Stream{
+		App:         cfg.Identity(),
+		FirstOffset: next,
+		// TODO: https://github.com/dogmatiq/infix/issues/226
+		// Make buffer size configurable.
+		BufferSize: 0,
+		Types: cfg.
+			MessageTypes().
+			Produced.
+			FilterByRole(message.EventRole),
+	}, nil
+}
+
 // newEventStream returns a new event stream for a specific app.
 func (e *Engine) newEventStream(
 	cfg configkit.RichApplication,
 	ds persistence.DataStore,
-) eventstream.Stream {
+	cache eventstream.Stream,
+) *persistedstream.Stream {
 	return &persistedstream.Stream{
 		App:        cfg.Identity(),
 		Repository: ds.EventStoreRepository(),
 		Marshaler:  e.opts.Marshaler,
+		Cache:      cache,
 		// TODO: https://github.com/dogmatiq/infix/issues/76
 		// Make pre-fetch buffer size configurable.
 		PreFetch: 10,
@@ -147,6 +183,7 @@ func (e *Engine) newPipeline(
 	cfg configkit.RichApplication,
 	ds persistence.DataStore,
 	q *queue.Queue,
+	c *memorystream.Stream,
 	l logging.Logger,
 ) pipeline.Pipeline {
 	rf := &routeFactory{
@@ -166,7 +203,7 @@ func (e *Engine) newPipeline(
 
 	return pipeline.New(
 		pipeline.TrackWithQueue(q),
-		nil,
+		pipeline.AddToEventCache(c),
 		pipeline.NewSequence(
 			pipeline.Acknowledge(e.opts.MessageBackoff, l),
 			pipeline.RouteByType(rf.routes),

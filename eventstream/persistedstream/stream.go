@@ -25,6 +25,12 @@ type Stream struct {
 	// Marshaler is used to unmarshal messages.
 	Marshaler marshalkit.Marshaler
 
+	// Cache is an in-memory stream that contains recently recorded events.
+	//
+	// The cache must be provided, otherwise the stream has no way to block
+	// until a new event is recorded.
+	Cache eventstream.Stream
+
 	// PreFetch specifies how many messages to pre-load into memory.
 	PreFetch int
 }
@@ -83,6 +89,8 @@ func (s *Stream) Open(
 		repository: s.Repository,
 		query:      q,
 		marshaler:  s.Marshaler,
+		cache:      s.Cache,
+		filter:     f,
 		cancel:     cancelConsume,
 		events:     make(chan *eventstream.Event, s.PreFetch),
 	}
