@@ -33,7 +33,7 @@ func (t *transaction) Commit(
 		return &t.result, t.actual.Commit()
 	}
 
-	return t.result, nil
+	return &t.result, nil
 }
 
 // Rollback aborts the transaction.
@@ -66,8 +66,6 @@ func (t *transaction) begin(ctx context.Context) error {
 		t.actual, err = t.ds.driver.Begin(ctx, t.ds.db)
 	}
 
-	t.result = &persistence.TransactionResult{}
-
 	return err
 }
 
@@ -79,5 +77,4 @@ func (t *transaction) end() {
 	}
 
 	t.ds = nil
-	t.result = nil
 }

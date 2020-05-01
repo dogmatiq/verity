@@ -15,7 +15,6 @@ type transaction struct {
 	event     eventStoreChangeSet
 	offset    offsetStoreChangeSet
 	queue     queueStoreChangeSet
-	result    *persistence.TransactionResult
 }
 
 // Commit applies the changes from the transaction.
@@ -41,7 +40,9 @@ func (t *transaction) Commit(
 	t.ds.db.offset.apply(&t.offset)
 	t.ds.db.queue.apply(&t.queue)
 
-	return t.result, nil
+	return &persistence.TransactionResult{
+		EventItems: t.event.items,
+	}, nil
 }
 
 // Rollback aborts the transaction.
@@ -74,7 +75,6 @@ func (t *transaction) begin(ctx context.Context) error {
 	}
 
 	t.hasLock = true
-	t.result = &persistence.TransactionResult{}
 
 	return nil
 }
@@ -87,5 +87,4 @@ func (t *transaction) end() {
 	}
 
 	t.ds = nil
-	t.result = nil
 }

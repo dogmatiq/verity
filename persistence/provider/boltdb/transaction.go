@@ -34,7 +34,7 @@ func (t *transaction) Commit(
 		return &t.result, t.actual.Commit()
 	}
 
-	return t.result, nil
+	return &t.result, nil
 }
 
 // Rollback aborts the transaction.
