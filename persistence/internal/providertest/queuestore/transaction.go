@@ -123,7 +123,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						// too-low value.
 						saveMessages(tc.Context, dataStore, item0)
 
-						err := persistence.WithTransaction(
+						_, err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
@@ -192,7 +192,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				ginkgo.It("does not save the message when an OCC conflict occurs", func() {
 					item0.Revision = 123
 
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -210,7 +210,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			ginkgo.When("a message is saved more than once in the same transaction", func() {
 				ginkgo.It("saves the meta-data from the most recent call", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -251,7 +251,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 			})
 
 			ginkgo.It("does not update the revision field of the argument", func() {
-				err := persistence.WithTransaction(
+				_, err := persistence.WithTransaction(
 					tc.Context,
 					dataStore,
 					func(tx persistence.ManagedTransaction) error {
@@ -311,7 +311,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						// too-low value.
 						saveMessages(tc.Context, dataStore, item0)
 
-						err := persistence.WithTransaction(
+						_, err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
@@ -339,7 +339,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				table.DescribeTable(
 					"returns an OCC conflict error",
 					func(conflictingRevision int) {
-						err := persistence.WithTransaction(
+						_, err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
@@ -367,7 +367,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			ginkgo.When("a message is saved then deleted in the same transaction", func() {
 				ginkgo.It("does not save the new message", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -410,7 +410,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				})
 
 				ginkgo.It("saves the new message", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {

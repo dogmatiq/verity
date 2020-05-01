@@ -45,7 +45,7 @@ var _ = Describe("type QueueSource", func() {
 			Envelope:      p.Envelope,
 		}
 
-		err := persistence.WithTransaction(
+		_, err := persistence.WithTransaction(
 			ctx,
 			dataStore,
 			func(tx persistence.ManagedTransaction) error {
@@ -140,7 +140,7 @@ var _ = Describe("func TrackWithQueue()", func() {
 			Envelope:      pcl.Envelope,
 		}
 
-		err := persistence.WithTransaction(
+		_, err := persistence.WithTransaction(
 			ctx,
 			dataStore,
 			func(tx persistence.ManagedTransaction) error {

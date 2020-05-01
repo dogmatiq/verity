@@ -18,19 +18,22 @@ type transaction struct {
 }
 
 // Commit applies the changes from the transaction.
-func (t *transaction) Commit(ctx context.Context) error {
+func (t *transaction) Commit(
+	ctx context.Context,
+) (persistence.TransactionResult, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return persistence.TransactionResult{},
+			persistence.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return err
+		return persistence.TransactionResult{}, err
 	}
 
 	if !t.hasLock {
-		return nil
+		return persistence.TransactionResult{}, nil
 	}
 
 	t.ds.db.aggregate.apply(&t.aggregate)
@@ -38,7 +41,9 @@ func (t *transaction) Commit(ctx context.Context) error {
 	t.ds.db.offset.apply(&t.offset)
 	t.ds.db.queue.apply(&t.queue)
 
-	return nil
+	return persistence.TransactionResult{
+		EventStoreItems: t.event.items,
+	}, nil
 }
 
 // Rollback aborts the transaction.

@@ -51,7 +51,7 @@ func declareTransactionTests(
 
 		ginkgo.When("the transaction has been committed", func() {
 			ginkgo.BeforeEach(func() {
-				err := transaction.Commit(*ctx)
+				_, err := transaction.Commit(*ctx)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 
@@ -85,14 +85,14 @@ func declareTransactionTests(
 
 			ginkgo.Describe("func Commit()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.Commit(*ctx)
+					_, err := transaction.Commit(*ctx)
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
 
 			ginkgo.Describe("func Rollback()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.Commit(*ctx)
+					_, err := transaction.Commit(*ctx)
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
@@ -134,16 +134,24 @@ func declareTransactionTests(
 
 			ginkgo.Describe("func Commit()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.Commit(*ctx)
+					_, err := transaction.Commit(*ctx)
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
 			})
 
 			ginkgo.Describe("func Rollback()", func() {
 				ginkgo.It("returns an error", func() {
-					err := transaction.Commit(*ctx)
+					_, err := transaction.Commit(*ctx)
 					gomega.Expect(err).To(gomega.Equal(persistence.ErrTransactionClosed))
 				})
+			})
+		})
+
+		ginkgo.When("no operations occurred within the transaction", func() {
+			ginkgo.It("returns an empty transaction result", func() {
+				result, err := transaction.Commit(*ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(result).To(gomega.Equal(persistence.TransactionResult{}))
 			})
 		})
 	})

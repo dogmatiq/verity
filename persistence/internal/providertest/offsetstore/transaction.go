@@ -40,7 +40,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				})
 
 				ginkgo.It("it does not update the offset when an OCC conflict occurs", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -97,7 +97,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 				table.DescribeTable(
 					"it does not update the offset when an OCC conflict occurs",
 					func(conflictingOffset int) {
-						err := persistence.WithTransaction(
+						_, err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {
@@ -144,7 +144,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 
 			ginkgo.When("called multiple times within the same transaction", func() {
 				ginkgo.It("saves the last offset", func() {
-					err := persistence.WithTransaction(
+					_, err := persistence.WithTransaction(
 						tc.Context,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
@@ -197,7 +197,7 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						defer ginkgo.GinkgoRecover()
 						defer g.Done()
 
-						err := persistence.WithTransaction(
+						_, err := persistence.WithTransaction(
 							tc.Context,
 							dataStore,
 							func(tx persistence.ManagedTransaction) error {

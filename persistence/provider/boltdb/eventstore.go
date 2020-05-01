@@ -66,6 +66,14 @@ func (t *transaction) SaveEvent(
 		marshalUint64(o+1),
 	)
 
+	t.result.EventStoreItems = append(
+		t.result.EventStoreItems,
+		&eventstore.Item{
+			Offset:   o,
+			Envelope: env,
+		},
+	)
+
 	return o, nil
 }
 

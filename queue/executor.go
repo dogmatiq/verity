@@ -25,7 +25,7 @@ func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) e
 		Envelope:      p.Envelope,
 	}
 
-	if err := persistence.WithTransaction(
+	if _, err := persistence.WithTransaction(
 		ctx,
 		x.Queue.DataStore,
 		func(tx persistence.ManagedTransaction) error {

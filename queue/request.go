@@ -82,7 +82,7 @@ func (r *Request) Ack(ctx context.Context) error {
 		return err
 	}
 
-	if err := r.tx.Commit(ctx); err != nil {
+	if _, err := r.tx.Commit(ctx); err != nil {
 		return err
 	}
 
@@ -107,7 +107,7 @@ func (r *Request) Nack(ctx context.Context, n time.Time) error {
 	r.elem.item.FailureCount++
 	r.elem.item.NextAttemptAt = n
 
-	if err := persistence.WithTransaction(
+	if _, err := persistence.WithTransaction(
 		ctx,
 		r.queue.DataStore,
 		func(tx persistence.ManagedTransaction) error {

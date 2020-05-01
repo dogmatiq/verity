@@ -225,8 +225,10 @@ var _ = Describe("type Request", func() {
 				tx, err := req.Tx(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				tx.(*TransactionStub).CommitFunc = func(context.Context) error {
-					return errors.New("<error>")
+				tx.(*TransactionStub).CommitFunc = func(
+					context.Context,
+				) (persistence.TransactionResult, error) {
+					return persistence.TransactionResult{}, errors.New("<error>")
 				}
 
 				err = req.Ack(ctx)

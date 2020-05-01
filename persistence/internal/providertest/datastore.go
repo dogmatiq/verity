@@ -124,7 +124,8 @@ func declareDataStoreTests(
 
 						if commit {
 							ginkgo.By("committing the transaction")
-							result <- tx.Commit(*ctx)
+							_, err := tx.Commit(*ctx)
+							result <- err
 						} else {
 							ginkgo.By("rolling the transaction back")
 							result <- tx.Rollback()

@@ -12,25 +12,29 @@ import (
 type transaction struct {
 	ds     *dataStore
 	actual *sql.Tx
+	result persistence.TransactionResult
 }
 
 // Commit applies the changes from the transaction.
-func (t *transaction) Commit(ctx context.Context) error {
+func (t *transaction) Commit(
+	ctx context.Context,
+) (persistence.TransactionResult, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return persistence.TransactionResult{},
+			persistence.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return err
+		return persistence.TransactionResult{}, err
 	}
 
 	if t.actual != nil {
-		return t.actual.Commit()
+		return t.result, t.actual.Commit()
 	}
 
-	return nil
+	return t.result, nil
 }
 
 // Rollback aborts the transaction.

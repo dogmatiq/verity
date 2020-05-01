@@ -16,7 +16,7 @@ func saveOffset(
 	ak string,
 	c, n uint64,
 ) {
-	err := persistence.WithTransaction(
+	_, err := persistence.WithTransaction(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {

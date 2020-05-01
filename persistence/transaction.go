@@ -23,10 +23,16 @@ type Transaction interface {
 	offsetstore.Transaction
 
 	// Commit applies the changes from the transaction.
-	Commit(ctx context.Context) error
+	Commit(ctx context.Context) (TransactionResult, error)
 
 	// Rollback aborts the transaction.
 	Rollback() error
+}
+
+// TransactionResult contains information about a successfully committed transaction.
+type TransactionResult struct {
+	// EventStoreItems contains the events persisted within the transaction.
+	EventStoreItems []*eventstore.Item
 }
 
 // ManagedTransaction is a Transaction that can not be commit or rolled-back
@@ -46,15 +52,15 @@ func WithTransaction(
 	ctx context.Context,
 	ds DataStore,
 	fn func(ManagedTransaction) error,
-) error {
+) (TransactionResult, error) {
 	tx, err := ds.Begin(ctx)
 	if err != nil {
-		return err
+		return TransactionResult{}, err
 	}
 	defer tx.Rollback()
 
 	if err := fn(tx); err != nil {
-		return err
+		return TransactionResult{}, err
 	}
 
 	return tx.Commit(ctx)
