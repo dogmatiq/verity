@@ -183,7 +183,7 @@ type TransactionStub struct {
 	SaveMessageToQueueFunc     func(context.Context, *queuestore.Item) error
 	RemoveMessageFromQueueFunc func(context.Context, *queuestore.Item) error
 
-	CommitFunc   func(context.Context) (*persistence.TransactionResult, error)
+	CommitFunc   func(context.Context) (persistence.TransactionResult, error)
 	RollbackFunc func() error
 }
 
@@ -261,7 +261,7 @@ func (t *TransactionStub) RemoveMessageFromQueue(ctx context.Context, i *queuest
 // Commit applies the changes from the transaction.
 func (t *TransactionStub) Commit(
 	ctx context.Context,
-) (*persistence.TransactionResult, error) {
+) (persistence.TransactionResult, error) {
 	if t.CommitFunc != nil {
 		return t.CommitFunc(ctx)
 	}
@@ -270,7 +270,7 @@ func (t *TransactionStub) Commit(
 		return t.Transaction.Commit(ctx)
 	}
 
-	return nil, nil
+	return persistence.TransactionResult{}, nil
 }
 
 // Rollback aborts the transaction.

@@ -20,19 +20,20 @@ type transaction struct {
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(
 	ctx context.Context,
-) (*persistence.TransactionResult, error) {
+) (persistence.TransactionResult, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return nil, persistence.ErrTransactionClosed
+		return persistence.TransactionResult{},
+			persistence.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return nil, err
+		return persistence.TransactionResult{}, err
 	}
 
 	if !t.hasLock {
-		return &persistence.TransactionResult{}, nil
+		return persistence.TransactionResult{}, nil
 	}
 
 	t.ds.db.aggregate.apply(&t.aggregate)
@@ -40,7 +41,7 @@ func (t *transaction) Commit(
 	t.ds.db.offset.apply(&t.offset)
 	t.ds.db.queue.apply(&t.queue)
 
-	return &persistence.TransactionResult{
+	return persistence.TransactionResult{
 		EventStoreItems: t.event.items,
 	}, nil
 }

@@ -23,7 +23,7 @@ type Transaction interface {
 	offsetstore.Transaction
 
 	// Commit applies the changes from the transaction.
-	Commit(ctx context.Context) (*TransactionResult, error)
+	Commit(ctx context.Context) (TransactionResult, error)
 
 	// Rollback aborts the transaction.
 	Rollback() error
@@ -52,15 +52,15 @@ func WithTransaction(
 	ctx context.Context,
 	ds DataStore,
 	fn func(ManagedTransaction) error,
-) (*TransactionResult, error) {
+) (TransactionResult, error) {
 	tx, err := ds.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return TransactionResult{}, err
 	}
 	defer tx.Rollback()
 
 	if err := fn(tx); err != nil {
-		return nil, err
+		return TransactionResult{}, err
 	}
 
 	return tx.Commit(ctx)

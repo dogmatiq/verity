@@ -227,8 +227,8 @@ var _ = Describe("type Request", func() {
 
 				tx.(*TransactionStub).CommitFunc = func(
 					context.Context,
-				) (*persistence.TransactionResult, error) {
-					return nil, errors.New("<error>")
+				) (persistence.TransactionResult, error) {
+					return persistence.TransactionResult{}, errors.New("<error>")
 				}
 
 				err = req.Ack(ctx)

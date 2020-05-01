@@ -18,22 +18,23 @@ type transaction struct {
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(
 	ctx context.Context,
-) (*persistence.TransactionResult, error) {
+) (persistence.TransactionResult, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return nil, persistence.ErrTransactionClosed
+		return persistence.TransactionResult{},
+			persistence.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return nil, err
+		return persistence.TransactionResult{}, err
 	}
 
 	if t.actual != nil {
-		return &t.result, t.actual.Commit()
+		return t.result, t.actual.Commit()
 	}
 
-	return &t.result, nil
+	return t.result, nil
 }
 
 // Rollback aborts the transaction.
