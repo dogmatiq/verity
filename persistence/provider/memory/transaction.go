@@ -32,7 +32,7 @@ func (t *transaction) Commit(
 	}
 
 	if !t.hasLock {
-		return nil, nil
+		return &persistence.TransactionResult{}, nil
 	}
 
 	t.ds.db.aggregate.apply(&t.aggregate)
