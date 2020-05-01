@@ -146,5 +146,13 @@ func declareTransactionTests(
 				})
 			})
 		})
+
+		ginkgo.When("no operations occurred within the transaction", func() {
+			ginkgo.It("returns an empty transaction result", func() {
+				result, err := transaction.Commit(*ctx)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				gomega.Expect(result).To(gomega.Equal(&persistence.TransactionResult{}))
+			})
+		})
 	})
 }
