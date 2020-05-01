@@ -11,7 +11,7 @@ import (
 // data stores.
 type transaction struct {
 	ds     *dataStore
-	result *persistence.TransactionResult
+	result persistence.TransactionResult
 	appKey []byte
 	actual *bbolt.Tx
 }
@@ -31,10 +31,7 @@ func (t *transaction) Commit(
 	}
 
 	if t.actual != nil {
-		if err := t.actual.Commit(); err != nil {
-			return nil, err
-		}
-
+		return &t.result, t.actual.Commit()
 	}
 
 	return t.result, nil
@@ -74,8 +71,6 @@ func (t *transaction) begin(ctx context.Context) error {
 		t.actual = t.ds.db.Begin(ctx)
 	}
 
-	t.result = &persistence.TransactionResult{}
-
 	return nil
 }
 
@@ -89,5 +84,4 @@ func (t *transaction) end() {
 	}
 
 	t.ds = nil
-	t.result = nil
 }

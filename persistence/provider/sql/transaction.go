@@ -12,7 +12,7 @@ import (
 type transaction struct {
 	ds     *dataStore
 	actual *sql.Tx
-	result *persistence.TransactionResult
+	result persistence.TransactionResult
 }
 
 // Commit applies the changes from the transaction.
@@ -30,9 +30,7 @@ func (t *transaction) Commit(
 	}
 
 	if t.actual != nil {
-		if err := t.actual.Commit(); err != nil {
-			return nil, err
-		}
+		return &t.result, t.actual.Commit()
 	}
 
 	return t.result, nil

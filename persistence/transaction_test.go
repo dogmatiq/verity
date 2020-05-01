@@ -65,7 +65,7 @@ var _ = Describe("func WithTransaction", func() {
 		Expect(items).NotTo(BeEmpty())
 	})
 
-	It("returns the transaction result", func() {
+	It("includes event store items in the transaction result", func() {
 		env1 := NewEnvelope("<id-1>", MessageA1)
 		env2 := NewEnvelope("<id-2>", MessageA2)
 		env3 := NewEnvelope("<id-3>", MessageA3)

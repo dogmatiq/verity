@@ -29,10 +29,9 @@ type Transaction interface {
 	Rollback() error
 }
 
-// TransactionResult is the result returned by Transaction.Commit() method.
+// TransactionResult contains information about a successfully committed transaction.
 type TransactionResult struct {
-	// EventItems is the slice of eventstore.Item persisted within the boundary
-	// of the transaction.
+	// EventItems contains the events persisted within the transaction.
 	EventItems []*eventstore.Item
 }
 

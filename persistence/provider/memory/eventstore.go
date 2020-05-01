@@ -20,10 +20,6 @@ func (t *transaction) SaveEvent(
 		return 0, err
 	}
 
-	t.result.EventItems = append(
-		t.result.EventItems,
-	)
-
 	return t.event.stageSave(&t.ds.db.event, t.result, env), nil
 }
 
