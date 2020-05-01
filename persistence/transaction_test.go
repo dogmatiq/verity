@@ -97,8 +97,8 @@ var _ = Describe("func WithTransaction", func() {
 		)
 
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.EventItems).NotTo(BeEmpty())
-		Expect(result.EventItems).To(
+		Expect(result.EventStoreItems).NotTo(BeEmpty())
+		Expect(result.EventStoreItems).To(
 			EqualX([]*eventstore.Item{
 				{
 					Offset:   0,

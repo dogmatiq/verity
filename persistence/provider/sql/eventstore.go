@@ -115,8 +115,8 @@ func (t *transaction) SaveEvent(
 		return 0, err
 	}
 
-	t.result.EventItems = append(
-		t.result.EventItems,
+	t.result.EventStoreItems = append(
+		t.result.EventStoreItems,
 		&eventstore.Item{
 			Offset:   next,
 			Envelope: env,

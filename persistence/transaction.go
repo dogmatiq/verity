@@ -31,8 +31,8 @@ type Transaction interface {
 
 // TransactionResult contains information about a successfully committed transaction.
 type TransactionResult struct {
-	// EventItems contains the events persisted within the transaction.
-	EventItems []*eventstore.Item
+	// EventStoreItems contains the events persisted within the transaction.
+	EventStoreItems []*eventstore.Item
 }
 
 // ManagedTransaction is a Transaction that can not be commit or rolled-back
