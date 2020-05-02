@@ -77,3 +77,29 @@ func queryEvents(
 		items = append(items, i)
 	}
 }
+
+// loadEventsForAggregate loads the event items for the aggregate with the given
+// key, id, and revision.
+func loadEventsForAggregate(
+	ctx context.Context,
+	r eventstore.Repository,
+	hk, id string,
+	rev uint64,
+) []*eventstore.Item {
+	res, err := r.LoadEventsForAggregate(ctx, hk, id, rev)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	defer res.Close()
+
+	var items []*eventstore.Item
+
+	for {
+		i, ok, err := res.Next(ctx)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		if !ok {
+			return items
+		}
+
+		items = append(items, i)
+	}
+}

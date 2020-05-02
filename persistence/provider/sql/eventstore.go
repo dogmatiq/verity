@@ -145,6 +145,16 @@ func (r *eventStoreRepository) NextEventOffset(
 	)
 }
 
+// LoadEventsForAggregate loads the events for the aggregate with the given
+// key, id, and revision.
+func (r *eventStoreRepository) LoadEventsForAggregate(
+	ctx context.Context,
+	hk, id string,
+	rev uint64,
+) (eventstore.Result, error) {
+	panic("not implemented")
+}
+
 // QueryEvents queries events in the repository.
 func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,

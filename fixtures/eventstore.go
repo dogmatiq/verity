@@ -11,7 +11,26 @@ import (
 type EventStoreRepositoryStub struct {
 	eventstore.Repository
 
-	QueryEventsFunc func(context.Context, eventstore.Query) (eventstore.Result, error)
+	QueryEventsFunc            func(context.Context, eventstore.Query) (eventstore.Result, error)
+	LoadEventsForAggregateFunc func(context.Context, string, string, uint64) (eventstore.Result, error)
+}
+
+// LoadEventsForAggregate loads the events for the aggregate with the given
+// key, id, and revision.
+func (r *EventStoreRepositoryStub) LoadEventsForAggregate(
+	ctx context.Context,
+	hk, id string,
+	rev uint64,
+) (eventstore.Result, error) {
+	if r.LoadEventsForAggregateFunc != nil {
+		return r.LoadEventsForAggregateFunc(ctx, hk, id, rev)
+	}
+
+	if r.Repository != nil {
+		return r.Repository.LoadEventsForAggregate(ctx, hk, id, rev)
+	}
+
+	return nil, nil
 }
 
 // QueryEvents queries events in the repository.
