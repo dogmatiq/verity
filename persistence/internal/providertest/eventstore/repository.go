@@ -211,7 +211,9 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			})
 
 			ginkgo.It("it returns a result containing the events that match the aggregate instance", func() {
-				expected := []*eventstore.Item{item0, item3}
+				expectedA := []*eventstore.Item{item0, item2}
+				expectedB := []*eventstore.Item{item1, item3}
+
 				saveEvents(
 					tc.Context,
 					dataStore,
@@ -223,12 +225,22 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					item5.Envelope,
 				)
 
-				items := loadEventsForAggregate(tc.Context, repository, "<aggregate>", "<instance-a>", 1)
+				items := loadEventsForAggregate(tc.Context, repository, "<aggregate>", "<instance-a>", 0)
 
 				for i, item := range items {
 					expectItemToEqual(
 						item,
-						expected[i],
+						expectedA[i],
+						fmt.Sprintf("item at index #%d of slice", i),
+					)
+				}
+
+				items = loadEventsForAggregate(tc.Context, repository, "<aggregate>", "<instance-b>", 0)
+
+				for i, item := range items {
+					expectItemToEqual(
+						item,
+						expectedB[i],
 						fmt.Sprintf("item at index #%d of slice", i),
 					)
 				}
@@ -290,12 +302,12 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						repository,
 						"<aggregate>",
 						"<instance-a>",
-						1,
+						0,
 					)
 					gomega.Expect(items).To(gomega.HaveLen(2))
 				}
 
-				g.Add(3)
+				g.Add(6)
 				go fn1()
 				go fn2()
 				go fn1()
