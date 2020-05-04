@@ -152,7 +152,11 @@ func (r *eventStoreRepository) LoadEventsForAggregate(
 	hk, id string,
 	rev uint64,
 ) (eventstore.Result, error) {
-	panic("not implemented")
+	return r.QueryEvents(ctx, eventstore.Query{
+		MinOffset:           rev,
+		AggregateHandlerKey: hk,
+		AggregateInstanceID: id,
+	})
 }
 
 // QueryEvents queries events in the repository.
