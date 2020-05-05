@@ -15,9 +15,6 @@ type Operation interface {
 	AcceptVisitor(context.Context, OperationVisitor) error
 }
 
-// Batch is a set of operations that are performed atomically.
-type Batch []Operation
-
 // SaveAggregateMetaData is a persistence operation that creates or updates
 // meta-data about an aggregate instance.
 type SaveAggregateMetaData struct {
