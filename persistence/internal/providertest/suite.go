@@ -73,6 +73,7 @@ func Declare(
 
 		offsetstore.DeclareRepositoryTests(&tc)
 		offsetstore.DeclareTransactionTests(&tc)
+		declareOffsetOperationTests(&tc)
 
 		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
 		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
