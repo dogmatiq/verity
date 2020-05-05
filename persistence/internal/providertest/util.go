@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/onsi/gomega"
 )
 
@@ -18,6 +19,30 @@ func loadAggregateMetaData(
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 	return md
+}
+
+// queryEvents queries the event store and returns a slice of the results.
+func queryEvents(
+	ctx context.Context,
+	r eventstore.Repository,
+	q eventstore.Query,
+) []*eventstore.Item {
+	res, err := r.QueryEvents(ctx, q)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	defer res.Close()
+
+	var items []*eventstore.Item
+
+	for {
+		i, ok, err := res.Next(ctx)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		if !ok {
+			return items
+		}
+
+		items = append(items, i)
+	}
 }
 
 // persist persists a batch of operations and asserts that there was no failure.
