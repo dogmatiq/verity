@@ -66,6 +66,7 @@ func Declare(
 
 		eventstore.DeclareRepositoryTests(&tc)
 		eventstore.DeclareTransactionTests(&tc)
+		declareEventOperationTests(&tc)
 
 		queuestore.DeclareRepositoryTests(&tc)
 		queuestore.DeclareTransactionTests(&tc)
