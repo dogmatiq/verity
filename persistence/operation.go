@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"strings"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
@@ -13,6 +14,11 @@ import (
 type Operation interface {
 	// AcceptVisitor calls the appropriate visit method on the given visitor.
 	AcceptVisitor(context.Context, OperationVisitor) error
+
+	// entityKey a value that identifies the persisted "entity" that the
+	// operation manipulates. No two operations in the same batch may operate
+	// upon the same entity.
+	entityKey() entityKey
 }
 
 // SaveAggregateMetaData is a persistence operation that creates or updates
@@ -101,4 +107,33 @@ func (op RemoveQueueItem) AcceptVisitor(ctx context.Context, v OperationVisitor)
 // AcceptVisitor calls v.VisitSaveOffset().
 func (op SaveOffset) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
 	return v.VisitSaveOffset(ctx, op)
+}
+
+// entityKey uniquely identifies the entity that is affected by an operation.
+type entityKey [3]string
+
+func (k entityKey) String() string {
+	return strings.TrimSpace(
+		strings.Join(k[:], " "),
+	)
+}
+
+func (op SaveAggregateMetaData) entityKey() entityKey {
+	return entityKey{"aggregate", op.MetaData.HandlerKey, op.MetaData.InstanceID}
+}
+
+func (op SaveEvent) entityKey() entityKey {
+	return entityKey{"message", op.Envelope.MetaData.MessageId}
+}
+
+func (op SaveQueueItem) entityKey() entityKey {
+	return entityKey{"message", op.Item.ID()}
+}
+
+func (op RemoveQueueItem) entityKey() entityKey {
+	return entityKey{"message", op.Item.ID()}
+}
+
+func (op SaveOffset) entityKey() entityKey {
+	return entityKey{"offset", op.ApplicationKey}
 }
