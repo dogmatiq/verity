@@ -19,6 +19,8 @@ var ErrDataStoreClosed = errors.New("data store is closed")
 // DataStore is an interface used by the engine to persist and retrieve
 // data for a specific application.
 type DataStore interface {
+	Persister
+
 	// AggregateStoreRepository returns application's aggregate store repository.
 	AggregateStoreRepository() aggregatestore.Repository
 
