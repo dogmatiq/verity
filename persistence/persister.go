@@ -30,13 +30,13 @@ type Persister interface {
 // ConflictError is an error indicating one or more operations within a batch
 // caused an optimistic concurrency conflict.
 type ConflictError struct {
-	// Operation is the operation that caused the conflict.
-	Operation Operation
+	// Cause is the operation that caused the conflict.
+	Cause Operation
 }
 
 func (e ConflictError) Error() string {
 	return fmt.Sprintf(
 		"optimistic concurrency conflict in %T operation",
-		e.Operation,
+		e.Cause,
 	)
 }
