@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
@@ -43,6 +44,17 @@ func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
 // QueueStoreRepository returns the application's queue store repository.
 func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
 	return &queueStoreRepository{ds.db}
+}
+
+// Persist commits a batch of operations atomically.
+//
+// If any one of the operations causes an optimistic concurrency conflict
+// the entire batch is aborted and a ConflictError is returned.
+func (ds *dataStore) Persist(
+	ctx context.Context,
+	batch persistence.Batch,
+) (persistence.BatchResult, error) {
+	return refactor251.Persist(ctx, ds, batch)
 }
 
 // Begin starts a new transaction.
