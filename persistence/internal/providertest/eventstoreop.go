@@ -18,7 +18,7 @@ import (
 // declareEventOperationTests declares a functional test-suite for
 // persistence operations related to events.
 func declareEventOperationTests(tc *common.TestContext) {
-	ginkgo.Describe("type SaveEvent", func() {
+	ginkgo.Context("event operations", func() {
 		var (
 			dataStore  persistence.DataStore
 			repository eventstore.Repository
@@ -40,104 +40,106 @@ func declareEventOperationTests(tc *common.TestContext) {
 			tearDown()
 		})
 
-		ginkgo.It("saves the event to the store", func() {
-			persist(
-				tc.Context,
-				dataStore,
-				persistence.SaveEvent{
-					Envelope: env0,
-				},
-				persistence.SaveEvent{
-					Envelope: env1,
-				},
-			)
-
-			items := queryEvents(tc.Context, repository, eventstore.Query{})
-			gomega.Expect(items).To(gomegax.EqualX(
-				[]*eventstore.Item{
-					{
-						Offset:   0,
+		ginkgo.Describe("type persistence.SaveEvent", func() {
+			ginkgo.It("saves the event to the store", func() {
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.SaveEvent{
 						Envelope: env0,
 					},
-					{
-						Offset:   1,
+					persistence.SaveEvent{
 						Envelope: env1,
 					},
-				},
-			))
-		})
+				)
 
-		ginkgo.It("has a corresponding item in the batch result", func() {
-			res := persist(
-				tc.Context,
-				dataStore,
-				persistence.SaveEvent{
-					Envelope: env0,
-				},
-				persistence.SaveEvent{
-					Envelope: env1,
-				},
-			)
-
-			gomega.Expect(res.EventStoreItems).To(
-				gomega.ConsistOf(
-					gomegax.EqualX(
-						&eventstore.Item{
+				items := queryEvents(tc.Context, repository, eventstore.Query{})
+				gomega.Expect(items).To(gomegax.EqualX(
+					[]*eventstore.Item{
+						{
 							Offset:   0,
 							Envelope: env0,
 						},
-					),
-					gomegax.EqualX(
-						&eventstore.Item{
+						{
 							Offset:   1,
 							Envelope: env1,
 						},
-					),
-				),
-			)
-		})
+					},
+				))
+			})
 
-		ginkgo.It("serializes operations from concurrent persist calls", func() {
-			var (
-				g      sync.WaitGroup
-				m      sync.Mutex
-				expect []*eventstore.Item
-			)
-
-			fn := func(env *envelopespec.Envelope) {
-				defer ginkgo.GinkgoRecover()
-				defer g.Done()
-
+			ginkgo.It("has a corresponding item in the batch result", func() {
 				res := persist(
 					tc.Context,
 					dataStore,
 					persistence.SaveEvent{
-						Envelope: env,
+						Envelope: env0,
+					},
+					persistence.SaveEvent{
+						Envelope: env1,
 					},
 				)
 
-				m.Lock()
-				expect = append(expect, res.EventStoreItems...)
-				m.Unlock()
-			}
+				gomega.Expect(res.EventStoreItems).To(
+					gomega.ConsistOf(
+						gomegax.EqualX(
+							&eventstore.Item{
+								Offset:   0,
+								Envelope: env0,
+							},
+						),
+						gomegax.EqualX(
+							&eventstore.Item{
+								Offset:   1,
+								Envelope: env1,
+							},
+						),
+					),
+				)
+			})
 
-			g.Add(3)
-			go fn(env0)
-			go fn(env1)
-			go fn(env2)
-			g.Wait()
+			ginkgo.It("serializes operations from concurrent persist calls", func() {
+				var (
+					g      sync.WaitGroup
+					m      sync.Mutex
+					expect []*eventstore.Item
+				)
 
-			// Sort the expected slice, as the appends in each goroutine
-			// could be out-of-sync with the saves.
-			sort.Slice(
-				expect,
-				func(i, j int) bool {
-					return expect[i].Offset < expect[j].Offset
-				},
-			)
+				fn := func(env *envelopespec.Envelope) {
+					defer ginkgo.GinkgoRecover()
+					defer g.Done()
 
-			items := queryEvents(tc.Context, repository, eventstore.Query{})
-			gomega.Expect(items).To(gomegax.EqualX(expect))
+					res := persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveEvent{
+							Envelope: env,
+						},
+					)
+
+					m.Lock()
+					expect = append(expect, res.EventStoreItems...)
+					m.Unlock()
+				}
+
+				g.Add(3)
+				go fn(env0)
+				go fn(env1)
+				go fn(env2)
+				g.Wait()
+
+				// Sort the expected slice, as the appends in each goroutine
+				// could be out-of-sync with the saves.
+				sort.Slice(
+					expect,
+					func(i, j int) bool {
+						return expect[i].Offset < expect[j].Offset
+					},
+				)
+
+				items := queryEvents(tc.Context, repository, eventstore.Query{})
+				gomega.Expect(items).To(gomegax.EqualX(expect))
+			})
 		})
 	})
 }

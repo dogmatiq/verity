@@ -6,6 +6,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/onsi/gomega"
 )
 
@@ -43,6 +44,19 @@ func queryEvents(
 
 		items = append(items, i)
 	}
+}
+
+// loadOffset loads the offset from the repository with the given application
+// key.
+func loadOffset(
+	ctx context.Context,
+	repository offsetstore.Repository,
+	ak string,
+) uint64 {
+	o, err := repository.LoadOffset(ctx, ak)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	return o
 }
 
 // persist persists a batch of operations and asserts that there was no failure.
