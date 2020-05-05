@@ -23,7 +23,7 @@ type SaveAggregateMetaData struct {
 	// MetaData.Revision must be the revision of the instance as currently
 	// persisted, otherwise an optimistic concurrency conflict occurs and the
 	// entire batch of operations is rejected.
-	MetaData *aggregatestore.MetaData
+	MetaData aggregatestore.MetaData
 }
 
 // SaveEvent is a persistence operation that persists an event message.
@@ -40,7 +40,7 @@ type SaveQueueItem struct {
 	// Item.Revision must be the revision of the item as currently persisted,
 	// otherwise an optimistic concurrency conflict occurs and the entire batch
 	// of operations is rejected.
-	Item *queuestore.Item
+	Item queuestore.Item
 }
 
 // RemoveQueueItem is a persistence operation that removes an item from the
@@ -51,7 +51,7 @@ type RemoveQueueItem struct {
 	// Item.Revision must be the revision of the item as currently persisted,
 	// otherwise an optimistic concurrency conflict occurs and the entire batch
 	// of operations is rejected.
-	Item *queuestore.Item
+	Item queuestore.Item
 }
 
 // SaveOffset is a persistence operation that persists the offset of the next
