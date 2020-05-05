@@ -10,7 +10,7 @@ var _ = Describe("type ConflictError", func() {
 	Describe("func Error()", func() {
 		It("includes the operation type in the error message", func() {
 			err := ConflictError{
-				Operation: SaveAggregateMetaData{},
+				Cause: SaveAggregateMetaData{},
 			}
 
 			Expect(err).To(
