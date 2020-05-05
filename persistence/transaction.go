@@ -29,11 +29,9 @@ type Transaction interface {
 	Rollback() error
 }
 
-// TransactionResult contains information about a successfully committed transaction.
-type TransactionResult struct {
-	// EventStoreItems contains the events persisted within the transaction.
-	EventStoreItems []*eventstore.Item
-}
+// TransactionResult contains information about a successfully committed
+// transaction.
+type TransactionResult = BatchResult
 
 // ManagedTransaction is a Transaction that can not be commit or rolled-back
 // directly because its life-time is managed for the user.
