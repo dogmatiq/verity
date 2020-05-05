@@ -12,7 +12,7 @@ require (
 	github.com/dogmatiq/marshalkit v0.2.2
 	github.com/dogmatiq/projectionkit v0.3.2
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.1
 	github.com/google/uuid v1.1.1
 	github.com/jmalloc/gomegax v0.0.0-20200417012726-d7192fca6e53
 	github.com/lib/pq v1.5.1
