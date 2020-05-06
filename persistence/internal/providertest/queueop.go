@@ -25,6 +25,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 			dataStore  persistence.DataStore
 			repository queuestore.Repository
 			tearDown   func()
+			now        time.Time
 
 			env0, env1, env2 *envelopespec.Envelope
 		)
@@ -36,6 +37,8 @@ func declareQueueOperationTests(tc *common.TestContext) {
 			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2)
 			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3)
+
+			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
 		})
 
 		ginkgo.AfterEach(func() {
@@ -50,7 +53,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						dataStore,
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						},
@@ -58,7 +61,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 				})
 
 				ginkgo.It("updates the item", func() {
-					next := time.Now().Add(1 * time.Hour)
+					next := now.Add(1 * time.Hour)
 
 					persist(
 						tc.Context,
@@ -109,7 +112,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						dataStore,
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
-								NextAttemptAt: time.Now().Add(-1 * time.Hour),
+								NextAttemptAt: now.Add(-1 * time.Hour),
 								Envelope:      env1,
 							},
 						},
@@ -122,7 +125,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
 								Revision:      1,
-								NextAttemptAt: time.Now().Add(-10 * time.Hour),
+								NextAttemptAt: now.Add(-10 * time.Hour),
 								Envelope:      env0,
 							},
 						},
@@ -145,7 +148,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
 								Revision:      1,
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env,
 							},
 						},
@@ -164,7 +167,6 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						// Update the item once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
-						now := time.Now()
 						persist(
 							tc.Context,
 							dataStore,
@@ -180,7 +182,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						op := persistence.SaveQueueItem{
 							Item: queuestore.Item{
 								Revision:      uint64(conflictingRevision),
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						}
@@ -217,7 +219,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						dataStore,
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						},
@@ -236,7 +238,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						dataStore,
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						},
@@ -254,7 +256,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 					op := persistence.SaveQueueItem{
 						Item: queuestore.Item{
 							Revision:      123,
-							NextAttemptAt: time.Now(),
+							NextAttemptAt: now,
 							Envelope:      env0,
 						},
 					}
@@ -283,7 +285,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						dataStore,
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						},
@@ -314,7 +316,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						dataStore,
 						persistence.SaveQueueItem{
 							Item: queuestore.Item{
-								NextAttemptAt: time.Now().Add(1 * time.Hour),
+								NextAttemptAt: now.Add(1 * time.Hour),
 								Envelope:      env1,
 							},
 						},
@@ -346,7 +348,6 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						// Update the message once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
-						now := time.Now()
 						persist(
 							tc.Context,
 							dataStore,
@@ -362,7 +363,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						op := persistence.RemoveQueueItem{
 							Item: queuestore.Item{
 								Revision:      uint64(conflictingRevision),
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						}
@@ -399,7 +400,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 						op := persistence.RemoveQueueItem{
 							Item: queuestore.Item{
 								Revision:      uint64(conflictingRevision),
-								NextAttemptAt: time.Now(),
+								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						}
@@ -428,17 +429,17 @@ func declareQueueOperationTests(tc *common.TestContext) {
 
 		ginkgo.It("serializes operations from competing transactions", func() {
 			item0 := queuestore.Item{
-				NextAttemptAt: time.Now(),
+				NextAttemptAt: now,
 				Envelope:      env0,
 			}
 
 			item1 := queuestore.Item{
-				NextAttemptAt: time.Now(),
+				NextAttemptAt: now,
 				Envelope:      env1,
 			}
 
 			item2 := queuestore.Item{
-				NextAttemptAt: time.Now(),
+				NextAttemptAt: now,
 				Envelope:      env2,
 			}
 
@@ -476,7 +477,7 @@ func declareQueueOperationTests(tc *common.TestContext) {
 			}()
 
 			// update
-			item1.NextAttemptAt = time.Now().Add(+1 * time.Hour)
+			item1.NextAttemptAt = now.Add(+1 * time.Hour)
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
