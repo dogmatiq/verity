@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -51,7 +50,23 @@ func (r *eventStoreRepository) LoadEventsForAggregate(
 	ctx context.Context,
 	hk, id, d string,
 ) (eventstore.Result, error) {
-	panic("not implemented")
+	var o uint64
+
+	if d != "" {
+		if o1, ok := r.db.event.messageIDs[d]; ok {
+			o = o1
+		}
+	}
+
+	return &eventStoreResult{
+		db: r.db,
+		pred: func(i *eventstore.Item) bool {
+			return hk == i.Envelope.MetaData.Source.Handler.Key &&
+				id == i.Envelope.MetaData.Source.InstanceId &&
+				i.Offset >= o
+		},
+		index: int(o),
+	}, nil
 }
 
 // QueryEvents queries events in the repository.
@@ -61,7 +76,7 @@ func (r *eventStoreRepository) QueryEvents(
 ) (eventstore.Result, error) {
 	return &eventStoreResult{
 		db:    r.db,
-		query: q,
+		pred:  q.IsMatch,
 		index: int(q.MinOffset),
 	}, nil
 }
@@ -70,7 +85,7 @@ func (r *eventStoreRepository) QueryEvents(
 // event store.
 type eventStoreResult struct {
 	db    *database
-	query eventstore.Query
+	pred  func(i *eventstore.Item) bool
 	index int
 }
 
@@ -93,13 +108,13 @@ func (r *eventStoreResult) Next(
 	r.db.RUnlock()
 
 	// Iterate through the items looking for a match for the query.
-	for i, it := range items {
-		if r.query.IsMatch(it) {
+	for i, item := range items {
+		if r.pred(item) {
 			r.index += i + 1
 
 			// Clone item on the way out so inadvertent manipulation of the item
 			// by the caller does not affect the data in the event store.
-			return cloneEventStoreItem(it), true, nil
+			return cloneEventStoreItem(item), true, nil
 		}
 	}
 
@@ -110,7 +125,6 @@ func (r *eventStoreResult) Next(
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	r.query.MinOffset = math.MaxUint64
 	return nil
 }
 
@@ -137,18 +151,26 @@ func (cs *eventStoreChangeSet) stageSave(
 	}
 
 	cs.items = append(cs.items, item)
-
 	return next
 }
 
 // eventStoreDatabase contains data that is committed to the event store.
 type eventStoreDatabase struct {
-	items []*eventstore.Item
+	items      []*eventstore.Item
+	messageIDs map[string]uint64
 }
 
 // apply updates the database to include the changes in cs.
 func (db *eventStoreDatabase) apply(cs *eventStoreChangeSet) {
 	db.items = append(db.items, cs.items...)
+
+	if db.messageIDs == nil {
+		db.messageIDs = make(map[string]uint64)
+	}
+
+	for _, item := range cs.items {
+		db.messageIDs[item.Envelope.MetaData.MessageId] = item.Offset
+	}
 }
 
 // view returns a slice of the items starting at a given offset.
