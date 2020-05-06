@@ -161,8 +161,8 @@ func (r *eventStoreRepository) LoadEventsForAggregate(
 		appKey: r.appKey,
 		pred: func(i *eventstore.Item) bool {
 			return hk == i.Envelope.MetaData.Source.Handler.Key &&
-				id != i.Envelope.MetaData.Source.InstanceId &&
-				i.Offset > o
+				id == i.Envelope.MetaData.Source.InstanceId &&
+				i.Offset >= o
 		},
 		offset: o,
 	}, nil
