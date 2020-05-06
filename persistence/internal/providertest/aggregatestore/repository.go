@@ -30,7 +30,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 		})
 
 		ginkgo.Describe("func LoadMetaData()", func() {
-			ginkgo.It("returns meta-data with zero revision and offsets if the instance does not exist", func() {
+			ginkgo.It("returns meta-data with default values if the instance does not exist", func() {
 				md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 				gomega.Expect(md).To(gomega.Equal(
 					&aggregatestore.MetaData{
@@ -42,10 +42,12 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 			ginkgo.It("returns the current persisted meta-data", func() {
 				expect := &aggregatestore.MetaData{
-					HandlerKey:  "<handler-key>",
-					InstanceID:  "<instance>",
-					BeginOffset: 1,
-					EndOffset:   2,
+					HandlerKey:      "<handler-key>",
+					InstanceID:      "<instance>",
+					InstanceExists:  true,
+					LastDestroyedBy: "<message-id>",
+					BeginOffset:     1,
+					EndOffset:       2,
 				}
 				saveMetaData(tc.Context, dataStore, expect)
 				expect.Revision++

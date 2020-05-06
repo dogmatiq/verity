@@ -109,11 +109,13 @@ func DeclareTransactionTests(tc *common.TestContext) {
 						tc.Context,
 						dataStore,
 						&aggregatestore.MetaData{
-							HandlerKey:  "<handler-key>",
-							InstanceID:  "<instance>",
-							Revision:    1,
-							BeginOffset: 1,
-							EndOffset:   2,
+							HandlerKey:      "<handler-key>",
+							InstanceID:      "<instance>",
+							InstanceExists:  true,
+							LastDestroyedBy: "<message-id>",
+							Revision:        1,
+							BeginOffset:     1,
+							EndOffset:       2,
 						},
 					)
 
@@ -144,11 +146,13 @@ func DeclareTransactionTests(tc *common.TestContext) {
 							return tx.SaveAggregateMetaData(
 								tc.Context,
 								&aggregatestore.MetaData{
-									HandlerKey:  "<handler-key>",
-									InstanceID:  "<instance>",
-									Revision:    1,
-									BeginOffset: 1,
-									EndOffset:   2,
+									HandlerKey:      "<handler-key>",
+									InstanceID:      "<instance>",
+									InstanceExists:  true,
+									LastDestroyedBy: "<message-id>",
+									Revision:        1,
+									BeginOffset:     1,
+									EndOffset:       2,
 								},
 							)
 						},

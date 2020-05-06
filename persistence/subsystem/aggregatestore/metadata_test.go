@@ -7,57 +7,44 @@ import (
 )
 
 var _ = Describe("type MetaData", func() {
-	Describe("func InstanceExists()", func() {
-		It("returns true if the offset range is not empty", func() {
-			md := &MetaData{
-				BeginOffset: 1,
-				EndOffset:   2,
-			}
-
-			Expect(md.InstanceExists()).To(BeTrue())
-		})
-
-		It("returns false if the offset range is not empty", func() {
-			md := &MetaData{
-				BeginOffset: 1,
-				EndOffset:   1,
-			}
-
-			Expect(md.InstanceExists()).To(BeFalse())
-		})
-	})
-
 	Describe("func MarkInstanceDestroyed()", func() {
-		It("moves the beginning of the range to the end", func() {
+		It("updates the meta-data state to represent a destroyed instance", func() {
 			md := &MetaData{
-				BeginOffset: 1,
-				EndOffset:   2,
+				InstanceExists: true,
+				BeginOffset:    1,
+				EndOffset:      2,
 			}
 
-			md.MarkInstanceDestroyed()
+			md.MarkInstanceDestroyed("<id>")
 
 			Expect(md).To(Equal(
 				&MetaData{
-					BeginOffset: 2,
-					EndOffset:   2,
+					InstanceExists:  false,
+					LastDestroyedBy: "<id>",
+					BeginOffset:     2,
+					EndOffset:       2,
 				},
 			))
 		})
 	})
 
 	Describe("func SetLastRecordedOffset()", func() {
-		It("expands the range to include the new offset", func() {
+		It("updates the meta-data state to represent an instance that exists", func() {
 			md := &MetaData{
-				BeginOffset: 1,
-				EndOffset:   2,
+				InstanceExists:  false,
+				LastDestroyedBy: "<id>",
+				BeginOffset:     1,
+				EndOffset:       2,
 			}
 
 			md.SetLastRecordedOffset(123)
 
 			Expect(md).To(Equal(
 				&MetaData{
-					BeginOffset: 1,
-					EndOffset:   124,
+					InstanceExists:  true,
+					LastDestroyedBy: "<id>", // unchanged
+					BeginOffset:     1,
+					EndOffset:       124,
 				},
 			))
 		})

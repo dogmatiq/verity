@@ -111,7 +111,6 @@ var _ = Describe("type Loader", func() {
 					ctx,
 					dataStore,
 					func(tx persistence.ManagedTransaction) error {
-
 						_, err := tx.SaveEvent(ctx, NewEnvelope("<event-0>", MessageE1))
 						if err != nil {
 							return err
@@ -188,7 +187,7 @@ var _ = Describe("type Loader", func() {
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							metadata.MarkInstanceDestroyed()
+							metadata.MarkInstanceDestroyed("<id>")
 							return tx.SaveAggregateMetaData(ctx, metadata)
 						},
 					)
