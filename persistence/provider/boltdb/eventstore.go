@@ -24,6 +24,13 @@ var (
 	// buffers.
 	eventStoreItemsBucketKey = []byte("items")
 
+	// eventStoreMesssageIDsBucketKey is the key for a child bucket that indexes
+	// event message id against the event offsets.
+	//
+	// The keys are the string message IDs converted to bytes. The
+	// values are the event offsets encoded as 8-byte big-endian packets.
+	eventStoreMesssageIDsBucketKey = []byte("message_ids")
+
 	// eventStoreNextOffsetKey is the key of a value within the root bucket that
 	// contains the next unused offset, again encoded as 8-byte big-endian
 	// packet.
@@ -59,6 +66,17 @@ func (t *transaction) SaveEvent(
 	)
 
 	saveEventStoreItem(items, o, env)
+
+	messageIDs := bboltx.CreateBucketIfNotExists(
+		store,
+		eventStoreMesssageIDsBucketKey,
+	)
+
+	bboltx.Put(
+		messageIDs,
+		[]byte(env.MetaData.MessageId),
+		marshalUint64(o),
+	)
 
 	bboltx.Put(
 		store,
@@ -110,6 +128,46 @@ func (r *eventStoreRepository) NextEventOffset(
 	return next, err
 }
 
+// LoadEventsForAggregate loads the events for the aggregate with the given
+// key and id.
+//
+// d is the optional parameter, it represents ID of the message that was
+// recorded when the instance was last destroyed, if any.
+func (r *eventStoreRepository) LoadEventsForAggregate(
+	ctx context.Context,
+	hk, id, d string,
+) (eventstore.Result, error) {
+	var o uint64
+
+	if d != "" {
+		r.db.View(
+			ctx,
+			func(tx *bbolt.Tx) {
+				if messageIDs, exists := bboltx.TryBucket(
+					tx,
+					r.appKey,
+					eventStoreBucketKey,
+					eventStoreMesssageIDsBucketKey,
+				); exists {
+					if v := messageIDs.Get([]byte(d)); v != nil {
+						o = unmarshalUint64(v)
+					}
+				}
+			})
+	}
+
+	return &eventStoreResult{
+		db:     r.db,
+		appKey: r.appKey,
+		pred: func(i *eventstore.Item) bool {
+			return hk == i.Envelope.MetaData.Source.Handler.Key &&
+				id != i.Envelope.MetaData.Source.InstanceId &&
+				i.Offset > o
+		},
+		offset: o,
+	}, nil
+}
+
 // QueryEvents queries events in the repository.
 func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
@@ -118,7 +176,7 @@ func (r *eventStoreRepository) QueryEvents(
 	return &eventStoreResult{
 		db:     r.db,
 		appKey: r.appKey,
-		query:  q,
+		pred:   q.IsMatch,
 	}, nil
 }
 
@@ -127,7 +185,8 @@ func (r *eventStoreRepository) QueryEvents(
 type eventStoreResult struct {
 	db     *database
 	appKey []byte
-	query  eventstore.Query
+	offset uint64
+	pred   func(i *eventstore.Item) bool
 }
 
 // Next returns the next event in the result.
@@ -151,10 +210,10 @@ func (r *eventStoreResult) Next(
 			for exists && !ok {
 				bboltx.Must(ctx.Err()) // Bail if we're taking too long.
 
-				i, exists = loadEventStoreItem(items, r.query.MinOffset)
-				ok = exists && r.query.IsMatch(i)
+				i, exists = loadEventStoreItem(items, r.offset)
+				ok = exists && r.pred(i)
 
-				r.query.MinOffset++
+				r.offset++
 			}
 		},
 	)
@@ -164,7 +223,7 @@ func (r *eventStoreResult) Next(
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	r.query.MinOffset = math.MaxUint64
+	r.offset = math.MaxUint64
 	return nil
 }
 
