@@ -7,6 +7,8 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
+	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
 
@@ -57,6 +59,37 @@ func loadOffset(
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 	return o
+}
+
+// loadQueueItem loads the item at the head of the queue.
+func loadQueueItem(
+	ctx context.Context,
+	r queuestore.Repository,
+) queuestore.Item {
+	items := loadQueueItems(ctx, r, 1)
+
+	if len(items) == 0 {
+		ginkgo.Fail("no messages returned")
+	}
+
+	return items[0]
+}
+
+// loadQueueItems loads n items at the head of the queue.
+func loadQueueItems(
+	ctx context.Context,
+	r queuestore.Repository,
+	n int,
+) []queuestore.Item {
+	pointers, err := r.LoadQueueMessages(ctx, n)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	items := make([]queuestore.Item, len(pointers))
+	for i, p := range pointers {
+		items[i] = *p
+	}
+
+	return items
 }
 
 // persist persists a batch of operations and asserts that there was no failure.

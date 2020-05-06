@@ -70,6 +70,7 @@ func Declare(
 
 		queuestore.DeclareRepositoryTests(&tc)
 		queuestore.DeclareTransactionTests(&tc)
+		declareQueueOperationTests(&tc)
 
 		offsetstore.DeclareRepositoryTests(&tc)
 		offsetstore.DeclareTransactionTests(&tc)
