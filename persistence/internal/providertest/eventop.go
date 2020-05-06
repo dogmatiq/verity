@@ -55,7 +55,7 @@ func declareEventOperationTests(tc *common.TestContext) {
 
 				items := queryEvents(tc.Context, repository, eventstore.Query{})
 				gomega.Expect(items).To(gomegax.EqualX(
-					[]*eventstore.Item{
+					[]eventstore.Item{
 						{
 							Offset:   0,
 							Envelope: env0,
@@ -102,7 +102,7 @@ func declareEventOperationTests(tc *common.TestContext) {
 				var (
 					g      sync.WaitGroup
 					m      sync.Mutex
-					expect []*eventstore.Item
+					expect []eventstore.Item
 				)
 
 				fn := func(env *envelopespec.Envelope) {
@@ -118,7 +118,9 @@ func declareEventOperationTests(tc *common.TestContext) {
 					)
 
 					m.Lock()
-					expect = append(expect, res.EventStoreItems...)
+					for _, i := range res.EventStoreItems {
+						expect = append(expect, *i)
+					}
 					m.Unlock()
 				}
 
