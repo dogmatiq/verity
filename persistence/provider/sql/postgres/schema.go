@@ -101,7 +101,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		`CREATE INDEX repository_query ON infix.event (
 			source_app_key,
 			portable_name,
-			"offset",
+			messsage_id,
 			source_handler_key,
 			source_instance_id
 		)`,
