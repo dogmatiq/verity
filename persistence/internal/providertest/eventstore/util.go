@@ -82,7 +82,7 @@ func queryEvents(
 // key, and instance id.
 //
 // d is the optional parameter, it represents ID of the message that was
-// recorded when the instance was last destroyed, if any.
+// recorded when the instance was last destroyed.
 func loadEventsForAggregate(
 	ctx context.Context,
 	r eventstore.Repository,

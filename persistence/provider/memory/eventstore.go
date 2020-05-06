@@ -42,6 +42,18 @@ func (r *eventStoreRepository) NextEventOffset(
 	return uint64(next), nil
 }
 
+// LoadEventsForAggregate loads the events for the aggregate with the given
+// key and id.
+//
+// d is the optional parameter, it represents ID of the message that was
+// recorded when the instance was last destroyed.
+func (r *eventStoreRepository) LoadEventsForAggregate(
+	ctx context.Context,
+	hk, id, d string,
+) (eventstore.Result, error) {
+	panic("not implemented")
+}
+
 // QueryEvents queries events in the repository.
 func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
