@@ -132,7 +132,7 @@ func (r *eventStoreRepository) NextEventOffset(
 // key and id.
 //
 // d is the optional parameter, it represents ID of the message that was
-// recorded when the instance was last destroyed, if any.
+// recorded when the instance was last destroyed.
 func (r *eventStoreRepository) LoadEventsForAggregate(
 	ctx context.Context,
 	hk, id, d string,
