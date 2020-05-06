@@ -40,7 +40,7 @@ func (l *Loader) Load(
 		return md, nil
 	}
 
-	if !md.InstanceExists() {
+	if !md.InstanceExists {
 		return md, nil
 	}
 

@@ -89,7 +89,7 @@ func (s *Sink) Accept(
 		logger:  s.Logger,
 		id:      id,
 		root:    inst.root,
-		exists:  inst.metadata.InstanceExists(),
+		exists:  inst.metadata.InstanceExists,
 	}
 
 	s.Handler.HandleCommand(sc, p.Message)
@@ -159,7 +159,8 @@ func (s *Sink) save(
 	inst *instance,
 	sc *scope,
 ) error {
-	if len(sc.events) == 0 {
+	count := len(sc.events)
+	if count == 0 {
 		return nil
 	}
 
@@ -168,19 +169,22 @@ func (s *Sink) save(
 		return err
 	}
 
-	var offset uint64
-	for _, p := range sc.events {
-		offset, err = res.RecordEvent(ctx, tx, p)
+	for i, p := range sc.events {
+		offset, err := res.RecordEvent(ctx, tx, p)
 		if err != nil {
 			return err
 		}
-	}
 
-	inst.metadata.SetLastRecordedOffset(offset)
+		if i == count-1 {
+			inst.metadata.SetLastRecordedOffset(offset)
 
-	if !sc.exists {
-		inst.root = s.new()
-		inst.metadata.MarkInstanceDestroyed()
+			if !sc.exists {
+				inst.root = s.new()
+				inst.metadata.MarkInstanceDestroyed(
+					p.Envelope.MetaData.MessageId,
+				)
+			}
+		}
 	}
 
 	if err := tx.SaveAggregateMetaData(ctx, inst.metadata); err != nil {
