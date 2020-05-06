@@ -9,6 +9,17 @@ type Repository interface {
 	// NextEventOffset returns the next "unused" offset within the store.
 	NextEventOffset(ctx context.Context) (uint64, error)
 
+	// LoadEventsForAggregate loads the events for the aggregate with the given
+	// key and id.
+	//
+	// d is the optional parameter, it represents ID of the message that was
+	// recorded when the instance was last destroyed, if any.
+	LoadEventsForAggregate(
+		ctx context.Context,
+		hk, id string,
+		d string,
+	) (Result, error)
+
 	// QueryEvents queries events in the repository.
 	QueryEvents(ctx context.Context, q Query) (Result, error)
 }
