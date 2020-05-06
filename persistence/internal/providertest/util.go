@@ -15,11 +15,11 @@ func loadAggregateMetaData(
 	ctx context.Context,
 	r aggregatestore.Repository,
 	hk, id string,
-) *aggregatestore.MetaData {
+) aggregatestore.MetaData {
 	md, err := r.LoadMetaData(ctx, hk, id)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	return md
+	return *md
 }
 
 // queryEvents queries the event store and returns a slice of the results.
