@@ -16,8 +16,7 @@ type Repository interface {
 	// recorded when the instance was last destroyed, if any.
 	LoadEventsForAggregate(
 		ctx context.Context,
-		hk, id string,
-		d string,
+		hk, id, d string,
 	) (Result, error)
 
 	// QueryEvents queries events in the repository.
