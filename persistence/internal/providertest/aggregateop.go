@@ -68,7 +68,13 @@ func declareAggregateOperationTests(tc *common.TestContext) {
 					))
 
 					md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
-					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(0))
+					gomega.Expect(md).To(gomega.Equal(
+						aggregatestore.MetaData{
+							HandlerKey: "<handler-key>",
+							InstanceID: "<instance>",
+							Revision:   0,
+						},
+					))
 				})
 			})
 
@@ -123,7 +129,7 @@ func declareAggregateOperationTests(tc *common.TestContext) {
 				})
 
 				table.DescribeTable(
-					"it does not increment the revision when an OCC conflict occurs",
+					"it does not save the meta-data when an OCC conflict occurs",
 					func(conflictingRevision int) {
 						// Increment the revision once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
@@ -159,7 +165,13 @@ func declareAggregateOperationTests(tc *common.TestContext) {
 						))
 
 						md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
-						gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
+						gomega.Expect(md).To(gomega.Equal(
+							aggregatestore.MetaData{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   2,
+							},
+						))
 					},
 					table.Entry("zero", 0),
 					table.Entry("too low", 1),
@@ -199,31 +211,37 @@ func declareAggregateOperationTests(tc *common.TestContext) {
 				g.Wait()
 
 				md := loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-a>")
-				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
-					HandlerKey:  "<handler-key-1>",
-					InstanceID:  "<instance-a>",
-					Revision:    1,
-					BeginOffset: 100,
-					EndOffset:   200,
-				}))
+				gomega.Expect(md).To(gomega.Equal(
+					aggregatestore.MetaData{
+						HandlerKey:  "<handler-key-1>",
+						InstanceID:  "<instance-a>",
+						Revision:    1,
+						BeginOffset: 100,
+						EndOffset:   200,
+					},
+				))
 
 				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-b>")
-				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
-					HandlerKey:  "<handler-key-1>",
-					InstanceID:  "<instance-b>",
-					Revision:    2,
-					BeginOffset: 101,
-					EndOffset:   201,
-				}))
+				gomega.Expect(md).To(gomega.Equal(
+					aggregatestore.MetaData{
+						HandlerKey:  "<handler-key-1>",
+						InstanceID:  "<instance-b>",
+						Revision:    2,
+						BeginOffset: 101,
+						EndOffset:   201,
+					},
+				))
 
 				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-2>", "<instance-a>")
-				gomega.Expect(md).To(gomega.Equal(&aggregatestore.MetaData{
-					HandlerKey:  "<handler-key-2>",
-					InstanceID:  "<instance-a>",
-					Revision:    3,
-					BeginOffset: 102,
-					EndOffset:   202,
-				}))
+				gomega.Expect(md).To(gomega.Equal(
+					aggregatestore.MetaData{
+						HandlerKey:  "<handler-key-2>",
+						InstanceID:  "<instance-a>",
+						Revision:    3,
+						BeginOffset: 102,
+						EndOffset:   202,
+					},
+				))
 			})
 		})
 	})
