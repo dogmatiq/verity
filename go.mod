@@ -14,7 +14,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.1
 	github.com/google/uuid v1.1.1
-	github.com/jmalloc/gomegax v0.0.0-20200417012726-d7192fca6e53
+	github.com/jmalloc/gomegax v0.0.0-20200506034636-08f2c51c8941
 	github.com/lib/pq v1.5.1
 	github.com/mattn/go-sqlite3 v1.13.0
 	github.com/onsi/ginkgo v1.12.0
