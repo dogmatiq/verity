@@ -61,9 +61,14 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	return &eventStoreResult{
 		db: r.db,
 		pred: func(i *eventstore.Item) bool {
-			return hk == i.Envelope.MetaData.Source.Handler.Key &&
-				id == i.Envelope.MetaData.Source.InstanceId &&
-				i.Offset >= o
+			ok := hk == i.Envelope.MetaData.Source.Handler.Key &&
+				id == i.Envelope.MetaData.Source.InstanceId
+
+			if d != "" {
+				return ok && i.Offset > o
+			}
+
+			return ok
 		},
 		index: int(o),
 	}, nil

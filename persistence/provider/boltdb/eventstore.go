@@ -160,9 +160,14 @@ func (r *eventStoreRepository) LoadEventsBySource(
 		db:     r.db,
 		appKey: r.appKey,
 		pred: func(i *eventstore.Item) bool {
-			return hk == i.Envelope.MetaData.Source.Handler.Key &&
-				id == i.Envelope.MetaData.Source.InstanceId &&
-				i.Offset >= o
+			ok := hk == i.Envelope.MetaData.Source.Handler.Key &&
+				id == i.Envelope.MetaData.Source.InstanceId
+
+			if d != "" {
+				return ok && i.Offset > o
+			}
+
+			return ok
 		},
 		offset: o,
 	}, nil

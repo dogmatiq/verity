@@ -210,7 +210,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				gomega.Expect(items).To(gomega.BeEmpty())
 			})
 
-			ginkgo.It("returns a result containing the events that match the aggregate instance", func() {
+			ginkgo.It("returns a result containing the events that match the source instance", func() {
 				expectedA := []*eventstore.Item{item0, item2}
 				expectedB := []*eventstore.Item{item1, item3}
 
@@ -258,7 +258,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				}
 			})
 
-			ginkgo.It("matches the events for the aggregate only from the given message id, if specified ", func() {
+			ginkgo.It("matches the events from the source only after the given message id", func() {
 				expectedA := []*eventstore.Item{item2}
 				expectedB := []*eventstore.Item{item3}
 
@@ -278,7 +278,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					repository,
 					"<aggregate>",
 					"<instance-a>",
-					item2.Envelope.MetaData.MessageId,
+					item0.Envelope.MetaData.MessageId,
 				)
 
 				for i, item := range items {
@@ -294,7 +294,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					repository,
 					"<aggregate>",
 					"<instance-b>",
-					item3.Envelope.MetaData.MessageId,
+					item1.Envelope.MetaData.MessageId,
 				)
 
 				for i, item := range items {
@@ -362,7 +362,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 						repository,
 						"<aggregate>",
 						"<instance-a>",
-						item0.Envelope.MetaData.MessageId,
+						"",
 					)
 					gomega.Expect(items).To(gomega.HaveLen(2))
 				}
