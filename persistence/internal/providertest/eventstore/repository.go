@@ -326,7 +326,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			})
 		})
 
-		ginkgo.Describe("func QueryEvents() and loadEventsBySource()", func() {
+		ginkgo.Describe("func QueryEvents() and LoadEventsBySource()", func() {
 			ginkgo.It("allows concurrent consumers for the same application", func() {
 				saveEvents(
 					tc.Context,
