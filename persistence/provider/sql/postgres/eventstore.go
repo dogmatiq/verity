@@ -180,11 +180,12 @@ func (driver) SelectNextEventOffset(
 	return next, err
 }
 
-// SelectEvents selects events from the eventstore that match the given query.
+// SelectEventsByType selects events from the eventstore that match the
+// given event types query.
 //
-// f is a filter ID, as returned by InsertEventFilter(). If the query does not
-// use a filter, f is zero.
-func (driver) SelectEvents(
+// f is a filter ID, as returned by InsertEventFilter(). If the query does
+// not use a filter, f is zero.
+func (driver) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
@@ -245,6 +246,83 @@ func (driver) SelectEvents(
 		ctx,
 		qb.String(),
 		qb.Parameters...,
+	)
+}
+
+// SelectEventsBySource selects events from the eventstore that match the
+// given source, namely the source's key and id.
+func (driver) SelectEventsBySource(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+) (*sql.Rows, error) {
+	return db.QueryContext(
+		ctx,
+		`SELECT
+			e.offset,
+			e.message_id,
+			e.causation_id,
+			e.correlation_id,
+			e.source_app_name,
+			e.source_app_key,
+			e.source_handler_name,
+			e.source_handler_key,
+			e.source_instance_id,
+			e.created_at,
+			e.description,
+			e.portable_name,
+			e.media_type,
+			e.data
+		FROM infix.event AS e
+		WHERE e.source_app_key = $1
+		AND e.source_handler_key = $2
+		AND e.source_instance_id = $3
+		ORDER BY e.offset`,
+		ak,
+		hk,
+		id,
+	)
+}
+
+// SelectEventsBySourceAfterMessage selects events from the eventstore that
+// match the given source, namely the source's key and id. The events must
+// after the specified message d.
+func (driver) SelectEventsBySourceAfterMessage(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id, d string,
+) (*sql.Rows, error) {
+	return db.QueryContext(
+		ctx,
+		`SELECT
+			e.offset,
+			e.message_id,
+			e.causation_id,
+			e.correlation_id,
+			e.source_app_name,
+			e.source_app_key,
+			e.source_handler_name,
+			e.source_handler_key,
+			e.source_instance_id,
+			e.created_at,
+			e.description,
+			e.portable_name,
+			e.media_type,
+			e.data
+		FROM infix.event AS e
+		WHERE e.source_app_key = $1
+		AND e.source_handler_key = $2
+		AND e.source_instance_id = $3
+		AND e.offset > (
+			SELECT e1.offset
+			FROM infix.event AS e1
+			WHERE e1.message_id = $4
+		)
+		ORDER BY e.offset`,
+		ak,
+		hk,
+		id,
+		d,
 	)
 }
 

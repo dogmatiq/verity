@@ -64,12 +64,12 @@ type eventStoreDriver interface {
 		ak string,
 	) (uint64, error)
 
-	// SelectEvents selects events from the eventstore that match the given
-	// query.
+	// SelectEventsByType selects events from the eventstore that match the
+	// given event types query.
 	//
 	// f is a filter ID, as returned by InsertEventFilter(). If the query does
 	// not use a filter, f is zero.
-	SelectEvents(
+	SelectEventsByType(
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
@@ -77,7 +77,26 @@ type eventStoreDriver interface {
 		f int64,
 	) (*sql.Rows, error)
 
-	// ScanEvent scans the next event from a row-set returned by SelectEvents().
+	// SelectEventsBySource selects events from the eventstore that match the
+	// given source, namely the source's key and id.
+	SelectEventsBySource(
+		ctx context.Context,
+		db *sql.DB,
+		ak, hk, id string,
+	) (*sql.Rows, error)
+
+	// SelectEventsBySourceAfterMessage selects events from the eventstore that
+	// match the given source, namely the source's key and id. The events must
+	// after the specified message d.
+	SelectEventsBySourceAfterMessage(
+		ctx context.Context,
+		db *sql.DB,
+		ak, hk, id, d string,
+	) (*sql.Rows, error)
+
+	// ScanEvent scans the next event from a row-set returned by
+	// SelectEventsByType(), SelectEventsBySource(), and
+	// SelectEventsBySourceAfterMessage().
 	ScanEvent(
 		rows *sql.Rows,
 		i *eventstore.Item,
@@ -154,7 +173,31 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
 ) (eventstore.Result, error) {
-	panic("not implemented")
+	if d != "" {
+		rows, err := r.driver.SelectEventsBySourceAfterMessage(
+			ctx,
+			r.db,
+			r.appKey, hk, id, d,
+		)
+
+		return &eventStoreResult{
+			db:     r.db,
+			rows:   rows,
+			driver: r.driver,
+		}, err
+	}
+
+	rows, err := r.driver.SelectEventsBySource(
+		ctx,
+		r.db,
+		r.appKey, hk, id,
+	)
+
+	return &eventStoreResult{
+		db:     r.db,
+		rows:   rows,
+		driver: r.driver,
+	}, err
 }
 
 // QueryEvents queries events in the repository.
@@ -177,7 +220,7 @@ func (r *eventStoreRepository) QueryEvents(
 		}
 	}
 
-	rows, err := r.driver.SelectEvents(
+	rows, err := r.driver.SelectEventsByType(
 		ctx,
 		r.db,
 		r.appKey,
