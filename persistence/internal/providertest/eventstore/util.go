@@ -78,18 +78,18 @@ func queryEvents(
 	}
 }
 
-// loadEventsForAggregate loads the event items for the aggregate with the given
-// key, and instance id.
+// loadEventsBySource loads the events produced by the specified source with
+// the given handler key and id.
 //
 // d is the optional parameter, it represents ID of the message that was
 // recorded when the instance was last destroyed.
-func loadEventsForAggregate(
+func loadEventsBySource(
 	ctx context.Context,
 	r eventstore.Repository,
 	hk, id string,
 	d string,
 ) []*eventstore.Item {
-	res, err := r.LoadEventsForAggregate(ctx, hk, id, d)
+	res, err := r.LoadEventsBySource(ctx, hk, id, d)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 

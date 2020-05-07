@@ -41,12 +41,12 @@ func (r *eventStoreRepository) NextEventOffset(
 	return uint64(next), nil
 }
 
-// LoadEventsForAggregate loads the events for the aggregate with the given
-// key and id.
+// LoadEventsBySource loads the events produced by the specified source with
+// the given handler key and id.
 //
 // d is the optional parameter, it represents ID of the message that was
 // recorded when the instance was last destroyed.
-func (r *eventStoreRepository) LoadEventsForAggregate(
+func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
 ) (eventstore.Result, error) {

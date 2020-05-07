@@ -11,22 +11,22 @@ import (
 type EventStoreRepositoryStub struct {
 	eventstore.Repository
 
-	QueryEventsFunc            func(context.Context, eventstore.Query) (eventstore.Result, error)
-	LoadEventsForAggregateFunc func(context.Context, string, string, string) (eventstore.Result, error)
+	QueryEventsFunc        func(context.Context, eventstore.Query) (eventstore.Result, error)
+	LoadEventsBySourceFunc func(context.Context, string, string, string) (eventstore.Result, error)
 }
 
-// LoadEventsForAggregate loads the events for the aggregate with the given
-// key and id.
-func (r *EventStoreRepositoryStub) LoadEventsForAggregate(
+// LoadEventsBySource loads the events produced by the specified source with
+// the given handler key and id.
+func (r *EventStoreRepositoryStub) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
 ) (eventstore.Result, error) {
-	if r.LoadEventsForAggregateFunc != nil {
-		return r.LoadEventsForAggregateFunc(ctx, hk, id, d)
+	if r.LoadEventsBySourceFunc != nil {
+		return r.LoadEventsBySourceFunc(ctx, hk, id, d)
 	}
 
 	if r.Repository != nil {
-		return r.Repository.LoadEventsForAggregate(ctx, hk, id, d)
+		return r.Repository.LoadEventsBySource(ctx, hk, id, d)
 	}
 
 	return nil, nil

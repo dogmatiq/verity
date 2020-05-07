@@ -204,9 +204,9 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			})
 		})
 
-		ginkgo.Describe("func LoadEventsForAggregate()", func() {
+		ginkgo.Describe("func LoadEventsBySource()", func() {
 			ginkgo.It("returns an empty result if the store is empty", func() {
-				items := loadEventsForAggregate(tc.Context, repository, "<aggregate>", "<instance-a>", "")
+				items := loadEventsBySource(tc.Context, repository, "<aggregate>", "<instance-a>", "")
 				gomega.Expect(items).To(gomega.BeEmpty())
 			})
 
@@ -225,7 +225,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					item5.Envelope,
 				)
 
-				items := loadEventsForAggregate(
+				items := loadEventsBySource(
 					tc.Context,
 					repository,
 					"<aggregate>",
@@ -241,7 +241,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					)
 				}
 
-				items = loadEventsForAggregate(
+				items = loadEventsBySource(
 					tc.Context,
 					repository,
 					"<aggregate>",
@@ -273,7 +273,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					item5.Envelope,
 				)
 
-				items := loadEventsForAggregate(
+				items := loadEventsBySource(
 					tc.Context,
 					repository,
 					"<aggregate>",
@@ -289,7 +289,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					)
 				}
 
-				items = loadEventsForAggregate(
+				items = loadEventsBySource(
 					tc.Context,
 					repository,
 					"<aggregate>",
@@ -307,7 +307,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			})
 
 			ginkgo.It("does not return an error if events exist beyond the end offset", func() {
-				res, err := repository.LoadEventsForAggregate(tc.Context, "<aggregate>", "<instance-a>", "")
+				res, err := repository.LoadEventsBySource(tc.Context, "<aggregate>", "<instance-a>", "")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer res.Close()
 
@@ -326,7 +326,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			})
 		})
 
-		ginkgo.Describe("func QueryEvents() and LoadEventsForAggregate()", func() {
+		ginkgo.Describe("func QueryEvents() and loadEventsBySource()", func() {
 			ginkgo.It("allows concurrent consumers for the same application", func() {
 				saveEvents(
 					tc.Context,
@@ -357,7 +357,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				fn2 := func() {
 					defer g.Done()
 					defer ginkgo.GinkgoRecover()
-					items := loadEventsForAggregate(
+					items := loadEventsBySource(
 						tc.Context,
 						repository,
 						"<aggregate>",
