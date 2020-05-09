@@ -6,7 +6,6 @@ import (
 	. "github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
-	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
