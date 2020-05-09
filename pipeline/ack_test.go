@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
@@ -43,7 +44,10 @@ var _ = Describe("func Acknowledge()", func() {
 
 		It("acknowledges the request", func() {
 			called := false
-			req.AckFunc = func(context.Context) error {
+			req.AckFunc = func(
+				context.Context,
+				persistence.Batch,
+			) error {
 				called = true
 				return nil
 			}
@@ -64,7 +68,10 @@ var _ = Describe("func Acknowledge()", func() {
 		})
 
 		It("returns an error if Ack() fails", func() {
-			req.AckFunc = func(context.Context) error {
+			req.AckFunc = func(
+				context.Context,
+				persistence.Batch,
+			) error {
 				return errors.New("<error>")
 			}
 

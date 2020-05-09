@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/pipeline"
@@ -15,12 +16,11 @@ import (
 type PipelineRequestStub struct {
 	pipeline.Request
 
-	MessageIDFunc    func() string
 	FailureCountFunc func() uint
 	EnvelopeFunc     func() *envelopespec.Envelope
 	ParcelFunc       func() (*parcel.Parcel, error)
 	TxFunc           func(context.Context) (persistence.ManagedTransaction, error)
-	AckFunc          func(context.Context) error
+	AckFunc          func(context.Context, persistence.Batch) error
 	NackFunc         func(context.Context, time.Time) error
 	CloseFunc        func() error
 }
@@ -54,7 +54,11 @@ func NewPipelineRequestStub(
 		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
 			return tx, nil
 		},
-		AckFunc: func(ctx context.Context) error {
+		AckFunc: func(ctx context.Context, batch persistence.Batch) error {
+			if err := refactor251.PersistTx(ctx, tx, batch); err != nil {
+				return err
+			}
+
 			_, err := tx.Commit(ctx)
 			return err
 		},
@@ -124,13 +128,13 @@ func (r *PipelineRequestStub) Tx(ctx context.Context) (persistence.ManagedTransa
 // Ack acknowledges successful handling of the request.
 //
 // It commits the changes performed in the request's transaction.
-func (r *PipelineRequestStub) Ack(ctx context.Context) error {
+func (r *PipelineRequestStub) Ack(ctx context.Context, batch persistence.Batch) error {
 	if r.AckFunc != nil {
-		return r.AckFunc(ctx)
+		return r.AckFunc(ctx, batch)
 	}
 
 	if r.Request != nil {
-		return r.Request.Ack(ctx)
+		return r.Request.Ack(ctx, batch)
 	}
 
 	return nil

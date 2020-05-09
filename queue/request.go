@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 )
@@ -67,9 +68,13 @@ func (r *Request) Tx(ctx context.Context) (persistence.ManagedTransaction, error
 // Ack acknowledges successful handling of the request.
 //
 // It commits the changes performed in the request's transaction.
-func (r *Request) Ack(ctx context.Context) error {
+func (r *Request) Ack(ctx context.Context, batch persistence.Batch) error {
 	_, err := r.Tx(ctx)
 	if err != nil {
+		return err
+	}
+
+	if err := refactor251.PersistTx(ctx, r.tx, batch); err != nil {
 		return err
 	}
 

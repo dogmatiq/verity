@@ -263,7 +263,7 @@ var _ = Describe("type Sink", func() {
 				err := sink.Accept(ctx, createReq, createRes)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				err = createReq.Ack(ctx)
+				err = createReq.Ack(ctx, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -319,7 +319,7 @@ var _ = Describe("type Sink", func() {
 					err := sink.Accept(ctx, destroyReq, destroyRes)
 					Expect(err).ShouldNot(HaveOccurred())
 
-					err = destroyReq.Ack(ctx)
+					err = destroyReq.Ack(ctx, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -385,7 +385,7 @@ var _ = Describe("type Sink", func() {
 				err := sink.Accept(ctx, req, res)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				err = req.Ack(ctx)
+				err = req.Ack(ctx, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				res, err := eventRepo.QueryEvents(ctx, eventstore.Query{})
@@ -452,7 +452,7 @@ var _ = Describe("type Sink", func() {
 				err := sink.Accept(ctx, req, res)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				err = req.Ack(ctx)
+				err = req.Ack(ctx, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				md, err := aggregateRepo.LoadMetaData(ctx, "<aggregate-key>", "<instance>")
