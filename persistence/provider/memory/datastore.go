@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
