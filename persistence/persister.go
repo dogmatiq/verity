@@ -17,29 +17,6 @@ type Persister interface {
 	Persist(context.Context, Batch) (Result, error)
 }
 
-// Batch is a set of operations that are committed to the data store atomically
-// using a Persister.
-type Batch []Operation
-
-// MustValidate panics if the batch contains any operations that operate on the
-// same entity.
-func (batch Batch) MustValidate() {
-	for i, a := range batch {
-		ak := a.entityKey()
-
-		for _, b := range batch[i+1:] {
-			bk := b.entityKey()
-
-			if ak == bk {
-				panic(fmt.Sprintf(
-					"batch contains multiple operations for the same entity (%s)",
-					ak,
-				))
-			}
-		}
-	}
-}
-
 // Result is the result of a successfully persisted batch of operations.
 type Result struct {
 	// EventStoreItems contains the events from SaveEvent operations.
