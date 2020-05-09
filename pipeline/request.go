@@ -11,9 +11,6 @@ import (
 
 // Request is a request for a pipeline to process a particular message.
 type Request interface {
-	// MessageID returns the ID of the message in the request.
-	MessageID() string
-
 	// FailureCount returns the number of times this message has already been
 	// attempted without success, not including this request.
 	FailureCount() uint
