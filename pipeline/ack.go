@@ -34,7 +34,7 @@ func Acknowledge(
 		err := next(ctx, req, res)
 
 		if err == nil {
-			return req.Ack(ctx)
+			return req.Ack(ctx, nil)
 		}
 
 		delay := bs(err, req.FailureCount())

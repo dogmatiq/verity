@@ -24,17 +24,26 @@ func Persist(
 		ctx,
 		ds,
 		func(tx persistence.ManagedTransaction) error {
-			v := transactionAdaptorVisitor{tx}
-
-			for _, op := range batch {
-				if err := op.AcceptVisitor(ctx, v); err != nil {
-					return err
-				}
-			}
-
-			return nil
+			return PersistTx(ctx, tx, batch)
 		},
 	)
+}
+
+// PersistTx performs the operations in batch on tx.
+func PersistTx(
+	ctx context.Context,
+	tx persistence.ManagedTransaction,
+	batch persistence.Batch,
+) error {
+	v := transactionAdaptorVisitor{tx}
+
+	for _, op := range batch {
+		if err := op.AcceptVisitor(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type transactionAdaptorVisitor struct {

@@ -29,7 +29,7 @@ type Request interface {
 	// Ack acknowledges successful handling of the request.
 	//
 	// It commits the changes performed in the request's transaction.
-	Ack(ctx context.Context) error
+	Ack(ctx context.Context, batch persistence.Batch) error
 
 	// Nack indicates an error while handling the message.
 	//
