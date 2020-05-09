@@ -45,9 +45,6 @@ func NewPipelineRequestStub(
 	}
 
 	req := &PipelineRequestStub{
-		MessageIDFunc: func() string {
-			return p.Envelope.MetaData.MessageId
-		},
 		EnvelopeFunc: func() *envelopespec.Envelope {
 			return p.Envelope
 		},
@@ -67,19 +64,6 @@ func NewPipelineRequestStub(
 	}
 
 	return req, tx
-}
-
-// MessageID returns the ID of the message in the request.
-func (r *PipelineRequestStub) MessageID() string {
-	if r.MessageIDFunc != nil {
-		return r.MessageIDFunc()
-	}
-
-	if r.Request != nil {
-		return r.Request.MessageID()
-	}
-
-	return ""
 }
 
 // FailureCount returns the number of times this message has already been
