@@ -14,11 +14,11 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.1
 	github.com/google/uuid v1.1.1
-	github.com/jmalloc/gomegax v0.0.0-20200417012726-d7192fca6e53
+	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/lib/pq v1.5.2
 	github.com/mattn/go-sqlite3 v1.13.0
 	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.9.0
+	github.com/onsi/gomega v1.10.0
 	go.etcd.io/bbolt v1.3.4
 	go.uber.org/multierr v1.5.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e

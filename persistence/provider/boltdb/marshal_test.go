@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
-	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
