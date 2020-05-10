@@ -306,6 +306,23 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				}
 			})
 
+			ginkgo.It("returns an error if the message with the given id is not found", func() {
+				saveEvents(
+					tc.Context,
+					dataStore,
+					item0.Envelope,
+					item1.Envelope,
+				)
+
+				_, err := repository.LoadEventsBySource(
+					tc.Context,
+					"<aggregate>",
+					"<instance-a>",
+					item2.Envelope.MetaData.MessageId,
+				)
+				gomega.Expect(err).Should(gomega.HaveOccurred())
+			})
+
 			ginkgo.It("does not return an error if events exist beyond the end offset", func() {
 				res, err := repository.LoadEventsBySource(tc.Context, "<aggregate>", "<instance-a>", "")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -376,7 +393,6 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				go fn2()
 				g.Wait()
 			})
-
 		})
 
 		ginkgo.Describe("type eventstore.Result", func() {
