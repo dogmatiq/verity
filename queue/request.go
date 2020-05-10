@@ -68,28 +68,29 @@ func (r *Request) Tx(ctx context.Context) (persistence.ManagedTransaction, error
 // Ack acknowledges successful handling of the request.
 //
 // It commits the changes performed in the request's transaction.
-func (r *Request) Ack(ctx context.Context, batch persistence.Batch) error {
+func (r *Request) Ack(ctx context.Context, batch persistence.Batch) (persistence.Result, error) {
 	_, err := r.Tx(ctx)
 	if err != nil {
-		return err
+		return persistence.Result{}, err
 	}
 
 	if err := refactor251.PersistTx(ctx, r.tx, batch); err != nil {
-		return err
+		return persistence.Result{}, err
 	}
 
 	if err := r.tx.RemoveMessageFromQueue(ctx, r.elem.item); err != nil {
-		return err
+		return persistence.Result{}, err
 	}
 
-	if _, err := r.tx.Commit(ctx); err != nil {
-		return err
+	br, err := r.tx.Commit(ctx)
+	if err != nil {
+		return br, err
 	}
 
 	r.done = true
 	r.elem.item.Revision = 0
 
-	return nil
+	return br, nil
 }
 
 // Nack indicates an error while handling the message.

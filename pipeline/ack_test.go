@@ -47,9 +47,9 @@ var _ = Describe("func Acknowledge()", func() {
 			req.AckFunc = func(
 				context.Context,
 				persistence.Batch,
-			) error {
+			) (persistence.Result, error) {
 				called = true
-				return nil
+				return persistence.Result{}, nil
 			}
 
 			err := ack(context.Background(), req, res, next)
@@ -71,8 +71,8 @@ var _ = Describe("func Acknowledge()", func() {
 			req.AckFunc = func(
 				context.Context,
 				persistence.Batch,
-			) error {
-				return errors.New("<error>")
+			) (persistence.Result, error) {
+				return persistence.Result{}, errors.New("<error>")
 			}
 
 			err := ack(context.Background(), req, res, next)
