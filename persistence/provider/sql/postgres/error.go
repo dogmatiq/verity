@@ -176,18 +176,19 @@ func (d errorConverter) SelectEventsBySource(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
+	o uint64,
 ) (*sql.Rows, error) {
-	rows, err := d.d.SelectEventsBySource(ctx, db, ak, hk, id)
+	rows, err := d.d.SelectEventsBySource(ctx, db, ak, hk, id, o)
 	return rows, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) SelectEventsBySourceAfterMessage(
+func (d errorConverter) SelectOffsetByMessageID(
 	ctx context.Context,
 	db *sql.DB,
-	ak, hk, id, dm string,
-) (*sql.Rows, error) {
-	rows, err := d.d.SelectEventsBySourceAfterMessage(ctx, db, ak, hk, id, dm)
-	return rows, convertContextErrors(ctx, err)
+	id string,
+) (uint64, error) {
+	o, err := d.d.SelectOffsetByMessageID(ctx, db, id)
+	return o, convertContextErrors(ctx, err)
 }
 
 func (d errorConverter) ScanEvent(

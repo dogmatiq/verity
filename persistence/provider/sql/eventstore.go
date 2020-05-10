@@ -78,21 +78,22 @@ type eventStoreDriver interface {
 	) (*sql.Rows, error)
 
 	// SelectEventsBySource selects events from the eventstore that match the
-	// given source, namely the source's key and id.
+	// given source, namely the source's key and id. o is an optional offset
+	// parameter from which the messages should be loaded.
 	SelectEventsBySource(
 		ctx context.Context,
 		db *sql.DB,
 		ak, hk, id string,
+		o uint64,
 	) (*sql.Rows, error)
 
-	// SelectEventsBySourceAfterMessage selects events from the eventstore that
-	// match the given source, namely the source's key and id. The events must
-	// after the specified message d.
-	SelectEventsBySourceAfterMessage(
+	// SelectOffsetByMessageID selects the offset of the message with the given
+	// ID.
+	SelectOffsetByMessageID(
 		ctx context.Context,
 		db *sql.DB,
-		ak, hk, id, d string,
-	) (*sql.Rows, error)
+		id string,
+	) (uint64, error)
 
 	// ScanEvent scans the next event from a row-set returned by
 	// SelectEventsByType(), SelectEventsBySource(), and
@@ -173,24 +174,29 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
 ) (eventstore.Result, error) {
+	var o uint64
+
 	if d != "" {
-		rows, err := r.driver.SelectEventsBySourceAfterMessage(
+		var err error
+
+		o, err = r.driver.SelectOffsetByMessageID(
 			ctx,
 			r.db,
-			r.appKey, hk, id, d,
+			d,
 		)
+		if err != nil {
+			return nil, err
+		}
 
-		return &eventStoreResult{
-			db:     r.db,
-			rows:   rows,
-			driver: r.driver,
-		}, err
+		// increment the offset to select all messages after the barier 'd'
+		// message exclusively.
+		o++
 	}
 
 	rows, err := r.driver.SelectEventsBySource(
 		ctx,
 		r.db,
-		r.appKey, hk, id,
+		r.appKey, hk, id, o,
 	)
 
 	return &eventStoreResult{
