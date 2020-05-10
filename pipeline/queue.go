@@ -65,14 +65,16 @@ func (s *QueueSource) Run(ctx context.Context) error {
 // is enqueued.
 func TrackWithQueue(q *queue.Queue) QueueObserver {
 	return func(
-		ctx context.Context,
+		_ context.Context,
 		parcels []*parcel.Parcel,
 		items []*queuestore.Item,
 	) error {
 		for i, p := range parcels {
-			if err := q.Track(ctx, p, items[i]); err != nil {
-				return err
+			m := queue.Message{
+				Parcel: p,
+				Item:   items[i],
 			}
+			q.Track(m)
 		}
 
 		return nil
