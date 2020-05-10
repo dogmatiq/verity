@@ -53,7 +53,7 @@ func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
 func (ds *dataStore) Persist(
 	ctx context.Context,
 	batch persistence.Batch,
-) (persistence.BatchResult, error) {
+) (persistence.Result, error) {
 	return refactor251.Persist(ctx, ds, batch)
 }
 
