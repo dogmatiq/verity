@@ -378,15 +378,15 @@ var _ = Describe("type Request", func() {
 
 		It("does not block, even if the internal buffer is full", func() {
 			// Fill the buffer.
-			err := queue.Track(
-				ctx,
-				parcel1,
-				&queuestore.Item{
-					Revision: 1,
-					Envelope: parcel1.Envelope,
+			queue.Track(
+				Message{
+					Parcel: parcel1,
+					Item: &queuestore.Item{
+						Revision: 1,
+						Envelope: parcel1.Envelope,
+					},
 				},
 			)
-			Expect(err).ShouldNot(HaveOccurred())
 
 			done := make(chan struct{})
 			go func() {

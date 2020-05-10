@@ -37,5 +37,7 @@ func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) e
 
 	i.Revision++
 
-	return x.Queue.Track(ctx, p, i)
+	x.Queue.Track(Message{p, i})
+
+	return nil
 }

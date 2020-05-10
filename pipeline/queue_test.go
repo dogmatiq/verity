@@ -56,8 +56,10 @@ var _ = Describe("type QueueSource", func() {
 
 		i.Revision++
 
-		err = source.Queue.Track(ctx, p, i)
-		Expect(err).ShouldNot(HaveOccurred())
+		source.Queue.Track(queue.Message{
+			Parcel: p,
+			Item:   i,
+		})
 	})
 
 	JustBeforeEach(func() {
@@ -172,32 +174,5 @@ var _ = Describe("func TrackWithQueue()", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(req.Envelope().MetaData.MessageId).To(Equal("<id>"))
 		req.Close()
-	})
-
-	It("returns an error if the context deadline is exceeded", func() {
-		// It's an implementation detail, but the internal channel used to start
-		// tracking is buffered at the same size as the overall buffer size
-		// limit.
-		//
-		// We can't set it to zero, because that will fallback to the default.
-		// We also can't start the queue, otherwise it'll start reading from
-		// this channel and nothing will block.
-		//
-		// Instead, we set it to one, and "fill" the channel with a request to
-		// ensure that it will block.
-		mqueue.BufferSize = 1
-		err := mqueue.Track(ctx, pcl, item)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		// Setup a short deadline for the test.
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
-		defer cancel()
-
-		err = observer(
-			ctx,
-			[]*parcel.Parcel{pcl},
-			[]*queuestore.Item{item},
-		)
-		Expect(err).To(Equal(context.DeadlineExceeded))
 	})
 })

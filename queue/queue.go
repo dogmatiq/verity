@@ -107,43 +107,30 @@ func (q *Queue) Pop(ctx context.Context) (*Request, error) {
 }
 
 // Track begins tracking a message that has been persisted to the queue store.
-func (q *Queue) Track(
-	ctx context.Context,
-	p *parcel.Parcel,
-	i *queuestore.Item,
-) error {
-	if i.Revision == 0 {
+func (q *Queue) Track(m Message) {
+	if m.Item.Revision == 0 {
 		panic("message must be persisted")
 	}
 
 	e := &elem{
-		parcel: p,
-		item:   i,
+		parcel: m.Parcel,
+		item:   m.Item,
 	}
 
 	q.init()
 
 	// Now that we've persisted the message, we need to start tracking it.
 	select {
-	case <-ctx.Done():
-		// We were canceled before we could hand off the element for tracking.
-		// Set the exhaustive state to NO so that Run() knows to try loading
-		// messages from the store again.
-		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
-		logging.Debug(q.Logger, "%s requested tracking, but canceled or timed-out (exhaustive: no)", e.item.ID())
-		return ctx.Err()
-
 	case q.in <- e:
 		logging.Debug(q.Logger, "%s requested tracking successfully", e.item.ID())
 
-	case <-q.done:
-		// Run() has stopped, so nothing will be tracked, but the message has
-		// been persisted so from the perspective of the caller the message has
-		// been queued successfully.
-		logging.Debug(q.Logger, "%s requested tracking, but the queue is not running", e.item.ID())
+	default:
+		// We weren't able to hand off the element for tracking. Set the
+		// exhaustive state to NO so that Run() knows to try loading messages
+		// from the store again.
+		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
+		logging.Debug(q.Logger, "%s requested tracking, but the tracking queue is full (exhaustive: no)", e.item.ID())
 	}
-
-	return nil
 }
 
 // Run starts the queue.
