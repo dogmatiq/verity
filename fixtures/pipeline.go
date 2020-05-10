@@ -20,7 +20,7 @@ type PipelineRequestStub struct {
 	EnvelopeFunc     func() *envelopespec.Envelope
 	ParcelFunc       func() (*parcel.Parcel, error)
 	TxFunc           func(context.Context) (persistence.ManagedTransaction, error)
-	AckFunc          func(context.Context, persistence.Batch) error
+	AckFunc          func(context.Context, persistence.Batch) (persistence.Result, error)
 	NackFunc         func(context.Context, time.Time) error
 	CloseFunc        func() error
 }
@@ -54,13 +54,12 @@ func NewPipelineRequestStub(
 		TxFunc: func(context.Context) (persistence.ManagedTransaction, error) {
 			return tx, nil
 		},
-		AckFunc: func(ctx context.Context, batch persistence.Batch) error {
+		AckFunc: func(ctx context.Context, batch persistence.Batch) (persistence.Result, error) {
 			if err := refactor251.PersistTx(ctx, tx, batch); err != nil {
-				return err
+				return persistence.Result{}, err
 			}
 
-			_, err := tx.Commit(ctx)
-			return err
+			return tx.Commit(ctx)
 		},
 		CloseFunc: func() error {
 			return tx.Rollback()
@@ -128,7 +127,7 @@ func (r *PipelineRequestStub) Tx(ctx context.Context) (persistence.ManagedTransa
 // Ack acknowledges successful handling of the request.
 //
 // It commits the changes performed in the request's transaction.
-func (r *PipelineRequestStub) Ack(ctx context.Context, batch persistence.Batch) error {
+func (r *PipelineRequestStub) Ack(ctx context.Context, batch persistence.Batch) (persistence.Result, error) {
 	if r.AckFunc != nil {
 		return r.AckFunc(ctx, batch)
 	}
@@ -137,7 +136,7 @@ func (r *PipelineRequestStub) Ack(ctx context.Context, batch persistence.Batch) 
 		return r.Request.Ack(ctx, batch)
 	}
 
-	return nil
+	return persistence.Result{}, nil
 }
 
 // Nack indicates an error while handling the message.

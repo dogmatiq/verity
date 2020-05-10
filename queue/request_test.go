@@ -102,7 +102,7 @@ var _ = Describe("type Request", func() {
 
 				// Acknowledge and close the existing request for parcel0, freeing
 				// us to load again.
-				err := req.Ack(ctx, nil)
+				_, err := req.Ack(ctx, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				err = req.Close()
@@ -157,7 +157,7 @@ var _ = Describe("type Request", func() {
 				_, err = tx.SaveEvent(ctx, NewEnvelope("<event>", MessageE1))
 				Expect(err).ShouldNot(HaveOccurred())
 
-				err = req.Ack(ctx, nil)
+				_, err = req.Ack(ctx, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				repo := dataStore.EventStoreRepository()
@@ -181,7 +181,7 @@ var _ = Describe("type Request", func() {
 					return nil, errors.New("<error>")
 				}
 
-				err = req.Ack(ctx, nil)
+				_, err = req.Ack(ctx, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
@@ -196,7 +196,7 @@ var _ = Describe("type Request", func() {
 					return nil, errors.New("<error>")
 				}
 
-				err := req.Ack(ctx, nil)
+				_, err := req.Ack(ctx, nil)
 				Expect(err).To(MatchError("<error>"))
 			})
 
@@ -211,7 +211,7 @@ var _ = Describe("type Request", func() {
 					return errors.New("<error>")
 				}
 
-				err = req.Ack(ctx, nil)
+				_, err = req.Ack(ctx, nil)
 				Expect(err).To(MatchError("<error>"))
 			})
 
@@ -225,7 +225,7 @@ var _ = Describe("type Request", func() {
 					return persistence.TransactionResult{}, errors.New("<error>")
 				}
 
-				err = req.Ack(ctx, nil)
+				_, err = req.Ack(ctx, nil)
 				Expect(err).To(MatchError("<error>"))
 			})
 		})
