@@ -87,7 +87,7 @@ var _ = Describe("type QueueSource", func() {
 			) error {
 				defer GinkgoRecover()
 				defer cancel()
-				Expect(req.MessageID()).To(Equal("<id>"))
+				Expect(req.Envelope().MetaData.MessageId).To(Equal("<id>"))
 				return nil
 			}
 
@@ -170,7 +170,7 @@ var _ = Describe("func TrackWithQueue()", func() {
 		go mqueue.Run(ctx)
 		req, err := mqueue.Pop(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(req.MessageID()).To(Equal("<id>"))
+		Expect(req.Envelope().MetaData.MessageId).To(Equal("<id>"))
 		req.Close()
 	})
 

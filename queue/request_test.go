@@ -66,12 +66,6 @@ var _ = Describe("type Request", func() {
 			req.Close()
 		})
 
-		Describe("func MessageID()", func() {
-			It("returns the message ID", func() {
-				Expect(req.MessageID()).To(Equal("<message-0>"))
-			})
-		})
-
 		Describe("func FailureCount()", func() {
 			It("returns the number of times the message has failed handling", func() {
 				err := req.Nack(ctx, time.Now())

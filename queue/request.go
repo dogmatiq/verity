@@ -19,11 +19,6 @@ type Request struct {
 	done  bool
 }
 
-// MessageID returns the ID of the message in the request.
-func (r *Request) MessageID() string {
-	return r.elem.item.ID()
-}
-
 // FailureCount returns the number of times this message has already been
 // attempted without success, not including this request.
 func (r *Request) FailureCount() uint {
