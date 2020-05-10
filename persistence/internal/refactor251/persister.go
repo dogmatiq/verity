@@ -17,7 +17,7 @@ func Persist(
 	ctx context.Context,
 	ds persistence.DataStore,
 	batch persistence.Batch,
-) (persistence.BatchResult, error) {
+) (persistence.Result, error) {
 	batch.MustValidate()
 
 	return persistence.WithTransaction(

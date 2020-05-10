@@ -14,7 +14,7 @@ type Persister interface {
 	//
 	// If any one of the operations causes an optimistic concurrency conflict
 	// the entire batch is aborted and a ConflictError is returned.
-	Persist(context.Context, Batch) (BatchResult, error)
+	Persist(context.Context, Batch) (Result, error)
 }
 
 // Batch is a set of operations that are committed to the data store atomically
@@ -40,8 +40,8 @@ func (batch Batch) MustValidate() {
 	}
 }
 
-// BatchResult is the result of a successfully persisted batch of operations.
-type BatchResult struct {
+// Result is the result of a successfully persisted batch of operations.
+type Result struct {
 	// EventStoreItems contains the events from SaveEvent operations.
 	EventStoreItems []*eventstore.Item
 }
