@@ -2,6 +2,7 @@ package boltdb
 
 import (
 	"context"
+	"fmt"
 	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -137,7 +138,10 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
 ) (eventstore.Result, error) {
-	var o uint64
+	var (
+		o   uint64
+		err error
+	)
 
 	if d != "" {
 		r.db.View(
@@ -149,11 +153,23 @@ func (r *eventStoreRepository) LoadEventsBySource(
 					eventStoreBucketKey,
 					eventStoreMesssageIDsBucketKey,
 				); exists {
-					if v := messageIDs.Get([]byte(d)); v != nil {
-						o = unmarshalUint64(v)
+					v := messageIDs.Get([]byte(d))
+					if v == nil {
+						err = fmt.Errorf(
+							"message with id %s is not found",
+							d,
+						)
+
+						return
 					}
+
+					o = unmarshalUint64(v)
 				}
 			})
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	return &eventStoreResult{
