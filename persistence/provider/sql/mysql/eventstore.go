@@ -253,6 +253,7 @@ func (driver) SelectEventsBySource(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
+	o uint64,
 ) (*sql.Rows, error) {
 	return db.QueryContext(
 		ctx,
@@ -275,54 +276,33 @@ func (driver) SelectEventsBySource(
 		WHERE e.source_app_key = ?
 		AND e.source_handler_key = ?
 		AND e.source_instance_id = ?
+		AND e.offset >= ?
 		ORDER BY e.offset`,
 		ak,
 		hk,
 		id,
+		o,
 	)
 }
 
-// SelectEventsBySourceAfterMessage selects events from the eventstore that
-// match the given source, namely the source's key and id. The events must
-// after the specified message d.
-func (driver) SelectEventsBySourceAfterMessage(
+// SelectOffsetByMessageID selects the offset of the message with the given
+// ID.
+func (driver) SelectOffsetByMessageID(
 	ctx context.Context,
 	db *sql.DB,
-	ak, hk, id, d string,
-) (*sql.Rows, error) {
-	return db.QueryContext(
+	id string,
+) (o uint64, err error) {
+	row := db.QueryRowContext(
 		ctx,
 		`SELECT
-			e.offset,
-			e.message_id,
-			e.causation_id,
-			e.correlation_id,
-			e.source_app_name,
-			e.source_app_key,
-			e.source_handler_name,
-			e.source_handler_key,
-			e.source_instance_id,
-			e.created_at,
-			e.description,
-			e.portable_name,
-			e.media_type,
-			e.data
+			e.offset
 		FROM event AS e
-		WHERE e.source_app_key = ?
-		AND e.source_handler_key = ?
-		AND e.source_instance_id = ?
-		AND e.offset > (
-			SELECT
-				e1.offset
-			FROM event AS e1
-			WHERE e1.message_id = ?
-		)
-		ORDER BY e.offset`,
-		ak,
-		hk,
+		WHERE e.message_id = ?`,
 		id,
-		d,
 	)
+
+	err = row.Scan(&o)
+	return
 }
 
 // ScanEvent scans the next event from a row-set returned by SelectEvents().
