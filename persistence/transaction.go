@@ -31,7 +31,7 @@ type Transaction interface {
 
 // TransactionResult contains information about a successfully committed
 // transaction.
-type TransactionResult = BatchResult
+type TransactionResult = Result
 
 // ManagedTransaction is a Transaction that can not be commit or rolled-back
 // directly because its life-time is managed for the user.

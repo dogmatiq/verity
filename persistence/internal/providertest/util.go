@@ -97,7 +97,7 @@ func persist(
 	ctx context.Context,
 	p persistence.Persister,
 	batch ...persistence.Operation,
-) persistence.BatchResult {
+) persistence.Result {
 	res, err := p.Persist(ctx, batch)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	return res
