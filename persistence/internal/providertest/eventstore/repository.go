@@ -321,6 +321,13 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					item2.Envelope.MetaData.MessageId,
 				)
 				gomega.Expect(err).Should(gomega.HaveOccurred())
+				gomega.Expect(err).To(
+					gomega.MatchError(
+						"message with ID '" +
+							item2.Envelope.MetaData.MessageId +
+							"' cannot be found",
+					),
+				)
 			})
 
 			ginkgo.It("does not return an error if events exist beyond the end offset", func() {

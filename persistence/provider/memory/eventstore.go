@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -57,10 +56,9 @@ func (r *eventStoreRepository) LoadEventsBySource(
 		var ok bool
 		o, ok = r.db.event.messageIDs[d]
 		if !ok {
-			return nil, fmt.Errorf(
-				"message with id %s is not found",
-				d,
-			)
+			return nil, eventstore.UnknownMessageError{
+				MessageID: d,
+			}
 		}
 
 		o = o + 1

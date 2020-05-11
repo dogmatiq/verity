@@ -2,7 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"fmt"
 	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
@@ -155,10 +154,9 @@ func (r *eventStoreRepository) LoadEventsBySource(
 				); exists {
 					v := messageIDs.Get([]byte(d))
 					if v == nil {
-						err = fmt.Errorf(
-							"message with id %s is not found",
-							d,
-						)
+						err = &eventstore.UnknownMessageError{
+							MessageID: d,
+						}
 
 						return
 					}
