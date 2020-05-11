@@ -70,7 +70,7 @@ func (t *transaction) SaveEvent(
 
 	messageIDs := bboltx.CreateBucketIfNotExists(
 		store,
-		eventStoreMesssageIDsBucketKey,
+		eventStoreMessageIDsBucketKey,
 	)
 
 	bboltx.Put(
@@ -151,7 +151,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 					tx,
 					r.appKey,
 					eventStoreBucketKey,
-					eventStoreMesssageIDsBucketKey,
+					eventStoreMessageIDsBucketKey,
 				); exists {
 					v := messageIDs.Get([]byte(d))
 					if v == nil {
