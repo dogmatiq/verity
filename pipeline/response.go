@@ -37,42 +37,6 @@ func (r *Response) RecordEvent(p *parcel.Parcel) {
 	// TODO: also enqueue, if necessary
 }
 
-// EnqueueMessageX is a helper method that adds a message to the queue and
-// adds it to the response.
-//
-// TODO: remove
-func (r *Response) EnqueueMessageX(
-	ctx context.Context,
-	tx persistence.ManagedTransaction,
-	p *parcel.Parcel,
-) error {
-	n := p.ScheduledFor
-	if n.IsZero() {
-		n = time.Now()
-	}
-
-	i := &queuestore.Item{
-		NextAttemptAt: n,
-		Envelope:      p.Envelope,
-	}
-
-	if err := tx.SaveMessageToQueue(ctx, i); err != nil {
-		return err
-	}
-
-	i.Revision++
-
-	r.result.QueueMessages = append(
-		r.result.QueueMessages,
-		queue.Message{
-			Parcel: p,
-			Item:   i,
-		},
-	)
-
-	return nil
-}
-
 // RecordEventX is a helper method that appends an event to the event stream and
 // adds it to the response.
 //
