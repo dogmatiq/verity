@@ -31,7 +31,7 @@ var _ = Describe("type Response", func() {
 		res = &Response{}
 	})
 
-	Describe("func EnqueueMessage()", func() {
+	Describe("func EnqueueMessageX()", func() {
 		It("persists the message via the transaction", func() {
 			called := false
 			tx.SaveMessageToQueueFunc = func(
@@ -49,7 +49,7 @@ var _ = Describe("type Response", func() {
 				return nil
 			}
 
-			err := res.EnqueueMessage(context.Background(), tx, pcl)
+			err := res.EnqueueMessageX(context.Background(), tx, pcl)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
@@ -65,7 +65,7 @@ var _ = Describe("type Response", func() {
 				return nil
 			}
 
-			err := res.EnqueueMessage(context.Background(), tx, pcl)
+			err := res.EnqueueMessageX(context.Background(), tx, pcl)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -80,7 +80,7 @@ var _ = Describe("type Response", func() {
 				return nil
 			}
 
-			err := res.EnqueueMessage(context.Background(), tx, pcl)
+			err := res.EnqueueMessageX(context.Background(), tx, pcl)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -92,12 +92,12 @@ var _ = Describe("type Response", func() {
 				return errors.New("<error>")
 			}
 
-			err := res.EnqueueMessage(context.Background(), tx, pcl)
+			err := res.EnqueueMessageX(context.Background(), tx, pcl)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})
 
-	Describe("func RecordEvent()", func() {
+	Describe("func RecordEventX()", func() {
 		It("persists the event via the transaction", func() {
 			called := false
 			tx.SaveEventFunc = func(
@@ -109,7 +109,7 @@ var _ = Describe("type Response", func() {
 				return 0, nil
 			}
 
-			_, err := res.RecordEvent(context.Background(), tx, pcl)
+			_, err := res.RecordEventX(context.Background(), tx, pcl)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
@@ -122,7 +122,7 @@ var _ = Describe("type Response", func() {
 				return 123, nil
 			}
 
-			o, err := res.RecordEvent(context.Background(), tx, pcl)
+			o, err := res.RecordEventX(context.Background(), tx, pcl)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(o).To(BeEquivalentTo(123))
 		})
@@ -135,7 +135,7 @@ var _ = Describe("type Response", func() {
 				return 0, errors.New("<error>")
 			}
 
-			_, err := res.RecordEvent(context.Background(), tx, pcl)
+			_, err := res.RecordEventX(context.Background(), tx, pcl)
 			Expect(err).To(MatchError("<error>"))
 		})
 	})

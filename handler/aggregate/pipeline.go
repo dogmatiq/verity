@@ -172,7 +172,7 @@ func (s *Sink) save(
 	inst.metadata.InstanceExists = sc.exists
 
 	for i, p := range sc.events {
-		_, err := res.RecordEvent(ctx, tx, p)
+		_, err := res.RecordEventX(ctx, tx, p)
 		if err != nil {
 			return err
 		}
