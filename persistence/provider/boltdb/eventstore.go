@@ -28,7 +28,7 @@ var (
 	//
 	// The keys are the string message IDs converted to bytes. The
 	// values are the event offsets encoded as 8-byte big-endian packets.
-	eventStoreMessageIDsBucketKey = []byte("message_ids")
+	eventStoreOffsetsBucketKey = []byte("offsets")
 
 	// eventStoreNextOffsetKey is the key of a value within the root bucket that
 	// contains the next unused offset, again encoded as 8-byte big-endian
@@ -139,7 +139,7 @@ func (r *eventStoreRepository) NextEventOffset(
 // cannot be found, UnknownMessageError is returned.
 func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
-	hk, id, d string,
+	hk, id, m string,
 ) (eventstore.Result, error) {
 	var (
 		o   uint64
@@ -165,6 +165,8 @@ func (r *eventStoreRepository) LoadEventsBySource(
 						return
 					}
 
+					// Increment the offset to match all messages
+					// after the barrier message exclusively.
 					o = unmarshalUint64(v) + 1
 				}
 			})

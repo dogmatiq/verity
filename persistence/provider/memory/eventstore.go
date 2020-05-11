@@ -53,7 +53,7 @@ func (r *eventStoreRepository) NextEventOffset(
 // cannot be found, UnknownMessageError is returned.
 func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
-	hk, id, d string,
+	hk, id, m string,
 ) (eventstore.Result, error) {
 	var o uint64
 
@@ -66,7 +66,9 @@ func (r *eventStoreRepository) LoadEventsBySource(
 			}
 		}
 
-		o = o + 1
+		// Increment the offset to select all messages after the barrier
+		// message exclusively.
+		o++
 	}
 
 	return &eventStoreResult{
@@ -167,7 +169,7 @@ func (cs *eventStoreChangeSet) stageSave(
 // eventStoreDatabase contains data that is committed to the event store.
 type eventStoreDatabase struct {
 	items      []*eventstore.Item
-	messageIDs map[string]uint64
+	offsets map[string]uint64
 }
 
 // apply updates the database to include the changes in cs.
