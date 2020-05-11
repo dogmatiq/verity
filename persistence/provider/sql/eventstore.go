@@ -65,7 +65,7 @@ type eventStoreDriver interface {
 	) (uint64, error)
 
 	// SelectEventsByType selects events from the eventstore that match the
-	// given event types query.
+	// given query.
 	//
 	// f is a filter ID, as returned by InsertEventFilter(). If the query does
 	// not use a filter, f is zero.
@@ -77,9 +77,8 @@ type eventStoreDriver interface {
 		f int64,
 	) (*sql.Rows, error)
 
-	// SelectEventsBySource selects events from the eventstore that match the
-	// given source, namely the source's key and id. o is an optional offset
-	// parameter from which the messages should be loaded.
+	// SelectEventsBySource selects events from the eventstore that were
+	// produced by a specific handler.
 	SelectEventsBySource(
 		ctx context.Context,
 		db *sql.DB,
@@ -96,8 +95,7 @@ type eventStoreDriver interface {
 	) (uint64, error)
 
 	// ScanEvent scans the next event from a row-set returned by
-	// SelectEventsByType(), SelectEventsBySource(), and
-	// SelectEventsBySourceAfterMessage().
+	// SelectEventsByType() and SelectEventsBySource().
 	ScanEvent(
 		rows *sql.Rows,
 		i *eventstore.Item,

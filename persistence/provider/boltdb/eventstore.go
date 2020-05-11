@@ -25,12 +25,12 @@ var (
 	// buffers.
 	eventStoreItemsBucketKey = []byte("items")
 
-	// eventStoreMesssageIDsBucketKey is the key for a child bucket that indexes
+	// eventStoreMessageIDsBucketKey is the key for a child bucket that indexes
 	// event message id against the event offsets.
 	//
 	// The keys are the string message IDs converted to bytes. The
 	// values are the event offsets encoded as 8-byte big-endian packets.
-	eventStoreMesssageIDsBucketKey = []byte("message_ids")
+	eventStoreMessageIDsBucketKey = []byte("message_ids")
 
 	// eventStoreNextOffsetKey is the key of a value within the root bucket that
 	// contains the next unused offset, again encoded as 8-byte big-endian
@@ -163,7 +163,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 						return
 					}
 
-					o = unmarshalUint64(v)
+					o = unmarshalUint64(v) + 1
 				}
 			})
 	}
@@ -176,7 +176,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 		db:     r.db,
 		appKey: r.appKey,
 		pred: func(i *eventstore.Item) bool {
-			ok := hk == i.Envelope.MetaData.Source.Handler.Key &&
+			return hk == i.Envelope.MetaData.Source.Handler.Key &&
 				id == i.Envelope.MetaData.Source.InstanceId
 
 			if d != "" {

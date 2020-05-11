@@ -54,7 +54,8 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	var o uint64
 
 	if d != "" {
-		o1, ok := r.db.event.messageIDs[d]
+		var bool ok
+		o, ok = r.db.event.messageIDs[d]
 		if !ok {
 			return nil, fmt.Errorf(
 				"message with id %s is not found",
@@ -68,7 +69,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	return &eventStoreResult{
 		db: r.db,
 		pred: func(i *eventstore.Item) bool {
-			ok := hk == i.Envelope.MetaData.Source.Handler.Key &&
+			return hk == i.Envelope.MetaData.Source.Handler.Key &&
 				id == i.Envelope.MetaData.Source.InstanceId
 
 			if d != "" {
