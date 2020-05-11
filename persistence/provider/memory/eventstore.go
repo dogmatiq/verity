@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -136,7 +135,6 @@ func (r *eventStoreResult) Next(
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	r.index = math.MaxInt64
 	return nil
 }
 
