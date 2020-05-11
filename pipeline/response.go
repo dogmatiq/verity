@@ -45,9 +45,11 @@ func (r *Response) ExecuteCommand(p *parcel.Parcel) {
 	)
 }
 
-// EnqueueMessage is a helper method that adds a message to the queue and
+// EnqueueMessageX is a helper method that adds a message to the queue and
 // adds it to the response.
-func (r *Response) EnqueueMessage(
+//
+// TODO: remove
+func (r *Response) EnqueueMessageX(
 	ctx context.Context,
 	tx persistence.ManagedTransaction,
 	p *parcel.Parcel,
@@ -79,9 +81,11 @@ func (r *Response) EnqueueMessage(
 	return nil
 }
 
-// RecordEvent is a helper method that appends an event to the event stream and
+// RecordEventX is a helper method that appends an event to the event stream and
 // adds it to the response.
-func (r *Response) RecordEvent(
+//
+// TODO: remove
+func (r *Response) RecordEventX(
 	ctx context.Context,
 	tx persistence.ManagedTransaction,
 	p *parcel.Parcel,

@@ -76,7 +76,7 @@ func (s *Sink) Accept(
 	}
 
 	for _, p := range sc.events {
-		if _, err := res.RecordEvent(ctx, tx, p); err != nil {
+		if _, err := res.RecordEventX(ctx, tx, p); err != nil {
 			return err
 		}
 	}
