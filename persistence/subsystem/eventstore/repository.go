@@ -2,7 +2,22 @@ package eventstore
 
 import (
 	"context"
+	"fmt"
 )
+
+// UnknownMessageError is the error returned  by Repository.LoadEventsBySource()
+// method when no message is found.
+type UnknownMessageError struct {
+	MessageID string
+}
+
+// Error returns a string representation of UnknownMessageError.
+func (e UnknownMessageError) Error() string {
+	return fmt.Sprintf(
+		"message with ID '%s' cannot be found",
+		e.MessageID,
+	)
+}
 
 // Repository is an interface for reading persisted event messages.
 type Repository interface {
@@ -17,7 +32,8 @@ type Repository interface {
 	// use instances.
 	//
 	// m is ID of a "barrier" message. If supplied, the results are limited to
-	// events with higher offsets than the barrier message.
+	// events with higher offsets than the barrier message. If the message
+	// cannot be found, UnknownMessageError is returned.
 	LoadEventsBySource(
 		ctx context.Context,
 		hk, id, d string,

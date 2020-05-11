@@ -87,7 +87,7 @@ type eventStoreDriver interface {
 	) (*sql.Rows, error)
 
 	// SelectOffsetByMessageID selects the offset of the message with the given
-	// ID.
+	// ID. It returns eventstore.UnknownMessageError if the message is not found.
 	SelectOffsetByMessageID(
 		ctx context.Context,
 		db *sql.DB,

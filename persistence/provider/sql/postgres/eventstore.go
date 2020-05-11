@@ -303,7 +303,12 @@ func (driver) SelectOffsetByMessageID(
 		id,
 	)
 
-	err = row.Scan(&o)
+	if err = row.Scan(&o); err == sql.ErrNoRows {
+		err = eventstore.UnknownMessageError{
+			MessageID: id,
+		}
+	}
+
 	return
 }
 

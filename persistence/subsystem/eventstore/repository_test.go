@@ -1,7 +1,9 @@
 package eventstore_test
 
 import (
+	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	. "github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	. "github.com/onsi/ginkgo"
@@ -171,5 +173,20 @@ var _ = Describe("type Query", func() {
 				},
 			),
 		)
+	})
+})
+
+var _ = Describe("type UnknownMessageError", func() {
+	Describe("func Error()", func() {
+		It("includes the message ID of the unknown message", func() {
+			env := infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
+			err := UnknownMessageError{
+				MessageID: env.MetaData.MessageId,
+			}
+
+			Expect(err).To(
+				MatchError("message with ID '" + env.MetaData.MessageId + "' cannot be found"),
+			)
+		})
 	})
 })
