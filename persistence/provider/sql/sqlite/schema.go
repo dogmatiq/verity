@@ -113,7 +113,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		`CREATE INDEX by_type ON event (
 			source_app_key,
 			portable_name,
-			"offset"
+			offset
 		)`,
 	)
 
@@ -124,7 +124,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			source_app_key,
 			source_handler_key,
 			source_instance_id,
-			"offset"
+			offset
 		)`,
 	)
 
