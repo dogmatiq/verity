@@ -202,10 +202,21 @@ func (e *Engine) newPipeline(
 	}
 
 	return pipeline.New(
-		pipeline.TrackWithQueue(q),
-		pipeline.AddToEventCache(c),
 		pipeline.NewSequence(
-			pipeline.Acknowledge(e.opts.MessageBackoff, l),
+			pipeline.Observe(
+				func(r pipeline.Result, err error) {
+					if err == nil {
+						c.Add(r.Events)
+						for _, m := range r.QueueMessages {
+							q.Track(m)
+						}
+					}
+				},
+			),
+			pipeline.Acknowledge(
+				e.opts.MessageBackoff,
+				l,
+			),
 			pipeline.RouteByType(rf.routes),
 		),
 	)

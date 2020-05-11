@@ -6,7 +6,6 @@ import (
 
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/pipeline"
@@ -110,69 +109,5 @@ var _ = Describe("type QueueSource", func() {
 			err = source.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
-	})
-})
-
-var _ = Describe("func TrackWithQueue()", func() {
-	var (
-		ctx       context.Context
-		cancel    context.CancelFunc
-		dataStore persistence.DataStore
-		mqueue    *queue.Queue
-		observer  pipeline.QueueObserver
-		pcl       *parcel.Parcel
-		item      *queuestore.Item
-	)
-
-	BeforeEach(func() {
-		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-
-		pcl = NewParcel("<id>", MessageA1)
-		dataStore = NewDataStoreStub()
-
-		mqueue = &queue.Queue{
-			DataStore: dataStore,
-			Marshaler: Marshaler,
-		}
-
-		observer = TrackWithQueue(mqueue)
-
-		item = &queuestore.Item{
-			NextAttemptAt: time.Now(),
-			Envelope:      pcl.Envelope,
-		}
-
-		_, err := persistence.WithTransaction(
-			ctx,
-			dataStore,
-			func(tx persistence.ManagedTransaction) error {
-				return tx.SaveMessageToQueue(ctx, item)
-			},
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-		item.Revision++
-	})
-
-	AfterEach(func() {
-		if dataStore != nil {
-			dataStore.Close()
-		}
-
-		cancel()
-	})
-
-	It("tracks messages when they are enqueued", func() {
-		err := observer(
-			ctx,
-			[]*parcel.Parcel{pcl},
-			[]*queuestore.Item{item},
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		go mqueue.Run(ctx)
-		req, err := mqueue.Pop(ctx)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(req.Envelope().MetaData.MessageId).To(Equal("<id>"))
-		req.Close()
 	})
 })
