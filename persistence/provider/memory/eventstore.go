@@ -54,7 +54,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	var o uint64
 
 	if d != "" {
-		var bool ok
+		var ok bool
 		o, ok = r.db.event.messageIDs[d]
 		if !ok {
 			return nil, fmt.Errorf(
@@ -63,7 +63,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 			)
 		}
 
-		o = o1
+		o = o + 1
 	}
 
 	return &eventStoreResult{
@@ -71,12 +71,6 @@ func (r *eventStoreRepository) LoadEventsBySource(
 		pred: func(i *eventstore.Item) bool {
 			return hk == i.Envelope.MetaData.Source.Handler.Key &&
 				id == i.Envelope.MetaData.Source.InstanceId
-
-			if d != "" {
-				return ok && i.Offset > o
-			}
-
-			return ok
 		},
 		index: int(o),
 	}, nil
