@@ -107,6 +107,8 @@ func (q *Queue) Pop(ctx context.Context) (*Request, error) {
 }
 
 // Track begins tracking a message that has been persisted to the queue store.
+//
+// TODO: accept a slice.
 func (q *Queue) Track(m Message) {
 	if m.Item.Revision == 0 {
 		panic("message must be persisted")

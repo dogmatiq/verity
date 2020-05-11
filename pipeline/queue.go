@@ -3,8 +3,6 @@ package pipeline
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
@@ -59,24 +57,4 @@ func (s *QueueSource) Run(ctx context.Context) error {
 	// running under the group we will see the actual causal error, not just the
 	// resulting context cancelation.
 	return g.Wait()
-}
-
-// TrackWithQueue returns an observer that calls q.Track() for each message that
-// is enqueued.
-func TrackWithQueue(q *queue.Queue) QueueObserver {
-	return func(
-		_ context.Context,
-		parcels []*parcel.Parcel,
-		items []*queuestore.Item,
-	) error {
-		for i, p := range parcels {
-			m := queue.Message{
-				Parcel: p,
-				Item:   items[i],
-			}
-			q.Track(m)
-		}
-
-		return nil
-	}
 }

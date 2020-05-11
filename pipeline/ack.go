@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/mlog"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/linger/backoff"
 )
 
@@ -34,7 +36,13 @@ func Acknowledge(
 		err := next(ctx, req, res)
 
 		if err == nil {
-			return req.Ack(ctx)
+			pr, err := req.Ack(ctx, res.batch)
+			if err != nil {
+				return err
+			}
+
+			correlateEvents(res, pr)
+			return nil
 		}
 
 		delay := bs(err, req.FailureCount())
@@ -49,6 +57,21 @@ func Acknowledge(
 		return req.Nack(
 			ctx,
 			time.Now().Add(delay),
+		)
+	}
+}
+
+// correlateEvents correlates the event store items from a persistence result
+// with the parcels that produced them in order to populate the pipeline result
+// with eventstore.Event values.
+func correlateEvents(res *Response, pr persistence.Result) {
+	for _, item := range pr.EventStoreItems {
+		res.result.Events = append(
+			res.result.Events,
+			&eventstream.Event{
+				Offset: item.Offset,
+				Parcel: res.events[item.ID()],
+			},
 		)
 	}
 }

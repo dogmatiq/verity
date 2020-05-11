@@ -113,7 +113,7 @@ var _ = Describe("type Sink", func() {
 			err := sink.Accept(ctx, req, res)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = req.Ack(ctx)
+			_, err = req.Ack(ctx, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			res, err := dataStore.EventStoreRepository().QueryEvents(ctx, eventstore.Query{})
