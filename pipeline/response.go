@@ -6,8 +6,8 @@ import (
 
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/queue"
 )
 
 // Response is the result from a pipeline stage.
@@ -15,10 +15,34 @@ import (
 // It encapsulates the messages that were produced, so they may be observed by
 // other components of the engine.
 type Response struct {
-	queueParcels []*parcel.Parcel
-	queueItems   []*queuestore.Item
-	eventParcels []*parcel.Parcel
-	eventItems   []*eventstore.Item
+	result Result
+	batch  persistence.Batch
+	events map[string]*parcel.Parcel
+}
+
+// ExecuteCommand enqueues a command for execution.
+func (r *Response) ExecuteCommand(p *parcel.Parcel) {
+	item := queuestore.Item{
+		NextAttemptAt: p.CreatedAt,
+		Envelope:      p.Envelope,
+	}
+
+	r.batch = append(
+		r.batch,
+		persistence.SaveQueueItem{
+			Item: item,
+		},
+	)
+
+	item.Revision++
+
+	r.result.QueueMessages = append(
+		r.result.QueueMessages,
+		queue.Message{
+			Parcel: p,
+			Item:   &item,
+		},
+	)
 }
 
 // EnqueueMessage is a helper method that adds a message to the queue and
@@ -44,8 +68,13 @@ func (r *Response) EnqueueMessage(
 
 	i.Revision++
 
-	r.queueParcels = append(r.queueParcels, p)
-	r.queueItems = append(r.queueItems, i)
+	r.result.QueueMessages = append(
+		r.result.QueueMessages,
+		queue.Message{
+			Parcel: p,
+			Item:   i,
+		},
+	)
 
 	return nil
 }
@@ -57,18 +86,11 @@ func (r *Response) RecordEvent(
 	tx persistence.ManagedTransaction,
 	p *parcel.Parcel,
 ) (uint64, error) {
-	o, err := tx.SaveEvent(ctx, p.Envelope)
-	if err != nil {
-		return 0, err
+	if r.events == nil {
+		r.events = map[string]*parcel.Parcel{}
 	}
 
-	i := &eventstore.Item{
-		Offset:   o,
-		Envelope: p.Envelope,
-	}
+	r.events[p.Envelope.MetaData.MessageId] = p
 
-	r.eventParcels = append(r.eventParcels, p)
-	r.eventItems = append(r.eventItems, i)
-
-	return o, nil
+	return tx.SaveEvent(ctx, p.Envelope)
 }
