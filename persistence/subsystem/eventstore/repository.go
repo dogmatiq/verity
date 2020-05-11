@@ -6,7 +6,7 @@ import (
 )
 
 // UnknownMessageError is the error returned  by Repository.LoadEventsBySource()
-// method when no message is found.
+// method if the barrier message can not be found.
 type UnknownMessageError struct {
 	MessageID string
 }
@@ -36,7 +36,7 @@ type Repository interface {
 	// cannot be found, UnknownMessageError is returned.
 	LoadEventsBySource(
 		ctx context.Context,
-		hk, id, d string,
+		hk, id, m string,
 	) (Result, error)
 
 	// QueryEvents queries events in the repository.

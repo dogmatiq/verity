@@ -175,7 +175,7 @@ func (r *eventStoreRepository) NextEventOffset(
 // cannot be found, UnknownMessageError is returned.
 func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
-	hk, id, d string,
+	hk, id, m string,
 ) (eventstore.Result, error) {
 	var o uint64
 
@@ -191,7 +191,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 			return nil, err
 		}
 
-		// increment the offset to select all messages after the barier 'd'
+		// Increment the offset to select all messages after the barrier
 		// message exclusively.
 		o++
 	}

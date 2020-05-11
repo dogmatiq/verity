@@ -258,7 +258,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				}
 			})
 
-			ginkgo.It("matches the events from the source only after the given message id", func() {
+			ginkgo.It("only matches the events after the barrier message", func() {
 				expectedA := []*eventstore.Item{item2}
 				expectedB := []*eventstore.Item{item3}
 
@@ -306,7 +306,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				}
 			})
 
-			ginkgo.It("returns an error if the message with the given id is not found", func() {
+			ginkgo.It("returns an error if the barrier message is not found", func() {
 				saveEvents(
 					tc.Context,
 					dataStore,

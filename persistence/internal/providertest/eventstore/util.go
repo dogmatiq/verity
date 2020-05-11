@@ -91,7 +91,7 @@ func loadEventsBySource(
 	ctx context.Context,
 	r eventstore.Repository,
 	hk, id string,
-	d string,
+	m string,
 ) []*eventstore.Item {
 	res, err := r.LoadEventsBySource(ctx, hk, id, d)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
