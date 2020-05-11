@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/pipeline"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -29,72 +28,6 @@ var _ = Describe("type Response", func() {
 		pcl = NewParcel("<produce>", MessageP1, now, now)
 		tx = &TransactionStub{}
 		res = &Response{}
-	})
-
-	Describe("func EnqueueMessageX()", func() {
-		It("persists the message via the transaction", func() {
-			called := false
-			tx.SaveMessageToQueueFunc = func(
-				_ context.Context,
-				i *queuestore.Item,
-			) error {
-				called = true
-				Expect(i).To(EqualX(
-					&queuestore.Item{
-						Revision:      0,
-						NextAttemptAt: now,
-						Envelope:      pcl.Envelope,
-					},
-				))
-				return nil
-			}
-
-			err := res.EnqueueMessageX(context.Background(), tx, pcl)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(called).To(BeTrue())
-		})
-
-		It("sets the next-attempt time to now for commands", func() {
-			pcl.ScheduledFor = time.Time{}
-
-			tx.SaveMessageToQueueFunc = func(
-				_ context.Context,
-				i *queuestore.Item,
-			) error {
-				Expect(i.NextAttemptAt).To(BeTemporally("~", time.Now()))
-				return nil
-			}
-
-			err := res.EnqueueMessageX(context.Background(), tx, pcl)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("sets the next attempt time to the scheduled-at time for timeouts", func() {
-			pcl.ScheduledFor = time.Now().Add(1 * time.Hour)
-
-			tx.SaveMessageToQueueFunc = func(
-				_ context.Context,
-				i *queuestore.Item,
-			) error {
-				Expect(i.NextAttemptAt).To(BeTemporally("==", pcl.ScheduledFor))
-				return nil
-			}
-
-			err := res.EnqueueMessageX(context.Background(), tx, pcl)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("returns an error if the message can not be persisted", func() {
-			tx.SaveMessageToQueueFunc = func(
-				context.Context,
-				*queuestore.Item,
-			) error {
-				return errors.New("<error>")
-			}
-
-			err := res.EnqueueMessageX(context.Background(), tx, pcl)
-			Expect(err).To(MatchError("<error>"))
-		})
 	})
 
 	Describe("func RecordEventX()", func() {
