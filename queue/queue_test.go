@@ -46,8 +46,10 @@ func push(
 
 	i.Revision++
 
-	err = q.Track(ctx, p, i)
-	Expect(err).ShouldNot(HaveOccurred())
+	q.Track(Message{
+		Parcel: p,
+		Item:   i,
+	})
 }
 
 var _ = Describe("type Queue", func() {
@@ -222,14 +224,14 @@ var _ = Describe("type Queue", func() {
 		Describe("func Track()", func() {
 			It("panics if the message has not been persisted", func() {
 				Expect(func() {
-					err := queue.Track(
-						ctx,
-						parcel0,
-						&queuestore.Item{
-							Revision: 0, // 0 == not persisted
+					queue.Track(
+						Message{
+							Parcel: parcel0,
+							Item: &queuestore.Item{
+								Revision: 0, // 0 == not persisted
+							},
 						},
 					)
-					Expect(err).ShouldNot(HaveOccurred())
 				}).To(Panic())
 			})
 
@@ -293,37 +295,7 @@ var _ = Describe("type Queue", func() {
 	})
 
 	When("the queue is not running", func() {
-		Describe("func Track()", func() {
-			It("returns an error if the deadline is exceeded", func() {
-				i := &queuestore.Item{
-					Revision: 1,
-					Envelope: parcel0.Envelope,
-				}
-
-				// It's an implementation detail, but the internal channel used
-				// to start tracking is buffered at the same size as the overall
-				// buffer size limit.
-				//
-				// We can't set it to zero, because that will fallback to the
-				// default. We also can't start the queue, otherwise it'll start
-				// reading from this channel and nothing will block.
-				//
-				// Instead, we set it to one, and "fill" the channel with a
-				// request to ensure that it will block.
-				queue.BufferSize = 1
-				err := queue.Track(ctx, parcel0, i)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				// Setup a short deadline for the test.
-				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
-				defer cancel()
-
-				err = queue.Track(ctx, parcel0, i)
-				Expect(err).To(Equal(context.DeadlineExceeded))
-			})
-		})
-
-		Describe("fun Run()", func() {
+		Describe("func Run()", func() {
 			It("returns an error if messages can not be loaded from the repository", func() {
 				repository.LoadQueueMessagesFunc = func(
 					context.Context,
@@ -361,39 +333,39 @@ var _ = Describe("type Queue", func() {
 
 		Describe("func Track()", func() {
 			It("does not block", func() {
-				err := queue.Track(
-					ctx,
-					parcel0,
-					&queuestore.Item{
-						Revision: 1,
-						Envelope: parcel0.Envelope,
+				queue.Track(
+					Message{
+						Parcel: parcel0,
+						Item: &queuestore.Item{
+							Revision: 1,
+							Envelope: parcel0.Envelope,
+						},
 					},
 				)
-				Expect(err).ShouldNot(HaveOccurred())
 			})
 
 			It("does not block, even if the internal buffer is full", func() {
 				// Fill the buffer.
-				err := queue.Track(
-					ctx,
-					parcel0,
-					&queuestore.Item{
-						Revision: 1,
-						Envelope: parcel0.Envelope,
+				queue.Track(
+					Message{
+						Parcel: parcel0,
+						Item: &queuestore.Item{
+							Revision: 1,
+							Envelope: parcel0.Envelope,
+						},
 					},
 				)
-				Expect(err).ShouldNot(HaveOccurred())
 
 				// Ensure it doesn't block once full.
-				err = queue.Track(
-					ctx,
-					parcel1,
-					&queuestore.Item{
-						Revision: 1,
-						Envelope: parcel0.Envelope,
+				queue.Track(
+					Message{
+						Parcel: parcel1,
+						Item: &queuestore.Item{
+							Revision: 1,
+							Envelope: parcel0.Envelope,
+						},
 					},
 				)
-				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})
 	})
