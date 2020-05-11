@@ -93,7 +93,7 @@ func loadEventsBySource(
 	hk, id string,
 	m string,
 ) []*eventstore.Item {
-	res, err := r.LoadEventsBySource(ctx, hk, id, d)
+	res, err := r.LoadEventsBySource(ctx, hk, id, m)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 

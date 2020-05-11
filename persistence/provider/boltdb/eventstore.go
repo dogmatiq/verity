@@ -23,7 +23,7 @@ var (
 	// buffers.
 	eventStoreItemsBucketKey = []byte("items")
 
-	// eventStoreMessageIDsBucketKey is the key for a child bucket that indexes
+	// eventStoreOffsetsBucketKey is the key for a child bucket that indexes
 	// event message id against the event offsets.
 	//
 	// The keys are the string message IDs converted to bytes. The
@@ -68,7 +68,7 @@ func (t *transaction) SaveEvent(
 
 	messageIDs := bboltx.CreateBucketIfNotExists(
 		store,
-		eventStoreMessageIDsBucketKey,
+		eventStoreOffsetsBucketKey,
 	)
 
 	bboltx.Put(
@@ -146,7 +146,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 		err error
 	)
 
-	if d != "" {
+	if m != "" {
 		r.db.View(
 			ctx,
 			func(tx *bbolt.Tx) {
@@ -154,12 +154,12 @@ func (r *eventStoreRepository) LoadEventsBySource(
 					tx,
 					r.appKey,
 					eventStoreBucketKey,
-					eventStoreMessageIDsBucketKey,
+					eventStoreOffsetsBucketKey,
 				); exists {
-					v := messageIDs.Get([]byte(d))
+					v := messageIDs.Get([]byte(m))
 					if v == nil {
 						err = &eventstore.UnknownMessageError{
-							MessageID: d,
+							MessageID: m,
 						}
 
 						return
