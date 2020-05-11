@@ -57,12 +57,12 @@ func (r *eventStoreRepository) LoadEventsBySource(
 ) (eventstore.Result, error) {
 	var o uint64
 
-	if d != "" {
+	if m != "" {
 		var ok bool
-		o, ok = r.db.event.messageIDs[d]
+		o, ok = r.db.event.offsets[m]
 		if !ok {
 			return nil, eventstore.UnknownMessageError{
-				MessageID: d,
+				MessageID: m,
 			}
 		}
 
@@ -168,7 +168,7 @@ func (cs *eventStoreChangeSet) stageSave(
 
 // eventStoreDatabase contains data that is committed to the event store.
 type eventStoreDatabase struct {
-	items      []*eventstore.Item
+	items   []*eventstore.Item
 	offsets map[string]uint64
 }
 
@@ -176,12 +176,12 @@ type eventStoreDatabase struct {
 func (db *eventStoreDatabase) apply(cs *eventStoreChangeSet) {
 	db.items = append(db.items, cs.items...)
 
-	if db.messageIDs == nil {
-		db.messageIDs = make(map[string]uint64)
+	if db.offsets == nil {
+		db.offsets = make(map[string]uint64)
 	}
 
 	for _, item := range cs.items {
-		db.messageIDs[item.Envelope.MetaData.MessageId] = item.Offset
+		db.offsets[item.Envelope.MetaData.MessageId] = item.Offset
 	}
 }
 

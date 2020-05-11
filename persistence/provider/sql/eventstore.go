@@ -179,13 +179,13 @@ func (r *eventStoreRepository) LoadEventsBySource(
 ) (eventstore.Result, error) {
 	var o uint64
 
-	if d != "" {
+	if m != "" {
 		var err error
 
 		o, err = r.driver.SelectOffsetByMessageID(
 			ctx,
 			r.db,
-			d,
+			m,
 		)
 		if err != nil {
 			return nil, err
