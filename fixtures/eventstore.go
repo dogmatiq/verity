@@ -15,8 +15,7 @@ type EventStoreRepositoryStub struct {
 	LoadEventsBySourceFunc func(context.Context, string, string, string) (eventstore.Result, error)
 }
 
-// LoadEventsBySource loads the events produced by the specified source with
-// the given handler key and id.
+// LoadEventsBySource loads the events produced by a specific handler.
 func (r *EventStoreRepositoryStub) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
