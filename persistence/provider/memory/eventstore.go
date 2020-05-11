@@ -41,11 +41,16 @@ func (r *eventStoreRepository) NextEventOffset(
 	return uint64(next), nil
 }
 
-// LoadEventsBySource loads the events produced by the specified source with
-// the given handler key and id.
+// LoadEventsBySource loads the events produced by a specific handler.
 //
-// d is the optional parameter, it represents ID of the message that was
-// recorded when the instance was last destroyed.
+// hk is the handler's identity key.
+//
+// id is the instance ID, which must be empty if the handler type does not
+// use instances.
+//
+// m is ID of a "barrier" message. If supplied, the results are limited to
+// events with higher offsets than the barrier message. If the message
+// cannot be found, UnknownMessageError is returned.
 func (r *eventStoreRepository) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
