@@ -2,7 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
@@ -241,7 +240,6 @@ func (r *eventStoreResult) Next(
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	r.offset = math.MaxUint64
 	return nil
 }
 
