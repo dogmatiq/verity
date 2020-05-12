@@ -278,7 +278,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					repository,
 					"<aggregate>",
 					"<instance-a>",
-					item0.Envelope.MetaData.MessageId,
+					item0.ID(),
 				)
 
 				for i, item := range items {
@@ -294,7 +294,7 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					repository,
 					"<aggregate>",
 					"<instance-b>",
-					item1.Envelope.MetaData.MessageId,
+					item1.ID(),
 				)
 
 				for i, item := range items {
@@ -318,13 +318,13 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					tc.Context,
 					"<aggregate>",
 					"<instance-a>",
-					item2.Envelope.MetaData.MessageId,
+					item2.ID(),
 				)
 				gomega.Expect(err).Should(gomega.HaveOccurred())
 				gomega.Expect(err).To(
 					gomega.MatchError(
 						"message with ID '" +
-							item2.Envelope.MetaData.MessageId +
+							item2.ID() +
 							"' cannot be found",
 					),
 				)
