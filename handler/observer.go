@@ -17,3 +17,10 @@ type Result struct {
 
 // Observer is a function that is notified of the result of a unit-of-work.
 type Observer func(Result, error)
+
+// NotifyObservers notifies the observers in w.
+func NotifyObservers(w *UnitOfWork, res Result, err error) {
+	for _, obs := range w.observers {
+		obs(res, err)
+	}
+}
