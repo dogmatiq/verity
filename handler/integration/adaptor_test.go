@@ -71,7 +71,7 @@ var _ = Describe("type Adaptor", func() {
 		dataStore.Close()
 	})
 
-	Describe("func Handle()", func() {
+	Describe("func HandleMessage()", func() {
 		It("forwards the message to the handler", func() {
 			integ.HandleCommandFunc = func(
 				_ context.Context,
@@ -82,7 +82,7 @@ var _ = Describe("type Adaptor", func() {
 				return errors.New("<error>")
 			}
 
-			err := adaptor.Handle(context.Background(), work, cause)
+			err := adaptor.HandleMessage(context.Background(), work, cause)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -97,7 +97,7 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := adaptor.Handle(context.Background(), work, cause)
+				err := adaptor.HandleMessage(context.Background(), work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -148,7 +148,7 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := adaptor.Handle(context.Background(), work, cause)
+				err := adaptor.HandleMessage(context.Background(), work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
