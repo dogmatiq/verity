@@ -11,7 +11,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/handler"
 	. "github.com/dogmatiq/infix/handler/integration"
@@ -103,36 +102,27 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			It("adds the event to the unit-of-work", func() {
-				res, err := handler.Persist(
-					context.Background(),
-					dataStore,
-					work,
-				)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(res.Events).To(EqualX(
-					[]eventstream.Event{
-						{
-							Offset: 0,
-							Parcel: &parcel.Parcel{
-								Envelope: &envelopespec.Envelope{
-									MetaData: &envelopespec.MetaData{
-										MessageId:     "0",
-										CausationId:   "<consume>",
-										CorrelationId: "<correlation>",
-										Source: &envelopespec.Source{
-											Application: packer.Application,
-											Handler:     adaptor.Identity,
-										},
-										CreatedAt:   "2000-01-01T00:00:00Z",
-										Description: "{E1}",
+				Expect(work.Events).To(EqualX(
+					[]*parcel.Parcel{
+						&parcel.Parcel{
+							Envelope: &envelopespec.Envelope{
+								MetaData: &envelopespec.MetaData{
+									MessageId:     "0",
+									CausationId:   "<consume>",
+									CorrelationId: "<correlation>",
+									Source: &envelopespec.Source{
+										Application: packer.Application,
+										Handler:     adaptor.Identity,
 									},
-									PortableName: MessageEPortableName,
-									MediaType:    MessageE1Packet.MediaType,
-									Data:         MessageE1Packet.Data,
+									CreatedAt:   "2000-01-01T00:00:00Z",
+									Description: "{E1}",
 								},
-								Message:   MessageE1,
-								CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+								PortableName: MessageEPortableName,
+								MediaType:    MessageE1Packet.MediaType,
+								Data:         MessageE1Packet.Data,
 							},
+							Message:   MessageE1,
+							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
 					},
 				))
