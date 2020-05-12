@@ -19,59 +19,100 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("func Persist()", func() {
+var _ = Describe("type Resolver", func() {
 	var (
-		dataStore *DataStoreStub
-		work      *UnitOfWork
+		dataStore     *DataStoreStub
+		command       *parcel.Parcel
+		timeout       *parcel.Parcel
+		unqueuedEvent *parcel.Parcel
+		queuedEvent   *parcel.Parcel
+		oper          persistence.Operation
+		resolver      *Resolver
 	)
 
 	BeforeEach(func() {
 		dataStore = NewDataStoreStub()
 
-		work = &UnitOfWork{}
+		command = NewParcel("<command>", MessageC1)
+		timeout = NewParcel(
+			"<timeout>",
+			MessageT1,
+			time.Now(),
+			time.Now().Add(1*time.Hour),
+		)
+		unqueuedEvent = NewParcel("<unqueued-event>", MessageU1)
+		queuedEvent = NewParcel("<queued-event>", MessageQ1)
+
+		oper = persistence.SaveOffset{
+			ApplicationKey: "<app-key>",
+		}
+
+		resolver = &Resolver{
+			QueueEvents: message.TypesOf(MessageQ{}),
+			UnitOfWork: &UnitOfWork{
+				Commands: []*parcel.Parcel{command},
+				Timeouts: []*parcel.Parcel{timeout},
+				Events:   []*parcel.Parcel{unqueuedEvent, queuedEvent},
+				Batch:    persistence.Batch{oper},
+			},
+		}
 	})
 
 	AfterEach(func() {
 		dataStore.Close()
 	})
 
-	When("the unit-of-work is persisted successfully", func() {
-		var (
-			result Result
-			batch  persistence.Batch
-		)
+	Describe("func ResolveBatch()", func() {
+		It("contains the expected operations", func() {
+			batch := resolver.ResolveBatch()
 
-		BeforeEach(func() {
-			dataStore.PersistFunc = func(
-				ctx context.Context,
-				b persistence.Batch,
-			) (persistence.Result, error) {
-				batch = b
-				return dataStore.DataStore.Persist(ctx, b)
-			}
+			Expect(batch).To(EqualX(
+				persistence.Batch{
+					// commands ...
+					persistence.SaveQueueItem{
+						Item: queuestore.Item{
+							NextAttemptAt: command.CreatedAt,
+							Envelope:      command.Envelope,
+						},
+					},
+					// timeouts ...
+					persistence.SaveQueueItem{
+						Item: queuestore.Item{
+							NextAttemptAt: timeout.ScheduledFor,
+							Envelope:      timeout.Envelope,
+						},
+					},
+					// events ...
+					persistence.SaveEvent{
+						Envelope: unqueuedEvent.Envelope,
+					},
+					persistence.SaveQueueItem{
+						Item: queuestore.Item{
+							NextAttemptAt: queuedEvent.CreatedAt,
+							Envelope:      queuedEvent.Envelope,
+						},
+					},
+					persistence.SaveEvent{
+						Envelope: queuedEvent.Envelope,
+					},
+					// other ...
+					oper,
+				},
+			))
 		})
+	})
 
-		JustBeforeEach(func() {
-			var err error
-			result, err = Persist(context.Background(), dataStore, work)
+	Describe("func ResolveResult()", func() {
+		It("returns the expected result", func() {
+			batch := resolver.ResolveBatch()
+
+			pr, err := dataStore.Persist(context.Background(), batch)
 			Expect(err).ShouldNot(HaveOccurred())
-		})
 
-		When("the unit-of-work contains a command", func() {
-			var command *parcel.Parcel
-
-			BeforeEach(func() {
-				command = NewParcel(
-					"<command>",
-					MessageC1,
-				)
-
-				work.ExecuteCommand(command)
-			})
-
-			It("includes the command in the result", func() {
-				Expect(result.Queued).To(EqualX(
-					[]queue.Message{
+			res := resolver.ResolveResult(pr)
+			Expect(res).To(EqualX(
+				Result{
+					Queued: []queue.Message{
 						{
 							Parcel: command,
 							Item: &queuestore.Item{
@@ -80,41 +121,6 @@ var _ = Describe("func Persist()", func() {
 								Envelope:      command.Envelope,
 							},
 						},
-					},
-				))
-			})
-
-			It("includes the command in the batch", func() {
-				Expect(batch).To(EqualX(
-					persistence.Batch{
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
-								NextAttemptAt: command.CreatedAt,
-								Envelope:      command.Envelope,
-							},
-						},
-					},
-				))
-			})
-		})
-
-		When("the unit-of-work contains a timeout", func() {
-			var timeout *parcel.Parcel
-
-			BeforeEach(func() {
-				timeout = NewParcel(
-					"<timeout>",
-					MessageT1,
-					time.Now(),
-					time.Now().Add(1*time.Hour),
-				)
-
-				work.ScheduleTimeout(timeout)
-			})
-
-			It("includes the timeout in the result", func() {
-				Expect(result.Queued).To(EqualX(
-					[]queue.Message{
 						{
 							Parcel: timeout,
 							Item: &queuestore.Item{
@@ -123,56 +129,16 @@ var _ = Describe("func Persist()", func() {
 								Envelope:      timeout.Envelope,
 							},
 						},
-					},
-				))
-			})
-
-			It("includes the timeout in the batch", func() {
-				Expect(batch).To(EqualX(
-					persistence.Batch{
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
-								NextAttemptAt: timeout.ScheduledFor,
-								Envelope:      timeout.Envelope,
+						{
+							Parcel: queuedEvent,
+							Item: &queuestore.Item{
+								Revision:      1,
+								NextAttemptAt: queuedEvent.CreatedAt,
+								Envelope:      queuedEvent.Envelope,
 							},
 						},
 					},
-				))
-			})
-		})
-
-		When("the unit-of-work contains an event", func() {
-			var (
-				unqueuedEvent *parcel.Parcel
-				queuedEvent   *parcel.Parcel
-			)
-
-			BeforeEach(func() {
-				unqueuedEvent = NewParcel(
-					"<unqueued-event>",
-					MessageU1,
-				)
-
-				queuedEvent = NewParcel(
-					"<queued-event>",
-					MessageQ1,
-				)
-
-				work.QueueEvents = message.TypesOf(MessageQ{})
-				work.RecordEvent(unqueuedEvent)
-				work.RecordEvent(queuedEvent)
-			})
-
-			It("includes the events in the result", func() {
-				// Note that we're also testing that the offets from the
-				// persistence result are correlated with their original parcel
-				// in the handler result.
-				//
-				// We're relying on the fact that the memory persistence driver
-				// used in the data-store stub always gives us a contiguous
-				// block of offsets in the order we record the events.
-				Expect(result.Events).To(EqualX(
-					[]eventstream.Event{
+					Events: []eventstream.Event{
 						{
 							Offset: 0,
 							Parcel: unqueuedEvent,
@@ -182,82 +148,38 @@ var _ = Describe("func Persist()", func() {
 							Parcel: queuedEvent,
 						},
 					},
-				))
-
-				Expect(result.Queued).To(EqualX(
-					[]queue.Message{
-						{
-							Parcel: queuedEvent,
-							Item: &queuestore.Item{
-								Revision:      1,
-								NextAttemptAt: queuedEvent.CreatedAt,
-								Envelope:      queuedEvent.Envelope,
-							},
-						},
-					},
-				))
-			})
-
-			It("includes the events in the batch", func() {
-				Expect(batch).To(EqualX(
-					persistence.Batch{
-						persistence.SaveEvent{
-							Envelope: unqueuedEvent.Envelope,
-						},
-						persistence.SaveEvent{
-							Envelope: queuedEvent.Envelope,
-						},
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
-								NextAttemptAt: queuedEvent.CreatedAt,
-								Envelope:      queuedEvent.Envelope,
-							},
-						},
-					},
-				))
-			})
-		})
-
-		When("the unit-of-work contains arbitrary persistence operations", func() {
-			var oper persistence.Operation
-
-			BeforeEach(func() {
-				oper = persistence.SaveOffset{
-					ApplicationKey: "<app-key>",
-				}
-
-				work.Do(oper)
-			})
-
-			It("includes the operations in the batch", func() {
-				Expect(batch).To(EqualX(
-					persistence.Batch{oper},
-				))
-			})
+				},
+			))
 		})
 	})
+})
 
-	When("the unit-of-work is empty", func() {
-		It("returns an empty result", func() {
-			res, err := Persist(context.Background(), dataStore, work)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(res).To(Equal(Result{}))
-		})
-	})
+var _ = Describe("func NotifyObservers()", func() {
+	It("calls each of the observers in the unit-of-work", func() {
+		count := 0
 
-	When("the unit-of-work can not be persisted", func() {
-		BeforeEach(func() {
-			dataStore.PersistFunc = func(
-				context.Context,
-				persistence.Batch,
-			) (persistence.Result, error) {
-				return persistence.Result{}, errors.New("<error>")
-			}
-		})
+		res := Result{
+			Events: []eventstream.Event{
+				{
+					Offset: 123,
+				},
+			},
+		}
 
-		It("returns an error", func() {
-			_, err := Persist(context.Background(), dataStore, work)
+		fn := func(r Result, err error) {
+			count++
+			Expect(r).To(Equal(res))
 			Expect(err).To(MatchError("<error>"))
-		})
+		}
+
+		work := &UnitOfWork{}
+		work.Observers = append(work.Observers, fn)
+		work.Observers = append(work.Observers, fn)
+
+		NotifyObservers(
+			work,
+			res,
+			errors.New("<error>"),
+		)
 	})
 })

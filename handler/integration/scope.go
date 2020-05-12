@@ -29,9 +29,9 @@ func (s *scope) RecordEvent(m dogma.Message) {
 		"",
 	)
 
-	mlog.LogProduce(s.logger, p.Envelope)
+	s.work.Events = append(s.work.Events, p)
 
-	s.work.RecordEvent(p)
+	mlog.LogProduce(s.logger, p.Envelope)
 }
 
 // Log records an informational message within the context of the message
