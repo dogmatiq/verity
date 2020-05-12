@@ -46,8 +46,6 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					InstanceID:      "<instance>",
 					InstanceExists:  true,
 					LastDestroyedBy: "<message-id>",
-					BeginOffset:     1,
-					EndOffset:       2,
 				}
 				saveMetaData(tc.Context, dataStore, expect)
 				expect.Revision++

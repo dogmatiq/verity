@@ -111,17 +111,15 @@ var _ = Describe("type Loader", func() {
 					ctx,
 					dataStore,
 					func(tx persistence.ManagedTransaction) error {
-						_, err := tx.SaveEvent(ctx, NewEnvelope("<event-0>", MessageE1))
-						if err != nil {
+						if _, err := tx.SaveEvent(ctx, NewEnvelope("<event-0>", MessageE1)); err != nil {
 							return err
 						}
 
-						o, err := tx.SaveEvent(ctx, NewEnvelope("<event-1>", MessageE2))
-						if err != nil {
+						if _, err := tx.SaveEvent(ctx, NewEnvelope("<event-1>", MessageE2)); err != nil {
 							return err
 						}
 
-						metadata.SetLastRecordedOffset(o)
+						metadata.InstanceExists = true
 
 						return tx.SaveAggregateMetaData(ctx, metadata)
 					},
@@ -189,7 +187,7 @@ var _ = Describe("type Loader", func() {
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							metadata.MarkInstanceDestroyed("<event-1>")
+							metadata.LastDestroyedBy = "<event-1>"
 							return tx.SaveAggregateMetaData(ctx, metadata)
 						},
 					)
@@ -214,12 +212,10 @@ var _ = Describe("type Loader", func() {
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							o, err := tx.SaveEvent(ctx, NewEnvelope("<event-2>", MessageE3))
-							if err != nil {
+							if _, err := tx.SaveEvent(ctx, NewEnvelope("<event-2>", MessageE3)); err != nil {
 								return err
 							}
 
-							metadata.SetLastRecordedOffset(o)
 							return tx.SaveAggregateMetaData(ctx, metadata)
 						},
 					)
