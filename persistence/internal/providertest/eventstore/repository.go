@@ -318,15 +318,11 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					tc.Context,
 					"<aggregate>",
 					"<instance-a>",
-					item2.ID(),
+					"<unknown>",
 				)
 				gomega.Expect(err).Should(gomega.HaveOccurred())
 				gomega.Expect(err).To(
-					gomega.MatchError(
-						"message with ID '" +
-							item2.ID() +
-							"' cannot be found",
-					),
+					gomega.MatchError("message with ID '<unknown>' cannot be found"),
 				)
 			})
 
