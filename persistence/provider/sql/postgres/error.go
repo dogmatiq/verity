@@ -186,9 +186,9 @@ func (d errorConverter) SelectOffsetByMessageID(
 	ctx context.Context,
 	db *sql.DB,
 	id string,
-) (uint64, error) {
-	o, err := d.d.SelectOffsetByMessageID(ctx, db, id)
-	return o, convertContextErrors(ctx, err)
+) (uint64, bool, error) {
+	o, ok, err := d.d.SelectOffsetByMessageID(ctx, db, id)
+	return o, ok, convertContextErrors(ctx, err)
 }
 
 func (d errorConverter) ScanEvent(

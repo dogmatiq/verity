@@ -87,12 +87,13 @@ type eventStoreDriver interface {
 	) (*sql.Rows, error)
 
 	// SelectOffsetByMessageID selects the offset of the message with the given
-	// ID. It returns eventstore.UnknownMessageError if the message is not found.
+	// ID. It returns false as a second return value if the message cannot be
+	// found.
 	SelectOffsetByMessageID(
 		ctx context.Context,
 		db *sql.DB,
 		id string,
-	) (uint64, error)
+	) (uint64, bool, error)
 
 	// ScanEvent scans the next event from a row-set returned by
 	// SelectEventsByType() and SelectEventsBySource().
@@ -180,9 +181,7 @@ func (r *eventStoreRepository) LoadEventsBySource(
 	var o uint64
 
 	if m != "" {
-		var err error
-
-		o, err = r.driver.SelectOffsetByMessageID(
+		offset, ok, err := r.driver.SelectOffsetByMessageID(
 			ctx,
 			r.db,
 			m,
@@ -191,9 +190,15 @@ func (r *eventStoreRepository) LoadEventsBySource(
 			return nil, err
 		}
 
+		if !ok {
+			return nil, eventstore.UnknownMessageError{
+				MessageID: m,
+			}
+		}
+
 		// Increment the offset to select all messages after the barrier
 		// message exclusively.
-		o++
+		o = offset + 1
 	}
 
 	rows, err := r.driver.SelectEventsBySource(
