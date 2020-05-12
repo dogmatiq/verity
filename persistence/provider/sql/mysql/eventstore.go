@@ -286,28 +286,29 @@ func (driver) SelectEventsBySource(
 }
 
 // SelectOffsetByMessageID selects the offset of the message with the given
-// ID.
+// ID. It returns false as a second return value if the message cannot be
+// found.
 func (driver) SelectOffsetByMessageID(
 	ctx context.Context,
 	db *sql.DB,
 	id string,
-) (o uint64, err error) {
+) (uint64, bool, error) {
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
-			e.offset
+		e.offset
 		FROM event AS e
 		WHERE e.message_id = ?`,
 		id,
 	)
 
-	if err = row.Scan(&o); err == sql.ErrNoRows {
-		err = eventstore.UnknownMessageError{
-			MessageID: id,
-		}
+	var o uint64
+	err := row.Scan(&o)
+	if err == sql.ErrNoRows {
+		return 0, false, nil
 	}
 
-	return
+	return o, true, err
 }
 
 // ScanEvent scans the next event from a row-set returned by SelectEvents().
