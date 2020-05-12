@@ -103,42 +103,39 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			It("adds the event to the unit-of-work", func() {
-				work.Observe(func(r handler.Result, err error) {
-					Expect(r.Events).To(EqualX(
-						[]eventstream.Event{
-							{
-								Offset: 0,
-								Parcel: &parcel.Parcel{
-									Envelope: &envelopespec.Envelope{
-										MetaData: &envelopespec.MetaData{
-											MessageId:     "0",
-											CausationId:   "<consume>",
-											CorrelationId: "<correlation>",
-											Source: &envelopespec.Source{
-												Application: packer.Application,
-												Handler:     adaptor.Identity,
-											},
-											CreatedAt:   "2000-01-01T00:00:00Z",
-											Description: "{E1}",
-										},
-										PortableName: MessageEPortableName,
-										MediaType:    MessageE1Packet.MediaType,
-										Data:         MessageE1Packet.Data,
-									},
-									Message:   MessageE1,
-									CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-								},
-							},
-						},
-					))
-				})
-
-				err := handler.Persist(
+				res, err := handler.Persist(
 					context.Background(),
 					dataStore,
 					work,
 				)
 				Expect(err).ShouldNot(HaveOccurred())
+				Expect(res.Events).To(EqualX(
+					[]eventstream.Event{
+						{
+							Offset: 0,
+							Parcel: &parcel.Parcel{
+								Envelope: &envelopespec.Envelope{
+									MetaData: &envelopespec.MetaData{
+										MessageId:     "0",
+										CausationId:   "<consume>",
+										CorrelationId: "<correlation>",
+										Source: &envelopespec.Source{
+											Application: packer.Application,
+											Handler:     adaptor.Identity,
+										},
+										CreatedAt:   "2000-01-01T00:00:00Z",
+										Description: "{E1}",
+									},
+									PortableName: MessageEPortableName,
+									MediaType:    MessageE1Packet.MediaType,
+									Data:         MessageE1Packet.Data,
+								},
+								Message:   MessageE1,
+								CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+							},
+						},
+					},
+				))
 			})
 
 			It("logs about the event", func() {

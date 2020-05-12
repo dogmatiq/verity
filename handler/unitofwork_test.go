@@ -42,11 +42,6 @@ var _ = Describe("func Persist()", func() {
 		)
 
 		BeforeEach(func() {
-			work.Observe(func(r Result, err error) {
-				Expect(err).ShouldNot(HaveOccurred())
-				result = r
-			})
-
 			dataStore.PersistFunc = func(
 				ctx context.Context,
 				b persistence.Batch,
@@ -57,7 +52,8 @@ var _ = Describe("func Persist()", func() {
 		})
 
 		JustBeforeEach(func() {
-			err := Persist(context.Background(), dataStore, work)
+			var err error
+			result, err = Persist(context.Background(), dataStore, work)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -242,17 +238,10 @@ var _ = Describe("func Persist()", func() {
 	})
 
 	When("the unit-of-work is empty", func() {
-		It("notifies the observers", func() {
-			called := false
-			work.Observe(func(r Result, err error) {
-				called = true
-				Expect(r).To(Equal(Result{}))
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-
-			err := Persist(context.Background(), dataStore, work)
+		It("returns an empty result", func() {
+			res, err := Persist(context.Background(), dataStore, work)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(called).To(BeTrue())
+			Expect(res).To(Equal(Result{}))
 		})
 	})
 
@@ -266,16 +255,9 @@ var _ = Describe("func Persist()", func() {
 			}
 		})
 
-		It("notifies the observers", func() {
-			called := false
-			work.Observe(func(r Result, err error) {
-				called = true
-				Expect(err).To(MatchError("<error>"))
-			})
-
-			err := Persist(context.Background(), dataStore, work)
+		It("returns an error", func() {
+			_, err := Persist(context.Background(), dataStore, work)
 			Expect(err).To(MatchError("<error>"))
-			Expect(called).To(BeTrue())
 		})
 	})
 })

@@ -12,12 +12,12 @@ import (
 	"github.com/dogmatiq/infix/queue"
 )
 
-// Persist saves the state changes in w and notifies observers of the result.
+// Persist saves the state changes in w.
 func Persist(
 	ctx context.Context,
 	p persistence.Persister,
 	w *UnitOfWork,
-) error {
+) (Result, error) {
 	res, err := p.Persist(ctx, w.batch)
 
 	// Populate the events in the result with their offsets.
@@ -36,12 +36,7 @@ func Persist(
 		}
 	}
 
-	// Notify the observers.
-	for _, o := range w.observers {
-		o(w.result, err)
-	}
-
-	return err
+	return w.result, err
 }
 
 // UnitOfWork encapsulates the state changes made by one or more handlers in the
