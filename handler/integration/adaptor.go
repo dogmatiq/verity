@@ -36,8 +36,8 @@ type Adaptor struct {
 	Logger logging.Logger
 }
 
-// Handle handles the message in p.
-func (a *Adaptor) Handle(
+// HandleMessage handles the message in p.
+func (a *Adaptor) HandleMessage(
 	ctx context.Context,
 	w *handler.UnitOfWork,
 	p *parcel.Parcel,
