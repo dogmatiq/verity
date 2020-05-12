@@ -178,11 +178,12 @@ func (driver) SelectNextEventOffset(
 	return next, err
 }
 
-// SelectEvents selects events from the eventstore that match the given query.
+// SelectEventsByType selects events from the eventstore that match the
+// given event types query.
 //
-// f is a filter ID, as returned by InsertEventFilter(). If the query does not
-// use a filter, f is zero.
-func (driver) SelectEvents(
+// f is a filter ID, as returned by InsertEventFilter(). If the query does
+// not use a filter, f is zero.
+func (driver) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
@@ -244,6 +245,70 @@ func (driver) SelectEvents(
 		qb.String(),
 		qb.Parameters...,
 	)
+}
+
+// SelectEventsBySource selects events from the eventstore that match the
+// given source, namely the source's key and id.
+func (driver) SelectEventsBySource(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+	o uint64,
+) (*sql.Rows, error) {
+	return db.QueryContext(
+		ctx,
+		`SELECT
+			e.offset,
+			e.message_id,
+			e.causation_id,
+			e.correlation_id,
+			e.source_app_name,
+			e.source_app_key,
+			e.source_handler_name,
+			e.source_handler_key,
+			e.source_instance_id,
+			e.created_at,
+			e.description,
+			e.portable_name,
+			e.media_type,
+			e.data
+		FROM event AS e
+		WHERE e.source_app_key = ?
+		AND e.source_handler_key = ?
+		AND e.source_instance_id = ?
+		AND e.offset >= ?
+		ORDER BY e.offset`,
+		ak,
+		hk,
+		id,
+		o,
+	)
+}
+
+// SelectOffsetByMessageID selects the offset of the message with the given
+// ID. It returns false as a second return value if the message cannot be
+// found.
+func (driver) SelectOffsetByMessageID(
+	ctx context.Context,
+	db *sql.DB,
+	id string,
+) (uint64, bool, error) {
+	row := db.QueryRowContext(
+		ctx,
+		`SELECT
+		e.offset
+		FROM event AS e
+		WHERE e.message_id = ?`,
+		id,
+	)
+
+	var o uint64
+	err := row.Scan(&o)
+	if err == sql.ErrNoRows {
+		return 0, false, nil
+	}
+
+	return o, true, err
 }
 
 // ScanEvent scans the next event from a row-set returned by SelectEvents().

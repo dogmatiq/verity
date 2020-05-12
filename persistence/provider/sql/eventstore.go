@@ -64,12 +64,12 @@ type eventStoreDriver interface {
 		ak string,
 	) (uint64, error)
 
-	// SelectEvents selects events from the eventstore that match the given
-	// query.
+	// SelectEventsByType selects events from the eventstore that match the
+	// given query.
 	//
 	// f is a filter ID, as returned by InsertEventFilter(). If the query does
 	// not use a filter, f is zero.
-	SelectEvents(
+	SelectEventsByType(
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
@@ -77,7 +77,26 @@ type eventStoreDriver interface {
 		f int64,
 	) (*sql.Rows, error)
 
-	// ScanEvent scans the next event from a row-set returned by SelectEvents().
+	// SelectEventsBySource selects events from the eventstore that were
+	// produced by a specific handler.
+	SelectEventsBySource(
+		ctx context.Context,
+		db *sql.DB,
+		ak, hk, id string,
+		o uint64,
+	) (*sql.Rows, error)
+
+	// SelectOffsetByMessageID selects the offset of the message with the given
+	// ID. It returns false as a second return value if the message cannot be
+	// found.
+	SelectOffsetByMessageID(
+		ctx context.Context,
+		db *sql.DB,
+		id string,
+	) (uint64, bool, error)
+
+	// ScanEvent scans the next event from a row-set returned by
+	// SelectEventsByType() and SelectEventsBySource().
 	ScanEvent(
 		rows *sql.Rows,
 		i *eventstore.Item,
@@ -145,6 +164,56 @@ func (r *eventStoreRepository) NextEventOffset(
 	)
 }
 
+// LoadEventsBySource loads the events produced by a specific handler.
+//
+// hk is the handler's identity key.
+//
+// id is the instance ID, which must be empty if the handler type does not
+// use instances.
+//
+// m is ID of a "barrier" message. If supplied, the results are limited to
+// events with higher offsets than the barrier message. If the message
+// cannot be found, UnknownMessageError is returned.
+func (r *eventStoreRepository) LoadEventsBySource(
+	ctx context.Context,
+	hk, id, m string,
+) (eventstore.Result, error) {
+	var o uint64
+
+	if m != "" {
+		offset, ok, err := r.driver.SelectOffsetByMessageID(
+			ctx,
+			r.db,
+			m,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if !ok {
+			return nil, eventstore.UnknownMessageError{
+				MessageID: m,
+			}
+		}
+
+		// Increment the offset to select all messages after the barrier
+		// message exclusively.
+		o = offset + 1
+	}
+
+	rows, err := r.driver.SelectEventsBySource(
+		ctx,
+		r.db,
+		r.appKey, hk, id, o,
+	)
+
+	return &eventStoreResult{
+		db:     r.db,
+		rows:   rows,
+		driver: r.driver,
+	}, err
+}
+
 // QueryEvents queries events in the repository.
 func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
@@ -165,7 +234,7 @@ func (r *eventStoreRepository) QueryEvents(
 		}
 	}
 
-	rows, err := r.driver.SelectEvents(
+	rows, err := r.driver.SelectEventsByType(
 		ctx,
 		r.db,
 		r.appKey,

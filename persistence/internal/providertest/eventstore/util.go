@@ -77,3 +77,36 @@ func queryEvents(
 		items = append(items, i)
 	}
 }
+
+// loadEventsBySource loads the events produced by a specific handler.
+//
+// hk is the handler's identity key.
+//
+// id is the instance ID, which must be empty if the handler type does not
+// use instances.
+//
+// m is ID of a "barrier" message. If supplied, the results are limited to
+// events with higher offsets than the barrier message.
+func loadEventsBySource(
+	ctx context.Context,
+	r eventstore.Repository,
+	hk, id string,
+	m string,
+) []*eventstore.Item {
+	res, err := r.LoadEventsBySource(ctx, hk, id, m)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	defer res.Close()
+
+	var items []*eventstore.Item
+
+	for {
+		i, ok, err := res.Next(ctx)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		if !ok {
+			return items
+		}
+
+		items = append(items, i)
+	}
+}

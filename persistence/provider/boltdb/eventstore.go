@@ -2,7 +2,6 @@ package boltdb
 
 import (
 	"context"
-	"math"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
@@ -23,6 +22,13 @@ var (
 	// values are envelopespec. Envelope values marshaled using protocol
 	// buffers.
 	eventStoreItemsBucketKey = []byte("items")
+
+	// eventStoreOffsetsBucketKey is the key for a child bucket that indexes
+	// event message id against the event offsets.
+	//
+	// The keys are the string message IDs converted to bytes. The
+	// values are the event offsets encoded as 8-byte big-endian packets.
+	eventStoreOffsetsBucketKey = []byte("offsets")
 
 	// eventStoreNextOffsetKey is the key of a value within the root bucket that
 	// contains the next unused offset, again encoded as 8-byte big-endian
@@ -59,6 +65,17 @@ func (t *transaction) SaveEvent(
 	)
 
 	saveEventStoreItem(items, o, env)
+
+	offsets := bboltx.CreateBucketIfNotExists(
+		store,
+		eventStoreOffsetsBucketKey,
+	)
+
+	bboltx.Put(
+		offsets,
+		[]byte(env.MetaData.MessageId),
+		marshalUint64(o),
+	)
 
 	bboltx.Put(
 		store,
@@ -110,6 +127,66 @@ func (r *eventStoreRepository) NextEventOffset(
 	return next, err
 }
 
+// LoadEventsBySource loads the events produced by a specific handler.
+//
+// hk is the handler's identity key.
+//
+// id is the instance ID, which must be empty if the handler type does not
+// use instances.
+//
+// m is ID of a "barrier" message. If supplied, the results are limited to
+// events with higher offsets than the barrier message. If the message
+// cannot be found, UnknownMessageError is returned.
+func (r *eventStoreRepository) LoadEventsBySource(
+	ctx context.Context,
+	hk, id, m string,
+) (eventstore.Result, error) {
+	var (
+		o   uint64
+		err error
+	)
+
+	if m != "" {
+		r.db.View(
+			ctx,
+			func(tx *bbolt.Tx) {
+				if offsets, exists := bboltx.TryBucket(
+					tx,
+					r.appKey,
+					eventStoreBucketKey,
+					eventStoreOffsetsBucketKey,
+				); exists {
+					v := offsets.Get([]byte(m))
+					if v == nil {
+						err = &eventstore.UnknownMessageError{
+							MessageID: m,
+						}
+
+						return
+					}
+
+					// Increment the offset to match all messages
+					// after the barrier message exclusively.
+					o = unmarshalUint64(v) + 1
+				}
+			})
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &eventStoreResult{
+		db:     r.db,
+		appKey: r.appKey,
+		pred: func(i *eventstore.Item) bool {
+			return hk == i.Envelope.MetaData.Source.Handler.Key &&
+				id == i.Envelope.MetaData.Source.InstanceId
+		},
+		offset: o,
+	}, nil
+}
+
 // QueryEvents queries events in the repository.
 func (r *eventStoreRepository) QueryEvents(
 	ctx context.Context,
@@ -118,7 +195,7 @@ func (r *eventStoreRepository) QueryEvents(
 	return &eventStoreResult{
 		db:     r.db,
 		appKey: r.appKey,
-		query:  q,
+		pred:   q.IsMatch,
 	}, nil
 }
 
@@ -127,7 +204,8 @@ func (r *eventStoreRepository) QueryEvents(
 type eventStoreResult struct {
 	db     *database
 	appKey []byte
-	query  eventstore.Query
+	offset uint64
+	pred   func(i *eventstore.Item) bool
 }
 
 // Next returns the next event in the result.
@@ -151,10 +229,10 @@ func (r *eventStoreResult) Next(
 			for exists && !ok {
 				bboltx.Must(ctx.Err()) // Bail if we're taking too long.
 
-				i, exists = loadEventStoreItem(items, r.query.MinOffset)
-				ok = exists && r.query.IsMatch(i)
+				i, exists = loadEventStoreItem(items, r.offset)
+				ok = exists && r.pred(i)
 
-				r.query.MinOffset++
+				r.offset++
 			}
 		},
 	)
@@ -164,7 +242,6 @@ func (r *eventStoreResult) Next(
 
 // Close closes the cursor.
 func (r *eventStoreResult) Close() error {
-	r.query.MinOffset = math.MaxUint64
 	return nil
 }
 

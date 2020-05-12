@@ -11,7 +11,24 @@ import (
 type EventStoreRepositoryStub struct {
 	eventstore.Repository
 
-	QueryEventsFunc func(context.Context, eventstore.Query) (eventstore.Result, error)
+	QueryEventsFunc        func(context.Context, eventstore.Query) (eventstore.Result, error)
+	LoadEventsBySourceFunc func(context.Context, string, string, string) (eventstore.Result, error)
+}
+
+// LoadEventsBySource loads the events produced by a specific handler.
+func (r *EventStoreRepositoryStub) LoadEventsBySource(
+	ctx context.Context,
+	hk, id, d string,
+) (eventstore.Result, error) {
+	if r.LoadEventsBySourceFunc != nil {
+		return r.LoadEventsBySourceFunc(ctx, hk, id, d)
+	}
+
+	if r.Repository != nil {
+		return r.Repository.LoadEventsBySource(ctx, hk, id, d)
+	}
+
+	return nil, nil
 }
 
 // QueryEvents queries events in the repository.

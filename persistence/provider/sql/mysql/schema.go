@@ -76,7 +76,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE event (
 			offset              BIGINT UNSIGNED NOT NULL,
-			message_id          VARBINARY(255) NOT NULL,
+			message_id          VARBINARY(255) NOT NULL UNIQUE,
 			causation_id        VARBINARY(255) NOT NULL,
 			correlation_id      VARBINARY(255) NOT NULL,
 			source_app_name     VARBINARY(255) NOT NULL,
@@ -91,12 +91,16 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			data                LONGBLOB NOT NULL,
 
 			PRIMARY KEY (source_app_key, offset),
-			INDEX repository_query (
+			INDEX by_type (
 				source_app_key,
 				portable_name,
-				offset,
+				offset
+			),
+			INDEX by_source (
+				source_app_key,
 				source_handler_key,
-				source_instance_id
+				source_instance_id,
+				offset
 			)
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)

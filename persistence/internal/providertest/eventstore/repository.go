@@ -184,7 +184,170 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				),
 			)
 
-			ginkgo.It("allows concurrent filtered consumers for the same application", func() {
+			ginkgo.It("does not return an error if events exist beyond the end offset", func() {
+				res, err := repository.QueryEvents(tc.Context, eventstore.Query{})
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer res.Close()
+
+				saveEvents(
+					tc.Context,
+					dataStore,
+					item0.Envelope,
+					item1.Envelope,
+				)
+
+				// The implementation may or may not expose these newly
+				// appended events to the caller. We simply want to ensure
+				// that no error occurs.
+				_, _, err = res.Next(tc.Context)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			})
+		})
+
+		ginkgo.Describe("func LoadEventsBySource()", func() {
+			ginkgo.It("returns an empty result if the store is empty", func() {
+				items := loadEventsBySource(tc.Context, repository, "<aggregate>", "<instance-a>", "")
+				gomega.Expect(items).To(gomega.BeEmpty())
+			})
+
+			ginkgo.It("returns a result containing the events that match the source instance", func() {
+				expectedA := []*eventstore.Item{item0, item2}
+				expectedB := []*eventstore.Item{item1, item3}
+
+				saveEvents(
+					tc.Context,
+					dataStore,
+					item0.Envelope,
+					item1.Envelope,
+					item2.Envelope,
+					item3.Envelope,
+					item4.Envelope,
+					item5.Envelope,
+				)
+
+				items := loadEventsBySource(
+					tc.Context,
+					repository,
+					"<aggregate>",
+					"<instance-a>",
+					"",
+				)
+
+				for i, item := range items {
+					expectItemToEqual(
+						item,
+						expectedA[i],
+						fmt.Sprintf("item at index #%d of slice", i),
+					)
+				}
+
+				items = loadEventsBySource(
+					tc.Context,
+					repository,
+					"<aggregate>",
+					"<instance-b>",
+					"",
+				)
+
+				for i, item := range items {
+					expectItemToEqual(
+						item,
+						expectedB[i],
+						fmt.Sprintf("item at index #%d of slice", i),
+					)
+				}
+			})
+
+			ginkgo.It("only matches the events after the barrier message", func() {
+				expectedA := []*eventstore.Item{item2}
+				expectedB := []*eventstore.Item{item3}
+
+				saveEvents(
+					tc.Context,
+					dataStore,
+					item0.Envelope,
+					item1.Envelope,
+					item2.Envelope,
+					item3.Envelope,
+					item4.Envelope,
+					item5.Envelope,
+				)
+
+				items := loadEventsBySource(
+					tc.Context,
+					repository,
+					"<aggregate>",
+					"<instance-a>",
+					item0.ID(),
+				)
+
+				for i, item := range items {
+					expectItemToEqual(
+						item,
+						expectedA[i],
+						fmt.Sprintf("item at index #%d of slice", i),
+					)
+				}
+
+				items = loadEventsBySource(
+					tc.Context,
+					repository,
+					"<aggregate>",
+					"<instance-b>",
+					item1.ID(),
+				)
+
+				for i, item := range items {
+					expectItemToEqual(
+						item,
+						expectedB[i],
+						fmt.Sprintf("item at index #%d of slice", i),
+					)
+				}
+			})
+
+			ginkgo.It("returns an error if the barrier message is not found", func() {
+				saveEvents(
+					tc.Context,
+					dataStore,
+					item0.Envelope,
+					item1.Envelope,
+				)
+
+				_, err := repository.LoadEventsBySource(
+					tc.Context,
+					"<aggregate>",
+					"<instance-a>",
+					"<unknown>",
+				)
+				gomega.Expect(err).Should(gomega.HaveOccurred())
+				gomega.Expect(err).To(
+					gomega.MatchError("message with ID '<unknown>' cannot be found"),
+				)
+			})
+
+			ginkgo.It("does not return an error if events exist beyond the end offset", func() {
+				res, err := repository.LoadEventsBySource(tc.Context, "<aggregate>", "<instance-a>", "")
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				defer res.Close()
+
+				saveEvents(
+					tc.Context,
+					dataStore,
+					item0.Envelope,
+					item1.Envelope,
+				)
+
+				// The implementation may or may not expose these newly
+				// appended events to the caller. We simply want to ensure
+				// that no error occurs.
+				_, _, err = res.Next(tc.Context)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			})
+		})
+
+		ginkgo.Describe("func QueryEvents() and LoadEventsBySource()", func() {
+			ginkgo.It("allows concurrent consumers for the same application", func() {
 				saveEvents(
 					tc.Context,
 					dataStore,
@@ -204,37 +367,34 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 				var g sync.WaitGroup
 
-				fn := func() {
+				fn1 := func() {
 					defer g.Done()
 					defer ginkgo.GinkgoRecover()
 					items := queryEvents(tc.Context, repository, q)
 					gomega.Expect(items).To(gomega.HaveLen(2))
 				}
 
-				g.Add(3)
-				go fn()
-				go fn()
-				go fn()
+				fn2 := func() {
+					defer g.Done()
+					defer ginkgo.GinkgoRecover()
+					items := loadEventsBySource(
+						tc.Context,
+						repository,
+						"<aggregate>",
+						"<instance-a>",
+						"",
+					)
+					gomega.Expect(items).To(gomega.HaveLen(2))
+				}
+
+				g.Add(6)
+				go fn1()
+				go fn2()
+				go fn1()
+				go fn2()
+				go fn1()
+				go fn2()
 				g.Wait()
-			})
-
-			ginkgo.It("does not return an error if events exist beyond the end offset", func() {
-				res, err := repository.QueryEvents(tc.Context, eventstore.Query{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				defer res.Close()
-
-				saveEvents(
-					tc.Context,
-					dataStore,
-					item0.Envelope,
-					item1.Envelope,
-				)
-
-				// The implementation may or may not expose these newly
-				// appended events to the caller. We simply want to ensure
-				// that no error occurs.
-				_, _, err = res.Next(tc.Context)
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			})
 		})
 
