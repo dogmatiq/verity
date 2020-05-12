@@ -14,7 +14,6 @@ import (
 	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/handler/cache"
-	"github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
@@ -277,22 +276,22 @@ func (f *routeFactory) VisitRichProcess(_ context.Context, cfg configkit.RichPro
 }
 
 func (f *routeFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
-	s := &integration.Sink{
-		Identity:       envelopespec.MarshalIdentity(cfg.Identity()),
-		Handler:        cfg.Handler(),
-		DefaultTimeout: f.opts.MessageTimeout,
-		Packer: &parcel.Packer{
-			Application: f.app,
-			Marshaler:   f.opts.Marshaler,
-			Produced:    cfg.MessageTypes().Produced,
-			Consumed:    cfg.MessageTypes().Consumed,
-		},
-		Logger: f.appLogger,
-	}
+	// a := &integration.Adaptor{
+	// 	Identity:       envelopespec.MarshalIdentity(cfg.Identity()),
+	// 	Handler:        cfg.Handler(),
+	// 	DefaultTimeout: f.opts.MessageTimeout,
+	// 	Packer: &parcel.Packer{
+	// 		Application: f.app,
+	// 		Marshaler:   f.opts.Marshaler,
+	// 		Produced:    cfg.MessageTypes().Produced,
+	// 		Consumed:    cfg.MessageTypes().Consumed,
+	// 	},
+	// 	Logger: f.appLogger,
+	// }
 
-	for mt := range cfg.MessageTypes().Consumed {
-		f.routes[mt] = pipeline.Terminate(s.Accept)
-	}
+	// for mt := range cfg.MessageTypes().Consumed {
+	// f.routes[mt] = pipeline.Terminate(s.Accept)
+	// }
 
 	return nil
 }
