@@ -25,16 +25,12 @@ func (driver) InsertAggregateMetaData(
 			handler_key = ?,
 			instance_id = ?,
 			instance_exists = ?,
-			last_destroyed_by = ?,
-			begin_offset = ?,
-			end_offset = ?`,
+			last_destroyed_by = ?`,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
 		md.InstanceExists,
 		md.LastDestroyedBy,
-		md.BeginOffset,
-		md.EndOffset,
 	)
 }
 
@@ -55,17 +51,13 @@ func (driver) UpdateAggregateMetaData(
 		`UPDATE aggregate_metadata SET
 			revision = revision + 1,
 			instance_exists = ?,
-			last_destroyed_by = ?,
-			begin_offset = ?,
-			end_offset = ?
+			last_destroyed_by = ?
 		WHERE app_key = ?
 		AND handler_key = ?
 		AND instance_id = ?
 		AND revision = ?`,
 		md.InstanceExists,
 		md.LastDestroyedBy,
-		md.BeginOffset,
-		md.EndOffset,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
@@ -84,9 +76,7 @@ func (driver) SelectAggregateMetaData(
 		`SELECT
 			revision,
 			instance_exists,
-			last_destroyed_by,
-			begin_offset,
-			end_offset
+			last_destroyed_by
 		FROM aggregate_metadata
 		WHERE app_key = ?
 		AND handler_key = ?
@@ -105,8 +95,6 @@ func (driver) SelectAggregateMetaData(
 		&md.Revision,
 		&md.InstanceExists,
 		&md.LastDestroyedBy,
-		&md.BeginOffset,
-		&md.EndOffset,
 	)
 	if err == sql.ErrNoRows {
 		err = nil

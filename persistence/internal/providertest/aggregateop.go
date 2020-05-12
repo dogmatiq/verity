@@ -98,11 +98,9 @@ func declareAggregateOperationTests(tc *common.TestContext) {
 						dataStore,
 						persistence.SaveAggregateMetaData{
 							MetaData: aggregatestore.MetaData{
-								HandlerKey:  "<handler-key>",
-								InstanceID:  "<instance>",
-								Revision:    1,
-								BeginOffset: 1,
-								EndOffset:   2,
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   1,
 							},
 						},
 					)
@@ -192,11 +190,9 @@ func declareAggregateOperationTests(tc *common.TestContext) {
 							dataStore,
 							persistence.SaveAggregateMetaData{
 								MetaData: aggregatestore.MetaData{
-									HandlerKey:  hk,
-									InstanceID:  id,
-									Revision:    i,
-									BeginOffset: 100 + i,
-									EndOffset:   200 + i,
+									HandlerKey: hk,
+									InstanceID: id,
+									Revision:   i,
 								},
 							},
 						)
@@ -213,33 +209,27 @@ func declareAggregateOperationTests(tc *common.TestContext) {
 				md := loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
 					aggregatestore.MetaData{
-						HandlerKey:  "<handler-key-1>",
-						InstanceID:  "<instance-a>",
-						Revision:    1,
-						BeginOffset: 100,
-						EndOffset:   200,
+						HandlerKey: "<handler-key-1>",
+						InstanceID: "<instance-a>",
+						Revision:   1,
 					},
 				))
 
 				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-b>")
 				gomega.Expect(md).To(gomega.Equal(
 					aggregatestore.MetaData{
-						HandlerKey:  "<handler-key-1>",
-						InstanceID:  "<instance-b>",
-						Revision:    2,
-						BeginOffset: 101,
-						EndOffset:   201,
+						HandlerKey: "<handler-key-1>",
+						InstanceID: "<instance-b>",
+						Revision:   2,
 					},
 				))
 
 				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-2>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
 					aggregatestore.MetaData{
-						HandlerKey:  "<handler-key-2>",
-						InstanceID:  "<instance-a>",
-						Revision:    3,
-						BeginOffset: 102,
-						EndOffset:   202,
+						HandlerKey: "<handler-key-2>",
+						InstanceID: "<instance-a>",
+						Revision:   3,
 					},
 				))
 			})

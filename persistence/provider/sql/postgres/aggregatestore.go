@@ -27,19 +27,15 @@ func (driver) InsertAggregateMetaData(
 			handler_key,
 			instance_id,
 			instance_exists,
-			last_destroyed_by,
-			begin_offset,
-			end_offset
+			last_destroyed_by
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7
+			$1, $2, $3, $4, $5
 		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
 		md.InstanceExists,
 		md.LastDestroyedBy,
-		md.BeginOffset,
-		md.EndOffset,
 	)
 
 	n, err := res.RowsAffected()
@@ -63,17 +59,13 @@ func (driver) UpdateAggregateMetaData(
 		`UPDATE infix.aggregate_metadata SET
 			revision = revision + 1,
 			instance_exists = $1,
-			last_destroyed_by = $2,
-			begin_offset = $3,
-			end_offset = $4
-		WHERE app_key = $5
-		AND handler_key = $6
-		AND instance_id = $7
-		AND revision = $8`,
+			last_destroyed_by = $2
+		WHERE app_key = $3
+		AND handler_key = $4
+		AND instance_id = $5
+		AND revision = $6`,
 		md.InstanceExists,
 		md.LastDestroyedBy,
-		md.BeginOffset,
-		md.EndOffset,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
@@ -92,9 +84,7 @@ func (driver) SelectAggregateMetaData(
 		`SELECT
 			revision,
 			instance_exists,
-			last_destroyed_by,
-			begin_offset,
-			end_offset
+			last_destroyed_by
 		FROM infix.aggregate_metadata
 		WHERE app_key = $1
 		AND handler_key = $2
@@ -113,8 +103,6 @@ func (driver) SelectAggregateMetaData(
 		&md.Revision,
 		&md.InstanceExists,
 		&md.LastDestroyedBy,
-		&md.BeginOffset,
-		&md.EndOffset,
 	)
 	if err == sql.ErrNoRows {
 		err = nil

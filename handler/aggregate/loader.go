@@ -44,28 +44,24 @@ func (l *Loader) Load(
 		return md, nil
 	}
 
-	if err := l.queryEvents(ctx, md, root); err != nil {
+	if err := l.loadEvents(ctx, md, root); err != nil {
 		return nil, err
 	}
 
 	return md, nil
 }
 
-func (l *Loader) queryEvents(
+func (l *Loader) loadEvents(
 	ctx context.Context,
 	md *aggregatestore.MetaData,
 	root dogma.AggregateRoot,
 ) error {
-	// TODO: https://github.com/dogmatiq/dogma/issues/113
-	// How do we best configure the filter to deal with events that the
-	// aggregate once produced, but no longer does?
-	q := eventstore.Query{
-		MinOffset:           md.BeginOffset,
-		AggregateHandlerKey: md.HandlerKey,
-		AggregateInstanceID: md.InstanceID,
-	}
-
-	res, err := l.EventStore.QueryEvents(ctx, q)
+	res, err := l.EventStore.LoadEventsBySource(
+		ctx,
+		md.HandlerKey,
+		md.InstanceID,
+		md.LastDestroyedBy,
+	)
 	if err != nil {
 		return err
 	}

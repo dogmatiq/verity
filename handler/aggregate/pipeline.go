@@ -169,20 +169,18 @@ func (s *Sink) save(
 		return err
 	}
 
+	inst.metadata.InstanceExists = sc.exists
+
 	for i, p := range sc.events {
-		offset, err := res.RecordEvent(ctx, tx, p)
+		_, err := res.RecordEvent(ctx, tx, p)
 		if err != nil {
 			return err
 		}
 
 		if i == count-1 {
-			inst.metadata.SetLastRecordedOffset(offset)
-
 			if !sc.exists {
 				inst.root = s.new()
-				inst.metadata.MarkInstanceDestroyed(
-					p.Envelope.MetaData.MessageId,
-				)
+				inst.metadata.LastDestroyedBy = p.Envelope.MetaData.MessageId
 			}
 		}
 	}
