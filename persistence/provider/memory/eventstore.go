@@ -181,7 +181,7 @@ func (db *eventStoreDatabase) apply(cs *eventStoreChangeSet) {
 	}
 
 	for _, item := range cs.items {
-		db.offsets[item.Envelope.MetaData.MessageId] = item.Offset
+		db.offsets[item.ID()] = item.Offset
 	}
 }
 

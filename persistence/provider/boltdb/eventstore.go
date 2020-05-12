@@ -66,13 +66,13 @@ func (t *transaction) SaveEvent(
 
 	saveEventStoreItem(items, o, env)
 
-	messageIDs := bboltx.CreateBucketIfNotExists(
+	offsets := bboltx.CreateBucketIfNotExists(
 		store,
 		eventStoreOffsetsBucketKey,
 	)
 
 	bboltx.Put(
-		messageIDs,
+		offsets,
 		[]byte(env.MetaData.MessageId),
 		marshalUint64(o),
 	)
@@ -150,13 +150,13 @@ func (r *eventStoreRepository) LoadEventsBySource(
 		r.db.View(
 			ctx,
 			func(tx *bbolt.Tx) {
-				if messageIDs, exists := bboltx.TryBucket(
+				if offsets, exists := bboltx.TryBucket(
 					tx,
 					r.appKey,
 					eventStoreBucketKey,
 					eventStoreOffsetsBucketKey,
 				); exists {
-					v := messageIDs.Get([]byte(m))
+					v := offsets.Get([]byte(m))
 					if v == nil {
 						err = &eventstore.UnknownMessageError{
 							MessageID: m,
