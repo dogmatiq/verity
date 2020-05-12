@@ -173,8 +173,8 @@ var _ = Describe("func NotifyObservers()", func() {
 		}
 
 		work := &UnitOfWork{}
-		work.Observers = append(work.Observers, fn)
-		work.Observers = append(work.Observers, fn)
+		work.Observe(fn)
+		work.Observe(fn)
 
 		NotifyObservers(
 			work,

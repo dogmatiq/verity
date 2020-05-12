@@ -26,8 +26,13 @@ type UnitOfWork struct {
 	// Batch contains arbitrary persistence operations required by the handler.
 	Batch persistence.Batch
 
-	// Observers contains observers to notify when the unit-of-work is complete.
-	Observers []Observer
+	// observers contains observers to notify when the unit-of-work is complete.
+	observers []Observer
+}
+
+// Observe adds an observer to be notified when the unit-of-work is complete.
+func (w *UnitOfWork) Observe(obs Observer) {
+	w.observers = append(w.observers, obs)
 }
 
 // Resolver resolves the persistence batch and final result of a
@@ -151,7 +156,7 @@ type Observer func(Result, error)
 
 // NotifyObservers notifies the observers in w.
 func NotifyObservers(w *UnitOfWork, res Result, err error) {
-	for _, obs := range w.Observers {
+	for _, obs := range w.observers {
 		obs(res, err)
 	}
 }
