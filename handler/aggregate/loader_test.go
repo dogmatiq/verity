@@ -148,9 +148,11 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("returns an error if the events can not be loaded", func() {
-				eventRepo.QueryEventsFunc = func(
+				eventRepo.LoadEventsBySourceFunc = func(
 					context.Context,
-					eventstore.Query,
+					string,
+					string,
+					string,
 				) (eventstore.Result, error) {
 					return nil, errors.New("<error>")
 				}
@@ -187,7 +189,7 @@ var _ = Describe("type Loader", func() {
 						ctx,
 						dataStore,
 						func(tx persistence.ManagedTransaction) error {
-							metadata.MarkInstanceDestroyed("<id>")
+							metadata.MarkInstanceDestroyed("<event-1>")
 							return tx.SaveAggregateMetaData(ctx, metadata)
 						},
 					)
