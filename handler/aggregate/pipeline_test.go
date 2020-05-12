@@ -463,8 +463,6 @@ var _ = Describe("type Sink", func() {
 						InstanceID:     "<instance>",
 						InstanceExists: true,
 						Revision:       1,
-						BeginOffset:    0,
-						EndOffset:      2,
 					},
 				))
 			})

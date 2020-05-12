@@ -98,8 +98,6 @@ func (r *aggregateStoreRepository) LoadMetaData(
 				md.Revision = pb.GetRevision()
 				md.InstanceExists = pb.GetInstanceExists()
 				md.LastDestroyedBy = pb.GetLastDestroyedBy()
-				md.BeginOffset = pb.GetBeginOffset()
-				md.EndOffset = pb.GetEndOffset()
 			}
 		},
 	)
@@ -114,8 +112,6 @@ func marshalAggregateStoreMetaData(md *aggregatestore.MetaData) []byte {
 		Revision:        md.Revision + 1,
 		InstanceExists:  md.InstanceExists,
 		LastDestroyedBy: md.LastDestroyedBy,
-		BeginOffset:     md.BeginOffset,
-		EndOffset:       md.EndOffset,
 	}
 
 	data, err := proto.Marshal(new)
