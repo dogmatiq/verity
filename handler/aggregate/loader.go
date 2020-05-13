@@ -10,7 +10,14 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// Loader loads aggregate instances from persistence.
+// Instance is an in-memory representation of the aggregate instance, as stored
+// in the cache.
+type Instance struct {
+	MetaData aggregatestore.MetaData
+	Root     dogma.AggregateRoot
+}
+
+// Loader loads aggregate instances from their historical events.
 type Loader struct {
 	// AggregateStore is the repository used to load an aggregate instance's
 	// revisions and snapshots.
@@ -29,32 +36,34 @@ type Loader struct {
 func (l *Loader) Load(
 	ctx context.Context,
 	hk, id string,
-	root dogma.AggregateRoot,
-) (*aggregatestore.MetaData, error) {
+	base dogma.AggregateRoot,
+) (*Instance, error) {
 	md, err := l.AggregateStore.LoadMetaData(ctx, hk, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if root == dogma.StatelessAggregateRoot {
-		return md, nil
+	inst := &Instance{*md, base}
+
+	if base == dogma.StatelessAggregateRoot {
+		return inst, nil
 	}
 
 	if !md.InstanceExists {
-		return md, nil
+		return inst, nil
 	}
 
-	if err := l.loadEvents(ctx, md, root); err != nil {
+	if err := l.applyEvents(ctx, md, base); err != nil {
 		return nil, err
 	}
 
-	return md, nil
+	return inst, nil
 }
 
-func (l *Loader) loadEvents(
+func (l *Loader) applyEvents(
 	ctx context.Context,
 	md *aggregatestore.MetaData,
-	root dogma.AggregateRoot,
+	base dogma.AggregateRoot,
 ) error {
 	res, err := l.EventStore.LoadEventsBySource(
 		ctx,
@@ -77,6 +86,6 @@ func (l *Loader) loadEvents(
 			return err
 		}
 
-		root.ApplyEvent(p.Message)
+		base.ApplyEvent(p.Message)
 	}
 }
