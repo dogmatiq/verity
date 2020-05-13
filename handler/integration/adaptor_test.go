@@ -23,18 +23,15 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		dataStore *DataStoreStub
-		integ     *IntegrationMessageHandler
-		packer    *parcel.Packer
-		logger    *logging.BufferedLogger
-		work      *handler.UnitOfWork
-		cause     *parcel.Parcel
-		adaptor   *Adaptor
+		integ   *IntegrationMessageHandler
+		packer  *parcel.Packer
+		logger  *logging.BufferedLogger
+		work    *handler.UnitOfWork
+		cause   *parcel.Parcel
+		adaptor *Adaptor
 	)
 
 	BeforeEach(func() {
-		dataStore = NewDataStoreStub()
-
 		integ = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 				c.Identity("<integration-name>", "<integration-key>")
@@ -65,10 +62,6 @@ var _ = Describe("type Adaptor", func() {
 			Packer:  packer,
 			Logger:  logger,
 		}
-	})
-
-	AfterEach(func() {
-		dataStore.Close()
 	})
 
 	Describe("func HandleMessage()", func() {
