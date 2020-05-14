@@ -24,7 +24,7 @@ type EntryPoint struct {
 	Observers []Observer
 }
 
-// HandleMessage handles the message in p using x.Handler and persists the
+// HandleMessage handles the message in p using ep.Handler and persists the
 // result of its unit-of-work.
 //
 // b is a batch of persistence operations that must be performed atomically with
