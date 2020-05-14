@@ -13,7 +13,6 @@ import (
 	"github.com/dogmatiq/infix/eventstream/memorystream"
 	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/handler/aggregate"
-	"github.com/dogmatiq/infix/handler/cache"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
@@ -240,33 +239,33 @@ func (f *routeFactory) VisitRichApplication(ctx context.Context, cfg configkit.R
 }
 
 func (f *routeFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
-	s := &aggregate.Sink{
-		Identity: envelopespec.MarshalIdentity(cfg.Identity()),
-		Handler:  cfg.Handler(),
-		Loader:   f.loader,
-		Cache: &cache.Cache{
-			// TODO: https://github.com/dogmatiq/infix/issues/193
-			// Make TTL configurable.
-			Logger: loggingx.WithPrefix(
-				f.engineLogger,
-				"[cache %s@%s] ",
-				f.app.Name,
-				cfg.Identity().Name,
-			),
-		},
-		Packer: &parcel.Packer{
-			Application: f.app,
-			Marshaler:   f.opts.Marshaler,
-			Produced:    cfg.MessageTypes().Produced,
-			Consumed:    cfg.MessageTypes().Consumed,
-		},
-		LoadTimeout: f.opts.MessageTimeout,
-		Logger:      f.appLogger,
-	}
+	// s := &aggregate.Sink{
+	// 	Identity: envelopespec.MarshalIdentity(cfg.Identity()),
+	// 	Handler:  cfg.Handler(),
+	// 	Loader:   f.loader,
+	// 	Cache: &cache.Cache{
+	// 		// TODO: https://github.com/dogmatiq/infix/issues/193
+	// 		// Make TTL configurable.
+	// 		Logger: loggingx.WithPrefix(
+	// 			f.engineLogger,
+	// 			"[cache %s@%s] ",
+	// 			f.app.Name,
+	// 			cfg.Identity().Name,
+	// 		),
+	// 	},
+	// 	Packer: &parcel.Packer{
+	// 		Application: f.app,
+	// 		Marshaler:   f.opts.Marshaler,
+	// 		Produced:    cfg.MessageTypes().Produced,
+	// 		Consumed:    cfg.MessageTypes().Consumed,
+	// 	},
+	// 	LoadTimeout: f.opts.MessageTimeout,
+	// 	Logger:      f.appLogger,
+	// }
 
-	for mt := range cfg.MessageTypes().Consumed {
-		f.routes[mt] = pipeline.Terminate(s.Accept)
-	}
+	// for mt := range cfg.MessageTypes().Consumed {
+	// 	f.routes[mt] = pipeline.Terminate(s.Accept)
+	// }
 
 	return nil
 }
