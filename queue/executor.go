@@ -39,7 +39,7 @@ func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) e
 
 	i.Revision++
 
-	x.Queue.Track(Message{p, &i})
+	x.Queue.Add(Message{p, &i})
 
 	return nil
 }

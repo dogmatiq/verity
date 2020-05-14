@@ -104,10 +104,10 @@ func (q *Queue) Pop(ctx context.Context) (*Request, error) {
 	}
 }
 
-// Track begins tracking a message that has been persisted to the queue store.
+// Add begins tracking messages that have been persisted to the queue.
 //
 // TODO: accept a slice.
-func (q *Queue) Track(m Message) {
+func (q *Queue) Add(m Message) {
 	if m.Item.Revision == 0 {
 		panic("message must be persisted")
 	}
@@ -132,7 +132,7 @@ func (q *Queue) Track(m Message) {
 // Run starts the queue.
 //
 // It coordinates the tracking of messages that are loaded from the queue store,
-// or manually added to the queue by Track().
+// or manually added to the queue by Add().
 func (q *Queue) Run(ctx context.Context) error {
 	q.init()
 	defer close(q.done)
@@ -232,7 +232,7 @@ func (q *Queue) load(ctx context.Context) error {
 		return nil
 	}
 
-	// We set the status to UNKNOWN while we are loading. If a call to Track()
+	// We set the status to UNKNOWN while we are loading. If a call to Add()
 	// comes along and sets it to NO in the mean-time, we know not to set it
 	// back to YES after we finish loading as we may or may not have that
 	// particular message in the result of the load.
@@ -260,7 +260,7 @@ func (q *Queue) load(ctx context.Context) error {
 		// We didn't get as many messages as we requested, so we know we have
 		// everything in memory.
 		//
-		// Only set the exhaustive status back to YES if a Track() call did not
+		// Only set the exhaustive status back to YES if an Add() call did not
 		// set it to NO while we were loading.
 		logging.Debug(q.Logger, "loaded %d message(s) from store (exhaustive: yes)", n)
 	} else {
@@ -371,7 +371,7 @@ func (q *Queue) init() {
 		// Allocate capcity for our limit +1 element used to detect overflow.
 		q.tracked = make(map[string]struct{}, limit+1)
 
-		// Buffered to avoid blocking in Track(), doesn't strictly *need* to be
+		// Buffered to avoid blocking in Add(), doesn't strictly *need* to be
 		// the same size as limit.
 		q.in = make(chan *elem, limit)
 

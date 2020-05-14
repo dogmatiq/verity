@@ -46,7 +46,7 @@ func push(
 
 	i.Revision++
 
-	q.Track(Message{
+	q.Add(Message{
 		Parcel: p,
 		Item:   i,
 	})
@@ -221,10 +221,10 @@ var _ = Describe("type Queue", func() {
 			})
 		})
 
-		Describe("func Track()", func() {
+		Describe("func Add()", func() {
 			It("panics if the message has not been persisted", func() {
 				Expect(func() {
-					queue.Track(
+					queue.Add(
 						Message{
 							Parcel: parcel0,
 							Item: &queuestore.Item{
@@ -263,7 +263,7 @@ var _ = Describe("type Queue", func() {
 				Expect(err).To(Equal(context.DeadlineExceeded))
 			})
 
-			When("a message is tracked while loading from the store", func() {
+			When("a message is added while loading from the store", func() {
 				BeforeEach(func() {
 					repository.LoadQueueMessagesFunc = func(
 						ctx context.Context,
@@ -331,9 +331,9 @@ var _ = Describe("type Queue", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		Describe("func Track()", func() {
+		Describe("func Add()", func() {
 			It("does not block", func() {
-				queue.Track(
+				queue.Add(
 					Message{
 						Parcel: parcel0,
 						Item: &queuestore.Item{
@@ -346,7 +346,7 @@ var _ = Describe("type Queue", func() {
 
 			It("does not block, even if the internal buffer is full", func() {
 				// Fill the buffer.
-				queue.Track(
+				queue.Add(
 					Message{
 						Parcel: parcel0,
 						Item: &queuestore.Item{
@@ -357,7 +357,7 @@ var _ = Describe("type Queue", func() {
 				)
 
 				// Ensure it doesn't block once full.
-				queue.Track(
+				queue.Add(
 					Message{
 						Parcel: parcel1,
 						Item: &queuestore.Item{

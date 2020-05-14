@@ -345,7 +345,7 @@ var _ = Describe("type Request", func() {
 
 		It("does not block, even if the internal buffer is full", func() {
 			// Fill the buffer.
-			queue.Track(
+			queue.Add(
 				Message{
 					Parcel: parcel1,
 					Item: &queuestore.Item{
