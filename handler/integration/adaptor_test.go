@@ -23,16 +23,16 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		integ   *IntegrationMessageHandler
-		packer  *parcel.Packer
-		logger  *logging.BufferedLogger
-		work    *handler.UnitOfWork
-		cause   *parcel.Parcel
-		adaptor *Adaptor
+		upstream *IntegrationMessageHandler
+		packer   *parcel.Packer
+		logger   *logging.BufferedLogger
+		work     *handler.UnitOfWork
+		cause    *parcel.Parcel
+		adaptor  *Adaptor
 	)
 
 	BeforeEach(func() {
-		integ = &IntegrationMessageHandler{
+		upstream = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 				c.Identity("<integration-name>", "<integration-key>")
 				c.ConsumesCommandType(MessageC{})
@@ -58,7 +58,7 @@ var _ = Describe("type Adaptor", func() {
 				Name: "<integration-name>",
 				Key:  "<integration-key>",
 			},
-			Handler: integ,
+			Handler: upstream,
 			Packer:  packer,
 			Logger:  logger,
 		}
@@ -66,7 +66,7 @@ var _ = Describe("type Adaptor", func() {
 
 	Describe("func HandleMessage()", func() {
 		It("forwards the message to the handler", func() {
-			integ.HandleCommandFunc = func(
+			upstream.HandleCommandFunc = func(
 				_ context.Context,
 				_ dogma.IntegrationCommandScope,
 				m dogma.Message,
@@ -81,7 +81,7 @@ var _ = Describe("type Adaptor", func() {
 
 		Context("when an event is recorded", func() {
 			BeforeEach(func() {
-				integ.HandleCommandFunc = func(
+				upstream.HandleCommandFunc = func(
 					_ context.Context,
 					s dogma.IntegrationCommandScope,
 					_ dogma.Message,
@@ -132,7 +132,7 @@ var _ = Describe("type Adaptor", func() {
 
 		Context("when a message is logged via the scope", func() {
 			BeforeEach(func() {
-				integ.HandleCommandFunc = func(
+				upstream.HandleCommandFunc = func(
 					_ context.Context,
 					s dogma.IntegrationCommandScope,
 					_ dogma.Message,

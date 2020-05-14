@@ -12,11 +12,11 @@ import (
 // scope is an implementation of dogma.IntegrationEventScope. It is the
 // application-developer-facing interface to a UnitOfWork.
 type scope struct {
-	work     *handler.UnitOfWork
-	cause    *parcel.Parcel
 	identity *envelopespec.Identity
 	packer   *parcel.Packer
 	logger   logging.Logger
+	work     *handler.UnitOfWork
+	cause    *parcel.Parcel
 }
 
 // RecordEvent records the occurrence of an event as a result of the command
