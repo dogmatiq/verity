@@ -6,38 +6,38 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/infix/parcel"
 )
 
-// scope is an implementation of dogma.AggregateCommandScope.
+// scope is an implementation of dogma.AggregateCommandScope. It is the
+// application-developer-facing interface to a UnitOfWork.
 type scope struct {
-	cause   *parcel.Parcel
-	packer  *parcel.Packer
-	handler *envelopespec.Identity
-	logger  logging.Logger
-
-	id     string
-	root   dogma.AggregateRoot
-	exists bool
-
-	created   bool
-	destroyed bool
-	events    []*parcel.Parcel
+	identity    *envelopespec.Identity
+	handler     dogma.AggregateMessageHandler
+	packer      *parcel.Packer
+	logger      logging.Logger
+	work        *handler.UnitOfWork
+	cause       *parcel.Parcel
+	instance    *Instance // the aggregate instance, this is always within a cache record
+	created     bool      // true if Create() has been called successfully at least once
+	destroyed   bool      // true if Destroy() has been called successfully at least once
+	lastEventID string    // ID of the most-recently recorded event
 }
 
 // InstanceID returns the ID of the targeted aggregate instance.
 func (s *scope) InstanceID() string {
-	return s.id
+	return s.instance.MetaData.InstanceID
 }
 
 // Create creates the targeted instance.
 func (s *scope) Create() bool {
-	if s.exists {
+	if s.instance.MetaData.InstanceExists {
 		return false
 	}
 
-	s.exists = true
+	s.instance.MetaData.InstanceExists = true
 	s.created = true
 
 	return true
@@ -45,39 +45,43 @@ func (s *scope) Create() bool {
 
 // Destroy destroys the targeted instance.
 func (s *scope) Destroy() {
-	if !s.exists {
+	if !s.instance.MetaData.InstanceExists {
 		panic("can not destroy non-existent instance")
 	}
 
-	s.exists = false
+	s.instance.Root = mustNew(s.handler)
+	s.instance.MetaData.InstanceExists = false
+	s.instance.MetaData.LastDestroyedBy = s.lastEventID
+
 	s.destroyed = true
 }
 
 // Root returns the root of the targeted aggregate instance.
 func (s *scope) Root() dogma.AggregateRoot {
-	if !s.exists {
+	if !s.instance.MetaData.InstanceExists {
 		panic("can not access aggregate root of non-existent instance")
 	}
 
-	return s.root
+	return s.instance.Root
 }
 
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
-	if !s.exists {
+	if !s.instance.MetaData.InstanceExists {
 		panic("can not record event against non-existent instance")
 	}
 
 	p := s.packer.PackChildEvent(
 		s.cause,
 		m,
-		s.handler,
-		s.id,
+		s.identity,
+		s.instance.MetaData.InstanceID,
 	)
 
-	s.root.ApplyEvent(m)
-	s.events = append(s.events, p)
+	s.instance.Root.ApplyEvent(m)
+	s.lastEventID = p.Envelope.MetaData.MessageId
+	s.work.Events = append(s.work.Events, p)
 
 	mlog.LogProduce(s.logger, p.Envelope)
 }
@@ -93,26 +97,26 @@ func (s *scope) Log(f string, v ...interface{}) {
 	)
 }
 
-// validate panics if the handler left the scope in an invalid state.
+// validate panics if the handler left the instance in an invalid state.
 func (s *scope) validate() {
-	if len(s.events) > 0 {
+	if s.lastEventID != "" {
 		return
 	}
 
 	if s.created {
 		panic(fmt.Sprintf(
-			"the '%s' aggregate message handler created the '%s' instance without recording an event while handling a %T command",
-			s.handler.Name,
-			s.id,
+			"%T.HandleEvent() created the '%s' instance without recording an event while handling a %T command",
+			s.handler,
+			s.instance.MetaData.InstanceID,
 			s.cause.Message,
 		))
 	}
 
 	if s.destroyed {
 		panic(fmt.Sprintf(
-			"the '%s' aggregate message handler destroyed the '%s' instance without recording an event while handling a %T command",
-			s.handler.Name,
-			s.id,
+			"%T.HandleEvent() destroyed the '%s' instance without recording an event while handling a %T command",
+			s.handler,
+			s.instance.MetaData.InstanceID,
 			s.cause.Message,
 		))
 	}
