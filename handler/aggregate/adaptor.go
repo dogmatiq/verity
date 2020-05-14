@@ -83,12 +83,9 @@ func (a *Adaptor) HandleMessage(
 		return nil
 	}
 
-	w.Batch = append(
-		w.Batch,
-		persistence.SaveAggregateMetaData{
-			MetaData: sc.instance.MetaData,
-		},
-	)
+	w.Do(persistence.SaveAggregateMetaData{
+		MetaData: sc.instance.MetaData,
+	})
 
 	// We can safely increment the revision now, knowing that the cache record
 	// will be discarded if the unit-of-work is not persisted correctly.

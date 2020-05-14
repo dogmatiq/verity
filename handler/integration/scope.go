@@ -29,7 +29,7 @@ func (s *scope) RecordEvent(m dogma.Message) {
 		"",
 	)
 
-	s.work.Events = append(s.work.Events, p)
+	s.work.RecordEvent(p)
 
 	mlog.LogProduce(s.logger, p.Envelope)
 }

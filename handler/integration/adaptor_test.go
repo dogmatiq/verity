@@ -11,6 +11,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/handler"
 	. "github.com/dogmatiq/infix/handler/integration"
@@ -23,15 +24,19 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		upstream *IntegrationMessageHandler
-		packer   *parcel.Packer
-		logger   *logging.BufferedLogger
-		work     *handler.UnitOfWork
-		cause    *parcel.Parcel
-		adaptor  *Adaptor
+		dataStore  *DataStoreStub
+		upstream   *IntegrationMessageHandler
+		packer     *parcel.Packer
+		logger     *logging.BufferedLogger
+		cause      *parcel.Parcel
+		adaptor    *Adaptor
+		result     handler.Result
+		entryPoint *handler.EntryPoint
 	)
 
 	BeforeEach(func() {
+		dataStore = NewDataStoreStub()
+
 		upstream = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 				c.Identity("<integration-name>", "<integration-key>")
@@ -49,8 +54,6 @@ var _ = Describe("type Adaptor", func() {
 
 		logger = &logging.BufferedLogger{}
 
-		work = &handler.UnitOfWork{}
-
 		cause = NewParcel("<consume>", MessageC1)
 
 		adaptor = &Adaptor{
@@ -62,6 +65,20 @@ var _ = Describe("type Adaptor", func() {
 			Packer:  packer,
 			Logger:  logger,
 		}
+
+		entryPoint = &handler.EntryPoint{
+			Persister: dataStore,
+			Handler:   adaptor,
+			Observers: []handler.Observer{
+				func(r handler.Result, _ error) {
+					result = r
+				},
+			},
+		}
+	})
+
+	AfterEach(func() {
+		dataStore.Close()
 	})
 
 	Describe("func HandleMessage()", func() {
@@ -75,7 +92,7 @@ var _ = Describe("type Adaptor", func() {
 				return errors.New("<error>")
 			}
 
-			err := adaptor.HandleMessage(context.Background(), work, cause)
+			err := entryPoint.HandleMessage(context.Background(), cause, nil)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -90,32 +107,35 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := adaptor.HandleMessage(context.Background(), work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
 			It("adds the event to the unit-of-work", func() {
-				Expect(work.Events).To(EqualX(
-					[]*parcel.Parcel{
-						&parcel.Parcel{
-							Envelope: &envelopespec.Envelope{
-								MetaData: &envelopespec.MetaData{
-									MessageId:     "0",
-									CausationId:   "<consume>",
-									CorrelationId: "<correlation>",
-									Source: &envelopespec.Source{
-										Application: packer.Application,
-										Handler:     adaptor.Identity,
+				Expect(result.Events).To(EqualX(
+					[]eventstream.Event{
+						{
+							Offset: 0,
+							Parcel: &parcel.Parcel{
+								Envelope: &envelopespec.Envelope{
+									MetaData: &envelopespec.MetaData{
+										MessageId:     "0",
+										CausationId:   "<consume>",
+										CorrelationId: "<correlation>",
+										Source: &envelopespec.Source{
+											Application: packer.Application,
+											Handler:     adaptor.Identity,
+										},
+										CreatedAt:   "2000-01-01T00:00:00Z",
+										Description: "{E1}",
 									},
-									CreatedAt:   "2000-01-01T00:00:00Z",
-									Description: "{E1}",
+									PortableName: MessageEPortableName,
+									MediaType:    MessageE1Packet.MediaType,
+									Data:         MessageE1Packet.Data,
 								},
-								PortableName: MessageEPortableName,
-								MediaType:    MessageE1Packet.MediaType,
-								Data:         MessageE1Packet.Data,
+								Message:   MessageE1,
+								CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 							},
-							Message:   MessageE1,
-							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
 					},
 				))
@@ -141,7 +161,7 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := adaptor.HandleMessage(context.Background(), work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
