@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
@@ -24,11 +23,6 @@ type Request struct {
 // attempted without success, not including this request.
 func (r *Request) FailureCount() uint {
 	return r.elem.Item.FailureCount
-}
-
-// Envelope returns the message envelope.
-func (r *Request) Envelope() *envelopespec.Envelope {
-	return r.elem.Item.Envelope
 }
 
 // Parcel returns a parcel containing the original Dogma message.
