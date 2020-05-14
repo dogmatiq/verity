@@ -215,7 +215,7 @@ func (e *Engine) newEntryPoint(
 					}
 
 					for _, m := range r.Queued {
-						q.Track(m)
+						q.Add(m)
 					}
 				}
 			},
