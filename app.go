@@ -60,7 +60,7 @@ func (e *Engine) initApp(
 
 	q := e.newQueue(cfg, ds)
 	s := e.newEventStream(cfg, ds, c)
-	x := e.newCommandExecutor(cfg, q)
+	x := e.newCommandExecutor(cfg, ds, q)
 	l := loggingx.WithPrefix(
 		e.opts.Logger,
 		"@%s  ",
@@ -161,10 +161,12 @@ func (e *Engine) newEventStream(
 // newCommandExecutor returns a dogma.CommandExecutor for a specific app.
 func (e *Engine) newCommandExecutor(
 	cfg configkit.RichApplication,
+	p persistence.Persister,
 	q *queue.Queue,
 ) *queue.CommandExecutor {
 	return &queue.CommandExecutor{
-		Queue: q,
+		Queue:     q,
+		Persister: p,
 		Packer: &parcel.Packer{
 			Application: envelopespec.MarshalIdentity(cfg.Identity()),
 			Marshaler:   e.opts.Marshaler,
