@@ -32,21 +32,8 @@ func (r *Request) Envelope() *envelopespec.Envelope {
 }
 
 // Parcel returns a parcel containing the original Dogma message.
-func (r *Request) Parcel() (*parcel.Parcel, error) {
-	var err error
-
-	if r.elem.Parcel == nil {
-		r.elem.Parcel, err = parcel.FromEnvelope(
-			r.queue.Marshaler,
-			r.elem.Item.Envelope,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return r.elem.Parcel, nil
+func (r *Request) Parcel() *parcel.Parcel {
+	return r.elem.Parcel
 }
 
 // Tx returns the transaction used to persist data within this request.
