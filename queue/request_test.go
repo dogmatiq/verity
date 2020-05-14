@@ -89,34 +89,8 @@ var _ = Describe("type Request", func() {
 
 		Describe("func Parcel()", func() {
 			It("returns the parcel", func() {
-				p, err := req.Parcel()
-				Expect(err).ShouldNot(HaveOccurred())
+				p := req.Parcel()
 				Expect(p).To(EqualX(parcel0))
-			})
-
-			It("unmarshals the parcel if necessary", func() {
-				// Push a new message, which will get discarded from memory due to
-				// the buffer size limit.
-				queue.BufferSize = 1
-				push(ctx, queue, parcel1)
-
-				// Acknowledge and close the existing request for parcel0, freeing
-				// us to load again.
-				_, err := req.Ack(ctx, nil)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				err = req.Close()
-				Expect(err).ShouldNot(HaveOccurred())
-
-				// Start the request for parcel1.
-				req, err := queue.Pop(ctx)
-				Expect(err).ShouldNot(HaveOccurred())
-				defer req.Close()
-
-				// Finally, verify that the parcel is unpacked.
-				p, err := req.Parcel()
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(p).To(EqualX(parcel1))
 			})
 		})
 
