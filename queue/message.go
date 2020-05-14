@@ -10,3 +10,8 @@ type Message struct {
 	Parcel *parcel.Parcel
 	Item   *queuestore.Item
 }
+
+// ID returns the message ID.
+func (m Message) ID() string {
+	return m.Item.ID()
+}
