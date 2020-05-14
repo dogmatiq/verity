@@ -80,13 +80,6 @@ var _ = Describe("type Request", func() {
 			})
 		})
 
-		Describe("func Envelope()", func() {
-			It("returns the message envelope", func() {
-				e := req.Envelope()
-				Expect(e).To(EqualX(parcel0.Envelope))
-			})
-		})
-
 		Describe("func Parcel()", func() {
 			It("returns the parcel", func() {
 				p := req.Parcel()
