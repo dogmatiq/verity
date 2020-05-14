@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Sink", func() {
+var _ = Describe("type Adaptor", func() {
 	var (
 		ctx           context.Context
 		cancel        context.CancelFunc
@@ -33,9 +33,9 @@ var _ = Describe("type Sink", func() {
 		upstream      *AggregateMessageHandler
 		packer        *parcel.Packer
 		logger        *logging.BufferedLogger
-		work          *handler.UnitOfWork
 		cause         *parcel.Parcel
 		adaptor       *Adaptor
+		entryPoint    *handler.EntryPoint
 	)
 
 	BeforeEach(func() {
@@ -75,8 +75,6 @@ var _ = Describe("type Sink", func() {
 			}
 		}
 
-		work = &handler.UnitOfWork{}
-
 		cause = NewParcel("<consume>", MessageC1)
 
 		adaptor = &Adaptor{
@@ -94,13 +92,15 @@ var _ = Describe("type Sink", func() {
 			LoadTimeout: 1 * time.Second,
 			Logger:      logger,
 		}
+
+		entryPoint = &handler.EntryPoint{
+			Persister: dataStore,
+			Handler:   adaptor,
+		}
 	})
 
 	AfterEach(func() {
-		if dataStore != nil {
-			dataStore.Close()
-		}
-
+		dataStore.Close()
 		cancel()
 	})
 
@@ -115,7 +115,7 @@ var _ = Describe("type Sink", func() {
 				Expect(m).To(Equal(MessageC1))
 			}
 
-			err := adaptor.HandleMessage(ctx, work, cause)
+			err := entryPoint.HandleMessage(context.Background(), cause, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
@@ -128,7 +128,7 @@ var _ = Describe("type Sink", func() {
 				Expect(s.InstanceID()).To(Equal("<instance>"))
 			}
 
-			err := adaptor.HandleMessage(ctx, work, cause)
+			err := entryPoint.HandleMessage(context.Background(), cause, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -141,7 +141,7 @@ var _ = Describe("type Sink", func() {
 				return nil, errors.New("<error>")
 			}
 
-			err := adaptor.HandleMessage(ctx, work, cause)
+			err := entryPoint.HandleMessage(context.Background(), cause, nil)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -151,7 +151,7 @@ var _ = Describe("type Sink", func() {
 			}
 
 			Expect(func() {
-				err := adaptor.HandleMessage(ctx, work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			}).To(PanicWith("*fixtures.AggregateMessageHandler.RouteCommandToInstance() returned an empty instance ID while routing a fixtures.MessageC command"))
 		})
@@ -162,16 +162,13 @@ var _ = Describe("type Sink", func() {
 			}
 
 			Expect(func() {
-				err := adaptor.HandleMessage(ctx, work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			}).To(PanicWith("*fixtures.AggregateMessageHandler.New() returned nil"))
 		})
 
 		Context("when an event is recorded", func() {
-			BeforeEach(func() {
-			})
-
-			It("adds the event to the unit-of-work", func() {
+			It("saves the event", func() {
 				upstream.HandleCommandFunc = func(
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
@@ -180,32 +177,39 @@ var _ = Describe("type Sink", func() {
 					s.RecordEvent(MessageE1)
 				}
 
-				err := adaptor.HandleMessage(context.Background(), work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				Expect(work.Events).To(EqualX(
-					[]*parcel.Parcel{
-						&parcel.Parcel{
-							Envelope: &envelopespec.Envelope{
-								MetaData: &envelopespec.MetaData{
-									MessageId:     "0",
-									CausationId:   "<consume>",
-									CorrelationId: "<correlation>",
-									Source: &envelopespec.Source{
-										Application: packer.Application,
-										Handler:     adaptor.Identity,
-										InstanceId:  "<instance>",
-									},
-									CreatedAt:   "2000-01-01T00:00:00Z",
-									Description: "{E1}",
-								},
-								PortableName: MessageEPortableName,
-								MediaType:    MessageE1Packet.MediaType,
-								Data:         MessageE1Packet.Data,
+				res, err := eventRepo.LoadEventsBySource(
+					ctx,
+					"<aggregate-key>",
+					"<instance>",
+					"",
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+				defer res.Close()
+
+				i, ok, err := res.Next(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(ok).To(BeTrue())
+
+				Expect(i.Envelope).To(EqualX(
+					&envelopespec.Envelope{
+						MetaData: &envelopespec.MetaData{
+							MessageId:     "0",
+							CausationId:   "<consume>",
+							CorrelationId: "<correlation>",
+							Source: &envelopespec.Source{
+								Application: packer.Application,
+								Handler:     adaptor.Identity,
+								InstanceId:  "<instance>",
 							},
-							Message:   MessageE1,
-							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+							CreatedAt:   "2000-01-01T00:00:00Z",
+							Description: "{E1}",
 						},
+						PortableName: MessageEPortableName,
+						MediaType:    MessageE1Packet.MediaType,
+						Data:         MessageE1Packet.Data,
 					},
 				))
 			})
@@ -226,7 +230,7 @@ var _ = Describe("type Sink", func() {
 					))
 				}
 
-				err := adaptor.HandleMessage(context.Background(), work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -239,7 +243,7 @@ var _ = Describe("type Sink", func() {
 				}
 
 				Expect(func() {
-					err := adaptor.HandleMessage(context.Background(), work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("can not record event against non-existent instance"))
 			})
@@ -253,7 +257,7 @@ var _ = Describe("type Sink", func() {
 					s.RecordEvent(MessageE1)
 				}
 
-				err := adaptor.HandleMessage(context.Background(), work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				Expect(logger.Messages()).To(ContainElement(
@@ -273,7 +277,7 @@ var _ = Describe("type Sink", func() {
 					s.Log("format %s", "<value>")
 				}
 
-				err := adaptor.HandleMessage(context.Background(), work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -286,46 +290,41 @@ var _ = Describe("type Sink", func() {
 			})
 		})
 
-		When("the cache record is locked", func() {
-			BeforeEach(func() {
-				// Handle a message. The cache record should remain locked
-				// until the observers in the unit-of-work are notified.
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
+		It("returns an error if the deadline is exceeded while acquiring the cache record", func() {
+			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
+			Expect(err).ShouldNot(HaveOccurred())
+			defer rec.Release()
 
-			It("times-out attempting to acquire another lock", func() {
-				ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
-				defer cancel()
+			ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
+			defer cancel()
 
-				// Because we haven't notified the observers to release the cache
-				// record, this invocation should timeout.
-				err := adaptor.HandleMessage(ctx, &handler.UnitOfWork{}, cause)
-				Expect(err).To(Equal(context.DeadlineExceeded))
-			})
+			err = entryPoint.HandleMessage(context.Background(), cause, nil)
+			Expect(err).To(Equal(context.DeadlineExceeded))
+		})
 
-			It("releases the cache record when the unit of work is complete", func() {
-				handler.NotifyObservers(work, handler.Result{}, nil)
+		It("retains the cache record if the unit-of-work is successful", func() {
+			err := entryPoint.HandleMessage(context.Background(), cause, nil)
+			Expect(err).ShouldNot(HaveOccurred())
 
-				err := adaptor.HandleMessage(ctx, &handler.UnitOfWork{}, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
+			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(rec.Instance).NotTo(BeNil())
+		})
 
-			It("retains the cache record if the unit-of-work is successful", func() {
-				handler.NotifyObservers(work, handler.Result{}, nil)
+		It("does not retain the cache record if the unit-of-work is unsuccessful", func() {
+			dataStore.PersistFunc = func(
+				context.Context,
+				persistence.Batch,
+			) (persistence.Result, error) {
+				return persistence.Result{}, errors.New("<error>")
+			}
 
-				rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(rec.Instance).NotTo(BeNil())
-			})
+			err := entryPoint.HandleMessage(context.Background(), cause, nil)
+			Expect(err).To(MatchError("<error>"))
 
-			It("does not retain the cache record if the unit-of-work is unsuccessful", func() {
-				handler.NotifyObservers(work, handler.Result{}, errors.New("<error>"))
-
-				rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(rec.Instance).To(BeNil())
-			})
+			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(rec.Instance).To(BeNil())
 		})
 
 		When("the instance does not exist", func() {
@@ -341,7 +340,7 @@ var _ = Describe("type Sink", func() {
 						s.RecordEvent(MessageE1)
 					}
 
-					err := adaptor.HandleMessage(ctx, work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -354,19 +353,21 @@ var _ = Describe("type Sink", func() {
 						s.RecordEvent(MessageE1)
 					}
 
-					err := adaptor.HandleMessage(ctx, work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 
-					Expect(work.Batch).To(Equal(
-						persistence.Batch{
-							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
-									HandlerKey:     "<aggregate-key>",
-									InstanceID:     "<instance>",
-									Revision:       0,
-									InstanceExists: true,
-								},
-							},
+					md, err := aggregateRepo.LoadMetaData(
+						ctx,
+						"<aggregate-key>",
+						"<instance>",
+					)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(md).To(Equal(
+						&aggregatestore.MetaData{
+							HandlerKey:     "<aggregate-key>",
+							InstanceID:     "<instance>",
+							Revision:       1,
+							InstanceExists: true,
 						},
 					))
 				})
@@ -380,7 +381,7 @@ var _ = Describe("type Sink", func() {
 					}
 
 					Expect(func() {
-						err := adaptor.HandleMessage(ctx, work, cause)
+						err := entryPoint.HandleMessage(context.Background(), cause, nil)
 						Expect(err).ShouldNot(HaveOccurred())
 					}).To(PanicWith("*fixtures.AggregateMessageHandler.HandleEvent() created the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
 				})
@@ -395,7 +396,7 @@ var _ = Describe("type Sink", func() {
 				}
 
 				Expect(func() {
-					err := adaptor.HandleMessage(ctx, work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("can not access aggregate root of non-existent instance"))
 			})
@@ -409,7 +410,7 @@ var _ = Describe("type Sink", func() {
 				}
 
 				Expect(func() {
-					err := adaptor.HandleMessage(ctx, work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("can not destroy non-existent instance"))
 			})
@@ -426,20 +427,8 @@ var _ = Describe("type Sink", func() {
 					s.RecordEvent(MessageE2)
 				}
 
-				w := &handler.UnitOfWork{}
-				err := adaptor.HandleMessage(ctx, w, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
-
-				r := &handler.Resolver{
-					QueueEvents: message.TypesOf(),
-					UnitOfWork:  w,
-				}
-
-				pr, err := dataStore.Persist(ctx, r.ResolveBatch())
-				Expect(err).ShouldNot(HaveOccurred())
-
-				res := r.ResolveResult(pr)
-				handler.NotifyObservers(w, res, nil)
 
 				upstream.HandleCommandFunc = nil
 			})
@@ -453,7 +442,7 @@ var _ = Describe("type Sink", func() {
 					Expect(ok).To(BeFalse())
 				}
 
-				err := adaptor.HandleMessage(ctx, work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -471,7 +460,7 @@ var _ = Describe("type Sink", func() {
 					))
 				}
 
-				err := adaptor.HandleMessage(ctx, work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -491,7 +480,7 @@ var _ = Describe("type Sink", func() {
 						))
 					}
 
-					err := adaptor.HandleMessage(ctx, work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -507,7 +496,7 @@ var _ = Describe("type Sink", func() {
 						Expect(ok).To(BeTrue())
 					}
 
-					err := adaptor.HandleMessage(ctx, work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -520,20 +509,22 @@ var _ = Describe("type Sink", func() {
 						s.Destroy()
 					}
 
-					err := adaptor.HandleMessage(ctx, work, cause)
+					err := entryPoint.HandleMessage(context.Background(), cause, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 
-					Expect(work.Batch).To(Equal(
-						persistence.Batch{
-							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
-									HandlerKey:      "<aggregate-key>",
-									InstanceID:      "<instance>",
-									Revision:        1,
-									InstanceExists:  false,
-									LastDestroyedBy: "2", // deterministic ID from the packer
-								},
-							},
+					md, err := aggregateRepo.LoadMetaData(
+						ctx,
+						"<aggregate-key>",
+						"<instance>",
+					)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(md).To(Equal(
+						&aggregatestore.MetaData{
+							HandlerKey:      "<aggregate-key>",
+							InstanceID:      "<instance>",
+							Revision:        2,
+							InstanceExists:  false,
+							LastDestroyedBy: "2", // deterministic ID from the packer
 						},
 					))
 				})
@@ -547,7 +538,7 @@ var _ = Describe("type Sink", func() {
 					}
 
 					Expect(func() {
-						err := adaptor.HandleMessage(ctx, work, cause)
+						err := entryPoint.HandleMessage(context.Background(), cause, nil)
 						Expect(err).ShouldNot(HaveOccurred())
 					}).To(PanicWith("*fixtures.AggregateMessageHandler.HandleEvent() destroyed the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
 				})
@@ -565,20 +556,8 @@ var _ = Describe("type Sink", func() {
 					s.Destroy()
 				}
 
-				w := &handler.UnitOfWork{}
-				err := adaptor.HandleMessage(ctx, w, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
-
-				r := &handler.Resolver{
-					QueueEvents: message.TypesOf(),
-					UnitOfWork:  w,
-				}
-
-				pr, err := dataStore.Persist(ctx, r.ResolveBatch())
-				Expect(err).ShouldNot(HaveOccurred())
-
-				res := r.ResolveResult(pr)
-				handler.NotifyObservers(w, res, nil)
 
 				upstream.HandleCommandFunc = nil
 			})
@@ -606,7 +585,7 @@ var _ = Describe("type Sink", func() {
 					s.RecordEvent(MessageE{Value: "<recreated>"})
 				}
 
-				err := adaptor.HandleMessage(ctx, work, cause)
+				err := entryPoint.HandleMessage(context.Background(), cause, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})

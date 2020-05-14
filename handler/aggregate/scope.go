@@ -80,8 +80,8 @@ func (s *scope) RecordEvent(m dogma.Message) {
 	)
 
 	s.instance.Root.ApplyEvent(m)
+	s.work.RecordEvent(p)
 	s.lastEventID = p.Envelope.MetaData.MessageId
-	s.work.Events = append(s.work.Events, p)
 
 	mlog.LogProduce(s.logger, p.Envelope)
 }
