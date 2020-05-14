@@ -23,22 +23,22 @@ type Request struct {
 // FailureCount returns the number of times this message has already been
 // attempted without success, not including this request.
 func (r *Request) FailureCount() uint {
-	return r.elem.item.FailureCount
+	return r.elem.Item.FailureCount
 }
 
 // Envelope returns the message envelope.
 func (r *Request) Envelope() *envelopespec.Envelope {
-	return r.elem.item.Envelope
+	return r.elem.Item.Envelope
 }
 
 // Parcel returns a parcel containing the original Dogma message.
 func (r *Request) Parcel() (*parcel.Parcel, error) {
 	var err error
 
-	if r.elem.parcel == nil {
-		r.elem.parcel, err = parcel.FromEnvelope(
+	if r.elem.Parcel == nil {
+		r.elem.Parcel, err = parcel.FromEnvelope(
 			r.queue.Marshaler,
-			r.elem.item.Envelope,
+			r.elem.Item.Envelope,
 		)
 
 		if err != nil {
@@ -46,7 +46,7 @@ func (r *Request) Parcel() (*parcel.Parcel, error) {
 		}
 	}
 
-	return r.elem.parcel, nil
+	return r.elem.Parcel, nil
 }
 
 // Tx returns the transaction used to persist data within this request.
@@ -78,7 +78,7 @@ func (r *Request) Ack(ctx context.Context, batch persistence.Batch) (persistence
 		return persistence.Result{}, err
 	}
 
-	if err := r.tx.RemoveMessageFromQueue(ctx, r.elem.item); err != nil {
+	if err := r.tx.RemoveMessageFromQueue(ctx, r.elem.Item); err != nil {
 		return persistence.Result{}, err
 	}
 
@@ -88,7 +88,7 @@ func (r *Request) Ack(ctx context.Context, batch persistence.Batch) (persistence
 	}
 
 	r.done = true
-	r.elem.item.Revision = 0
+	r.elem.Item.Revision = 0
 
 	return br, nil
 }
@@ -105,20 +105,20 @@ func (r *Request) Nack(ctx context.Context, n time.Time) error {
 	}
 
 	r.done = true
-	r.elem.item.FailureCount++
-	r.elem.item.NextAttemptAt = n
+	r.elem.Item.FailureCount++
+	r.elem.Item.NextAttemptAt = n
 
 	if _, err := persistence.WithTransaction(
 		ctx,
 		r.queue.DataStore,
 		func(tx persistence.ManagedTransaction) error {
-			return tx.SaveMessageToQueue(ctx, r.elem.item)
+			return tx.SaveMessageToQueue(ctx, r.elem.Item)
 		},
 	); err != nil {
 		return err
 	}
 
-	r.elem.item.Revision++
+	r.elem.Item.Revision++
 
 	return nil
 }
