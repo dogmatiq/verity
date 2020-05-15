@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	. "github.com/dogmatiq/configkit/fixtures"
@@ -24,18 +23,20 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		dataStore  *DataStoreStub
+		ctx        context.Context
+		cancel     context.CancelFunc
 		upstream   *IntegrationMessageHandler
 		packer     *parcel.Packer
 		logger     *logging.BufferedLogger
 		cause      *parcel.Parcel
 		adaptor    *Adaptor
 		result     handler.Result
+		ack        *AcknowledgerStub
 		entryPoint *handler.EntryPoint
 	)
 
 	BeforeEach(func() {
-		dataStore = NewDataStoreStub()
+		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		upstream = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
@@ -66,9 +67,10 @@ var _ = Describe("type Adaptor", func() {
 			Logger:  logger,
 		}
 
+		ack = &AcknowledgerStub{}
+
 		entryPoint = &handler.EntryPoint{
-			Persister: dataStore,
-			Handler:   adaptor,
+			Handler: adaptor,
 			Observers: []handler.Observer{
 				func(r handler.Result, _ error) {
 					result = r
@@ -78,25 +80,28 @@ var _ = Describe("type Adaptor", func() {
 	})
 
 	AfterEach(func() {
-		dataStore.Close()
+		cancel()
 	})
 
 	Describe("func HandleMessage()", func() {
 		It("forwards the message to the handler", func() {
+			called := false
 			upstream.HandleCommandFunc = func(
 				_ context.Context,
 				_ dogma.IntegrationCommandScope,
 				m dogma.Message,
 			) error {
+				called = true
 				Expect(m).To(Equal(MessageC1))
-				return errors.New("<error>")
+				return nil
 			}
 
-			err := entryPoint.HandleMessage(context.Background(), cause, nil)
-			Expect(err).To(MatchError("<error>"))
+			err := entryPoint.HandleMessage(ctx, ack, cause)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(called).To(BeTrue())
 		})
 
-		Context("when an event is recorded", func() {
+		When("an event is recorded", func() {
 			BeforeEach(func() {
 				upstream.HandleCommandFunc = func(
 					_ context.Context,
@@ -107,7 +112,7 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
+				err := entryPoint.HandleMessage(ctx, ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -150,7 +155,7 @@ var _ = Describe("type Adaptor", func() {
 			})
 		})
 
-		Context("when a message is logged via the scope", func() {
+		When("a message is logged via the scope", func() {
 			BeforeEach(func() {
 				upstream.HandleCommandFunc = func(
 					_ context.Context,
@@ -161,7 +166,7 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
+				err := entryPoint.HandleMessage(ctx, ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
