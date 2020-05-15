@@ -100,16 +100,11 @@ func (e *Engine) newQueue(
 	ds persistence.DataStore,
 ) *queue.Queue {
 	return &queue.Queue{
-		DataStore: ds,
-		Marshaler: e.opts.Marshaler,
+		Repository: ds.QueueStoreRepository(),
+		Marshaler:  e.opts.Marshaler,
 		// TODO: https://github.com/dogmatiq/infix/issues/102
 		// Make buffer size configurable.
 		BufferSize: 0,
-		Logger: loggingx.WithPrefix(
-			e.logger,
-			"[queue@%s] ",
-			cfg.Identity().Name,
-		),
 	}
 }
 
@@ -214,9 +209,7 @@ func (e *Engine) newEntryPoint(
 						c.Add([]*eventstream.Event{&ev})
 					}
 
-					for _, m := range r.Queued {
-						q.Add(m)
-					}
+					q.Add(r.Queued)
 				}
 			},
 		},
