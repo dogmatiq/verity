@@ -12,6 +12,7 @@ import (
 	. "github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
 	. "github.com/jmalloc/gomegax"
@@ -21,43 +22,41 @@ import (
 
 var _ = Describe("type EntryPoint", func() {
 	var (
-		dataStore  *DataStoreStub
 		handler    *HandlerStub
 		cause      *parcel.Parcel
+		ack        *AcknowledgerStub
 		entryPoint *EntryPoint
 	)
 
 	BeforeEach(func() {
-		dataStore = NewDataStoreStub()
-
 		handler = &HandlerStub{}
 
 		cause = NewParcel("<consume>", MessageC1)
 
+		ack = &AcknowledgerStub{}
+
 		entryPoint = &EntryPoint{
 			QueueEvents: message.TypesOf(MessageQ{}),
-			Persister:   dataStore,
 			Handler:     handler,
 		}
 	})
 
-	AfterEach(func() {
-		dataStore.Close()
-	})
-
 	Describe("func HandleMessage()", func() {
 		It("forwards to the handler", func() {
+			called := false
 			handler.HandleMessageFunc = func(
 				_ context.Context,
 				_ *UnitOfWork,
 				p *parcel.Parcel,
 			) error {
+				called = true
 				Expect(p).To(Equal(cause))
-				return errors.New("<error>")
+				return nil
 			}
 
-			err := entryPoint.HandleMessage(context.Background(), cause, nil)
-			Expect(err).To(MatchError("<error>"))
+			err := entryPoint.HandleMessage(context.Background(), ack, cause)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(called).To(BeTrue())
 		})
 
 		When("the message is handled successfully", func() {
@@ -101,6 +100,24 @@ var _ = Describe("type EntryPoint", func() {
 					return nil
 				}
 
+				ack.AckFunc = func(
+					context.Context,
+					persistence.Batch,
+				) (persistence.Result, error) {
+					return persistence.Result{
+						EventStoreItems: []*eventstore.Item{
+							{
+								Offset:   0,
+								Envelope: unqueuedEvent.Envelope,
+							},
+							{
+								Offset:   1,
+								Envelope: queuedEvent.Envelope,
+							},
+						},
+					}, nil
+				}
+
 				expectedResult = Result{
 					Queued: []queue.Message{
 						{
@@ -141,9 +158,9 @@ var _ = Describe("type EntryPoint", func() {
 				}
 			})
 
-			It("persists the batch from the unit-of-work", func() {
+			It("acknowledges the message with the batch from the unit-of-work", func() {
 				called := false
-				dataStore.PersistFunc = func(
+				ack.AckFunc = func(
 					_ context.Context,
 					b persistence.Batch,
 				) (persistence.Result, error) {
@@ -185,7 +202,7 @@ var _ = Describe("type EntryPoint", func() {
 					return persistence.Result{}, nil
 				}
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
@@ -201,7 +218,7 @@ var _ = Describe("type EntryPoint", func() {
 					},
 				)
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
@@ -222,7 +239,7 @@ var _ = Describe("type EntryPoint", func() {
 					return next(ctx, w, p)
 				}
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
@@ -249,8 +266,8 @@ var _ = Describe("type EntryPoint", func() {
 					},
 				)
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
-				Expect(err).To(MatchError("<error>"))
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
 
@@ -269,13 +286,29 @@ var _ = Describe("type EntryPoint", func() {
 					return errors.New("<error>")
 				}
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
-				Expect(err).To(MatchError("<error>"))
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
 
-			It("does not persist anything", func() {
-				dataStore.PersistFunc = func(
+			It("negatively acknowledges the message", func() {
+				called := false
+				ack.NackFunc = func(
+					_ context.Context,
+					err error,
+				) error {
+					called = true
+					Expect(err).To(MatchError("<error>"))
+					return nil
+				}
+
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(called).To(BeTrue())
+			})
+
+			It("does not acknowledge the message", func() {
+				ack.AckFunc = func(
 					context.Context,
 					persistence.Batch,
 				) (persistence.Result, error) {
@@ -283,14 +316,26 @@ var _ = Describe("type EntryPoint", func() {
 					return persistence.Result{}, nil
 				}
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
-				Expect(err).To(MatchError("<error>"))
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("returns an error if Nack() fails", func() {
+				ack.NackFunc = func(
+					context.Context,
+					error,
+				) error {
+					return errors.New("<nack error>")
+				}
+
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).To(MatchError("<nack error>"))
 			})
 		})
 
-		When("the persister returns an error", func() {
+		When("the acknowledger returns an error", func() {
 			BeforeEach(func() {
-				dataStore.PersistFunc = func(
+				ack.AckFunc = func(
 					context.Context,
 					persistence.Batch,
 				) (persistence.Result, error) {
@@ -308,8 +353,8 @@ var _ = Describe("type EntryPoint", func() {
 					},
 				)
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
-				Expect(err).To(MatchError("<error>"))
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
 
@@ -328,8 +373,24 @@ var _ = Describe("type EntryPoint", func() {
 					return errors.New("<error>")
 				}
 
-				err := entryPoint.HandleMessage(context.Background(), cause, nil)
-				Expect(err).To(MatchError("<error>"))
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(called).To(BeTrue())
+			})
+
+			It("negatively acknowledges the message", func() {
+				called := false
+				ack.NackFunc = func(
+					_ context.Context,
+					err error,
+				) error {
+					called = true
+					Expect(err).To(MatchError("<error>"))
+					return nil
+				}
+
+				err := entryPoint.HandleMessage(context.Background(), ack, cause)
+				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
 		})
