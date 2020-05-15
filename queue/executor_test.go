@@ -23,21 +23,33 @@ var _ dogma.CommandExecutor = (*CommandExecutor)(nil)
 
 var _ = Describe("type CommandExecutor", func() {
 	var (
-		ctx       context.Context
-		cancel    context.CancelFunc
-		dataStore *DataStoreStub
-		queue     *Queue
-		executor  *CommandExecutor
+		ctx        context.Context
+		cancel     context.CancelFunc
+		dataStore  *DataStoreStub
+		repository *QueueStoreRepositoryStub
+		queue      *Queue
+		loaded     chan struct{}
+		executor   *CommandExecutor
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		dataStore = NewDataStoreStub()
+		repository = dataStore.QueueStoreRepository().(*QueueStoreRepositoryStub)
+
+		loaded = make(chan struct{})
+		repository.LoadQueueMessagesFunc = func(
+			ctx context.Context,
+			n int,
+		) ([]*queuestore.Item, error) {
+			defer close(loaded)
+			return repository.Repository.LoadQueueMessages(ctx, n)
+		}
 
 		queue = &Queue{
-			DataStore: dataStore,
-			Marshaler: Marshaler,
+			Repository: repository,
+			Marshaler:  Marshaler,
 		}
 
 		executor = &CommandExecutor{
@@ -52,7 +64,10 @@ var _ = Describe("type CommandExecutor", func() {
 	})
 
 	JustBeforeEach(func() {
-		go queue.Run(ctx)
+		go func() {
+			defer GinkgoRecover()
+			queue.Run(ctx)
+		}()
 	})
 
 	AfterEach(func() {
@@ -65,7 +80,8 @@ var _ = Describe("type CommandExecutor", func() {
 			err := executor.ExecuteCommand(ctx, MessageA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 2)
+			repository.LoadQueueMessagesFunc = nil
+			items, err := repository.LoadQueueMessages(ctx, 2)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(items).To(EqualX(
 				[]*queuestore.Item{
@@ -93,6 +109,24 @@ var _ = Describe("type CommandExecutor", func() {
 					},
 				},
 			))
+		})
+
+		It("adds the message to the queue", func() {
+			select {
+			case <-ctx.Done():
+				Expect(ctx.Err()).ShouldNot(HaveOccurred())
+			case <-loaded:
+				// Wait until messages have already been loaded so that we know
+				// the executor added the message to the queue directly, and it
+				// wasn't just loaded from the repository.
+			}
+
+			err := executor.ExecuteCommand(ctx, MessageA1)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			m, err := queue.Pop(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(m.Parcel.Message).To(Equal(MessageA1))
 		})
 
 		It("returns an error if persistence fails", func() {
