@@ -74,6 +74,5 @@ func Declare(
 
 		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
 		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
-		declareTransactionTests(&tc.Context, &tc.In, &tc.Out)
 	})
 }
