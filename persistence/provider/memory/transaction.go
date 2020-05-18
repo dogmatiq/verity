@@ -42,7 +42,7 @@ func (t *transaction) Commit(
 	t.ds.db.queue.apply(&t.queue)
 
 	return persistence.TransactionResult{
-		EventStoreItems: t.event.items,
+		EventOffsets: t.event.offsets,
 	}, nil
 }
 

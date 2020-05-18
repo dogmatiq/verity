@@ -3,8 +3,6 @@ package persistence
 import (
 	"context"
 	"fmt"
-
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
 // A Persister is an interface for committing batches of atomic operations to
@@ -19,8 +17,9 @@ type Persister interface {
 
 // Result is the result of a successfully persisted batch of operations.
 type Result struct {
-	// EventStoreItems contains the events from SaveEvent operations.
-	EventStoreItems []*eventstore.Item
+	// EventOffset contains the offsets of the events saved within the batch,
+	// keyed by their message ID.
+	EventOffsets map[string]uint64
 }
 
 // ConflictError is an error indicating one or more operations within a batch

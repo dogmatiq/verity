@@ -134,13 +134,11 @@ func (t *transaction) SaveEvent(
 		return 0, err
 	}
 
-	t.result.EventStoreItems = append(
-		t.result.EventStoreItems,
-		&eventstore.Item{
-			Offset:   next,
-			Envelope: env,
-		},
-	)
+	if t.result.EventOffsets == nil {
+		t.result.EventOffsets = map[string]uint64{}
+	}
+
+	t.result.EventOffsets[env.MetaData.MessageId] = next
 
 	return next, nil
 }
