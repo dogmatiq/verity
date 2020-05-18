@@ -123,15 +123,15 @@ func (op SaveAggregateMetaData) entityKey() entityKey {
 }
 
 func (op SaveEvent) entityKey() entityKey {
-	return entityKey{"message", op.Envelope.MetaData.MessageId}
+	return entityKey{"event", op.Envelope.MetaData.MessageId}
 }
 
 func (op SaveQueueItem) entityKey() entityKey {
-	return entityKey{"message", op.Item.ID()}
+	return entityKey{"queue", op.Item.ID()}
 }
 
 func (op RemoveQueueItem) entityKey() entityKey {
-	return entityKey{"message", op.Item.ID()}
+	return entityKey{"queue", op.Item.ID()}
 }
 
 func (op SaveOffset) entityKey() entityKey {

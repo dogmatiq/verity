@@ -8,17 +8,14 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/pipeline"
 	"github.com/dogmatiq/linger"
 )
 
-// Sink is a pipeline sink that coordinates the handling of messages by a
-// dogma.IntegrationMessageHandler.
-//
-// The Accept() method conforms to the pipeline.Sink() signature.
-type Sink struct {
+// Adaptor exposes a dogma.IntegrationMessageHandler as a handler.Handler.
+type Adaptor struct {
 	// Identity is the handler's identity.
 	Identity *envelopespec.Identity
 
@@ -39,59 +36,37 @@ type Sink struct {
 	Logger logging.Logger
 }
 
-// Accept handles a message using s.Handler.
-func (s *Sink) Accept(
+// HandleMessage handles the message in p.
+func (a *Adaptor) HandleMessage(
 	ctx context.Context,
-	req pipeline.Request,
-	res *pipeline.Response,
+	w *handler.UnitOfWork,
+	p *parcel.Parcel,
 ) (err error) {
 	defer mlog.LogHandlerResult(
-		s.Logger,
-		req.Envelope(),
-		s.Identity,
+		a.Logger,
+		p.Envelope,
+		a.Identity,
 		configkit.IntegrationHandlerType,
 		&err,
 		"",
 	)
 
-	p, err := req.Parcel()
-	if err != nil {
-		return err
-	}
-
-	sc := &scope{
-		cause:   p,
-		packer:  s.Packer,
-		handler: s.Identity,
-		logger:  s.Logger,
-	}
-
-	if err := s.handle(ctx, sc, p.Message); err != nil {
-		return err
-	}
-
-	tx, err := req.Tx(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, p := range sc.events {
-		if _, err := res.RecordEvent(ctx, tx, p); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// handle invokes the handler with a timeout based on its timeout hint.
-func (s *Sink) handle(ctx context.Context, sc *scope, m dogma.Message) error {
 	ctx, cancel := linger.ContextWithTimeout(
 		ctx,
-		s.Handler.TimeoutHint(m),
-		s.DefaultTimeout,
+		a.Handler.TimeoutHint(p.Message),
+		a.DefaultTimeout,
 	)
 	defer cancel()
 
-	return s.Handler.HandleCommand(ctx, sc, m)
+	return a.Handler.HandleCommand(
+		ctx,
+		&scope{
+			identity: a.Identity,
+			packer:   a.Packer,
+			logger:   a.Logger,
+			work:     w,
+			cause:    p,
+		},
+		p.Message,
+	)
 }

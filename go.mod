@@ -13,6 +13,7 @@ require (
 	github.com/dogmatiq/projectionkit v0.3.2
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.1
+	github.com/google/go-cmp v0.4.0
 	github.com/google/uuid v1.1.1
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/lib/pq v1.5.2

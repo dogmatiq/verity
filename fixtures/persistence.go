@@ -44,6 +44,7 @@ type DataStoreStub struct {
 	OffsetStoreRepositoryFunc    func() offsetstore.Repository
 	EventStoreRepositoryFunc     func() eventstore.Repository
 	QueueStoreRepositoryFunc     func() queuestore.Repository
+	PersistFunc                  func(context.Context, persistence.Batch) (persistence.Result, error)
 	BeginFunc                    func(context.Context) (persistence.Transaction, error)
 	CloseFunc                    func() error
 }
@@ -138,6 +139,19 @@ func (ds *DataStoreStub) QueueStoreRepository() queuestore.Repository {
 	}
 
 	return nil
+}
+
+// Persist commits a batch of operations atomically.
+func (ds *DataStoreStub) Persist(ctx context.Context, b persistence.Batch) (persistence.Result, error) {
+	if ds.PersistFunc != nil {
+		return ds.PersistFunc(ctx, b)
+	}
+
+	if ds.DataStore != nil {
+		return ds.DataStore.Persist(ctx, b)
+	}
+
+	return persistence.Result{}, nil
 }
 
 // Begin starts a new transaction.
