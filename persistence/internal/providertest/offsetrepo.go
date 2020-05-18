@@ -1,4 +1,4 @@
-package offsetstore
+package providertest
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// DeclareRepositoryTests declares a functional test-suite for a specific
+// declareOffsetRepositoryTests declares a functional test-suite for a specific
 // offsetstore.Repository implementation.
-func DeclareRepositoryTests(tc *common.TestContext) {
+func declareOffsetRepositoryTests(tc *common.TestContext) {
 	ginkgo.Describe("type offsetstore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
@@ -43,7 +43,15 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 			ginkgo.When("application has previous offsets associated", func() {
 				ginkgo.It("returns the current offset", func() {
-					saveOffset(tc.Context, dataStore, "<source-app-key>", 0, 1)
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveOffset{
+							ApplicationKey: "<source-app-key>",
+							CurrentOffset:  0,
+							NextOffset:     1,
+						},
+					)
 
 					actual, err := repository.LoadOffset(
 						tc.Context,
