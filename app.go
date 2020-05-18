@@ -200,7 +200,6 @@ func (e *Engine) newEntryPoint(
 
 	return &handler.EntryPoint{
 		QueueEvents: nil,
-		Persister:   ds,
 		Handler:     hf.handler,
 		Observers: []handler.Observer{
 			func(r handler.Result, err error) {
