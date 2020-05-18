@@ -143,7 +143,8 @@ func (r *eventStoreResult) Close() error {
 // eventStoreChangeSet contains modifications to the event store that have
 // been performed within a transaction but not yet committed.
 type eventStoreChangeSet struct {
-	items []*eventstore.Item
+	items   []*eventstore.Item
+	offsets map[string]uint64
 }
 
 // stageSave adds a "SaveEvent" operation to the change-set.
@@ -163,6 +164,13 @@ func (cs *eventStoreChangeSet) stageSave(
 	}
 
 	cs.items = append(cs.items, item)
+
+	if cs.offsets == nil {
+		cs.offsets = map[string]uint64{}
+	}
+
+	cs.offsets[item.ID()] = next
+
 	return next
 }
 
@@ -177,11 +185,11 @@ func (db *eventStoreDatabase) apply(cs *eventStoreChangeSet) {
 	db.items = append(db.items, cs.items...)
 
 	if db.offsets == nil {
-		db.offsets = make(map[string]uint64)
+		db.offsets = map[string]uint64{}
 	}
 
-	for _, item := range cs.items {
-		db.offsets[item.ID()] = item.Offset
+	for id, o := range cs.offsets {
+		db.offsets[id] = o
 	}
 }
 

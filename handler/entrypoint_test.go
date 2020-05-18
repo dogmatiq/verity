@@ -12,7 +12,6 @@ import (
 	. "github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
 	. "github.com/jmalloc/gomegax"
@@ -105,15 +104,9 @@ var _ = Describe("type EntryPoint", func() {
 					persistence.Batch,
 				) (persistence.Result, error) {
 					return persistence.Result{
-						EventStoreItems: []*eventstore.Item{
-							{
-								Offset:   0,
-								Envelope: unqueuedEvent.Envelope,
-							},
-							{
-								Offset:   1,
-								Envelope: queuedEvent.Envelope,
-							},
+						EventOffsets: map[string]uint64{
+							unqueuedEvent.Envelope.MetaData.MessageId: 0,
+							queuedEvent.Envelope.MetaData.MessageId:   1,
 						},
 					}, nil
 				}

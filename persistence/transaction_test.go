@@ -9,9 +9,7 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
-	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -97,21 +95,11 @@ var _ = Describe("func WithTransaction", func() {
 		)
 
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.EventStoreItems).NotTo(BeEmpty())
-		Expect(result.EventStoreItems).To(
-			EqualX([]*eventstore.Item{
-				{
-					Offset:   0,
-					Envelope: env1,
-				},
-				{
-					Offset:   1,
-					Envelope: env2,
-				},
-				{
-					Offset:   2,
-					Envelope: env3,
-				},
+		Expect(result.EventOffsets).To(
+			Equal(map[string]uint64{
+				env1.MetaData.MessageId: 0,
+				env2.MetaData.MessageId: 1,
+				env3.MetaData.MessageId: 2,
 			}),
 		)
 	})

@@ -94,18 +94,9 @@ func (w *UnitOfWork) saveEvent(p *parcel.Parcel) {
 
 // populateEventOffsets updates the events in w.result with their offsets.
 func (w *UnitOfWork) populateEventOffsets(pr persistence.Result) {
-	// Note: we just iterate through the events in the result to find each match
-	// rather than maintaining a map or any other more elaborate data structure.
-	// This is because we expect the vast majority of results to contain 0 or 1
-	// event.
-	for _, item := range pr.EventStoreItems {
-		for i := range w.result.Events {
-			ev := &w.result.Events[i]
-
-			if ev.Parcel.Envelope.MetaData.MessageId == item.ID() {
-				ev.Offset = item.Offset
-			}
-		}
+	for i := range w.result.Events {
+		ev := &w.result.Events[i]
+		ev.Offset = pr.EventOffsets[ev.Parcel.Envelope.MetaData.MessageId] // TODO: https://github.com/dogmatiq/infix/issues/268
 	}
 }
 

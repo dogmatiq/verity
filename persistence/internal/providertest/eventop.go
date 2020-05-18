@@ -68,7 +68,7 @@ func declareEventOperationTests(tc *common.TestContext) {
 				))
 			})
 
-			ginkgo.It("has a corresponding item in the batch result", func() {
+			ginkgo.It("has a corresponding item in the result", func() {
 				res := persist(
 					tc.Context,
 					dataStore,
@@ -80,21 +80,11 @@ func declareEventOperationTests(tc *common.TestContext) {
 					},
 				)
 
-				gomega.Expect(res.EventStoreItems).To(
-					gomega.ConsistOf(
-						gomegax.EqualX(
-							&eventstore.Item{
-								Offset:   0,
-								Envelope: env0,
-							},
-						),
-						gomegax.EqualX(
-							&eventstore.Item{
-								Offset:   1,
-								Envelope: env1,
-							},
-						),
-					),
+				gomega.Expect(res.EventOffsets).To(
+					gomega.Equal(map[string]uint64{
+						env0.MetaData.MessageId: 0,
+						env1.MetaData.MessageId: 1,
+					}),
 				)
 			})
 
@@ -118,9 +108,13 @@ func declareEventOperationTests(tc *common.TestContext) {
 					)
 
 					m.Lock()
-					for _, i := range res.EventStoreItems {
-						expect = append(expect, *i)
-					}
+					expect = append(
+						expect,
+						eventstore.Item{
+							Offset:   res.EventOffsets[env.MetaData.MessageId],
+							Envelope: env,
+						},
+					)
 					m.Unlock()
 				}
 
