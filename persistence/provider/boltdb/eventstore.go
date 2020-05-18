@@ -83,13 +83,11 @@ func (t *transaction) SaveEvent(
 		marshalUint64(o+1),
 	)
 
-	t.result.EventStoreItems = append(
-		t.result.EventStoreItems,
-		&eventstore.Item{
-			Offset:   o,
-			Envelope: env,
-		},
-	)
+	if t.result.EventOffsets == nil {
+		t.result.EventOffsets = map[string]uint64{}
+	}
+
+	t.result.EventOffsets[env.MetaData.MessageId] = o
 
 	return o, nil
 }
