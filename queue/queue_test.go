@@ -171,16 +171,22 @@ var _ = Describe("type Queue", func() {
 						Expect(m.Parcel).To(EqualX(parcel1))
 					})
 
-					XIt("unblocks if a requeued message jumps the queue", func() {
-						// go func() {
-						// 	defer GinkgoRecover()
-						// 	time.Sleep(5 * time.Millisecond)
-						// 	push(parcel1)
-						// }()
+					It("unblocks if a requeued message jumps the queue", func() {
+						push(parcel1)
 
-						// m, err := queue.Pop(ctx)
-						// Expect(err).ShouldNot(HaveOccurred())
-						// Expect(m.Parcel).To(EqualX(parcel1))
+						m, err := queue.Pop(ctx)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(m.Parcel).To(EqualX(parcel1))
+
+						go func() {
+							defer GinkgoRecover()
+							time.Sleep(5 * time.Millisecond)
+							queue.Requeue(m)
+						}()
+
+						m, err = queue.Pop(ctx)
+						Expect(err).ShouldNot(HaveOccurred())
+						Expect(m.Parcel).To(EqualX(parcel1))
 					})
 
 					It("returns an error if the context deadline is exceeded", func() {
