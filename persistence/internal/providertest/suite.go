@@ -61,19 +61,15 @@ func Declare(
 		})
 
 		aggregatestore.DeclareRepositoryTests(&tc)
-		aggregatestore.DeclareTransactionTests(&tc)
 		declareAggregateOperationTests(&tc)
 
 		eventstore.DeclareRepositoryTests(&tc)
-		eventstore.DeclareTransactionTests(&tc)
 		declareEventOperationTests(&tc)
 
 		queuestore.DeclareRepositoryTests(&tc)
-		queuestore.DeclareTransactionTests(&tc)
 		declareQueueOperationTests(&tc)
 
 		offsetstore.DeclareRepositoryTests(&tc)
-		offsetstore.DeclareTransactionTests(&tc)
 		declareOffsetOperationTests(&tc)
 
 		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
