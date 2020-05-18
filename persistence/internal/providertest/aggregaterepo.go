@@ -1,4 +1,4 @@
-package aggregatestore
+package providertest
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// DeclareRepositoryTests declares a functional test-suite for a specific
-// aggregatestore.Repository implementation.
-func DeclareRepositoryTests(tc *common.TestContext) {
+// declareAggregateRepositoryTests declares a functional test-suite for a
+// specific aggregatestore.Repository implementation.
+func declareAggregateRepositoryTests(tc *common.TestContext) {
 	ginkgo.Describe("type aggregatestore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
@@ -31,9 +31,9 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func LoadMetaData()", func() {
 			ginkgo.It("returns meta-data with default values if the instance does not exist", func() {
-				md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+				md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 				gomega.Expect(md).To(gomega.Equal(
-					&aggregatestore.MetaData{
+					aggregatestore.MetaData{
 						HandlerKey: "<handler-key>",
 						InstanceID: "<instance>",
 					},
@@ -41,16 +41,22 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			})
 
 			ginkgo.It("returns the current persisted meta-data", func() {
-				expect := &aggregatestore.MetaData{
+				expect := aggregatestore.MetaData{
 					HandlerKey:      "<handler-key>",
 					InstanceID:      "<instance>",
 					InstanceExists:  true,
 					LastDestroyedBy: "<message-id>",
 				}
-				saveMetaData(tc.Context, dataStore, expect)
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.SaveAggregateMetaData{
+						MetaData: expect,
+					},
+				)
 				expect.Revision++
 
-				md := loadMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+				md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 				gomega.Expect(md).To(gomega.Equal(expect))
 			})
 
