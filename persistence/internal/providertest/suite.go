@@ -6,7 +6,6 @@ import (
 
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/eventstore"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/offsetstore"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/queuestore"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
@@ -68,8 +67,8 @@ func Declare(
 		queuestore.DeclareRepositoryTests(&tc)
 		declareQueueOperationTests(&tc)
 
-		offsetstore.DeclareRepositoryTests(&tc)
 		declareOffsetOperationTests(&tc)
+		declareOffsetRepositoryTests(&tc)
 
 		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
 		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
