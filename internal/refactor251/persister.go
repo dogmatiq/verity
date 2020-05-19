@@ -9,7 +9,7 @@ import (
 // PersistTx performs the operations in batch on tx.
 func PersistTx(
 	ctx context.Context,
-	tx persistence.Transaction,
+	tx Transaction,
 	batch persistence.Batch,
 ) error {
 	v := transactionAdaptorVisitor{tx}
@@ -24,7 +24,7 @@ func PersistTx(
 }
 
 type transactionAdaptorVisitor struct {
-	tx persistence.Transaction
+	tx Transaction
 }
 
 func (v transactionAdaptorVisitor) VisitSaveAggregateMetaData(
@@ -33,7 +33,7 @@ func (v transactionAdaptorVisitor) VisitSaveAggregateMetaData(
 ) error {
 	err := v.tx.SaveAggregateMetaData(ctx, &op.MetaData)
 
-	if err == persistence.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -54,7 +54,7 @@ func (v transactionAdaptorVisitor) VisitSaveQueueItem(
 ) error {
 	err := v.tx.SaveMessageToQueue(ctx, &op.Item)
 
-	if err == persistence.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -67,7 +67,7 @@ func (v transactionAdaptorVisitor) VisitRemoveQueueItem(
 ) error {
 	err := v.tx.RemoveMessageFromQueue(ctx, &op.Item)
 
-	if err == persistence.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -85,7 +85,7 @@ func (v transactionAdaptorVisitor) VisitSaveOffset(
 		op.NextOffset,
 	)
 
-	if err == persistence.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
