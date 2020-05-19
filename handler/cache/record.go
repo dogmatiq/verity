@@ -1,8 +1,8 @@
 package cache
 
 import (
+	"github.com/dogmatiq/cosyne"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/internal/x/syncx"
 )
 
 // Record is an entry in the cache.
@@ -10,7 +10,7 @@ type Record struct {
 	id    string
 	cache *Cache
 
-	m        syncx.Mutex
+	m        cosyne.Mutex
 	state    state
 	keep     bool
 	Instance interface{} // note: exposed, but still protected by m

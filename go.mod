@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/dogmatiq/configkit v0.7.3
+	github.com/dogmatiq/cosyne v0.1.0
 	github.com/dogmatiq/dodeca v0.2.1
 	github.com/dogmatiq/dogma v0.6.3
 	github.com/dogmatiq/example v0.0.0-20200401013300-d9451ee452b6
@@ -18,7 +19,7 @@ require (
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/lib/pq v1.5.2
 	github.com/mattn/go-sqlite3 v1.13.0
-	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.0
 	go.etcd.io/bbolt v1.3.4
 	go.uber.org/multierr v1.5.0
