@@ -48,6 +48,31 @@ func queryEvents(
 	}
 }
 
+// loadEventsBySource loads events produced by a specific handler.
+func loadEventsBySource(
+	ctx context.Context,
+	r eventstore.Repository,
+	hk, id string,
+	m string,
+) []eventstore.Item {
+	res, err := r.LoadEventsBySource(ctx, hk, id, m)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	defer res.Close()
+
+	var items []eventstore.Item
+
+	for {
+		i, ok, err := res.Next(ctx)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		if !ok {
+			return items
+		}
+
+		items = append(items, *i)
+	}
+}
+
 // loadOffset loads the offset from the repository with the given application
 // key.
 func loadOffset(
