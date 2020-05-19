@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -25,4 +26,15 @@ func (b Batch) MustValidate() {
 			}
 		}
 	}
+}
+
+// AcceptVisitor visits each operation in the batch.
+func (b Batch) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
+	for _, op := range b {
+		if err := op.AcceptVisitor(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
