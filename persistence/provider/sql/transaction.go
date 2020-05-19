@@ -12,22 +12,22 @@ import (
 type transaction struct {
 	ds     *dataStore
 	actual *sql.Tx
-	result persistence.TransactionResult
+	result persistence.Result
 }
 
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(
 	ctx context.Context,
-) (persistence.TransactionResult, error) {
+) (persistence.Result, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.TransactionResult{},
+		return persistence.Result{},
 			persistence.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return persistence.TransactionResult{}, err
+		return persistence.Result{}, err
 	}
 
 	if t.actual != nil {
