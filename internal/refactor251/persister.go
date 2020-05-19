@@ -20,13 +20,17 @@ func Persist(
 ) (persistence.Result, error) {
 	batch.MustValidate()
 
-	return persistence.WithTransaction(
-		ctx,
-		ds,
-		func(tx persistence.ManagedTransaction) error {
-			return PersistTx(ctx, tx, batch)
-		},
-	)
+	tx, err := ds.Begin(ctx)
+	if err != nil {
+		return persistence.Result{}, err
+	}
+	defer tx.Rollback()
+
+	if err := PersistTx(ctx, tx, batch); err != nil {
+		return persistence.Result{}, err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // PersistTx performs the operations in batch on tx.
