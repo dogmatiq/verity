@@ -1,6 +1,8 @@
 package persistence_test
 
 import (
+	"context"
+
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/persistence"
@@ -66,4 +68,82 @@ var _ = Describe("type Batch", func() {
 			}).ToNot(Panic())
 		})
 	})
+
+	Describe("func AcceptVisitor()", func() {
+		It("visits each operation in the batch", func() {
+			batch := Batch{
+				SaveAggregateMetaData{
+					MetaData: aggregatestore.MetaData{
+						HandlerKey: "<handler-key>",
+						InstanceID: "<instance>",
+					},
+				},
+				SaveEvent{
+					Envelope: NewEnvelope("<id-1>", MessageA1),
+				},
+				SaveQueueItem{
+					Item: queuestore.Item{
+						Envelope: NewEnvelope("<id-1>", MessageA1), // Note, same as SaveEvent, this is allowed and required.
+					},
+				},
+				RemoveQueueItem{
+					Item: queuestore.Item{
+						Envelope: NewEnvelope("<id-2>", MessageA1),
+					},
+				},
+				SaveOffset{
+					ApplicationKey: "<app-key>",
+				},
+			}
+
+			var v batchVisitor
+			err := batch.AcceptVisitor(context.Background(), &v)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(v.operations).To(BeEquivalentTo(batch))
+		})
+
+		It("returns the error from the visitor", func() {
+			batch := Batch{
+				SaveAggregateMetaData{
+					MetaData: aggregatestore.MetaData{
+						HandlerKey: "<handler-key>",
+						InstanceID: "<instance>",
+					},
+				},
+			}
+
+			var v operationVisitor
+			err := batch.AcceptVisitor(context.Background(), v)
+			Expect(err).To(MatchError("SaveAggregateMetaData"))
+		})
+	})
 })
+
+type batchVisitor struct {
+	operations []Operation
+}
+
+func (v *batchVisitor) VisitSaveAggregateMetaData(_ context.Context, op SaveAggregateMetaData) error {
+	v.operations = append(v.operations, op)
+	return nil
+}
+
+func (v *batchVisitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {
+	v.operations = append(v.operations, op)
+	return nil
+}
+
+func (v *batchVisitor) VisitSaveQueueItem(_ context.Context, op SaveQueueItem) error {
+	v.operations = append(v.operations, op)
+	return nil
+}
+
+func (v *batchVisitor) VisitRemoveQueueItem(_ context.Context, op RemoveQueueItem) error {
+	v.operations = append(v.operations, op)
+	return nil
+}
+
+func (v *batchVisitor) VisitSaveOffset(_ context.Context, op SaveOffset) error {
+	v.operations = append(v.operations, op)
+	return nil
+}

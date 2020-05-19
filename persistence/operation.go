@@ -75,7 +75,7 @@ type SaveOffset struct {
 	NextOffset uint64
 }
 
-// OperationVisitor visits
+// OperationVisitor visits persistence operations.
 type OperationVisitor interface {
 	VisitSaveAggregateMetaData(context.Context, SaveAggregateMetaData) error
 	VisitSaveEvent(context.Context, SaveEvent) error
