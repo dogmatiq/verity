@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
@@ -66,7 +67,7 @@ func (t *transaction) SaveAggregateMetaData(
 		return err
 	}
 
-	return aggregatestore.ErrConflict
+	return persistence.ErrConflict
 }
 
 // aggregateStoreRepository is an implementation of aggregatestore.Repository

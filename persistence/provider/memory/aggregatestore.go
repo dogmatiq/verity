@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
@@ -23,7 +24,7 @@ func (t *transaction) SaveAggregateMetaData(
 		return nil
 	}
 
-	return aggregatestore.ErrConflict
+	return persistence.ErrConflict
 }
 
 // aggregateStoreRepository is an implementation of aggregatestore.Repository

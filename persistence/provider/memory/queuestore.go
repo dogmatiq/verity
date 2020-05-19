@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -26,7 +27,7 @@ func (t *transaction) SaveMessageToQueue(
 		return nil
 	}
 
-	return queuestore.ErrConflict
+	return persistence.ErrConflict
 }
 
 // RemoveMessageFromQueue removes a specific message from the application's
@@ -47,7 +48,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		return nil
 	}
 
-	return queuestore.ErrConflict
+	return persistence.ErrConflict
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

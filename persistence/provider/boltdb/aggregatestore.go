@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/golang/protobuf/proto"
@@ -52,7 +53,7 @@ func (t *transaction) SaveAggregateMetaData(
 	old := loadAggregateStoreMetaData(metadata, md.InstanceID)
 
 	if md.Revision != old.GetRevision() {
-		return aggregatestore.ErrConflict
+		return persistence.ErrConflict
 	}
 
 	data := marshalAggregateStoreMetaData(md)
