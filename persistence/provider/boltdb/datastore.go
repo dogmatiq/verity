@@ -62,7 +62,19 @@ func (ds *dataStore) Persist(
 	ctx context.Context,
 	batch persistence.Batch,
 ) (persistence.Result, error) {
-	return refactor251.Persist(ctx, ds, batch)
+	batch.MustValidate()
+
+	tx, err := ds.Begin(ctx)
+	if err != nil {
+		return persistence.Result{}, err
+	}
+	defer tx.Rollback()
+
+	if err := refactor251.PersistTx(ctx, tx, batch); err != nil {
+		return persistence.Result{}, err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // Begin starts a new transaction.

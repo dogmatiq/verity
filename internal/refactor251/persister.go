@@ -6,30 +6,6 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// Persist commits a batch of operations atomically.
-//
-// It is designed to be used by persistence.DataStore implementations to help
-// implement a persistence.Persister early in the refactoring process.
-func Persist(
-	ctx context.Context,
-	ds persistence.DataStore,
-	batch persistence.Batch,
-) (persistence.Result, error) {
-	batch.MustValidate()
-
-	tx, err := ds.Begin(ctx)
-	if err != nil {
-		return persistence.Result{}, err
-	}
-	defer tx.Rollback()
-
-	if err := PersistTx(ctx, tx, batch); err != nil {
-		return persistence.Result{}, err
-	}
-
-	return tx.Commit(ctx)
-}
-
 // PersistTx performs the operations in batch on tx.
 func PersistTx(
 	ctx context.Context,
