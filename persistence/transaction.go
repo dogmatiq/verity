@@ -32,12 +32,3 @@ type Transaction interface {
 // TransactionResult contains information about a successfully committed
 // transaction.
 type TransactionResult = Result
-
-// ManagedTransaction is a Transaction that can not be commit or rolled-back
-// directly because its life-time is managed for the user.
-type ManagedTransaction interface {
-	aggregatestore.Transaction
-	eventstore.Transaction
-	queuestore.Transaction
-	offsetstore.Transaction
-}

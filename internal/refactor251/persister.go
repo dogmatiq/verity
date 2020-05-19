@@ -36,7 +36,7 @@ func Persist(
 // PersistTx performs the operations in batch on tx.
 func PersistTx(
 	ctx context.Context,
-	tx persistence.ManagedTransaction,
+	tx persistence.Transaction,
 	batch persistence.Batch,
 ) error {
 	v := transactionAdaptorVisitor{tx}
@@ -51,7 +51,7 @@ func PersistTx(
 }
 
 type transactionAdaptorVisitor struct {
-	tx persistence.ManagedTransaction
+	tx persistence.Transaction
 }
 
 func (v transactionAdaptorVisitor) VisitSaveAggregateMetaData(
