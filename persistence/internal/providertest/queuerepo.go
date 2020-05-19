@@ -7,7 +7,6 @@ import (
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
@@ -17,7 +16,7 @@ import (
 
 // declareQueueRepositoryTests declares a functional test-suite for a specific
 // queuestore.Repository implementation.
-func declareQueueRepositoryTests(tc *common.TestContext) {
+func declareQueueRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type queuestore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore

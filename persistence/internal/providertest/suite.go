@@ -4,19 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
-)
-
-type (
-	// In is a container for values provided by the test suite to the
-	// provider-specific initialization code.
-	In = common.In
-
-	// Out is a container for values that are provided by the provider-specific
-	// initialization code to the test suite.
-	Out = common.Out
 )
 
 // Declare declares a functional test-suite for a specific persistence.Provider
@@ -26,7 +15,7 @@ func Declare(
 	after func(),
 ) {
 	var (
-		tc     common.TestContext
+		tc     TestContext
 		cancel func()
 	)
 
@@ -42,7 +31,7 @@ func Declare(
 			tc.Out = before(setupCtx, tc.In)
 
 			if tc.Out.TestTimeout <= 0 {
-				tc.Out.TestTimeout = common.DefaultTestTimeout
+				tc.Out.TestTimeout = DefaultTestTimeout
 			}
 
 			tc.Context, cancel = context.WithTimeout(context.Background(), tc.Out.TestTimeout)
@@ -68,7 +57,7 @@ func Declare(
 		declareOffsetOperationTests(&tc)
 		declareOffsetRepositoryTests(&tc)
 
-		declareProviderTests(&tc.Context, &tc.In, &tc.Out)
-		declareDataStoreTests(&tc.Context, &tc.In, &tc.Out)
+		declareProviderTests(&tc)
+		declareDataStoreTests(&tc)
 	})
 }

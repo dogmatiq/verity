@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -12,7 +11,7 @@ import (
 
 // declareOffsetRepositoryTests declares a functional test-suite for a specific
 // offsetstore.Repository implementation.
-func declareOffsetRepositoryTests(tc *common.TestContext) {
+func declareOffsetRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type offsetstore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
