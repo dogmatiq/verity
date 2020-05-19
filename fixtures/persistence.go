@@ -152,15 +152,6 @@ func (ds *DataStoreStub) Persist(ctx context.Context, b persistence.Batch) (pers
 	return persistence.Result{}, nil
 }
 
-// Begin starts a new transaction.
-func (ds *DataStoreStub) Begin(ctx context.Context) (persistence.Transaction, error) {
-	if ds.DataStore != nil {
-		return ds.DataStore.Begin(ctx)
-	}
-
-	return nil, nil
-}
-
 // Close closes the data store.
 func (ds *DataStoreStub) Close() error {
 	if ds.CloseFunc != nil {
