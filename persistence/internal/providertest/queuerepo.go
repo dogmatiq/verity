@@ -23,6 +23,7 @@ func declareQueueRepositoryTests(tc *TestContext) {
 			repository queuestore.Repository
 			tearDown   func()
 
+			now                 time.Time
 			item0, item1, item2 queuestore.Item
 		)
 
@@ -37,21 +38,23 @@ func declareQueueRepositoryTests(tc *TestContext) {
 			// This was noticed occurring with the SQL provider, which sorted by
 			// its PRIMARY KEY, which includes the message ID.
 
+			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
+
 			item0 = queuestore.Item{
 				FailureCount:  1,
-				NextAttemptAt: time.Now().Add(3 * time.Hour),
+				NextAttemptAt: now.Add(3 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA3),
 			}
 
 			item1 = queuestore.Item{
 				FailureCount:  2,
-				NextAttemptAt: time.Now().Add(-10 * time.Hour),
+				NextAttemptAt: now.Add(-10 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA1),
 			}
 
 			item2 = queuestore.Item{
 				FailureCount:  3,
-				NextAttemptAt: time.Now().Add(2 * time.Hour),
+				NextAttemptAt: now.Add(2 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA2),
 			}
 		})
