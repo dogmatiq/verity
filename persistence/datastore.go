@@ -33,9 +33,6 @@ type DataStore interface {
 	// QueueStoreRepository returns the application's queue store repository.
 	QueueStoreRepository() queuestore.Repository
 
-	// Begin starts a new transaction.
-	Begin(ctx context.Context) (Transaction, error)
-
 	// Close closes the data store.
 	//
 	// Closing a data-store immediately prevents new transactions from being

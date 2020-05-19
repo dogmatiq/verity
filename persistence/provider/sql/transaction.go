@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -12,22 +13,22 @@ import (
 type transaction struct {
 	ds     *dataStore
 	actual *sql.Tx
-	result persistence.TransactionResult
+	result persistence.Result
 }
 
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(
 	ctx context.Context,
-) (persistence.TransactionResult, error) {
+) (persistence.Result, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.TransactionResult{},
-			persistence.ErrTransactionClosed
+		return persistence.Result{},
+			refactor251.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return persistence.TransactionResult{}, err
+		return persistence.Result{}, err
 	}
 
 	if t.actual != nil {
@@ -42,7 +43,7 @@ func (t *transaction) Rollback() error {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return refactor251.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
@@ -60,7 +61,7 @@ func (t *transaction) begin(ctx context.Context) error {
 	var err error
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return refactor251.ErrTransactionClosed
 	}
 
 	if t.actual == nil {

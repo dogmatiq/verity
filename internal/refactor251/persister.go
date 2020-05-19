@@ -4,35 +4,12 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
-
-// Persist commits a batch of operations atomically.
-//
-// It is designed to be used by persistence.DataStore implementations to help
-// implement a persistence.Persister early in the refactoring process.
-func Persist(
-	ctx context.Context,
-	ds persistence.DataStore,
-	batch persistence.Batch,
-) (persistence.Result, error) {
-	batch.MustValidate()
-
-	return persistence.WithTransaction(
-		ctx,
-		ds,
-		func(tx persistence.ManagedTransaction) error {
-			return PersistTx(ctx, tx, batch)
-		},
-	)
-}
 
 // PersistTx performs the operations in batch on tx.
 func PersistTx(
 	ctx context.Context,
-	tx persistence.ManagedTransaction,
+	tx Transaction,
 	batch persistence.Batch,
 ) error {
 	v := transactionAdaptorVisitor{tx}
@@ -47,7 +24,7 @@ func PersistTx(
 }
 
 type transactionAdaptorVisitor struct {
-	tx persistence.ManagedTransaction
+	tx Transaction
 }
 
 func (v transactionAdaptorVisitor) VisitSaveAggregateMetaData(
@@ -56,7 +33,7 @@ func (v transactionAdaptorVisitor) VisitSaveAggregateMetaData(
 ) error {
 	err := v.tx.SaveAggregateMetaData(ctx, &op.MetaData)
 
-	if err == aggregatestore.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -77,7 +54,7 @@ func (v transactionAdaptorVisitor) VisitSaveQueueItem(
 ) error {
 	err := v.tx.SaveMessageToQueue(ctx, &op.Item)
 
-	if err == queuestore.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -90,7 +67,7 @@ func (v transactionAdaptorVisitor) VisitRemoveQueueItem(
 ) error {
 	err := v.tx.RemoveMessageFromQueue(ctx, &op.Item)
 
-	if err == queuestore.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -108,7 +85,7 @@ func (v transactionAdaptorVisitor) VisitSaveOffset(
 		op.NextOffset,
 	)
 
-	if err == offsetstore.ErrConflict {
+	if err == ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 

@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -20,20 +21,20 @@ type transaction struct {
 // Commit applies the changes from the transaction.
 func (t *transaction) Commit(
 	ctx context.Context,
-) (persistence.TransactionResult, error) {
+) (persistence.Result, error) {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.TransactionResult{},
-			persistence.ErrTransactionClosed
+		return persistence.Result{},
+			refactor251.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
-		return persistence.TransactionResult{}, err
+		return persistence.Result{}, err
 	}
 
 	if !t.hasLock {
-		return persistence.TransactionResult{}, nil
+		return persistence.Result{}, nil
 	}
 
 	t.ds.db.aggregate.apply(&t.aggregate)
@@ -41,7 +42,7 @@ func (t *transaction) Commit(
 	t.ds.db.offset.apply(&t.offset)
 	t.ds.db.queue.apply(&t.queue)
 
-	return persistence.TransactionResult{
+	return persistence.Result{
 		EventOffsets: t.event.offsets,
 	}, nil
 }
@@ -51,7 +52,7 @@ func (t *transaction) Rollback() error {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return refactor251.ErrTransactionClosed
 	}
 
 	return t.ds.checkOpen()
@@ -60,7 +61,7 @@ func (t *transaction) Rollback() error {
 // begin acquires a write-lock on the database.
 func (t *transaction) begin(ctx context.Context) error {
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return refactor251.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {

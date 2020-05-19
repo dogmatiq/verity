@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -13,7 +12,7 @@ import (
 
 // declareAggregateOperationTests declares a functional test-suite for
 // persistence operations related to aggregates.
-func declareAggregateOperationTests(tc *common.TestContext) {
+func declareAggregateOperationTests(tc *TestContext) {
 	ginkgo.Context("aggregate operations", func() {
 		var (
 			dataStore  persistence.DataStore

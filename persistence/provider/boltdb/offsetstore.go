@@ -3,8 +3,8 @@ package boltdb
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"go.etcd.io/bbolt"
 )
 
@@ -38,7 +38,7 @@ func (t *transaction) SaveOffset(
 	)
 
 	if c != o {
-		return offsetstore.ErrConflict
+		return refactor251.ErrConflict
 	}
 
 	bboltx.Put(

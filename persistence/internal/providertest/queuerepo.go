@@ -1,30 +1,30 @@
-package queuestore
+package providertest
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 )
 
-// DeclareRepositoryTests declares a functional test-suite for a specific
+// declareQueueRepositoryTests declares a functional test-suite for a specific
 // queuestore.Repository implementation.
-func DeclareRepositoryTests(tc *common.TestContext) {
+func declareQueueRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type queuestore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
 			repository queuestore.Repository
 			tearDown   func()
 
-			item0, item1, item2 *queuestore.Item
+			now                 time.Time
+			item0, item1, item2 queuestore.Item
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -38,21 +38,23 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			// This was noticed occurring with the SQL provider, which sorted by
 			// its PRIMARY KEY, which includes the message ID.
 
-			item0 = &queuestore.Item{
+			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
+
+			item0 = queuestore.Item{
 				FailureCount:  1,
-				NextAttemptAt: time.Now().Add(3 * time.Hour),
+				NextAttemptAt: now.Add(3 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA3),
 			}
 
-			item1 = &queuestore.Item{
+			item1 = queuestore.Item{
 				FailureCount:  2,
-				NextAttemptAt: time.Now().Add(-10 * time.Hour),
+				NextAttemptAt: now.Add(-10 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA1),
 			}
 
-			item2 = &queuestore.Item{
+			item2 = queuestore.Item{
 				FailureCount:  3,
-				NextAttemptAt: time.Now().Add(2 * time.Hour),
+				NextAttemptAt: now.Add(2 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA2),
 			}
 		})
@@ -63,31 +65,38 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func LoadQueueMessages()", func() {
 			ginkgo.It("returns an empty result if the queue is empty", func() {
-				items := loadMessages(tc.Context, repository, 10)
+				items := loadQueueItems(tc.Context, repository, 10)
 				gomega.Expect(items).To(gomega.BeEmpty())
 			})
 
 			table.DescribeTable(
 				"it returns messages from the queue, ordered by their next attempt time",
-				func(n int, expected ...**queuestore.Item) {
-					saveMessages(
+				func(n int, pointers ...*queuestore.Item) {
+					persist(
 						tc.Context,
 						dataStore,
-						item0,
-						item1,
-						item2,
+						persistence.SaveQueueItem{
+							Item: item0,
+						},
+						persistence.SaveQueueItem{
+							Item: item1,
+						},
+						persistence.SaveQueueItem{
+							Item: item2,
+						},
 					)
 
-					items := loadMessages(tc.Context, repository, n)
-					gomega.Expect(items).To(gomega.HaveLen(len(expected)))
+					item0.Revision++
+					item1.Revision++
+					item2.Revision++
 
-					for i, it := range items {
-						expectItemToEqual(
-							it,
-							*expected[i],
-							fmt.Sprintf("item at index #%d of slice", i),
-						)
+					var expected []queuestore.Item
+					for _, p := range pointers {
+						expected = append(expected, *p)
 					}
+
+					items := loadQueueItems(tc.Context, repository, n)
+					gomega.Expect(items).To(gomegax.EqualX(expected))
 				},
 				table.Entry(
 					"it returns all the messages if the limit is equal the length of the queue",

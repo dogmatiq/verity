@@ -62,19 +62,23 @@ func (ds *dataStore) Persist(
 	ctx context.Context,
 	batch persistence.Batch,
 ) (persistence.Result, error) {
-	return refactor251.Persist(ctx, ds, batch)
-}
+	batch.MustValidate()
 
-// Begin starts a new transaction.
-func (ds *dataStore) Begin(ctx context.Context) (persistence.Transaction, error) {
 	if err := ds.checkOpen(); err != nil {
-		return nil, err
+		return persistence.Result{}, err
 	}
 
-	return &transaction{
+	tx := &transaction{
 		ds:     ds,
 		appKey: ds.appKey,
-	}, nil
+	}
+	defer tx.Rollback()
+
+	if err := refactor251.PersistTx(ctx, tx, batch); err != nil {
+		return persistence.Result{}, err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // Close closes the data store.

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
+	"github.com/dogmatiq/infix/persistence"
 	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,12 +30,16 @@ var _ = Describe("type database", func() {
 
 			close() // Close the underlying BoltDB database.
 
-			tx, err := ds.Begin(ctx)
-			Expect(err).ShouldNot(HaveOccurred())
-			defer tx.Rollback()
-
-			// Perform a write to cause the actual transaction to be started.
-			_, err = tx.SaveEvent(ctx, nil)
+			_, err = ds.Persist(
+				ctx,
+				persistence.Batch{
+					persistence.SaveOffset{
+						ApplicationKey: "<app-key>",
+						CurrentOffset:  0,
+						NextOffset:     1,
+					},
+				},
+			)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

@@ -1,64 +1,63 @@
-package eventstore
+package providertest
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
 )
 
-// DeclareRepositoryTests declares a functional test-suite for a specific
+// declareEventRepositoryTests declares a functional test-suite for a specific
 // eventstore.Repository implementation.
-func DeclareRepositoryTests(tc *common.TestContext) {
+func declareEventRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type eventstore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
 			repository eventstore.Repository
 			tearDown   func()
 
-			item0, item1, item2, item3, item4, item5 *eventstore.Item
+			item0, item1, item2, item3, item4, item5 eventstore.Item
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 			repository = dataStore.EventStoreRepository()
 
-			item0 = &eventstore.Item{
+			item0 = eventstore.Item{
 				Offset:   0,
 				Envelope: infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
 			}
 
-			item1 = &eventstore.Item{
+			item1 = eventstore.Item{
 				Offset:   1,
 				Envelope: infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
 			}
 
-			item2 = &eventstore.Item{
+			item2 = eventstore.Item{
 				Offset:   2,
 				Envelope: infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1),
 			}
 
-			item3 = &eventstore.Item{
+			item3 = eventstore.Item{
 				Offset:   3,
 				Envelope: infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageA2),
 			}
 
-			item4 = &eventstore.Item{
+			item4 = eventstore.Item{
 				Offset:   4,
 				Envelope: infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageB2),
 			}
 
-			item5 = &eventstore.Item{
+			item5 = eventstore.Item{
 				Offset:   5,
 				Envelope: infixfixtures.NewEnvelope("<message-5>", dogmafixtures.MessageC2),
 			}
@@ -95,7 +94,13 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				fn := func(env *envelopespec.Envelope) {
 					defer ginkgo.GinkgoRecover()
 					defer g.Done()
-					saveEvents(tc.Context, dataStore, env)
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveEvent{
+							Envelope: env,
+						},
+					)
 				}
 
 				g.Add(3)
@@ -126,28 +131,37 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 			table.DescribeTable(
 				"it returns a result containing the events that match the query criteria",
-				func(q eventstore.Query, expected ...**eventstore.Item) {
-					saveEvents(
+				func(q eventstore.Query, pointers ...*eventstore.Item) {
+					persist(
 						tc.Context,
 						dataStore,
-						item0.Envelope,
-						item1.Envelope,
-						item2.Envelope,
-						item3.Envelope,
-						item4.Envelope,
-						item5.Envelope,
+						persistence.SaveEvent{
+							Envelope: item0.Envelope,
+						},
+						persistence.SaveEvent{
+							Envelope: item1.Envelope,
+						},
+						persistence.SaveEvent{
+							Envelope: item2.Envelope,
+						},
+						persistence.SaveEvent{
+							Envelope: item3.Envelope,
+						},
+						persistence.SaveEvent{
+							Envelope: item4.Envelope,
+						},
+						persistence.SaveEvent{
+							Envelope: item5.Envelope,
+						},
 					)
 
-					items := queryEvents(tc.Context, repository, q)
-					gomega.Expect(items).To(gomega.HaveLen(len(expected)))
-
-					for i, item := range items {
-						expectItemToEqual(
-							item,
-							*expected[i],
-							fmt.Sprintf("item at index #%d of slice", i),
-						)
+					var expected []eventstore.Item
+					for _, p := range pointers {
+						expected = append(expected, *p)
 					}
+
+					items := queryEvents(tc.Context, repository, q)
+					gomega.Expect(items).To(gomegax.EqualX(expected))
 				},
 				table.Entry(
 					"it includes all events by default",
@@ -189,11 +203,15 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer res.Close()
 
-				saveEvents(
+				persist(
 					tc.Context,
 					dataStore,
-					item0.Envelope,
-					item1.Envelope,
+					persistence.SaveEvent{
+						Envelope: item0.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item1.Envelope,
+					},
 				)
 
 				// The implementation may or may not expose these newly
@@ -211,18 +229,27 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 			})
 
 			ginkgo.It("returns a result containing the events that match the source instance", func() {
-				expectedA := []*eventstore.Item{item0, item2}
-				expectedB := []*eventstore.Item{item1, item3}
-
-				saveEvents(
+				persist(
 					tc.Context,
 					dataStore,
-					item0.Envelope,
-					item1.Envelope,
-					item2.Envelope,
-					item3.Envelope,
-					item4.Envelope,
-					item5.Envelope,
+					persistence.SaveEvent{
+						Envelope: item0.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item1.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item2.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item3.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item4.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item5.Envelope,
+					},
 				)
 
 				items := loadEventsBySource(
@@ -232,14 +259,12 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					"<instance-a>",
 					"",
 				)
-
-				for i, item := range items {
-					expectItemToEqual(
-						item,
-						expectedA[i],
-						fmt.Sprintf("item at index #%d of slice", i),
-					)
-				}
+				gomega.Expect(items).To(gomegax.EqualX(
+					[]eventstore.Item{
+						item0,
+						item2,
+					},
+				))
 
 				items = loadEventsBySource(
 					tc.Context,
@@ -248,29 +273,27 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					"<instance-b>",
 					"",
 				)
-
-				for i, item := range items {
-					expectItemToEqual(
-						item,
-						expectedB[i],
-						fmt.Sprintf("item at index #%d of slice", i),
-					)
-				}
+				gomega.Expect(items).To(gomegax.EqualX(
+					[]eventstore.Item{
+						item1,
+						item3,
+					},
+				))
 			})
 
 			ginkgo.It("only matches the events after the barrier message", func() {
-				expectedA := []*eventstore.Item{item2}
-				expectedB := []*eventstore.Item{item3}
-
-				saveEvents(
+				persist(
 					tc.Context,
 					dataStore,
-					item0.Envelope,
-					item1.Envelope,
-					item2.Envelope,
-					item3.Envelope,
-					item4.Envelope,
-					item5.Envelope,
+					persistence.SaveEvent{
+						Envelope: item0.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item1.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item2.Envelope,
+					},
 				)
 
 				items := loadEventsBySource(
@@ -280,38 +303,23 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 					"<instance-a>",
 					item0.ID(),
 				)
-
-				for i, item := range items {
-					expectItemToEqual(
-						item,
-						expectedA[i],
-						fmt.Sprintf("item at index #%d of slice", i),
-					)
-				}
-
-				items = loadEventsBySource(
-					tc.Context,
-					repository,
-					"<aggregate>",
-					"<instance-b>",
-					item1.ID(),
-				)
-
-				for i, item := range items {
-					expectItemToEqual(
-						item,
-						expectedB[i],
-						fmt.Sprintf("item at index #%d of slice", i),
-					)
-				}
+				gomega.Expect(items).To(gomegax.EqualX(
+					[]eventstore.Item{
+						item2,
+					},
+				))
 			})
 
 			ginkgo.It("returns an error if the barrier message is not found", func() {
-				saveEvents(
+				persist(
 					tc.Context,
 					dataStore,
-					item0.Envelope,
-					item1.Envelope,
+					persistence.SaveEvent{
+						Envelope: item0.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item1.Envelope,
+					},
 				)
 
 				_, err := repository.LoadEventsBySource(
@@ -331,11 +339,15 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				defer res.Close()
 
-				saveEvents(
+				persist(
 					tc.Context,
 					dataStore,
-					item0.Envelope,
-					item1.Envelope,
+					persistence.SaveEvent{
+						Envelope: item0.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item1.Envelope,
+					},
 				)
 
 				// The implementation may or may not expose these newly
@@ -348,15 +360,27 @@ func DeclareRepositoryTests(tc *common.TestContext) {
 
 		ginkgo.Describe("func QueryEvents() and LoadEventsBySource()", func() {
 			ginkgo.It("allows concurrent consumers for the same application", func() {
-				saveEvents(
+				persist(
 					tc.Context,
 					dataStore,
-					item0.Envelope,
-					item1.Envelope,
-					item2.Envelope,
-					item3.Envelope,
-					item4.Envelope,
-					item5.Envelope,
+					persistence.SaveEvent{
+						Envelope: item0.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item1.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item2.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item3.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item4.Envelope,
+					},
+					persistence.SaveEvent{
+						Envelope: item5.Envelope,
+					},
 				)
 
 				q := eventstore.Query{

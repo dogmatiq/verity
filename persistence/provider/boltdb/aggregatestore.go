@@ -3,6 +3,7 @@ package boltdb
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
@@ -52,7 +53,7 @@ func (t *transaction) SaveAggregateMetaData(
 	old := loadAggregateStoreMetaData(metadata, md.InstanceID)
 
 	if md.Revision != old.GetRevision() {
-		return aggregatestore.ErrConflict
+		return refactor251.ErrConflict
 	}
 
 	data := marshalAggregateStoreMetaData(md)

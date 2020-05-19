@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
@@ -19,7 +18,7 @@ import (
 
 // declareQueueOperationTests declares a functional test-suite for
 // persistence operations related to the message queue.
-func declareQueueOperationTests(tc *common.TestContext) {
+func declareQueueOperationTests(tc *TestContext) {
 	ginkgo.Context("queue operations", func() {
 		var (
 			dataStore  persistence.DataStore
