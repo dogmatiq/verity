@@ -41,25 +41,3 @@ type ManagedTransaction interface {
 	queuestore.Transaction
 	offsetstore.Transaction
 }
-
-// WithTransaction executes fn inside a transaction.
-//
-// If fn returns nil the transaction is committed, Otherwise, the transaction is
-// rolled-back and the error is returned.
-func WithTransaction(
-	ctx context.Context,
-	ds DataStore,
-	fn func(ManagedTransaction) error,
-) (TransactionResult, error) {
-	tx, err := ds.Begin(ctx)
-	if err != nil {
-		return TransactionResult{}, err
-	}
-	defer tx.Rollback()
-
-	if err := fn(tx); err != nil {
-		return TransactionResult{}, err
-	}
-
-	return tx.Commit(ctx)
-}
