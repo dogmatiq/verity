@@ -114,12 +114,27 @@ func declareEventRepositoryTests(tc *TestContext) {
 				gomega.Expect(o).To(gomega.BeEquivalentTo(3))
 			})
 
-			ginkgo.It("returns an error if the context is canceled", func() {
+			ginkgo.It("does not block if the context is canceled", func() {
+				// This test ensures that the implementation returns
+				// immediately, either with a context.Canceled error, or with
+				// the correct result.
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.SaveEvent{
+						Envelope: item0.Envelope,
+					},
+				)
+
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				_, err := repository.NextEventOffset(ctx)
-				gomega.Expect(err).To(gomega.Equal(context.Canceled))
+				o, err := repository.NextEventOffset(ctx)
+				if err != nil {
+					gomega.Expect(err).To(gomega.Equal(context.Canceled))
+				} else {
+					gomega.Expect(o).To(gomega.BeEquivalentTo(1))
+				}
 			})
 		})
 
@@ -425,6 +440,18 @@ func declareEventRepositoryTests(tc *TestContext) {
 		ginkgo.Describe("type eventstore.Result", func() {
 			ginkgo.Describe("func Next()", func() {
 				ginkgo.It("returns an error if the context is canceled", func() {
+					// This test ensures that the implementation returns
+					// immediately, either with a context.Canceled error, or
+					// with the correct result.
+
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveEvent{
+							Envelope: item0.Envelope,
+						},
+					)
+
 					res, err := repository.QueryEvents(tc.Context, eventstore.Query{})
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer res.Close()
@@ -432,8 +459,13 @@ func declareEventRepositoryTests(tc *TestContext) {
 					ctx, cancel := context.WithCancel(tc.Context)
 					cancel()
 
-					_, _, err = res.Next(ctx)
-					gomega.Expect(err).To(gomega.Equal(context.Canceled))
+					item, ok, err := res.Next(ctx)
+					if err != nil {
+						gomega.Expect(err).To(gomega.Equal(context.Canceled))
+					} else {
+						gomega.Expect(item).To(gomegax.EqualX(&item0))
+						gomega.Expect(ok).To(gomega.BeTrue())
+					}
 				})
 			})
 

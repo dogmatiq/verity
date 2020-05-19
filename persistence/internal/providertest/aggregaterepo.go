@@ -59,12 +59,35 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				gomega.Expect(md).To(gomega.Equal(expect))
 			})
 
-			ginkgo.It("returns an error if the context is canceled", func() {
+			ginkgo.It("does not block if the context is canceled", func() {
+				// This test ensures that the implementation returns
+				// immediately, either with a context.Canceled error, or with
+				// the correct result.
+
+				expect := aggregatestore.MetaData{
+					HandlerKey:      "<handler-key>",
+					InstanceID:      "<instance>",
+					InstanceExists:  true,
+					LastDestroyedBy: "<message-id>",
+				}
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.SaveAggregateMetaData{
+						MetaData: expect,
+					},
+				)
+				expect.Revision++
+
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				_, err := repository.LoadMetaData(ctx, "<handler-key>", "<instance>")
-				gomega.Expect(err).To(gomega.Equal(context.Canceled))
+				md, err := repository.LoadMetaData(ctx, "<handler-key>", "<instance>")
+				if err != nil {
+					gomega.Expect(err).To(gomega.Equal(context.Canceled))
+				} else {
+					gomega.Expect(md).To(gomega.Equal(&expect))
+				}
 			})
 		})
 	})

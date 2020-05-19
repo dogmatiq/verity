@@ -61,14 +61,30 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 				})
 			})
 
-			ginkgo.When("context is cancelled", func() {
-				ginkgo.It("returns the context cancellation error", func() {
-					ctx, cancel := context.WithCancel(tc.Context)
-					cancel()
+			ginkgo.It("does not block if the context is canceled", func() {
+				// This test ensures that the implementation returns
+				// immediately, either with a context.Canceled error, or with
+				// the correct result.
 
-					_, err := repository.LoadOffset(ctx, "<source-app-key>")
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.SaveOffset{
+						ApplicationKey: "<source-app-key>",
+						CurrentOffset:  0,
+						NextOffset:     1,
+					},
+				)
+
+				ctx, cancel := context.WithCancel(tc.Context)
+				cancel()
+
+				actual, err := repository.LoadOffset(ctx, "<source-app-key>")
+				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
-				})
+				} else {
+					gomega.Expect(actual).To(gomega.BeEquivalentTo(1))
+				}
 			})
 		})
 	})

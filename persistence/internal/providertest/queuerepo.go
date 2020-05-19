@@ -116,12 +116,28 @@ func declareQueueRepositoryTests(tc *TestContext) {
 			)
 		})
 
-		ginkgo.It("returns an error if the context is canceled", func() {
+		ginkgo.It("does not block if the context is canceled", func() {
+			// This test ensures that the implementation returns
+			// immediately, either with a context.Canceled error, or with
+			// the correct result.
+
+			persist(
+				tc.Context,
+				dataStore,
+				persistence.SaveQueueItem{
+					Item: item0,
+				},
+			)
+
 			ctx, cancel := context.WithCancel(tc.Context)
 			cancel()
 
-			_, err := repository.LoadQueueMessages(ctx, 1)
-			gomega.Expect(err).To(gomega.Equal(context.Canceled))
+			items, err := repository.LoadQueueMessages(ctx, 1)
+			if err != nil {
+				gomega.Expect(err).To(gomega.Equal(context.Canceled))
+			} else {
+				gomega.Expect(items).To(gomega.HaveLen(1))
+			}
 		})
 	})
 }
