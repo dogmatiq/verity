@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/eventstore"
 	"github.com/dogmatiq/infix/persistence/internal/providertest/queuestore"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/onsi/ginkgo"
@@ -61,8 +60,8 @@ func Declare(
 		declareAggregateOperationTests(&tc)
 		declareAggregateRepositoryTests(&tc)
 
-		eventstore.DeclareRepositoryTests(&tc)
 		declareEventOperationTests(&tc)
+		declareEventRepositoryTests(&tc)
 
 		queuestore.DeclareRepositoryTests(&tc)
 		declareQueueOperationTests(&tc)
