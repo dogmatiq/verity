@@ -1,22 +1,22 @@
 package memory
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/internal/x/syncx"
+	"github.com/dogmatiq/infix/persistence"
 	"google.golang.org/protobuf/proto"
 )
 
 // database encapsulates a single application's data.
 type database struct {
-	syncx.RWMutex
-
 	open      uint32 // atomic
-	aggregate aggregateStoreDatabase
-	event     eventStoreDatabase
-	offset    offsetStoreDatabase
-	queue     queueStoreDatabase
+	mutex     sync.RWMutex
+	aggregate aggregateDatabase
+	event     eventDatabase
+	offset    offsetDatabase
+	queue     queueDatabase
 }
 
 // newDatabase returns a new empty database.
@@ -44,4 +44,20 @@ func (db *database) Close() {
 // cloneEnvelope returns a deep-clone of env.
 func cloneEnvelope(env *envelopespec.Envelope) *envelopespec.Envelope {
 	return proto.Clone(env).(*envelopespec.Envelope)
+}
+
+// validator is an implementation of persitence.OperationVisitor that
+// produces an error if any operations in a batch can not be applied.
+type validator struct {
+	db *database
+}
+
+// committer is an implementation of persitence.OperationVisitor that
+// applies operations to the database.
+//
+// It is expected that the operations have already been validated using
+// validator.
+type committer struct {
+	db     *database
+	result persistence.Result
 }

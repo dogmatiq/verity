@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -28,22 +27,22 @@ func newDataStore(db *database) *dataStore {
 
 // AggregateStoreRepository returns application's aggregate store repository.
 func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
-	return &aggregateStoreRepository{ds.db}
+	return &aggregateRepository{ds.db}
 }
 
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return &eventStoreRepository{ds.db}
+	return &eventRepository{ds.db}
 }
 
 // OffsetStoreRepository returns the application's event store repository.
 func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
-	return &offsetStoreRepository{ds.db}
+	return &offsetRepository{ds.db}
 }
 
 // QueueStoreRepository returns the application's queue store repository.
 func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
-	return &queueStoreRepository{ds.db}
+	return &queueRepository{ds.db}
 }
 
 // Persist commits a batch of operations atomically.
@@ -52,22 +51,26 @@ func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
 // the entire batch is aborted and a ConflictError is returned.
 func (ds *dataStore) Persist(
 	ctx context.Context,
-	batch persistence.Batch,
+	b persistence.Batch,
 ) (persistence.Result, error) {
-	batch.MustValidate()
+	b.MustValidate()
 
-	if err := ds.checkOpen(); err != nil {
+	if atomic.LoadUint32(&ds.closed) != 0 {
+		return persistence.Result{}, persistence.ErrDataStoreClosed
+	}
+
+	ds.db.mutex.Lock()
+	defer ds.db.mutex.Unlock()
+
+	v := &validator{ds.db}
+	if err := b.AcceptVisitor(ctx, v); err != nil {
 		return persistence.Result{}, err
 	}
 
-	tx := &transaction{ds: ds}
-	defer tx.Rollback()
+	c := &committer{db: ds.db}
+	b.AcceptVisitor(ctx, c)
 
-	if err := refactor251.PersistTx(ctx, tx, batch); err != nil {
-		return persistence.Result{}, err
-	}
-
-	return tx.Commit(ctx)
+	return c.result, nil
 }
 
 // Close closes the data store.
@@ -89,15 +92,6 @@ func (ds *dataStore) Close() error {
 	}
 
 	ds.db.Close()
-
-	return nil
-}
-
-// checkOpen returns an error if the data-store is closed.
-func (ds *dataStore) checkOpen() error {
-	if atomic.LoadUint32(&ds.closed) != 0 {
-		return persistence.ErrDataStoreClosed
-	}
 
 	return nil
 }
