@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -12,7 +11,7 @@ import (
 
 // declareAggregateRepositoryTests declares a functional test-suite for a
 // specific aggregatestore.Repository implementation.
-func declareAggregateRepositoryTests(tc *common.TestContext) {
+func declareAggregateRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type aggregatestore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore

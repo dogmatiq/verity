@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
@@ -17,7 +16,7 @@ import (
 
 // declareEventOperationTests declares a functional test-suite for
 // persistence operations related to events.
-func declareEventOperationTests(tc *common.TestContext) {
+func declareEventOperationTests(tc *TestContext) {
 	ginkgo.Context("event operations", func() {
 		var (
 			dataStore  persistence.DataStore

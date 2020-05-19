@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -13,7 +12,7 @@ import (
 
 // declareOffsetOperationTests declares a functional test-suite for
 // persistence operations related to storing offsets.
-func declareOffsetOperationTests(tc *common.TestContext) {
+func declareOffsetOperationTests(tc *TestContext) {
 	ginkgo.Context("offset operations", func() {
 		var (
 			dataStore  persistence.DataStore

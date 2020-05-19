@@ -1,7 +1,6 @@
 package providertest
 
 import (
-	"context"
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
@@ -12,11 +11,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func declareDataStoreTests(
-	ctx *context.Context,
-	in *In,
-	out *Out,
-) {
+func declareDataStoreTests(tc *TestContext) {
 	ginkgo.Describe("type DataStore (interface)", func() {
 		var (
 			provider      persistence.Provider
@@ -25,10 +20,10 @@ func declareDataStoreTests(
 		)
 
 		ginkgo.BeforeEach(func() {
-			provider, closeProvider = out.NewProvider()
+			provider, closeProvider = tc.Out.NewProvider()
 
 			var err error
-			dataStore, err = provider.Open(*ctx, "<app-key>")
+			dataStore, err = provider.Open(tc.Context, "<app-key>")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 
@@ -65,7 +60,7 @@ func declareDataStoreTests(
 
 		ginkgo.Describe("func Begin()", func() {
 			ginkgo.It("returns a non-nil transaction", func() {
-				tx, err := dataStore.Begin(*ctx)
+				tx, err := dataStore.Begin(tc.Context)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				gomega.Expect(tx).NotTo(gomega.BeNil())
 
@@ -87,7 +82,7 @@ func declareDataStoreTests(
 				err := dataStore.Close()
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-				tx, err := dataStore.Begin(*ctx)
+				tx, err := dataStore.Begin(tc.Context)
 				if tx != nil {
 					tx.Rollback()
 				}
@@ -101,7 +96,7 @@ func declareDataStoreTests(
 
 					// The transaction is started outside the goroutine to
 					// ensure it happens before the data-store is closed.
-					tx, err := dataStore.Begin(*ctx)
+					tx, err := dataStore.Begin(tc.Context)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer tx.Rollback()
 
@@ -116,7 +111,7 @@ func declareDataStoreTests(
 
 							env := infixfixtures.NewEnvelope("<id>", dogmafixtures.MessageA1)
 
-							if _, err := tx.SaveEvent(*ctx, env); err != nil {
+							if _, err := tx.SaveEvent(tc.Context, env); err != nil {
 								result <- err
 								return
 							}
@@ -124,7 +119,7 @@ func declareDataStoreTests(
 
 						if commit {
 							ginkgo.By("committing the transaction")
-							_, err := tx.Commit(*ctx)
+							_, err := tx.Commit(tc.Context)
 							result <- err
 						} else {
 							ginkgo.By("rolling the transaction back")
@@ -162,8 +157,8 @@ func declareDataStoreTests(
 							// We don't know what error will happen, but it
 							// should definitely fail.
 							gomega.Expect(err).Should(gomega.HaveOccurred())
-						case <-(*ctx).Done():
-							err := (*ctx).Err()
+						case <-(tc.Context).Done():
+							err := (tc.Context).Err()
 							gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 						}
 					}

@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest/common"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/jmalloc/gomegax"
@@ -19,7 +18,7 @@ import (
 
 // declareEventRepositoryTests declares a functional test-suite for a specific
 // eventstore.Repository implementation.
-func declareEventRepositoryTests(tc *common.TestContext) {
+func declareEventRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type eventstore.Repository", func() {
 		var (
 			dataStore  persistence.DataStore
