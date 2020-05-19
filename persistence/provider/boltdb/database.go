@@ -3,8 +3,8 @@ package boltdb
 import (
 	"context"
 
+	"github.com/dogmatiq/cosyne"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
-	"github.com/dogmatiq/infix/internal/x/syncx"
 	"go.etcd.io/bbolt"
 )
 
@@ -13,7 +13,7 @@ import (
 // The transaction type acquires a lock on the database before starting the
 // underlying BoltDB transaction.
 type database struct {
-	m      syncx.RWMutex
+	m      cosyne.RWMutex
 	actual *bbolt.DB
 	close  func(*bbolt.DB) error
 }
