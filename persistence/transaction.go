@@ -76,12 +76,8 @@ type Transaction interface {
 	) error
 
 	// Commit applies the changes from the transaction.
-	Commit(ctx context.Context) (TransactionResult, error)
+	Commit(ctx context.Context) (Result, error)
 
 	// Rollback aborts the transaction.
 	Rollback() error
 }
-
-// TransactionResult contains information about a successfully committed
-// transaction.
-type TransactionResult = Result
