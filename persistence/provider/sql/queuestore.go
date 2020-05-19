@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -89,7 +89,7 @@ func (t *transaction) SaveMessageToQueue(
 		return err
 	}
 
-	return persistence.ErrConflict
+	return refactor251.ErrConflict
 }
 
 // RemoveMessageFromQueue removes a specific message from the application's
@@ -116,7 +116,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		return err
 	}
 
-	return persistence.ErrConflict
+	return refactor251.ErrConflict
 }
 
 // queueStoreRepository is an implementation of queuestore.Repository that

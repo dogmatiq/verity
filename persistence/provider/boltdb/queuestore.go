@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/golang/protobuf/proto"
@@ -75,7 +75,7 @@ func (t *transaction) SaveMessageToQueue(
 	old := loadQueueStoreItem(items, i.ID())
 
 	if i.Revision != old.GetRevision() {
-		return persistence.ErrConflict
+		return refactor251.ErrConflict
 	}
 
 	new, data := marshalQueueStoreItem(i, old)
@@ -114,7 +114,7 @@ func (t *transaction) RemoveMessageFromQueue(
 		queueStoreBucketKey,
 	)
 	if !ok {
-		return persistence.ErrConflict
+		return refactor251.ErrConflict
 	}
 
 	items := bboltx.Bucket(
@@ -125,7 +125,7 @@ func (t *transaction) RemoveMessageFromQueue(
 	old := loadQueueStoreItem(items, i.ID())
 
 	if i.Revision != old.GetRevision() {
-		return persistence.ErrConflict
+		return refactor251.ErrConflict
 	}
 
 	order := bboltx.Bucket(

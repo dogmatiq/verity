@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/dogmatiq/infix/internal/refactor251"
 	"github.com/dogmatiq/infix/persistence"
 )
 
@@ -23,7 +24,7 @@ func (t *transaction) Commit(
 
 	if t.ds == nil {
 		return persistence.Result{},
-			persistence.ErrTransactionClosed
+			refactor251.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
@@ -42,7 +43,7 @@ func (t *transaction) Rollback() error {
 	defer t.end()
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return refactor251.ErrTransactionClosed
 	}
 
 	if err := t.ds.checkOpen(); err != nil {
@@ -60,7 +61,7 @@ func (t *transaction) begin(ctx context.Context) error {
 	var err error
 
 	if t.ds == nil {
-		return persistence.ErrTransactionClosed
+		return refactor251.ErrTransactionClosed
 	}
 
 	if t.actual == nil {

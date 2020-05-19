@@ -1,10 +1,11 @@
-package persistence
+package refactor251
 
 import (
 	"context"
 	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
@@ -76,7 +77,7 @@ type Transaction interface {
 	) error
 
 	// Commit applies the changes from the transaction.
-	Commit(ctx context.Context) (Result, error)
+	Commit(ctx context.Context) (persistence.Result, error)
 
 	// Rollback aborts the transaction.
 	Rollback() error
