@@ -9,6 +9,10 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
+// ErrConflict is returned by transaction operations when an the operation fails
+// because OCC data is out-of-date.
+var ErrConflict = errors.New("an optimistic concurrency conflict occured")
+
 // ErrTransactionClosed is returned by all methods on Transaction once the
 // transaction is committed or rolled-back.
 var ErrTransactionClosed = errors.New("transaction already committed or rolled-back")

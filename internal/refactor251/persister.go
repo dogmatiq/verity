@@ -4,9 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // Persist commits a batch of operations atomically.
@@ -60,7 +57,7 @@ func (v transactionAdaptorVisitor) VisitSaveAggregateMetaData(
 ) error {
 	err := v.tx.SaveAggregateMetaData(ctx, &op.MetaData)
 
-	if err == aggregatestore.ErrConflict {
+	if err == persistence.ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -81,7 +78,7 @@ func (v transactionAdaptorVisitor) VisitSaveQueueItem(
 ) error {
 	err := v.tx.SaveMessageToQueue(ctx, &op.Item)
 
-	if err == queuestore.ErrConflict {
+	if err == persistence.ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -94,7 +91,7 @@ func (v transactionAdaptorVisitor) VisitRemoveQueueItem(
 ) error {
 	err := v.tx.RemoveMessageFromQueue(ctx, &op.Item)
 
-	if err == queuestore.ErrConflict {
+	if err == persistence.ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 
@@ -112,7 +109,7 @@ func (v transactionAdaptorVisitor) VisitSaveOffset(
 		op.NextOffset,
 	)
 
-	if err == offsetstore.ErrConflict {
+	if err == persistence.ErrConflict {
 		return persistence.ConflictError{Cause: op}
 	}
 

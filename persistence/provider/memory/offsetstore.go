@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
+	"github.com/dogmatiq/infix/persistence"
 )
 
 // SaveOffset persists the "next" offset to be consumed for a specific
@@ -21,7 +21,7 @@ func (t *transaction) SaveOffset(
 		return nil
 	}
 
-	return offsetstore.ErrConflict
+	return persistence.ErrConflict
 }
 
 // offsetStoreChangeSet contains modifications to the offset store that have

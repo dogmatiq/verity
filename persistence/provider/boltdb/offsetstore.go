@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
+	"github.com/dogmatiq/infix/persistence"
 	"go.etcd.io/bbolt"
 )
 
@@ -38,7 +38,7 @@ func (t *transaction) SaveOffset(
 	)
 
 	if c != o {
-		return offsetstore.ErrConflict
+		return persistence.ErrConflict
 	}
 
 	bboltx.Put(

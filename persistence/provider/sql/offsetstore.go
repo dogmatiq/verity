@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
+	"github.com/dogmatiq/infix/persistence"
 )
 
 // offsetStoreDriver is the subset of the Driver interface that is concerned
@@ -65,7 +65,7 @@ func (t *transaction) SaveOffset(
 		return err
 	}
 
-	return offsetstore.ErrConflict
+	return persistence.ErrConflict
 }
 
 // upsertOffset calls driver's method UpdateOffset() if the source application
