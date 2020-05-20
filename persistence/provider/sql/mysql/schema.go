@@ -45,12 +45,12 @@ func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE aggregate_metadata (
-			app_key      VARBINARY(255) NOT NULL,
-			handler_key  VARBINARY(255) NOT NULL,
-			instance_id  VARBINARY(255) NOT NULL,
-			revision     BIGINT NOT NULL DEFAULT 1,
-			begin_offset BIGINT NOT NULL,
-			end_offset   BIGINT NOT NULL,
+			app_key           VARBINARY(255) NOT NULL,
+			handler_key       VARBINARY(255) NOT NULL,
+			instance_id       VARBINARY(255) NOT NULL,
+			revision          BIGINT NOT NULL DEFAULT 1,
+			instance_exists   TINYINT NOT NULL,
+			last_destroyed_by VARBINARY(255),
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		) ENGINE=InnoDB`,
@@ -74,7 +74,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE event (
 			offset              BIGINT UNSIGNED NOT NULL,
-			message_id          VARBINARY(255) NOT NULL,
+			message_id          VARBINARY(255) NOT NULL UNIQUE,
 			causation_id        VARBINARY(255) NOT NULL,
 			correlation_id      VARBINARY(255) NOT NULL,
 			source_app_name     VARBINARY(255) NOT NULL,
@@ -89,12 +89,16 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 			data                LONGBLOB NOT NULL,
 
 			PRIMARY KEY (source_app_key, offset),
-			INDEX repository_query (
+			INDEX by_type (
 				source_app_key,
 				portable_name,
-				offset,
+				offset
+			),
+			INDEX by_source (
+				source_app_key,
 				source_handler_key,
-				source_instance_id
+				source_instance_id,
+				offset
 			)
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)

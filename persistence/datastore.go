@@ -19,6 +19,8 @@ var ErrDataStoreClosed = errors.New("data store is closed")
 // DataStore is an interface used by the engine to persist and retrieve
 // data for a specific application.
 type DataStore interface {
+	Persister
+
 	// AggregateStoreRepository returns application's aggregate store repository.
 	AggregateStoreRepository() aggregatestore.Repository
 
@@ -31,22 +33,18 @@ type DataStore interface {
 	// QueueStoreRepository returns the application's queue store repository.
 	QueueStoreRepository() queuestore.Repository
 
-	// Begin starts a new transaction.
-	Begin(ctx context.Context) (Transaction, error)
-
 	// Close closes the data store.
 	//
-	// Closing a data-store immediately prevents new transactions from being
-	// started. Specifically, it causes Begin() to return ErrDataStoreClosed.
+	// Closing a data-store causes any future calls to Persist() to return
+	// ErrDataStoreClosed.
 	//
-	// The behavior of any other read or write operation on a closed data-store
-	// is implementation-defined.
+	// The behavior read operations on a closed data-store is
+	// implementation-defined.
 	//
-	// It is generally expected that all transactions have ended by the time the
-	// data-store is closed.
-	//
-	// Close() may block until any in-flight transactions are ended, or may
-	// prevent any such transactions from being committed.
+	// In general use it is expected that all pending calls to Persist() will
+	// have finished before a data-store is closed. Close() may block until any
+	// in-flight calls to Persist() return, or may prevent any such calls from
+	// succeeding.
 	Close() error
 }
 

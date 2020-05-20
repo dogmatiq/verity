@@ -46,12 +46,12 @@ func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE infix.aggregate_metadata (
-			app_key      TEXT NOT NULL,
-			handler_key  TEXT NOT NULL,
-			instance_id  TEXT NOT NULL,
-			revision     BIGINT NOT NULL DEFAULT 1,
-			begin_offset BIGINT NOT NULL,
-			end_offset   BIGINT NOT NULL,
+			app_key           TEXT NOT NULL,
+			handler_key       TEXT NOT NULL,
+			instance_id       TEXT NOT NULL,
+			revision          BIGINT NOT NULL DEFAULT 1,
+			instance_exists   BOOLEAN NOT NULL,
+			last_destroyed_by TEXT NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		)`,
@@ -75,7 +75,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 		db,
 		`CREATE TABLE infix.event (
 			"offset"            BIGINT NOT NULL,
-			message_id          TEXT NOT NULL,
+			message_id          TEXT NOT NULL UNIQUE,
 			causation_id        TEXT NOT NULL,
 			correlation_id      TEXT NOT NULL,
 			source_app_name     TEXT NOT NULL,
@@ -96,12 +96,21 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX repository_query ON infix.event (
+		`CREATE INDEX by_type ON infix.event (
 			source_app_key,
 			portable_name,
-			"offset",
+			"offset"
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE INDEX by_source ON infix.event (
+			source_app_key,
 			source_handler_key,
-			source_instance_id
+			source_instance_id,
+			"offset"
 		)`,
 	)
 

@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/dogmatiq/configkit v0.7.3
+	github.com/dogmatiq/cosyne v0.1.0
 	github.com/dogmatiq/dodeca v0.2.1
 	github.com/dogmatiq/dogma v0.6.3
 	github.com/dogmatiq/example v0.0.0-20200401013300-d9451ee452b6
@@ -13,6 +14,7 @@ require (
 	github.com/dogmatiq/projectionkit v0.3.2
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2
+	github.com/google/go-cmp v0.4.0
 	github.com/google/uuid v1.1.1
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/lib/pq v1.5.2

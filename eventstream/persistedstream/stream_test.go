@@ -42,27 +42,25 @@ var _ = Describe("type Stream", func() {
 			return streamtest.Out{
 				Stream: stream,
 				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
-					_, err := persistence.WithTransaction(
-						ctx,
-						dataStore,
-						func(tx persistence.ManagedTransaction) error {
-							for _, p := range parcels {
-								o, err := tx.SaveEvent(ctx, p.Envelope)
-								if err != nil {
-									return err
-								}
+					var batch persistence.Batch
+					for _, p := range parcels {
+						batch = append(batch, persistence.SaveEvent{
+							Envelope: p.Envelope,
+						})
+					}
 
-								cache.Add([]*eventstream.Event{
-									{
-										Offset: o,
-										Parcel: p,
-									},
-								})
-							}
-							return nil
-						},
-					)
+					res, err := dataStore.Persist(ctx, batch)
 					Expect(err).ShouldNot(HaveOccurred())
+
+					var events []*eventstream.Event
+					for _, p := range parcels {
+						events = append(events, &eventstream.Event{
+							Offset: res.EventOffsets[p.Envelope.MetaData.MessageId],
+							Parcel: p,
+						})
+					}
+
+					cache.Add(events)
 				},
 			}
 		},

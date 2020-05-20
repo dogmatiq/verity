@@ -4,13 +4,10 @@ import (
 	"context"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/marshalkit"
 )
@@ -22,16 +19,12 @@ var DefaultBufferSize = runtime.GOMAXPROCS(0) * 10
 //
 // It exposes an application's message queue to multiple consumers, ensuring
 // each consumer receives a different message.
-//
-// It implements the dogma.CommandExecutor interface.
 type Queue struct {
-	// DataStore is the data-store that stores the queued messages.
-	//
-	// It is expected that no messages will be saved to the queue for this
-	// data-store, other than via this Queue.
-	DataStore persistence.DataStore
+	// Repository is used to load messages from the queue whenever the in-memory
+	// buffer is exhausted.
+	Repository queuestore.Repository
 
-	// Marshaler is used to unmarshal messages read from the queue store.
+	// Marshaler is used to unmarshal the messages loaded via the repository.
 	Marshaler marshalkit.ValueMarshaler
 
 	// BufferSize is the maximum number of messages to buffer in memory.
@@ -40,116 +33,93 @@ type Queue struct {
 	// It should be larger than the number of concurrent consumers.
 	BufferSize int
 
-	// Logger is the target for log messages from the queue.
-	// If it is nil, logging.DefaultLogger is used.
-	Logger logging.Logger
-
-	// A "tracked" message is that is being managed by this Queue. All tracked
-	// messages are already persisted in the queue store.
+	// A "tracked" message is a message that is being managed by this Queue. All
+	// tracked messages are already persisted in the queue store.
 	//
 	// The tracked messages are always those with the highest-priority, that is,
 	// those that are scheduled to be handled the soonest.
 	//
-	// Every tracked message is either being handled now (within a Request), or
-	// it's in the "pending" queue.
+	// Every tracked message has either been obtained via Pop(), or it's still
+	// in the "pending" queue.
 	tracked    map[string]struct{} // key == message ID
-	pending    pdeque.Deque        // priority queue of messages without active requests
-	exhaustive uint32              // atomic tri-bool, see exhaustiveXXX consts.
+	pending    pdeque.Deque        // priority queue of messages that haven't been popped
+	exhaustive bool                // true if all queued messages are in memory
 
-	once sync.Once
-	done chan struct{} // closed when Run() exits
-	in   chan *elem    // delivers elements to Run() for tracking
-	out  chan *elem    // delivers elements to Pop() for handling
+	once    sync.Once
+	done    chan struct{}  // closed when Run() exits
+	add     chan []Message // messages to start tracking
+	requeue chan Message   // popped messages that need to return to the queue
+	remove  chan Message   // popped messages that were removed from the queue
+	pop     chan Message   // delivers messages to consumers
 }
 
-const (
-	// exhaustiveUnknown means that there may or may not be persisted messages
-	// that are untracked.
-	exhaustiveUnknown uint32 = iota
-
-	// exhaustiveYes means that all persisted messages are tracked.
-	exhaustiveYes
-
-	// exhaustiveNo means that there are untracked persisted messages.
-	exhaustiveNo
-)
-
-// elem is a message that is tracked by a Queue.
+// elem is a message on the pending queue.
 //
 // It implements the pdeque.Elem interface.
 type elem struct {
-	parcel  *parcel.Parcel
-	item    *queuestore.Item
-	tracked bool // true once elem is actually in the tracked list
+	Message
 }
 
-func (e *elem) Less(v pdeque.Elem) bool {
-	return e.item.NextAttemptAt.Before(
-		v.(*elem).item.NextAttemptAt,
+func (e elem) Less(v pdeque.Elem) bool {
+	return e.Item.NextAttemptAt.Before(
+		v.(elem).Item.NextAttemptAt,
 	)
 }
 
-// Pop returns a request for the message popped from the front of the queue.
+// Pop returns the message at the front of the queue.
 //
 // It blocks until a message is ready to be handled or ctx is canceled.
-func (q *Queue) Pop(ctx context.Context) (*Request, error) {
+//
+// Once the message has been handled it must either be returned to the pending
+// queue, or removed entirely by calling q.Requeue() or q.Remove(),
+// respectively.
+func (q *Queue) Pop(ctx context.Context) (Message, error) {
 	q.init()
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
-	case e := <-q.out:
-		return &Request{
-			queue: q,
-			elem:  e,
-		}, nil
+		return Message{}, ctx.Err()
+	case m := <-q.pop:
+		return m, nil
 	}
 }
 
-// Track begins tracking a message that has been persisted to the queue store.
-func (q *Queue) Track(
-	ctx context.Context,
-	p *parcel.Parcel,
-	i *queuestore.Item,
-) error {
-	if i.Revision == 0 {
-		panic("message must be persisted")
-	}
-
-	e := &elem{
-		parcel: p,
-		item:   i,
-	}
-
+// Add begins tracking messages that have already been persisted.
+func (q *Queue) Add(messages []Message) {
 	q.init()
 
-	// Now that we've persisted the message, we need to start tracking it.
 	select {
-	case <-ctx.Done():
-		// We were canceled before we could hand off the element for tracking.
-		// Set the exhaustive state to NO so that Run() knows to try loading
-		// messages from the store again.
-		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
-		logging.Debug(q.Logger, "%s requested tracking, but canceled or timed-out (exhaustive: no)", e.item.ID())
-		return ctx.Err()
-
-	case q.in <- e:
-		logging.Debug(q.Logger, "%s requested tracking successfully", e.item.ID())
-
+	case q.add <- messages:
+		return // keep to see coverage
 	case <-q.done:
-		// Run() has stopped, so nothing will be tracked, but the message has
-		// been persisted so from the perspective of the caller the message has
-		// been queued successfully.
-		logging.Debug(q.Logger, "%s requested tracking, but the queue is not running", e.item.ID())
+		return // keep to see coverage
 	}
+}
 
-	return nil
+// Requeue returns a popped message to the queue.
+func (q *Queue) Requeue(m Message) {
+	select {
+	case q.requeue <- m:
+		return // keep to see coverage
+	case <-q.done:
+		return // keep to see coverage
+	}
+}
+
+// Remove stops tracking a popped message.
+func (q *Queue) Remove(m Message) {
+	select {
+	case q.remove <- m:
+		return // keep to see coverage
+	case <-q.done:
+		return // keep to see coverage
+	}
 }
 
 // Run starts the queue.
 //
 // It coordinates the tracking of messages that are loaded from the queue store,
-// or manually added to the queue by Track().
+// or manually added to the queue by Add().
 func (q *Queue) Run(ctx context.Context) error {
 	q.init()
 	defer close(q.done)
@@ -163,20 +133,20 @@ func (q *Queue) Run(ctx context.Context) error {
 
 // peek returns the element at the front of the queue, loading messages from the
 // store if none are currently tracked.
-func (q *Queue) peek(ctx context.Context) (*elem, bool, error) {
+func (q *Queue) peek(ctx context.Context) (Message, bool, error) {
 	if x, ok := q.pending.PeekFront(); ok {
-		return x.(*elem), true, nil
+		return x.(elem).Message, true, nil
 	}
 
 	if err := q.load(ctx); err != nil {
-		return nil, false, err
+		return Message{}, false, err
 	}
 
 	if x, ok := q.pending.PeekFront(); ok {
-		return x.(*elem), true, nil
+		return x.(elem).Message, true, nil
 	}
 
-	return nil, false, nil
+	return Message{}, false, nil
 }
 
 // tick performs one "step" of Run().
@@ -185,26 +155,27 @@ func (q *Queue) tick(ctx context.Context) error {
 		// Setup channel variables that we only populate if we want to use
 		// them. Otherwise we leave them nil, causing them to block forever,
 		// having no effect on the select below.
-		out  chan<- *elem
+		pop  chan<- Message
 		wait <-chan time.Time
 	)
 
-	e, ok, err := q.peek(ctx)
+	m, ok, err := q.peek(ctx)
 	if err != nil {
 		return err
 	}
 
 	if ok {
-		d := time.Until(e.item.NextAttemptAt)
+		// There is a message at the head of the queue.
+		d := time.Until(m.Item.NextAttemptAt)
 
 		if d <= 0 {
-			out = q.out
-			logging.Debug(q.Logger, "%s is ready to be handled immediately", e.item.ID())
+			// The message is ready to be handled now.
+			pop = q.pop
 		} else {
+			// The message is not ready to be handled yet.
 			timer := time.NewTimer(d)
 			defer timer.Stop()
 			wait = timer.C
-			logging.Debug(q.Logger, "%s will not be ready for another %s", e.item.ID(), d)
 		}
 	}
 
@@ -214,17 +185,38 @@ func (q *Queue) tick(ctx context.Context) error {
 			return ctx.Err()
 
 		case <-wait:
-			logging.Debug(q.Logger, "%s is now ready to be handled", e.item.ID())
-			out = q.out
+			// The message has become ready to handle.
+			pop = q.pop
 			wait = nil
 
-		case out <- e:
+		case pop <- m:
+			// The message was delivered to a consumer.
 			q.pending.PopFront()
-			logging.Debug(q.Logger, "%s was sent to a consumer", e.item.ID())
 			return nil
 
-		case e := <-q.in:
-			if q.update(e) {
+		case messages := <-q.add:
+			// New messages have been added to the queue.
+			if q.track(messages) {
+				// And one of them has become the new head, return to allow a
+				// new call to peek().
+				return nil
+			}
+
+		case m := <-q.requeue:
+			// A popped message has been returned to the queue.
+			if q.pending.Push(elem{m}) {
+				// And it's become the head of the queue, return to allow a new
+				// call to peek().
+				return nil
+			}
+
+		case m := <-q.remove:
+			// A popped message has been removed from the queue.
+			delete(q.tracked, m.ID())
+
+			if !q.exhaustive && len(q.tracked) == 0 {
+				// We have nothing left in memory, and we suspect there is more
+				// to load, return to allow a new call to peek().
 				return nil
 			}
 		}
@@ -237,23 +229,8 @@ func (q *Queue) load(ctx context.Context) error {
 		// We can only load the highest-priority messages from the data-store,
 		// so if there's anything already tracked that is exactly what we would
 		// be loading.
-		logging.Debug(q.Logger, "not loading messages, %d message(s) already tracked", n)
 		return nil
 	}
-
-	if atomic.LoadUint32(&q.exhaustive) == exhaustiveYes {
-		// All messages are known to be tracked. The pending queue may be empty
-		// right now, but that just means that there are active requests for
-		// every message still on the queue or that the queue is truly empty.
-		logging.DebugString(q.Logger, "not loading messages (exhaustive: yes)")
-		return nil
-	}
-
-	// We set the status to UNKNOWN while we are loading. If a call to Track()
-	// comes along and sets it to NO in the mean-time, we know not to set it
-	// back to YES after we finish loading as we may or may not have that
-	// particular message in the result of the load.
-	atomic.StoreUint32(&q.exhaustive, exhaustiveUnknown)
 
 	limit := q.BufferSize
 	if limit <= 0 {
@@ -261,110 +238,84 @@ func (q *Queue) load(ctx context.Context) error {
 	}
 
 	// Load messages up to our configured limit.
-	logging.Debug(q.Logger, "loading up to %d message(s)", limit)
-	items, err := q.DataStore.QueueStoreRepository().LoadQueueMessages(ctx, limit)
+	items, err := q.Repository.LoadQueueMessages(ctx, limit)
 	if err != nil {
 		return err
 	}
 
-	n := len(items)
-
-	if n < limit && atomic.CompareAndSwapUint32(
-		&q.exhaustive,
-		exhaustiveUnknown,
-		exhaustiveYes,
-	) {
+	if len(items) < limit {
 		// We didn't get as many messages as we requested, so we know we have
 		// everything in memory.
-		//
-		// Only set the exhaustive status back to YES if a Track() call did not
-		// set it to NO while we were loading.
-		logging.Debug(q.Logger, "loaded %d message(s) from store (exhaustive: yes)", n)
-	} else {
-		logging.Debug(q.Logger, "loaded %d message(s) from store (exhaustive: unknown)", n)
+		q.exhaustive = true
 	}
 
-	for _, i := range items {
-		q.update(&elem{item: i})
+	messages := make([]Message, len(items))
+	for i, item := range items {
+		p, err := parcel.FromEnvelope(q.Marshaler, item.Envelope)
+		if err != nil {
+			return err
+		}
+
+		messages[i] = Message{
+			Parcel: p,
+			Item:   item,
+		}
 	}
+
+	q.track(messages)
 
 	return nil
 }
 
-// update updates the tracked list and pending queue to reflect changes to e.
+// track starts tracking the given messages.
 //
-// It returns true if a new peek() should be performed.
-func (q *Queue) update(e *elem) bool {
-	limit := q.BufferSize
+// It returns true if any of the given messages becomes the head of the queue.
+func (q *Queue) track(messages []Message) bool {
+	head := false
+	size := len(q.tracked)
 
+	// Start tracking the messages.
+	for _, m := range messages {
+		q.tracked[m.ID()] = struct{}{}
+
+		if size == len(q.tracked) {
+			// The message was already in the tracked list, which could occur if
+			// it was persisted around the same time that we loaded from the
+			// store, such that the order of operations was:
+			//
+			// - message persisted
+			// - messages loaded
+			// - Add() called
+			continue
+		}
+
+		if q.pending.Push(elem{m}) {
+			// This message became the new head of the queue.
+			head = true
+		}
+
+		size++
+	}
+
+	limit := q.BufferSize
 	if limit <= 0 {
 		limit = DefaultBufferSize
 	}
 
-	if e.item.Revision == 0 {
-		// The message has been handled successfully and removed from the queue
-		// store, stop tracking it.
-		delete(q.tracked, e.item.ID())
-		logging.Debug(q.Logger, "%s is no longer tracked, handled successfully (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
-		return len(q.tracked) == 0
-	}
+	if size > limit {
+		// The number of tracked messages exceeds the limit. We need to start
+		// dropping tracked messages until the count falls below the limit
+		// again.
+		q.exhaustive = false
 
-	if e.tracked {
-		// The message is already tracked, just put it back in the pending
-		// queue to be re-attempted.
-		logging.Debug(q.Logger, "%s has been returned to the pending queue (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
-		return q.pending.Push(e)
-	}
-
-	// Start tracking the message.
-	before := len(q.tracked)
-	q.tracked[e.item.ID()] = struct{}{}
-	after := len(q.tracked)
-
-	if before == after {
-		// The message was already be in the tracked list, which can occur if it
-		// was persisted just before we loaded form the store so we see the
-		// message both in the load result and on the q.in channel.
-		logging.Debug(q.Logger, "%s is already tracked (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
-		return false
-	}
-
-	e.tracked = true
-	head := q.pending.Push(e)
-
-	if after > limit {
-		// We're tracking more messages than the limit allows, drop the
-		// lowest-priority element.
-		drop, _ := q.pending.PopBack()
-		delete(q.tracked, drop.(*elem).item.ID())
-
-		// There are now persisted messages that are not in the buffer.
-		atomic.StoreUint32(&q.exhaustive, exhaustiveNo)
-
-		if drop == e {
-			// This is the message we just pushed. That would mean that all
-			// buffered messages are in active requests, which should not occur
-			// if BufferSize is larger than the number of consumers as suggested
-			// by its documentation.
-			logging.Debug(q.Logger, "%s will not be tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
-			return false
+		for size > limit {
+			e, _ := q.pending.PopBack()
+			delete(q.tracked, e.(elem).ID())
+			size--
 		}
-
-		logging.Debug(q.Logger, "%s is no longer tracked, buffer size limit reached (exhaustive: no, pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 	}
 
-	logging.Debug(q.Logger, "%s is now tracked (pending: %d, tracked: %d/%d)", e.item.ID(), q.pending.Len(), len(q.tracked), limit)
 	return head
-}
-
-// notify informs the queue that the state of e has changed.
-func (q *Queue) notify(e *elem) {
-	select {
-	case q.in <- e:
-		return // keep to see coverage
-	case <-q.done:
-		return // keep to see coverage
-	}
 }
 
 // init initializes the queue's internal state.
@@ -378,11 +329,10 @@ func (q *Queue) init() {
 		// Allocate capcity for our limit +1 element used to detect overflow.
 		q.tracked = make(map[string]struct{}, limit+1)
 
-		// Buffered to avoid blocking in Track(), doesn't strictly *need* to be
-		// the same size as limit.
-		q.in = make(chan *elem, limit)
-
 		q.done = make(chan struct{})
-		q.out = make(chan *elem)
+		q.add = make(chan []Message)
+		q.requeue = make(chan Message)
+		q.remove = make(chan Message)
+		q.pop = make(chan Message)
 	})
 }

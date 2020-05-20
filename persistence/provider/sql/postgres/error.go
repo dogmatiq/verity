@@ -161,15 +161,34 @@ func (d errorConverter) SelectNextEventOffset(
 	return next, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) SelectEvents(
+func (d errorConverter) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
 	q eventstore.Query,
 	f int64,
 ) (*sql.Rows, error) {
-	rows, err := d.d.SelectEvents(ctx, db, ak, q, f)
+	rows, err := d.d.SelectEventsByType(ctx, db, ak, q, f)
 	return rows, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) SelectEventsBySource(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+	o uint64,
+) (*sql.Rows, error) {
+	rows, err := d.d.SelectEventsBySource(ctx, db, ak, hk, id, o)
+	return rows, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) SelectOffsetByMessageID(
+	ctx context.Context,
+	db *sql.DB,
+	id string,
+) (uint64, bool, error) {
+	o, ok, err := d.d.SelectOffsetByMessageID(ctx, db, id)
+	return o, ok, convertContextErrors(ctx, err)
 }
 
 func (d errorConverter) ScanEvent(

@@ -10,7 +10,14 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// Loader loads aggregate instances from persistence.
+// Instance is an in-memory representation of the aggregate instance, as stored
+// in the cache.
+type Instance struct {
+	MetaData aggregatestore.MetaData
+	Root     dogma.AggregateRoot
+}
+
+// Loader loads aggregate instances from their historical events.
 type Loader struct {
 	// AggregateStore is the repository used to load an aggregate instance's
 	// revisions and snapshots.
@@ -29,43 +36,41 @@ type Loader struct {
 func (l *Loader) Load(
 	ctx context.Context,
 	hk, id string,
-	root dogma.AggregateRoot,
-) (*aggregatestore.MetaData, error) {
+	base dogma.AggregateRoot,
+) (*Instance, error) {
 	md, err := l.AggregateStore.LoadMetaData(ctx, hk, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if root == dogma.StatelessAggregateRoot {
-		return md, nil
+	inst := &Instance{*md, base}
+
+	if base == dogma.StatelessAggregateRoot {
+		return inst, nil
 	}
 
-	if !md.InstanceExists() {
-		return md, nil
+	if !md.InstanceExists {
+		return inst, nil
 	}
 
-	if err := l.queryEvents(ctx, md, root); err != nil {
+	if err := l.applyEvents(ctx, md, base); err != nil {
 		return nil, err
 	}
 
-	return md, nil
+	return inst, nil
 }
 
-func (l *Loader) queryEvents(
+func (l *Loader) applyEvents(
 	ctx context.Context,
 	md *aggregatestore.MetaData,
-	root dogma.AggregateRoot,
+	base dogma.AggregateRoot,
 ) error {
-	// TODO: https://github.com/dogmatiq/dogma/issues/113
-	// How do we best configure the filter to deal with events that the
-	// aggregate once produced, but no longer does?
-	q := eventstore.Query{
-		MinOffset:           md.BeginOffset,
-		AggregateHandlerKey: md.HandlerKey,
-		AggregateInstanceID: md.InstanceID,
-	}
-
-	res, err := l.EventStore.QueryEvents(ctx, q)
+	res, err := l.EventStore.LoadEventsBySource(
+		ctx,
+		md.HandlerKey,
+		md.InstanceID,
+		md.LastDestroyedBy,
+	)
 	if err != nil {
 		return err
 	}
@@ -81,6 +86,6 @@ func (l *Loader) queryEvents(
 			return err
 		}
 
-		root.ApplyEvent(p.Message)
+		base.ApplyEvent(p.Message)
 	}
 }
