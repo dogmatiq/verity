@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -76,7 +75,7 @@ func loadEventsBySource(
 // key.
 func loadOffset(
 	ctx context.Context,
-	repository offsetstore.Repository,
+	repository persistence.OffsetRepository,
 	ak string,
 ) uint64 {
 	o, err := repository.LoadOffset(ctx, ak)

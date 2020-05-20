@@ -199,7 +199,7 @@ func (d errorConverter) ScanEvent(
 }
 
 //
-// offsetstore
+// offset
 //
 
 func (d errorConverter) LoadOffset(

@@ -17,7 +17,7 @@ func (ds *dataStore) LoadOffset(
 	return ds.db.offset.offsets[ak], nil
 }
 
-// offsetDatabase contains data that is committed to the offset store.
+// offsetDatabase contains event stream offset related data.
 type offsetDatabase struct {
 	offsets map[string]uint64
 }

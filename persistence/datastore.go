@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"go.uber.org/multierr"
 )
@@ -20,12 +19,10 @@ var ErrDataStoreClosed = errors.New("data store is closed")
 type DataStore interface {
 	Persister
 	AggregateRepository
-
 	// EventStoreRepository returns the application's event store repository.
 	EventStoreRepository() eventstore.Repository
 
-	// OffsetStoreRepository returns the application's offset store repository.
-	OffsetStoreRepository() offsetstore.Repository
+	OffsetRepository
 
 	// QueueStoreRepository returns the application's queue store repository.
 	QueueStoreRepository() queuestore.Repository

@@ -48,21 +48,6 @@ type RemoveQueueItem struct {
 	Item queuestore.Item
 }
 
-// SaveOffset is a persistence operation that persists the offset of the next
-// event to be consumed from a specific application.
-type SaveOffset struct {
-	// ApplicationKey is the identity key of the source application.
-	ApplicationKey string
-
-	// CurrentOffset must be offset currently associated with this application,
-	// otherwise an optimistic concurrency conflict occurs and the entire batch
-	// of operations is rejected.
-	CurrentOffset uint64
-
-	// NextOffset is the next offset to consume from this application.
-	NextOffset uint64
-}
-
 // OperationVisitor visits persistence operations.
 type OperationVisitor interface {
 	VisitSaveAggregateMetaData(context.Context, SaveAggregateMetaData) error

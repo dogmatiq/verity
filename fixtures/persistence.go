@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -39,8 +38,8 @@ type DataStoreStub struct {
 	persistence.DataStore
 
 	LoadAggregateMetaDataFunc func(context.Context, string, string) (*persistence.AggregateMetaData, error)
-	OffsetStoreRepositoryFunc func() offsetstore.Repository
 	EventStoreRepositoryFunc  func() eventstore.Repository
+	LoadOffsetFunc            func(context.Context, string) (uint64, error)
 	QueueStoreRepositoryFunc  func() queuestore.Repository
 	PersistFunc               func(context.Context, persistence.Batch) (persistence.Result, error)
 	CloseFunc                 func() error
@@ -96,23 +95,20 @@ func (ds *DataStoreStub) EventStoreRepository() eventstore.Repository {
 	return nil
 }
 
-// OffsetStoreRepository returns the application's offset store repository.
-func (ds *DataStoreStub) OffsetStoreRepository() offsetstore.Repository {
-	if ds.OffsetStoreRepositoryFunc != nil {
-		return ds.OffsetStoreRepositoryFunc()
+// LoadOffset loads the offset associated with a specific application.
+func (ds *DataStoreStub) LoadOffset(
+	ctx context.Context,
+	ak string,
+) (uint64, error) {
+	if ds.LoadOffsetFunc != nil {
+		return ds.LoadOffsetFunc(ctx, ak)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.OffsetStoreRepository()
-
-		if r != nil {
-			r = &OffsetStoreRepositoryStub{Repository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadOffset(ctx, ak)
 	}
 
-	return nil
+	return 0, nil
 }
 
 // QueueStoreRepository returns the application's queue store repository.

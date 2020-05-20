@@ -6,7 +6,6 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -26,11 +25,6 @@ func newDataStore(db *database) *dataStore {
 
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return ds
-}
-
-// OffsetStoreRepository returns the application's event store repository.
-func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
 	return ds
 }
 

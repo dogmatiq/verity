@@ -7,9 +7,9 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// offsetStoreDriver is the subset of the Driver interface that is concerned
-// with the offsetstore subsystem.
-type offsetStoreDriver interface {
+// OffsetDriver is the subset of the Driver interface that is concerned
+// with persisting event stream offsets.
+type OffsetDriver interface {
 	// LoadOffset loads the last offset associated with the given source
 	// application key sk. ak is the 'owner' application key.
 	//

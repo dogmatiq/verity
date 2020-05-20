@@ -4,24 +4,21 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
 
 // declareOffsetRepositoryTests declares a functional test-suite for a specific
-// offsetstore.Repository implementation.
+// persistence.OffsetRepository implementation.
 func declareOffsetRepositoryTests(tc *TestContext) {
-	ginkgo.Describe("type offsetstore.Repository", func() {
+	ginkgo.Describe("type persistence.OffsetRepository", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository offsetstore.Repository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.OffsetStoreRepository()
 		})
 
 		ginkgo.AfterEach(func() {
@@ -31,7 +28,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 		ginkgo.Describe("func LoadOffset()", func() {
 			ginkgo.When("application has no previous offsets associated", func() {
 				ginkgo.It("loads the initial offset as zero", func() {
-					actual, err := repository.LoadOffset(
+					actual, err := dataStore.LoadOffset(
 						tc.Context,
 						"<source-app-key>",
 					)
@@ -52,7 +49,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 						},
 					)
 
-					actual, err := repository.LoadOffset(
+					actual, err := dataStore.LoadOffset(
 						tc.Context,
 						"<source-app-key>",
 					)
@@ -79,7 +76,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				actual, err := repository.LoadOffset(ctx, "<source-app-key>")
+				actual, err := dataStore.LoadOffset(ctx, "<source-app-key>")
 				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
 				} else {

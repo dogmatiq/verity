@@ -21,7 +21,7 @@ func (driver) LoadOffset(
 		ctx,
 		`SELECT
 			next_offset
-		FROM offset_store
+		FROM stream_offset
 		WHERE app_key = ?
 		AND source_app_key = ?`,
 		ak,
@@ -50,7 +50,7 @@ func (driver) InsertOffset(
 	return insertIgnore(
 		ctx,
 		tx,
-		`INSERT INTO offset_store SET
+		`INSERT INTO stream_offset SET
 			app_key = ?,
 			source_app_key = ?,
 			next_offset = ?`,
@@ -76,7 +76,7 @@ func (driver) UpdateOffset(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE offset_store SET
+		`UPDATE stream_offset SET
 			next_offset = ?
 		WHERE app_key = ?
 		AND source_app_key = ?
