@@ -4,54 +4,42 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/infix/internal/refactor251"
+	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"go.etcd.io/bbolt"
 )
 
 // dataStore is an implementation of persistence.DataStore for BoltDB.
 type dataStore struct {
-	db     *database
+	db     *bbolt.DB
 	appKey []byte
 
 	m       sync.RWMutex
 	release func(string) error
 }
 
-// newDataStore returns a new data-store.
-func newDataStore(
-	db *database,
-	k string,
-	r func(string) error,
-) *dataStore {
-	return &dataStore{
-		db:      db,
-		appKey:  []byte(k),
-		release: r,
-	}
-}
-
 // AggregateStoreRepository returns application's aggregate store repository.
 func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
-	return &aggregateStoreRepository{ds.db, ds.appKey}
+	return ds
 }
 
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return &eventStoreRepository{ds.db, ds.appKey}
+	return ds
 }
 
 // OffsetStoreRepository returns the application's event store repository.
 func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
-	return &offsetStoreRepository{ds.db, ds.appKey}
+	return ds
 }
 
 // QueueStoreRepository returns the application's queue store repository.
 func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
-	return &queueStoreRepository{ds.db, ds.appKey}
+	return ds
 }
 
 // Persist commits a batch of operations atomically.
@@ -60,40 +48,44 @@ func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
 // the entire batch is aborted and a ConflictError is returned.
 func (ds *dataStore) Persist(
 	ctx context.Context,
-	batch persistence.Batch,
-) (persistence.Result, error) {
-	batch.MustValidate()
+	b persistence.Batch,
+) (_ persistence.Result, err error) {
+	b.MustValidate()
 
-	if err := ds.checkOpen(); err != nil {
-		return persistence.Result{}, err
+	defer bboltx.Recover(&err)
+
+	ds.m.RLock()
+	defer ds.m.RUnlock()
+
+	if ds.release == nil {
+		return persistence.Result{}, persistence.ErrDataStoreClosed
 	}
 
-	tx := &transaction{
-		ds:     ds,
-		appKey: ds.appKey,
-	}
-	defer tx.Rollback()
+	c := &committer{}
 
-	if err := refactor251.PersistTx(ctx, tx, batch); err != nil {
-		return persistence.Result{}, err
-	}
+	bboltx.Update(
+		ds.db,
+		func(tx *bbolt.Tx) {
+			c.root = bboltx.CreateBucketIfNotExists(tx, ds.appKey)
+			bboltx.Must(b.AcceptVisitor(ctx, c))
+		},
+	)
 
-	return tx.Commit(ctx)
+	return c.result, nil
 }
 
 // Close closes the data store.
 //
-// Closing a data-store immediately prevents new transactions from being
-// started. Specifically, it causes Begin() to return ErrDataStoreClosed.
+// Closing a data-store causes any future calls to Persist() to return
+// ErrDataStoreClosed.
 //
-// The behavior of any other read or write operation on a closed data-store
-// is implementation-defined.
+// The behavior read operations on a closed data-store is
+// implementation-defined.
 //
-// It is generally expected that all transactions have ended by the time the
-// data-store is closed.
-//
-// Close() may block until any in-flight transactions are ended, or may
-// prevent any such transactions from being committed.
+// In general use it is expected that all pending calls to Persist() will
+// have finished before a data-store is closed. Close() may block until any
+// in-flight calls to Persist() return, or may prevent any such calls from
+// succeeding.
 func (ds *dataStore) Close() error {
 	ds.m.Lock()
 	defer ds.m.Unlock()
@@ -103,19 +95,18 @@ func (ds *dataStore) Close() error {
 	}
 
 	r := ds.release
+	ds.db = nil
 	ds.release = nil
 
 	return r(string(ds.appKey))
 }
 
-// checkOpen returns an error if the data-store is closed.
-func (ds *dataStore) checkOpen() error {
-	ds.m.RLock()
-	defer ds.m.RUnlock()
-
-	if ds.release == nil {
-		return persistence.ErrDataStoreClosed
-	}
-
-	return nil
+// committer is an implementation of persitence.OperationVisitor that
+// applies operations to the database.
+//
+// It is expected that the operations have already been validated using
+// validator.
+type committer struct {
+	root   *bbolt.Bucket
+	result persistence.Result
 }

@@ -77,9 +77,10 @@ func (p *FileProvider) Open(ctx context.Context, k string) (persistence.DataStor
 
 // provider is the common implementation of Provider and FileProvider.
 type provider struct {
-	m    sync.Mutex
-	db   *database
-	apps map[string]struct{}
+	m     sync.Mutex
+	db    *bbolt.DB
+	close func(db *bbolt.DB) error
+	apps  map[string]struct{}
 }
 
 // open returns a data-store for a specific application.
@@ -98,7 +99,8 @@ func (p *provider) open(
 			return nil, err
 		}
 
-		p.db = newDatabase(db, close)
+		p.db = db
+		p.close = close
 	}
 
 	if p.apps == nil {
@@ -109,11 +111,11 @@ func (p *provider) open(
 
 	p.apps[k] = struct{}{}
 
-	return newDataStore(
-		p.db,
-		k,
-		p.release,
-	), nil
+	return &dataStore{
+		db:      p.db,
+		appKey:  []byte(k),
+		release: p.release,
+	}, nil
 }
 
 // release marks a previously-opened data-store as closed, releasing the lock on
@@ -129,7 +131,10 @@ func (p *provider) release(k string) error {
 	}
 
 	db := p.db
-	p.db = nil
+	close := p.close
 
-	return db.Close()
+	p.db = nil
+	p.close = nil
+
+	return close(db)
 }

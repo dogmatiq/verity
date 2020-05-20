@@ -1,24 +1,27 @@
 package bboltx
 
-import (
-	"go.etcd.io/bbolt"
-)
+import "go.etcd.io/bbolt"
 
-// BeginRead starts a read-only transaction.
-func BeginRead(db *bbolt.DB) *bbolt.Tx {
-	tx, err := db.Begin(false)
-	Must(err)
-	return tx
+// View runs a read-only transaction.
+func View(db *bbolt.DB, fn func(tx *bbolt.Tx)) {
+	Must(
+		db.View(
+			func(tx *bbolt.Tx) error {
+				fn(tx)
+				return nil
+			},
+		),
+	)
 }
 
-// BeginWrite starts a read-only transaction.
-func BeginWrite(db *bbolt.DB) *bbolt.Tx {
-	tx, err := db.Begin(true)
-	Must(err)
-	return tx
-}
-
-// Commit commits the given transaction.
-func Commit(tx *bbolt.Tx) {
-	Must(tx.Commit())
+// Update runs a write transaction.
+func Update(db *bbolt.DB, fn func(tx *bbolt.Tx)) {
+	Must(
+		db.Update(
+			func(tx *bbolt.Tx) error {
+				fn(tx)
+				return nil
+			},
+		),
+	)
 }
