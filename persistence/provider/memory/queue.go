@@ -8,27 +8,21 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
-// queueRepository is an implementation of queuestore.Repository that
-// stores queued messages in memory.
-type queueRepository struct {
-	db *database
-}
-
 // LoadQueueMessages loads the next n messages from the queue.
-func (r *queueRepository) LoadQueueMessages(
+func (ds *dataStore) LoadQueueMessages(
 	ctx context.Context,
 	n int,
 ) ([]*queuestore.Item, error) {
-	r.db.mutex.RLock()
-	defer r.db.mutex.RUnlock()
+	ds.db.mutex.RLock()
+	defer ds.db.mutex.RUnlock()
 
-	max := len(r.db.queue.order)
+	max := len(ds.db.queue.order)
 	if n > max {
 		n = max
 	}
 
 	items := make([]*queuestore.Item, n)
-	for i, it := range r.db.queue.order[:n] {
+	for i, it := range ds.db.queue.order[:n] {
 		items[i] = cloneQueueItem(it)
 	}
 

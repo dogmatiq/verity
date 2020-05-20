@@ -27,22 +27,22 @@ func newDataStore(db *database) *dataStore {
 
 // AggregateStoreRepository returns application's aggregate store repository.
 func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
-	return &aggregateRepository{ds.db}
+	return ds
 }
 
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return &eventRepository{ds.db}
+	return ds
 }
 
 // OffsetStoreRepository returns the application's event store repository.
 func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
-	return &offsetRepository{ds.db}
+	return ds
 }
 
 // QueueStoreRepository returns the application's queue store repository.
 func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
-	return &queueRepository{ds.db}
+	return ds
 }
 
 // Persist commits a batch of operations atomically.

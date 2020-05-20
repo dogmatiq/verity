@@ -6,22 +6,15 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// offsetRepository is an implementation of offsetstore.Repository that
-// stores the event stream offset associated with a specific application in
-// memory.
-type offsetRepository struct {
-	db *database
-}
-
 // LoadOffset loads the offset associated with a specific application.
-func (r *offsetRepository) LoadOffset(
+func (ds *dataStore) LoadOffset(
 	ctx context.Context,
 	ak string,
 ) (uint64, error) {
-	r.db.mutex.RLock()
-	defer r.db.mutex.RUnlock()
+	ds.db.mutex.RLock()
+	defer ds.db.mutex.RUnlock()
 
-	return r.db.offset.offsets[ak], nil
+	return ds.db.offset.offsets[ak], nil
 }
 
 // offsetDatabase contains data that is committed to the offset store.

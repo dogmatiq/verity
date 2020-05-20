@@ -7,23 +7,17 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
-// aggregateRepository is an implementation of aggregatestore.Repository
-// that stores aggregate state in memory.
-type aggregateRepository struct {
-	db *database
-}
-
 // LoadMetaData loads the meta-data for an aggregate instance.
 //
 // ak is the aggregate handler's identity key, id is the instance ID.
-func (r *aggregateRepository) LoadMetaData(
+func (ds *dataStore) LoadMetaData(
 	ctx context.Context,
 	hk, id string,
 ) (*aggregatestore.MetaData, error) {
-	r.db.mutex.RLock()
-	defer r.db.mutex.RUnlock()
+	ds.db.mutex.RLock()
+	defer ds.db.mutex.RUnlock()
 
-	if md, ok := r.db.aggregate.metadata[hk][id]; ok {
+	if md, ok := ds.db.aggregate.metadata[hk][id]; ok {
 		return &md, nil
 	}
 
