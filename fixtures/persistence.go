@@ -11,6 +11,30 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
+// AggregateRepositoryStub is a test implementation of the
+// persistence.AggregateRepository interface.
+type AggregateRepositoryStub struct {
+	aggregatestore.Repository
+
+	LoadAggregateMetaDataFunc func(context.Context, string, string) (*aggregatestore.MetaData, error)
+}
+
+// LoadAggregateMetaData loads the meta-data for an aggregate instance.
+func (r *AggregateRepositoryStub) LoadAggregateMetaData(
+	ctx context.Context,
+	hk, id string,
+) (*aggregatestore.MetaData, error) {
+	if r.LoadAggregateMetaDataFunc != nil {
+		return r.LoadAggregateMetaDataFunc(ctx, hk, id)
+	}
+
+	if r.Repository != nil {
+		return r.Repository.LoadAggregateMetaData(ctx, hk, id)
+	}
+
+	return nil, nil
+}
+
 // ProviderStub is a test implementation of the persistence.Provider interface.
 type ProviderStub struct {
 	persistence.Provider
@@ -73,7 +97,7 @@ func (ds *DataStoreStub) AggregateStoreRepository() aggregatestore.Repository {
 		r := ds.DataStore.AggregateStoreRepository()
 
 		if r != nil {
-			r = &AggregateStoreRepositoryStub{Repository: r}
+			r = &AggregateRepositoryStub{Repository: r}
 		}
 
 		return r

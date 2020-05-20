@@ -38,7 +38,7 @@ func (l *Loader) Load(
 	hk, id string,
 	base dogma.AggregateRoot,
 ) (*Instance, error) {
-	md, err := l.AggregateStore.LoadMetaData(ctx, hk, id)
+	md, err := l.AggregateStore.LoadAggregateMetaData(ctx, hk, id)
 	if err != nil {
 		return nil, err
 	}

@@ -7,10 +7,10 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
-// LoadMetaData loads the meta-data for an aggregate instance.
+// LoadAggregateMetaData loads the meta-data for an aggregate instance.
 //
 // ak is the aggregate handler's identity key, id is the instance ID.
-func (ds *dataStore) LoadMetaData(
+func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
 ) (*aggregatestore.MetaData, error) {

@@ -28,7 +28,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 			tearDown()
 		})
 
-		ginkgo.Describe("func LoadMetaData()", func() {
+		ginkgo.Describe("func LoadAggregateMetaData()", func() {
 			ginkgo.It("returns meta-data with default values if the instance does not exist", func() {
 				md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 				gomega.Expect(md).To(gomega.Equal(
@@ -82,7 +82,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				md, err := repository.LoadMetaData(ctx, "<handler-key>", "<instance>")
+				md, err := repository.LoadAggregateMetaData(ctx, "<handler-key>", "<instance>")
 				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
 				} else {

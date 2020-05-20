@@ -27,12 +27,13 @@ type AggregateMetaData struct {
 
 // AggregateRepository is an interface for reading aggregate state.
 type AggregateRepository interface {
-	// LoadMetaData loads the meta-data for an aggregate instance.
+	// LoadAggregateMetaData loads the meta-data for an aggregate instance.
 	//
 	// ak is the aggregate handler's identity key, id is the instance ID.
-	//
-	// TODO: rename to `LoadAggregateMetaData`
-	LoadMetaData(ctx context.Context, hk, id string) (*AggregateMetaData, error)
+	LoadAggregateMetaData(
+		ctx context.Context,
+		hk, id string,
+	) (*AggregateMetaData, error)
 }
 
 // SaveAggregateMetaData is a persistence operation that creates or updates

@@ -27,7 +27,7 @@ var _ = Describe("type Adaptor", func() {
 	var (
 		ctx           context.Context
 		cancel        context.CancelFunc
-		aggregateRepo *AggregateStoreRepositoryStub
+		aggregateRepo *AggregateRepositoryStub
 		eventRepo     *EventStoreRepositoryStub
 		upstream      *AggregateMessageHandler
 		packer        *parcel.Packer
@@ -41,8 +41,8 @@ var _ = Describe("type Adaptor", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		aggregateRepo = &AggregateStoreRepositoryStub{
-			LoadMetaDataFunc: func(
+		aggregateRepo = &AggregateRepositoryStub{
+			LoadAggregateMetaDataFunc: func(
 				_ context.Context,
 				hk, id string,
 			) (*aggregatestore.MetaData, error) {
@@ -149,7 +149,7 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("returns an error if the instance can not be loaded", func() {
-			aggregateRepo.LoadMetaDataFunc = func(
+			aggregateRepo.LoadAggregateMetaDataFunc = func(
 				context.Context,
 				string,
 				string,

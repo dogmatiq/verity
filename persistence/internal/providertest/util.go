@@ -18,7 +18,7 @@ func loadAggregateMetaData(
 	r aggregatestore.Repository,
 	hk, id string,
 ) aggregatestore.MetaData {
-	md, err := r.LoadMetaData(ctx, hk, id)
+	md, err := r.LoadAggregateMetaData(ctx, hk, id)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 	return *md
