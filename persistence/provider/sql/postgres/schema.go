@@ -25,7 +25,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 		)`,
 	)
 
-	createAggregateStoreSchema(ctx, db)
+	createAggregateSchema(ctx, db)
 	createEventStoreSchema(ctx, db)
 	createOffsetStoreSchema(ctx, db)
 	createQueueSchema(ctx, db)
@@ -39,9 +39,9 @@ func DropSchema(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
-// createAggregateStoreSchema creates the schema elements required by the
-// aggregate store subsystem.
-func createAggregateStoreSchema(ctx context.Context, db *sql.DB) {
+// createAggregateSchema creates the schema elements required to store
+// aggregates.
+func createAggregateSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,

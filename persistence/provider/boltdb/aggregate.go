@@ -49,7 +49,7 @@ func (ds *dataStore) LoadAggregateMetaData(
 				[]byte(hk),
 				aggregateMetaDataBucketKey,
 			); ok {
-				pb := loadAggregateStoreMetaData(metadata, id)
+				pb := loadAggregateMetaData(metadata, id)
 				md.Revision = pb.GetRevision()
 				md.InstanceExists = pb.GetInstanceExists()
 				md.LastDestroyedBy = pb.GetLastDestroyedBy()
@@ -73,7 +73,7 @@ func (c *committer) VisitSaveAggregateMetaData(
 		aggregateMetaDataBucketKey,
 	)
 
-	existing := loadAggregateStoreMetaData(metadata, op.MetaData.InstanceID)
+	existing := loadAggregateMetaData(metadata, op.MetaData.InstanceID)
 
 	if op.MetaData.Revision != existing.GetRevision() {
 		return persistence.ConflictError{
@@ -100,8 +100,8 @@ func saveAggregateMetaData(b *bbolt.Bucket, md persistence.AggregateMetaData) {
 	bboltx.Put(b, []byte(md.InstanceID), data)
 }
 
-// loadAggregateStoreMetaData returns aggregate meta-data loaded from b.
-func loadAggregateStoreMetaData(b *bbolt.Bucket, id string) *pb.AggregateMetaData {
+// loadAggregateMetaData returns aggregate meta-data loaded from b.
+func loadAggregateMetaData(b *bbolt.Bucket, id string) *pb.AggregateMetaData {
 	data := b.Get([]byte(id))
 	if data == nil {
 		return nil
