@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -15,9 +14,9 @@ import (
 // loadAggregateMetaData loads aggregate meta-data for a specific instance.
 func loadAggregateMetaData(
 	ctx context.Context,
-	r aggregatestore.Repository,
+	r persistence.AggregateRepository,
 	hk, id string,
-) aggregatestore.MetaData {
+) persistence.AggregateMetaData {
 	md, err := r.LoadAggregateMetaData(ctx, hk, id)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 

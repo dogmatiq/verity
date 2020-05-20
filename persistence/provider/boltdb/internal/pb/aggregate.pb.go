@@ -26,7 +26,7 @@ const (
 const _ = proto.ProtoPackageIsVersion4
 
 // AggregateMetaData is a protocol buffers representation of
-// aggregatestore.MetaData.
+// persistence.AggregateMetaData.
 type AggregateMetaData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -10,7 +10,6 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -45,9 +44,9 @@ var _ = Describe("type Loader", func() {
 		}
 
 		loader = &Loader{
-			AggregateStore: aggregateRepo,
-			EventStore:     eventRepo,
-			Marshaler:      Marshaler,
+			AggregateRepo: aggregateRepo,
+			EventStore:    eventRepo,
+			Marshaler:     Marshaler,
 		}
 	})
 
@@ -65,7 +64,7 @@ var _ = Describe("type Loader", func() {
 				context.Context,
 				string,
 				string,
-			) (*aggregatestore.MetaData, error) {
+			) (*persistence.AggregateMetaData, error) {
 				return nil, errors.New("<error>")
 			}
 
@@ -79,7 +78,7 @@ var _ = Describe("type Loader", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
-						MetaData: aggregatestore.MetaData{
+						MetaData: persistence.AggregateMetaData{
 							HandlerKey: "<handler-key>",
 							InstanceID: "<instance>",
 						},
@@ -113,7 +112,7 @@ var _ = Describe("type Loader", func() {
 							Envelope: NewEnvelope("<event-1>", MessageE2),
 						},
 						persistence.SaveAggregateMetaData{
-							MetaData: aggregatestore.MetaData{
+							MetaData: persistence.AggregateMetaData{
 								HandlerKey:     "<handler-key>",
 								InstanceID:     "<instance>",
 								InstanceExists: true,
@@ -129,7 +128,7 @@ var _ = Describe("type Loader", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
-						MetaData: aggregatestore.MetaData{
+						MetaData: persistence.AggregateMetaData{
 							HandlerKey:     "<handler-key>",
 							InstanceID:     "<instance>",
 							Revision:       1,
@@ -189,7 +188,7 @@ var _ = Describe("type Loader", func() {
 						ctx,
 						persistence.Batch{
 							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
+								MetaData: persistence.AggregateMetaData{
 									HandlerKey:      "<handler-key>",
 									InstanceID:      "<instance>",
 									Revision:        1,
@@ -223,7 +222,7 @@ var _ = Describe("type Loader", func() {
 									Envelope: NewEnvelope("<event-2>", MessageE3),
 								},
 								persistence.SaveAggregateMetaData{
-									MetaData: aggregatestore.MetaData{
+									MetaData: persistence.AggregateMetaData{
 										HandlerKey:      "<handler-key>",
 										InstanceID:      "<instance>",
 										Revision:        2,

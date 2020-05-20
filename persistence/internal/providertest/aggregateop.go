@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -16,7 +15,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 	ginkgo.Context("aggregate operations", func() {
 		var (
 			dataStore  persistence.DataStore
-			repository aggregatestore.Repository
+			repository persistence.AggregateRepository
 			tearDown   func()
 		)
 
@@ -36,7 +35,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveAggregateMetaData{
-							MetaData: aggregatestore.MetaData{
+							MetaData: persistence.AggregateMetaData{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 							},
@@ -49,7 +48,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 				ginkgo.It("does not save the meta-data when an OCC conflict occurs", func() {
 					op := persistence.SaveAggregateMetaData{
-						MetaData: aggregatestore.MetaData{
+						MetaData: persistence.AggregateMetaData{
 							HandlerKey: "<handler-key>",
 							InstanceID: "<instance>",
 							Revision:   123,
@@ -68,7 +67,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 					md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 					gomega.Expect(md).To(gomega.Equal(
-						aggregatestore.MetaData{
+						persistence.AggregateMetaData{
 							HandlerKey: "<handler-key>",
 							InstanceID: "<instance>",
 							Revision:   0,
@@ -83,7 +82,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveAggregateMetaData{
-							MetaData: aggregatestore.MetaData{
+							MetaData: persistence.AggregateMetaData{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 							},
@@ -96,7 +95,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveAggregateMetaData{
-							MetaData: aggregatestore.MetaData{
+							MetaData: persistence.AggregateMetaData{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 								Revision:   1,
@@ -113,7 +112,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveAggregateMetaData{
-							MetaData: aggregatestore.MetaData{
+							MetaData: persistence.AggregateMetaData{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 								Revision:   1,
@@ -135,7 +134,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 							tc.Context,
 							dataStore,
 							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
+								MetaData: persistence.AggregateMetaData{
 									HandlerKey: "<handler-key>",
 									InstanceID: "<instance>",
 									Revision:   1,
@@ -144,7 +143,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						)
 
 						op := persistence.SaveAggregateMetaData{
-							MetaData: aggregatestore.MetaData{
+							MetaData: persistence.AggregateMetaData{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 								Revision:   uint64(conflictingRevision),
@@ -163,7 +162,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 						md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 						gomega.Expect(md).To(gomega.Equal(
-							aggregatestore.MetaData{
+							persistence.AggregateMetaData{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 								Revision:   2,
@@ -188,7 +187,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 							tc.Context,
 							dataStore,
 							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
+								MetaData: persistence.AggregateMetaData{
 									HandlerKey: hk,
 									InstanceID: id,
 									Revision:   i,
@@ -207,7 +206,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 				md := loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
-					aggregatestore.MetaData{
+					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key-1>",
 						InstanceID: "<instance-a>",
 						Revision:   1,
@@ -216,7 +215,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-b>")
 				gomega.Expect(md).To(gomega.Equal(
-					aggregatestore.MetaData{
+					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key-1>",
 						InstanceID: "<instance-b>",
 						Revision:   2,
@@ -225,7 +224,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-2>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
-					aggregatestore.MetaData{
+					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key-2>",
 						InstanceID: "<instance-a>",
 						Revision:   3,

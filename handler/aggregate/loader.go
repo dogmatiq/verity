@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/marshalkit"
 )
@@ -13,15 +13,15 @@ import (
 // Instance is an in-memory representation of the aggregate instance, as stored
 // in the cache.
 type Instance struct {
-	MetaData aggregatestore.MetaData
+	MetaData persistence.AggregateMetaData
 	Root     dogma.AggregateRoot
 }
 
 // Loader loads aggregate instances from their historical events.
 type Loader struct {
-	// AggregateStore is the repository used to load an aggregate instance's
+	// AggregateRepo is the repository used to load an aggregate instance's
 	// revisions and snapshots.
-	AggregateStore aggregatestore.Repository
+	AggregateRepo persistence.AggregateRepository
 
 	// EventStore is the repository used to load an aggregate instance's
 	// historical events.
@@ -38,7 +38,7 @@ func (l *Loader) Load(
 	hk, id string,
 	base dogma.AggregateRoot,
 ) (*Instance, error) {
-	md, err := l.AggregateStore.LoadAggregateMetaData(ctx, hk, id)
+	md, err := l.AggregateRepo.LoadAggregateMetaData(ctx, hk, id)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (l *Loader) Load(
 
 func (l *Loader) applyEvents(
 	ctx context.Context,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 	base dogma.AggregateRoot,
 ) error {
 	res, err := l.EventStore.LoadEventsBySource(

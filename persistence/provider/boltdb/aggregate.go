@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
@@ -32,10 +31,10 @@ var (
 func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (_ *aggregatestore.MetaData, err error) {
+) (_ *persistence.AggregateMetaData, err error) {
 	defer bboltx.Recover(&err)
 
-	md := &aggregatestore.MetaData{
+	md := &persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}
@@ -89,7 +88,7 @@ func (c *committer) VisitSaveAggregateMetaData(
 
 // saveAggregateMetaData saves aggregate meta-data to b. md.Revision is
 // incremented before saving.
-func saveAggregateMetaData(b *bbolt.Bucket, md aggregatestore.MetaData) {
+func saveAggregateMetaData(b *bbolt.Bucket, md persistence.AggregateMetaData) {
 	data, err := proto.Marshal(
 		&pb.AggregateMetaData{
 			Revision:        md.Revision + 1,

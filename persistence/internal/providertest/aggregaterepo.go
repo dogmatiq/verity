@@ -4,18 +4,17 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
 
 // declareAggregateRepositoryTests declares a functional test-suite for a
-// specific aggregatestore.Repository implementation.
+// specific persistence.AggregateRepository implementation.
 func declareAggregateRepositoryTests(tc *TestContext) {
-	ginkgo.Describe("type aggregatestore.Repository", func() {
+	ginkgo.Describe("type persistence.AggregateRepository", func() {
 		var (
 			dataStore  persistence.DataStore
-			repository aggregatestore.Repository
+			repository persistence.AggregateRepository
 			tearDown   func()
 		)
 
@@ -32,7 +31,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 			ginkgo.It("returns meta-data with default values if the instance does not exist", func() {
 				md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
 				gomega.Expect(md).To(gomega.Equal(
-					aggregatestore.MetaData{
+					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key>",
 						InstanceID: "<instance>",
 					},
@@ -40,7 +39,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 			})
 
 			ginkgo.It("returns the current persisted meta-data", func() {
-				expect := aggregatestore.MetaData{
+				expect := persistence.AggregateMetaData{
 					HandlerKey:      "<handler-key>",
 					InstanceID:      "<instance>",
 					InstanceExists:  true,
@@ -64,7 +63,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				// immediately, either with a context.Canceled error, or with
 				// the correct result.
 
-				expect := aggregatestore.MetaData{
+				expect := persistence.AggregateMetaData{
 					HandlerKey:      "<handler-key>",
 					InstanceID:      "<instance>",
 					InstanceExists:  true,

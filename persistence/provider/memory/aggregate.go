@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
 // LoadAggregateMetaData loads the meta-data for an aggregate instance.
@@ -13,7 +12,7 @@ import (
 func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (*aggregatestore.MetaData, error) {
+) (*persistence.AggregateMetaData, error) {
 	ds.db.mutex.RLock()
 	defer ds.db.mutex.RUnlock()
 
@@ -21,7 +20,7 @@ func (ds *dataStore) LoadAggregateMetaData(
 		return &md, nil
 	}
 
-	return &aggregatestore.MetaData{
+	return &persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}, nil
@@ -29,7 +28,7 @@ func (ds *dataStore) LoadAggregateMetaData(
 
 // aggregateDatabase contains aggregate related data.
 type aggregateDatabase struct {
-	metadata map[string]map[string]aggregatestore.MetaData
+	metadata map[string]map[string]persistence.AggregateMetaData
 }
 
 // VisitSaveAggregateMetaData returns an error if a "SaveAggregateMetaData"
@@ -60,10 +59,10 @@ func (c *committer) VisitSaveAggregateMetaData(
 	instances := c.db.aggregate.metadata[md.HandlerKey]
 
 	if instances == nil {
-		instances = map[string]aggregatestore.MetaData{}
+		instances = map[string]persistence.AggregateMetaData{}
 
 		if c.db.aggregate.metadata == nil {
-			c.db.aggregate.metadata = map[string]map[string]aggregatestore.MetaData{}
+			c.db.aggregate.metadata = map[string]map[string]persistence.AggregateMetaData{}
 		}
 
 		c.db.aggregate.metadata[md.HandlerKey] = instances

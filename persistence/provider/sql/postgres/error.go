@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/lib/pq"
@@ -69,14 +69,14 @@ func (d errorConverter) LockApplication(
 }
 
 //
-// aggregatestore
+// aggregate
 //
 
 func (d errorConverter) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 ) (bool, error) {
 	ok, err := d.d.InsertAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
@@ -86,7 +86,7 @@ func (d errorConverter) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 ) (bool, error) {
 	ok, err := d.d.UpdateAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
@@ -96,7 +96,7 @@ func (d errorConverter) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (*aggregatestore.MetaData, error) {
+) (*persistence.AggregateMetaData, error) {
 	md, err := d.d.SelectAggregateMetaData(ctx, db, ak, hk, id)
 	return md, convertContextErrors(ctx, err)
 }

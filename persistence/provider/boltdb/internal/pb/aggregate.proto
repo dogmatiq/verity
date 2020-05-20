@@ -4,7 +4,7 @@ package infix.persistence.boltdb.v1;
 option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb";
 
 // AggregateMetaData is a protocol buffers representation of
-// aggregatestore.MetaData.
+// persistence.AggregateMetaData.
 message AggregateMetaData{
   uint64 revision = 1;
   bool instance_exists = 2;

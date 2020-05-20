@@ -12,7 +12,7 @@ import (
 
 // Driver is used to interface with the underlying SQL database.
 type Driver interface {
-	aggregateStoreDriver
+	AggregateDriver
 	eventStoreDriver
 	offsetStoreDriver
 	queueDriver

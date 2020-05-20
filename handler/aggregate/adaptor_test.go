@@ -16,7 +16,6 @@ import (
 	. "github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -45,8 +44,8 @@ var _ = Describe("type Adaptor", func() {
 			LoadAggregateMetaDataFunc: func(
 				_ context.Context,
 				hk, id string,
-			) (*aggregatestore.MetaData, error) {
-				return &aggregatestore.MetaData{
+			) (*persistence.AggregateMetaData, error) {
+				return &persistence.AggregateMetaData{
 					HandlerKey: hk,
 					InstanceID: id,
 				}, nil
@@ -94,9 +93,9 @@ var _ = Describe("type Adaptor", func() {
 			},
 			Handler: upstream,
 			Loader: &Loader{
-				AggregateStore: aggregateRepo,
-				EventStore:     eventRepo,
-				Marshaler:      Marshaler,
+				AggregateRepo: aggregateRepo,
+				EventStore:    eventRepo,
+				Marshaler:     Marshaler,
 			},
 			Packer:      packer,
 			LoadTimeout: 1 * time.Second,
@@ -153,7 +152,7 @@ var _ = Describe("type Adaptor", func() {
 				context.Context,
 				string,
 				string,
-			) (*aggregatestore.MetaData, error) {
+			) (*persistence.AggregateMetaData, error) {
 				return nil, errors.New("<error>")
 			}
 
@@ -219,7 +218,7 @@ var _ = Describe("type Adaptor", func() {
 								},
 							},
 							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
+								MetaData: persistence.AggregateMetaData{
 									HandlerKey:     "<aggregate-key>",
 									InstanceID:     "<instance>",
 									InstanceExists: true,
@@ -528,7 +527,7 @@ var _ = Describe("type Adaptor", func() {
 									},
 								},
 								persistence.SaveAggregateMetaData{
-									MetaData: aggregatestore.MetaData{
+									MetaData: persistence.AggregateMetaData{
 										HandlerKey:      "<aggregate-key>",
 										InstanceID:      "<instance>",
 										Revision:        1,

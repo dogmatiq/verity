@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -14,22 +13,22 @@ import (
 // AggregateRepositoryStub is a test implementation of the
 // persistence.AggregateRepository interface.
 type AggregateRepositoryStub struct {
-	aggregatestore.Repository
+	persistence.AggregateRepository
 
-	LoadAggregateMetaDataFunc func(context.Context, string, string) (*aggregatestore.MetaData, error)
+	LoadAggregateMetaDataFunc func(context.Context, string, string) (*persistence.AggregateMetaData, error)
 }
 
 // LoadAggregateMetaData loads the meta-data for an aggregate instance.
 func (r *AggregateRepositoryStub) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (*aggregatestore.MetaData, error) {
+) (*persistence.AggregateMetaData, error) {
 	if r.LoadAggregateMetaDataFunc != nil {
 		return r.LoadAggregateMetaDataFunc(ctx, hk, id)
 	}
 
-	if r.Repository != nil {
-		return r.Repository.LoadAggregateMetaData(ctx, hk, id)
+	if r.AggregateRepository != nil {
+		return r.AggregateRepository.LoadAggregateMetaData(ctx, hk, id)
 	}
 
 	return nil, nil
@@ -63,7 +62,7 @@ func (p *ProviderStub) Open(ctx context.Context, k string) (persistence.DataStor
 type DataStoreStub struct {
 	persistence.DataStore
 
-	AggregateStoreRepositoryFunc func() aggregatestore.Repository
+	AggregateStoreRepositoryFunc func() persistence.AggregateRepository
 	OffsetStoreRepositoryFunc    func() offsetstore.Repository
 	EventStoreRepositoryFunc     func() eventstore.Repository
 	QueueStoreRepositoryFunc     func() queuestore.Repository
@@ -88,7 +87,7 @@ func NewDataStoreStub() *DataStoreStub {
 
 // AggregateStoreRepository returns the application's aggregate store
 // repository.
-func (ds *DataStoreStub) AggregateStoreRepository() aggregatestore.Repository {
+func (ds *DataStoreStub) AggregateStoreRepository() persistence.AggregateRepository {
 	if ds.EventStoreRepositoryFunc != nil {
 		return ds.AggregateStoreRepositoryFunc()
 	}
@@ -97,7 +96,7 @@ func (ds *DataStoreStub) AggregateStoreRepository() aggregatestore.Repository {
 		r := ds.DataStore.AggregateStoreRepository()
 
 		if r != nil {
-			r = &AggregateRepositoryStub{Repository: r}
+			r = &AggregateRepositoryStub{AggregateRepository: r}
 		}
 
 		return r
