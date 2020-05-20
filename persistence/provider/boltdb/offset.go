@@ -47,9 +47,7 @@ func (ds *dataStore) LoadOffset(
 func (c *committer) VisitSaveOffset(
 	_ context.Context,
 	op persistence.SaveOffset,
-) (err error) {
-	defer bboltx.Recover(&err)
-
+) error {
 	offsets := bboltx.CreateBucketIfNotExists(
 		c.root,
 		offsetBucketKey,

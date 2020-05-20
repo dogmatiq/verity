@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"go.uber.org/multierr"
 )
@@ -103,63 +104,50 @@ type eventStoreDriver interface {
 	) error
 }
 
-// SaveEvent persists an event in the application's event store.
-//
-// It returns the event's offset.
-func (t *transaction) SaveEvent(
-	ctx context.Context,
-	env *envelopespec.Envelope,
-) (_ uint64, err error) {
-	if err := t.begin(ctx); err != nil {
-		return 0, err
-	}
-
-	next, err := t.ds.driver.UpdateNextOffset(
-		ctx,
-		t.actual,
-		t.ds.appKey,
-	)
-	if err != nil {
-		return 0, err
-	}
-
-	next--
-
-	if err := t.ds.driver.InsertEvent(
-		ctx,
-		t.actual,
-		next,
-		env,
-	); err != nil {
-		return 0, err
-	}
-
-	if t.result.EventOffsets == nil {
-		t.result.EventOffsets = map[string]uint64{}
-	}
-
-	t.result.EventOffsets[env.MetaData.MessageId] = next
-
-	return next, nil
-}
-
-// eventStoreRepository is an implementation of eventstore.Repository that
-// stores events in an SQL database.
-type eventStoreRepository struct {
-	db     *sql.DB
-	driver Driver
-	appKey string
-}
-
 // NextEventOffset returns the next "unused" offset within the store.
-func (r *eventStoreRepository) NextEventOffset(
+func (ds *dataStore) NextEventOffset(
 	ctx context.Context,
 ) (uint64, error) {
-	return r.driver.SelectNextEventOffset(
+	return ds.driver.SelectNextEventOffset(ctx, ds.db, ds.appKey)
+}
+
+// QueryEvents queries events in the repository.
+func (ds *dataStore) QueryEvents(
+	ctx context.Context,
+	q eventstore.Query,
+) (eventstore.Result, error) {
+	var filterID int64
+
+	if len(q.Filter) > 0 {
+		var err error
+		filterID, err = ds.driver.InsertEventFilter(
+			ctx,
+			ds.db,
+			ds.appKey,
+			q.Filter,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	rows, err := ds.driver.SelectEventsByType(
 		ctx,
-		r.db,
-		r.appKey,
+		ds.db,
+		ds.appKey,
+		q,
+		filterID,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &eventResult{
+		db:       ds.db,
+		rows:     rows,
+		driver:   ds.driver,
+		filterID: filterID,
+	}, nil
 }
 
 // LoadEventsBySource loads the events produced by a specific handler.
@@ -172,16 +160,16 @@ func (r *eventStoreRepository) NextEventOffset(
 // m is ID of a "barrier" message. If supplied, the results are limited to
 // events with higher offsets than the barrier message. If the message
 // cannot be found, UnknownMessageError is returned.
-func (r *eventStoreRepository) LoadEventsBySource(
+func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, m string,
 ) (eventstore.Result, error) {
-	var o uint64
+	var offset uint64
 
 	if m != "" {
-		offset, ok, err := r.driver.SelectOffsetByMessageID(
+		o, ok, err := ds.driver.SelectOffsetByMessageID(
 			ctx,
-			r.db,
+			ds.db,
 			m,
 		)
 		if err != nil {
@@ -194,70 +182,32 @@ func (r *eventStoreRepository) LoadEventsBySource(
 			}
 		}
 
-		// Increment the offset to select all messages after the barrier
-		// message exclusively.
-		o = offset + 1
+		offset = o + 1 // start with the message AFTER the barrier message.
 	}
 
-	rows, err := r.driver.SelectEventsBySource(
+	rows, err := ds.driver.SelectEventsBySource(
 		ctx,
-		r.db,
-		r.appKey, hk, id, o,
+		ds.db,
+		ds.appKey,
+		hk,
+		id,
+		offset,
 	)
 
-	return &eventStoreResult{
-		db:     r.db,
+	return &eventResult{
+		db:     ds.db,
 		rows:   rows,
-		driver: r.driver,
+		driver: ds.driver,
 	}, err
 }
 
-// QueryEvents queries events in the repository.
-func (r *eventStoreRepository) QueryEvents(
-	ctx context.Context,
-	q eventstore.Query,
-) (eventstore.Result, error) {
-	var filterID int64
-
-	if len(q.Filter) > 0 {
-		var err error
-		filterID, err = r.driver.InsertEventFilter(
-			ctx,
-			r.db,
-			r.appKey,
-			q.Filter,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	rows, err := r.driver.SelectEventsByType(
-		ctx,
-		r.db,
-		r.appKey,
-		q,
-		filterID,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &eventStoreResult{
-		db:       r.db,
-		rows:     rows,
-		driver:   r.driver,
-		filterID: filterID,
-	}, nil
-}
-
-// closeTimeout is maximum duration that a call to eventStoreResult.Close() can
+// closeTimeout is maximum duration that a call to eventResult.Close() can
 // take to delete the event filter.
 const closeTimeout = 1 * time.Second
 
-// eventStoreResult is an implementation of eventstore.Result for the SQL event
+// eventResult is an implementation of eventstore.Result for the SQL event
 // store.
-type eventStoreResult struct {
+type eventResult struct {
 	db       *sql.DB
 	rows     *sql.Rows
 	driver   Driver
@@ -267,13 +217,9 @@ type eventStoreResult struct {
 // Next returns the next event in the result.
 //
 // It returns false if the are no more events in the result.
-func (r *eventStoreResult) Next(
+func (r *eventResult) Next(
 	ctx context.Context,
 ) (*eventstore.Item, bool, error) {
-	if ctx.Err() != nil {
-		return nil, false, ctx.Err()
-	}
-
 	if r.rows.Next() {
 		i := &eventstore.Item{
 			Envelope: &envelopespec.Envelope{
@@ -295,7 +241,7 @@ func (r *eventStoreResult) Next(
 }
 
 // Close closes the cursor.
-func (r *eventStoreResult) Close() error {
+func (r *eventResult) Close() error {
 	err := r.rows.Close()
 
 	if r.filterID != 0 {
@@ -313,4 +259,39 @@ func (r *eventStoreResult) Close() error {
 	}
 
 	return err
+}
+
+// VisitSaveEvent applies the changes in a "SaveEvent" operation to the
+// database.
+func (c *committer) VisitSaveEvent(
+	ctx context.Context,
+	op persistence.SaveEvent,
+) error {
+	offset, err := c.driver.UpdateNextOffset(
+		ctx,
+		c.tx,
+		c.appKey,
+	)
+	if err != nil {
+		return err
+	}
+
+	offset--
+
+	if err := c.driver.InsertEvent(
+		ctx,
+		c.tx,
+		offset,
+		op.Envelope,
+	); err != nil {
+		return err
+	}
+
+	if c.result.EventOffsets == nil {
+		c.result.EventOffsets = map[string]uint64{}
+	}
+
+	c.result.EventOffsets[op.Envelope.MetaData.MessageId] = offset
+
+	return nil
 }

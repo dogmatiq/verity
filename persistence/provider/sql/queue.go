@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/internal/refactor251"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -59,80 +59,12 @@ type queueDriver interface {
 	) error
 }
 
-// SaveMessageToQueue persists a message to the application's message queue.
-//
-// If the message is already on the queue its meta-data is updated.
-//
-// i.Revision must be the revision of the message as currently persisted,
-// otherwise an optimistic concurrency conflict has occurred, the message
-// is not saved and ErrConflict is returned.
-func (t *transaction) SaveMessageToQueue(
-	ctx context.Context,
-	i *queuestore.Item,
-) error {
-	if err := t.begin(ctx); err != nil {
-		return err
-	}
-
-	op := t.ds.driver.InsertQueueMessage
-	if i.Revision > 0 {
-		op = t.ds.driver.UpdateQueueMessage
-	}
-
-	ok, err := op(
-		ctx,
-		t.actual,
-		t.ds.appKey,
-		i,
-	)
-	if ok || err != nil {
-		return err
-	}
-
-	return refactor251.ErrConflict
-}
-
-// RemoveMessageFromQueue removes a specific message from the application's
-// message queue.
-//
-// i.Revision must be the revision of the message as currently persisted,
-// otherwise an optimistic concurrency conflict has occurred, the message
-// remains on the queue and ErrConflict is returned.
-func (t *transaction) RemoveMessageFromQueue(
-	ctx context.Context,
-	i *queuestore.Item,
-) (err error) {
-	if err := t.begin(ctx); err != nil {
-		return err
-	}
-
-	ok, err := t.ds.driver.DeleteQueueMessage(
-		ctx,
-		t.actual,
-		t.ds.appKey,
-		i,
-	)
-	if ok || err != nil {
-		return err
-	}
-
-	return refactor251.ErrConflict
-}
-
-// queueStoreRepository is an implementation of queuestore.Repository that
-// stores queued messages in an SQL database.
-type queueStoreRepository struct {
-	db     *sql.DB
-	driver Driver
-	appKey string
-}
-
 // LoadQueueMessages loads the next n messages from the queue.
-func (r *queueStoreRepository) LoadQueueMessages(
+func (ds *dataStore) LoadQueueMessages(
 	ctx context.Context,
 	n int,
 ) ([]*queuestore.Item, error) {
-	rows, err := r.driver.SelectQueueMessages(ctx, r.db, r.appKey, n)
+	rows, err := ds.driver.SelectQueueMessages(ctx, ds.db, ds.appKey, n)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +84,7 @@ func (r *queueStoreRepository) LoadQueueMessages(
 			},
 		}
 
-		if err := r.driver.ScanQueueMessage(rows, i); err != nil {
+		if err := ds.driver.ScanQueueMessage(rows, i); err != nil {
 			return nil, err
 		}
 
@@ -160,4 +92,49 @@ func (r *queueStoreRepository) LoadQueueMessages(
 	}
 
 	return result, nil
+}
+
+// VisitSaveQueueItem applies the changes in a "SaveQueueItem" operation to the
+// database.
+func (c *committer) VisitSaveQueueItem(
+	ctx context.Context,
+	op persistence.SaveQueueItem,
+) error {
+	fn := c.driver.InsertQueueMessage
+	if op.Item.Revision > 0 {
+		fn = c.driver.UpdateQueueMessage
+	}
+
+	if ok, err := fn(
+		ctx,
+		c.tx,
+		c.appKey,
+		&op.Item,
+	); ok || err != nil {
+		return err
+	}
+
+	return persistence.ConflictError{
+		Cause: op,
+	}
+}
+
+// VisitRemoveQueueItem applies the changes in a "RemoveQueueItem" operation to
+// the database.
+func (c *committer) VisitRemoveQueueItem(
+	ctx context.Context,
+	op persistence.RemoveQueueItem,
+) (err error) {
+	if ok, err := c.driver.DeleteQueueMessage(
+		ctx,
+		c.tx,
+		c.appKey,
+		&op.Item,
+	); ok || err != nil {
+		return err
+	}
+
+	return persistence.ConflictError{
+		Cause: op,
+	}
 }
