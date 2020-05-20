@@ -24,32 +24,32 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		ctx           context.Context
-		cancel        context.CancelFunc
-		aggregateRepo *AggregateRepositoryStub
-		eventRepo     *EventStoreRepositoryStub
-		upstream      *AggregateMessageHandler
-		packer        *parcel.Packer
-		logger        *logging.BufferedLogger
-		cause         *parcel.Parcel
-		adaptor       *Adaptor
-		ack           *AcknowledgerStub
-		entryPoint    *handler.EntryPoint
+		ctx        context.Context
+		cancel     context.CancelFunc
+		dataStore  *DataStoreStub
+		eventRepo  *EventStoreRepositoryStub
+		upstream   *AggregateMessageHandler
+		packer     *parcel.Packer
+		logger     *logging.BufferedLogger
+		cause      *parcel.Parcel
+		adaptor    *Adaptor
+		ack        *AcknowledgerStub
+		entryPoint *handler.EntryPoint
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		aggregateRepo = &AggregateRepositoryStub{
-			LoadAggregateMetaDataFunc: func(
-				_ context.Context,
-				hk, id string,
-			) (*persistence.AggregateMetaData, error) {
-				return &persistence.AggregateMetaData{
-					HandlerKey: hk,
-					InstanceID: id,
-				}, nil
-			},
+		dataStore = NewDataStoreStub()
+
+		dataStore.LoadAggregateMetaDataFunc = func(
+			_ context.Context,
+			hk, id string,
+		) (*persistence.AggregateMetaData, error) {
+			return &persistence.AggregateMetaData{
+				HandlerKey: hk,
+				InstanceID: id,
+			}, nil
 		}
 
 		eventRepo = &EventStoreRepositoryStub{}
@@ -93,7 +93,7 @@ var _ = Describe("type Adaptor", func() {
 			},
 			Handler: upstream,
 			Loader: &Loader{
-				AggregateRepo: aggregateRepo,
+				AggregateRepo: dataStore,
 				EventStore:    eventRepo,
 				Marshaler:     Marshaler,
 			},
@@ -116,6 +116,7 @@ var _ = Describe("type Adaptor", func() {
 	})
 
 	AfterEach(func() {
+		dataStore.Close()
 		cancel()
 	})
 
@@ -148,7 +149,7 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("returns an error if the instance can not be loaded", func() {
-			aggregateRepo.LoadAggregateMetaDataFunc = func(
+			dataStore.LoadAggregateMetaDataFunc = func(
 				context.Context,
 				string,
 				string,

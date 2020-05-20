@@ -10,30 +10,6 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
-// AggregateRepositoryStub is a test implementation of the
-// persistence.AggregateRepository interface.
-type AggregateRepositoryStub struct {
-	persistence.AggregateRepository
-
-	LoadAggregateMetaDataFunc func(context.Context, string, string) (*persistence.AggregateMetaData, error)
-}
-
-// LoadAggregateMetaData loads the meta-data for an aggregate instance.
-func (r *AggregateRepositoryStub) LoadAggregateMetaData(
-	ctx context.Context,
-	hk, id string,
-) (*persistence.AggregateMetaData, error) {
-	if r.LoadAggregateMetaDataFunc != nil {
-		return r.LoadAggregateMetaDataFunc(ctx, hk, id)
-	}
-
-	if r.AggregateRepository != nil {
-		return r.AggregateRepository.LoadAggregateMetaData(ctx, hk, id)
-	}
-
-	return nil, nil
-}
-
 // ProviderStub is a test implementation of the persistence.Provider interface.
 type ProviderStub struct {
 	persistence.Provider
@@ -62,12 +38,12 @@ func (p *ProviderStub) Open(ctx context.Context, k string) (persistence.DataStor
 type DataStoreStub struct {
 	persistence.DataStore
 
-	AggregateStoreRepositoryFunc func() persistence.AggregateRepository
-	OffsetStoreRepositoryFunc    func() offsetstore.Repository
-	EventStoreRepositoryFunc     func() eventstore.Repository
-	QueueStoreRepositoryFunc     func() queuestore.Repository
-	PersistFunc                  func(context.Context, persistence.Batch) (persistence.Result, error)
-	CloseFunc                    func() error
+	LoadAggregateMetaDataFunc func(context.Context, string, string) (*persistence.AggregateMetaData, error)
+	OffsetStoreRepositoryFunc func() offsetstore.Repository
+	EventStoreRepositoryFunc  func() eventstore.Repository
+	QueueStoreRepositoryFunc  func() queuestore.Repository
+	PersistFunc               func(context.Context, persistence.Batch) (persistence.Result, error)
+	CloseFunc                 func() error
 }
 
 // NewDataStoreStub returns a new data-store stub that uses an in-memory
@@ -85,24 +61,20 @@ func NewDataStoreStub() *DataStoreStub {
 	return ds.(*DataStoreStub)
 }
 
-// AggregateStoreRepository returns the application's aggregate store
-// repository.
-func (ds *DataStoreStub) AggregateStoreRepository() persistence.AggregateRepository {
-	if ds.EventStoreRepositoryFunc != nil {
-		return ds.AggregateStoreRepositoryFunc()
+// LoadAggregateMetaData loads the meta-data for an aggregate instance.
+func (ds *DataStoreStub) LoadAggregateMetaData(
+	ctx context.Context,
+	hk, id string,
+) (*persistence.AggregateMetaData, error) {
+	if ds.LoadAggregateMetaDataFunc != nil {
+		return ds.LoadAggregateMetaDataFunc(ctx, hk, id)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.AggregateStoreRepository()
-
-		if r != nil {
-			r = &AggregateRepositoryStub{AggregateRepository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadAggregateMetaData(ctx, hk, id)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // EventStoreRepository returns the application's event store repository.

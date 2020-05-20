@@ -19,9 +19,7 @@ var ErrDataStoreClosed = errors.New("data store is closed")
 // data for a specific application.
 type DataStore interface {
 	Persister
-
-	// AggregateStoreRepository returns application's aggregate store repository.
-	AggregateStoreRepository() AggregateRepository
+	AggregateRepository
 
 	// EventStoreRepository returns the application's event store repository.
 	EventStoreRepository() eventstore.Repository

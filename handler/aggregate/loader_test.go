@@ -19,20 +19,18 @@ import (
 
 var _ = Describe("type Loader", func() {
 	var (
-		ctx           context.Context
-		cancel        context.CancelFunc
-		dataStore     *DataStoreStub
-		aggregateRepo *AggregateRepositoryStub
-		eventRepo     *EventStoreRepositoryStub
-		base          *AggregateRoot
-		loader        *Loader
+		ctx       context.Context
+		cancel    context.CancelFunc
+		dataStore *DataStoreStub
+		eventRepo *EventStoreRepositoryStub
+		base      *AggregateRoot
+		loader    *Loader
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		dataStore = NewDataStoreStub()
-		aggregateRepo = dataStore.AggregateStoreRepository().(*AggregateRepositoryStub)
 		eventRepo = dataStore.EventStoreRepository().(*EventStoreRepositoryStub)
 
 		base = &AggregateRoot{
@@ -44,7 +42,7 @@ var _ = Describe("type Loader", func() {
 		}
 
 		loader = &Loader{
-			AggregateRepo: aggregateRepo,
+			AggregateRepo: dataStore,
 			EventStore:    eventRepo,
 			Marshaler:     Marshaler,
 		}
@@ -60,7 +58,7 @@ var _ = Describe("type Loader", func() {
 
 	Describe("func Load()", func() {
 		It("returns an error if the meta-data can not be loaded", func() {
-			aggregateRepo.LoadAggregateMetaDataFunc = func(
+			dataStore.LoadAggregateMetaDataFunc = func(
 				context.Context,
 				string,
 				string,

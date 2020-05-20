@@ -14,14 +14,12 @@ import (
 func declareAggregateOperationTests(tc *TestContext) {
 	ginkgo.Context("aggregate operations", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository persistence.AggregateRepository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.AggregateStoreRepository()
 		})
 
 		ginkgo.AfterEach(func() {
@@ -42,7 +40,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						},
 					)
 
-					md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
 					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
@@ -65,7 +63,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						},
 					))
 
-					md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
 					gomega.Expect(md).To(gomega.Equal(
 						persistence.AggregateMetaData{
 							HandlerKey: "<handler-key>",
@@ -103,7 +101,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						},
 					)
 
-					md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
 					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
@@ -120,7 +118,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						},
 					)
 
-					md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
 					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
@@ -160,7 +158,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 							},
 						))
 
-						md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+						md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
 						gomega.Expect(md).To(gomega.Equal(
 							persistence.AggregateMetaData{
 								HandlerKey: "<handler-key>",
@@ -204,7 +202,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 				go fn("<handler-key-2>", "<instance-a>", 3)
 				g.Wait()
 
-				md := loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-a>")
+				md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key-1>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key-1>",
@@ -213,7 +211,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 					},
 				))
 
-				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-1>", "<instance-b>")
+				md = loadAggregateMetaData(tc.Context, dataStore, "<handler-key-1>", "<instance-b>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key-1>",
@@ -222,7 +220,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 					},
 				))
 
-				md = loadAggregateMetaData(tc.Context, repository, "<handler-key-2>", "<instance-a>")
+				md = loadAggregateMetaData(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key-2>",

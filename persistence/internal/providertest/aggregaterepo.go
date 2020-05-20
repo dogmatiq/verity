@@ -13,14 +13,12 @@ import (
 func declareAggregateRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type persistence.AggregateRepository", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository persistence.AggregateRepository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.AggregateStoreRepository()
 		})
 
 		ginkgo.AfterEach(func() {
@@ -29,7 +27,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 
 		ginkgo.Describe("func LoadAggregateMetaData()", func() {
 			ginkgo.It("returns meta-data with default values if the instance does not exist", func() {
-				md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+				md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
 						HandlerKey: "<handler-key>",
@@ -54,7 +52,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				)
 				expect.Revision++
 
-				md := loadAggregateMetaData(tc.Context, repository, "<handler-key>", "<instance>")
+				md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
 				gomega.Expect(md).To(gomega.Equal(expect))
 			})
 
@@ -81,7 +79,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				md, err := repository.LoadAggregateMetaData(ctx, "<handler-key>", "<instance>")
+				md, err := dataStore.LoadAggregateMetaData(ctx, "<handler-key>", "<instance>")
 				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
 				} else {

@@ -188,7 +188,7 @@ func (e *Engine) newEntryPoint(
 		appLogger:    l,
 		engineLogger: e.logger,
 		loader: &aggregate.Loader{
-			AggregateRepo: ds.AggregateStoreRepository(),
+			AggregateRepo: ds,
 			EventStore:    ds.EventStoreRepository(),
 			Marshaler:     e.opts.Marshaler,
 		},
