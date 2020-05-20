@@ -5,7 +5,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
@@ -22,7 +21,7 @@ type DataStore interface {
 	Persister
 
 	// AggregateStoreRepository returns application's aggregate store repository.
-	AggregateStoreRepository() aggregatestore.Repository
+	AggregateStoreRepository() AggregateRepository
 
 	// EventStoreRepository returns the application's event store repository.
 	EventStoreRepository() eventstore.Repository

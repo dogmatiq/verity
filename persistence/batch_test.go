@@ -6,7 +6,6 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -40,7 +39,7 @@ var _ = Describe("type Batch", func() {
 		It("does not panic if the batch contains no operations for the same entity", func() {
 			batch := Batch{
 				SaveAggregateMetaData{
-					MetaData: aggregatestore.MetaData{
+					MetaData: AggregateMetaData{
 						HandlerKey: "<handler-key>",
 						InstanceID: "<instance>",
 					},
@@ -73,7 +72,7 @@ var _ = Describe("type Batch", func() {
 		It("visits each operation in the batch", func() {
 			batch := Batch{
 				SaveAggregateMetaData{
-					MetaData: aggregatestore.MetaData{
+					MetaData: AggregateMetaData{
 						HandlerKey: "<handler-key>",
 						InstanceID: "<instance>",
 					},
@@ -105,7 +104,7 @@ var _ = Describe("type Batch", func() {
 		It("returns the error from the visitor", func() {
 			batch := Batch{
 				SaveAggregateMetaData{
-					MetaData: aggregatestore.MetaData{
+					MetaData: AggregateMetaData{
 						HandlerKey: "<handler-key>",
 						InstanceID: "<instance>",
 					},

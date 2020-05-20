@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -19,17 +18,6 @@ type Operation interface {
 	// operation manipulates. No two operations in the same batch may operate
 	// upon the same entity.
 	entityKey() entityKey
-}
-
-// SaveAggregateMetaData is a persistence operation that creates or updates
-// meta-data about an aggregate instance.
-type SaveAggregateMetaData struct {
-	// MetaData is the meta-data to persist.
-	//
-	// MetaData.Revision must be the revision of the instance as currently
-	// persisted, otherwise an optimistic concurrency conflict occurs and the
-	// entire batch of operations is rejected.
-	MetaData aggregatestore.MetaData
 }
 
 // SaveEvent is a persistence operation that persists an event message.

@@ -1,13 +1,5 @@
 package aggregatestore
 
-import (
-	"context"
-)
+import "github.com/dogmatiq/infix/persistence"
 
-// Repository is an interface for reading persisted aggregate state.
-type Repository interface {
-	// LoadMetaData loads the meta-data for an aggregate instance.
-	//
-	// ak is the aggregate handler's identity key, id is the instance ID.
-	LoadMetaData(ctx context.Context, hk, id string) (*MetaData, error)
-}
+type Repository = persistence.AggregateRepository
