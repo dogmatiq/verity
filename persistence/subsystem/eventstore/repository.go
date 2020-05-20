@@ -24,6 +24,9 @@ type Repository interface {
 	// NextEventOffset returns the next "unused" offset within the store.
 	NextEventOffset(ctx context.Context) (uint64, error)
 
+	// QueryEvents queries events in the repository.
+	QueryEvents(ctx context.Context, q Query) (Result, error)
+
 	// LoadEventsBySource loads the events produced by a specific handler.
 	//
 	// hk is the handler's identity key.
@@ -38,9 +41,6 @@ type Repository interface {
 		ctx context.Context,
 		hk, id, m string,
 	) (Result, error)
-
-	// QueryEvents queries events in the repository.
-	QueryEvents(ctx context.Context, q Query) (Result, error)
 }
 
 // Filter is a set of portable type names of event messages.
