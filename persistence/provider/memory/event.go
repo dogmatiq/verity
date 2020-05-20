@@ -7,20 +7,26 @@ import (
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
-// eventRepository is an implementation of eventstore.Repository that
-// stores events in memory.
-type eventRepository struct {
-	db *database
-}
-
 // NextEventOffset returns the next "unused" offset within the store.
-func (r *eventRepository) NextEventOffset(
+func (ds *dataStore) NextEventOffset(
 	ctx context.Context,
 ) (uint64, error) {
-	r.db.mutex.RLock()
-	defer r.db.mutex.RUnlock()
+	ds.db.mutex.RLock()
+	defer ds.db.mutex.RUnlock()
 
-	return uint64(len(r.db.event.items)), nil
+	return uint64(len(ds.db.event.items)), nil
+}
+
+// QueryEvents queries events in the repository.
+func (ds *dataStore) QueryEvents(
+	ctx context.Context,
+	q eventstore.Query,
+) (eventstore.Result, error) {
+	return &eventResult{
+		db:    ds.db,
+		pred:  q.IsMatch,
+		index: int(q.MinOffset),
+	}, nil
 }
 
 // LoadEventsBySource loads the events produced by a specific handler.
@@ -33,18 +39,18 @@ func (r *eventRepository) NextEventOffset(
 // m is ID of a "barrier" message. If supplied, the results are limited to
 // events with higher offsets than the barrier message. If the message
 // cannot be found, UnknownMessageError is returned.
-func (r *eventRepository) LoadEventsBySource(
+func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, m string,
 ) (eventstore.Result, error) {
 	var o uint64
 
 	if m != "" {
-		r.db.mutex.RLock()
-		defer r.db.mutex.RUnlock()
+		ds.db.mutex.RLock()
+		defer ds.db.mutex.RUnlock()
 
 		var ok bool
-		o, ok = r.db.event.offsets[m]
+		o, ok = ds.db.event.offsets[m]
 		if !ok {
 			return nil, eventstore.UnknownMessageError{
 				MessageID: m,
@@ -56,8 +62,8 @@ func (r *eventRepository) LoadEventsBySource(
 		o++
 	}
 
-	return &eventStoreResult{
-		db: r.db,
+	return &eventResult{
+		db: ds.db,
 		pred: func(i *eventstore.Item) bool {
 			return hk == i.Envelope.MetaData.Source.Handler.Key &&
 				id == i.Envelope.MetaData.Source.InstanceId
@@ -66,21 +72,9 @@ func (r *eventRepository) LoadEventsBySource(
 	}, nil
 }
 
-// QueryEvents queries events in the repository.
-func (r *eventRepository) QueryEvents(
-	ctx context.Context,
-	q eventstore.Query,
-) (eventstore.Result, error) {
-	return &eventStoreResult{
-		db:    r.db,
-		pred:  q.IsMatch,
-		index: int(q.MinOffset),
-	}, nil
-}
-
-// eventStoreResult is an implementation of eventstore.Result for the in-memory
+// eventResult is an implementation of eventstore.Result for the in-memory
 // event store.
-type eventStoreResult struct {
+type eventResult struct {
 	db    *database
 	pred  func(*eventstore.Item) bool
 	index int
@@ -89,7 +83,7 @@ type eventStoreResult struct {
 // Next returns the next event in the result.
 //
 // It returns false if the are no more events in the result.
-func (r *eventStoreResult) Next(
+func (r *eventResult) Next(
 	ctx context.Context,
 ) (*eventstore.Item, bool, error) {
 	r.db.mutex.RLock()
@@ -126,7 +120,7 @@ func (r *eventStoreResult) Next(
 }
 
 // Close closes the cursor.
-func (r *eventStoreResult) Close() error {
+func (r *eventResult) Close() error {
 	return nil
 }
 
