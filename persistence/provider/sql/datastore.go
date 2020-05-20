@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/dogmatiq/infix/internal/refactor251"
+	"github.com/dogmatiq/infix/internal/x/sqlx"
+
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
@@ -40,22 +41,22 @@ func newDataStore(
 
 // AggregateStoreRepository returns application's aggregate store repository.
 func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
-	return &aggregateStoreRepository{ds.db, ds.driver, ds.appKey}
+	return ds
 }
 
 // EventStoreRepository returns the application's event store repository.
 func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return &eventStoreRepository{ds.db, ds.driver, ds.appKey}
+	return ds
 }
 
 // OffsetStoreRepository returns the application's event store repository.
 func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
-	return &offsetStoreRepository{ds.db, ds.driver, ds.appKey}
+	return ds
 }
 
 // QueueStoreRepository returns the application's queue store repository.
 func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
-	return &queueStoreRepository{ds.db, ds.driver, ds.appKey}
+	return ds
 }
 
 // Persist commits a batch of operations atomically.
@@ -64,22 +65,36 @@ func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
 // the entire batch is aborted and a ConflictError is returned.
 func (ds *dataStore) Persist(
 	ctx context.Context,
-	batch persistence.Batch,
-) (persistence.Result, error) {
-	batch.MustValidate()
+	b persistence.Batch,
+) (_ persistence.Result, err error) {
+	b.MustValidate()
 
-	if err := ds.checkOpen(); err != nil {
-		return persistence.Result{}, err
+	defer sqlx.Recover(&err)
+
+	ds.m.RLock()
+	defer ds.m.RUnlock()
+
+	if ds.release == nil {
+		return persistence.Result{}, persistence.ErrDataStoreClosed
 	}
 
-	tx := &transaction{ds: ds}
+	tx, err := ds.driver.Begin(ctx, ds.db)
+	if err != nil {
+		return persistence.Result{}, err
+	}
 	defer tx.Rollback()
 
-	if err := refactor251.PersistTx(ctx, tx, batch); err != nil {
+	c := &committer{
+		tx:     tx,
+		driver: ds.driver,
+		appKey: ds.appKey,
+	}
+
+	if err := b.AcceptVisitor(ctx, c); err != nil {
 		return persistence.Result{}, err
 	}
 
-	return tx.Commit(ctx)
+	return c.result, tx.Commit()
 }
 
 // Close closes the data store.
@@ -108,14 +123,14 @@ func (ds *dataStore) Close() error {
 	return r()
 }
 
-// checkOpen returns an error if the data-store is closed.
-func (ds *dataStore) checkOpen() error {
-	ds.m.RLock()
-	defer ds.m.RUnlock()
-
-	if ds.release == nil {
-		return persistence.ErrDataStoreClosed
-	}
-
-	return nil
+// committer is an implementation of persitence.OperationVisitor that
+// applies operations to the database.
+//
+// It is expected that the operations have already been validated using
+// validator.
+type committer struct {
+	tx     *sql.Tx
+	driver Driver
+	appKey string
+	result persistence.Result
 }
