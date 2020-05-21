@@ -11,7 +11,7 @@ import (
 var _ = Describe("type Event", func() {
 	Describe("func ID()", func() {
 		It("returns the ID from the envelope", func() {
-			ev := &Event{
+			ev := Event{
 				Envelope: NewEnvelope("<id>", MessageA1),
 			}
 

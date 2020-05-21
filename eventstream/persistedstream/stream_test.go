@@ -52,9 +52,9 @@ var _ = Describe("type Stream", func() {
 					res, err := dataStore.Persist(ctx, batch)
 					Expect(err).ShouldNot(HaveOccurred())
 
-					var events []*eventstream.Event
+					var events []eventstream.Event
 					for _, p := range parcels {
-						events = append(events, &eventstream.Event{
+						events = append(events, eventstream.Event{
 							Offset: res.EventOffsets[p.Envelope.MetaData.MessageId],
 							Parcel: p,
 						})

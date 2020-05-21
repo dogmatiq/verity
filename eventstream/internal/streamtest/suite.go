@@ -75,31 +75,31 @@ func Declare(
 		in     In
 		out    Out
 
-		event0, event1, event2, event3, event4 *eventstream.Event
+		event0, event1, event2, event3, event4 eventstream.Event
 	)
 
 	ginkgo.BeforeEach(func() {
-		event0 = &eventstream.Event{
+		event0 = eventstream.Event{
 			Offset: 0,
 			Parcel: infixfixtures.NewParcel("<message-0>", dogmafixtures.MessageA1),
 		}
 
-		event1 = &eventstream.Event{
+		event1 = eventstream.Event{
 			Offset: 1,
 			Parcel: infixfixtures.NewParcel("<message-1>", dogmafixtures.MessageB1),
 		}
 
-		event2 = &eventstream.Event{
+		event2 = eventstream.Event{
 			Offset: 2,
 			Parcel: infixfixtures.NewParcel("<message-2>", dogmafixtures.MessageA2),
 		}
 
-		event3 = &eventstream.Event{
+		event3 = eventstream.Event{
 			Offset: 3,
 			Parcel: infixfixtures.NewParcel("<message-3>", dogmafixtures.MessageB2),
 		}
 
-		event4 = &eventstream.Event{
+		event4 = eventstream.Event{
 			Offset: 4,
 			Parcel: infixfixtures.NewParcel("<message-4>", dogmafixtures.MessageC1),
 		}

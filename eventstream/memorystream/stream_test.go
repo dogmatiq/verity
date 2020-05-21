@@ -138,13 +138,13 @@ func addEvents(
 	s *Stream,
 	begin, end uint64,
 ) {
-	var events []*eventstream.Event
+	var events []eventstream.Event
 
 	for o := begin; o <= end; o++ {
 		id := fmt.Sprintf("<event-%d>", o)
 		events = append(
 			events,
-			&eventstream.Event{
+			eventstream.Event{
 				Offset: o,
 				Parcel: NewParcel(
 					id,

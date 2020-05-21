@@ -110,7 +110,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 0,
 					Parcel: pcl,
 				},
@@ -134,7 +134,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 0,
 					Parcel: pcl,
 				},
@@ -158,7 +158,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				3,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 4,
 					Parcel: pcl,
 				},
@@ -187,7 +187,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 0,
 					Parcel: pcl,
 				},
@@ -213,7 +213,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 0,
 					Parcel: pcl,
 				},
@@ -237,7 +237,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 0,
 					Parcel: pcl,
 				},
@@ -258,7 +258,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 0,
 					Parcel: pcl,
 				},
@@ -279,7 +279,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := adaptor.HandleEvent(
 				context.Background(),
 				0,
-				&eventstream.Event{
+				eventstream.Event{
 					Offset: 0,
 					Parcel: pcl,
 				},

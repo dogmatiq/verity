@@ -202,10 +202,7 @@ func (e *Engine) newEntryPoint(
 		Observers: []handler.Observer{
 			func(r handler.Result, err error) {
 				if err == nil {
-					for _, ev := range r.Events {
-						c.Add([]*eventstream.Event{&ev})
-					}
-
+					c.Add(r.Events)
 					q.Add(r.Queued)
 				}
 			},

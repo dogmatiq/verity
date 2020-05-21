@@ -136,7 +136,7 @@ func (s *Stream) Append(parcels ...*parcel.Parcel) {
 	}
 
 	for _, p := range parcels {
-		s.grow(&eventstream.Event{
+		s.grow(eventstream.Event{
 			Offset: offset,
 			Parcel: p,
 		})
@@ -153,7 +153,7 @@ func (s *Stream) Append(parcels ...*parcel.Parcel) {
 // The events do not necessarily have to be in order. Any out of order events
 // are added to the "reordering" queue until sufficient events have been added
 // to close the "gap", at which point they are made visible to open cursors.
-func (s *Stream) Add(events []*eventstream.Event) {
+func (s *Stream) Add(events []eventstream.Event) {
 	s.m.Lock()
 
 	for _, ev := range events {
@@ -167,7 +167,7 @@ func (s *Stream) Add(events []*eventstream.Event) {
 
 // grow adds an event to the buffer or the reordering queue, as appropriate.
 // It assumes s.m is already locked.
-func (s *Stream) grow(ev *eventstream.Event) {
+func (s *Stream) grow(ev eventstream.Event) {
 	tail := s.loadTail()
 	if tail == nil {
 		tail = s.init()
@@ -188,7 +188,7 @@ func (s *Stream) grow(ev *eventstream.Event) {
 	if ev.Offset > tail.offset {
 		// This events has arrived out of order, we keep it in the reorder queue
 		// until we are given the event that immediately preceeds it.
-		s.reorder.Push((*elem)(ev))
+		s.reorder.Push((elem)(ev))
 		return
 	}
 
@@ -205,7 +205,7 @@ func (s *Stream) grow(ev *eventstream.Event) {
 			return
 		}
 
-		ev = (*eventstream.Event)(e.(*elem))
+		ev = (eventstream.Event)(e.(elem))
 		if ev.Offset != tail.offset {
 			return
 		}
@@ -283,6 +283,6 @@ func (s *Stream) storeTail(n *node) {
 // It allows events to be placed in the "reorder" queue.
 type elem eventstream.Event
 
-func (e *elem) Less(v pqueue.Elem) bool {
-	return e.Offset < v.(*elem).Offset
+func (e elem) Less(v pqueue.Elem) bool {
+	return e.Offset < v.(elem).Offset
 }

@@ -126,7 +126,7 @@ func (s *Stream) Open(
 			stream:    stream,
 			marshaler: s.Marshaler,
 			cancel:    cancelConsume,
-			events:    make(chan *eventstream.Event, s.PreFetch),
+			events:    make(chan eventstream.Event, s.PreFetch),
 		}
 
 		go c.consume()
