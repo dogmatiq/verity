@@ -19,12 +19,11 @@ require (
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/lib/pq v1.5.2
 	github.com/mattn/go-sqlite3 v1.13.0
-	github.com/onsi/ginkgo v1.12.1
+	github.com/onsi/ginkgo v1.12.2
 	github.com/onsi/gomega v1.10.1
 	go.etcd.io/bbolt v1.3.4
 	go.uber.org/multierr v1.5.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/text v0.3.1-0.20181227161524-e6919f6577db // indirect
 	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.23.0
 )
