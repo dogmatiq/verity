@@ -29,27 +29,27 @@ type Parcel struct {
 func FromEnvelope(
 	ma marshalkit.ValueMarshaler,
 	env *envelopespec.Envelope,
-) (*Parcel, error) {
+) (Parcel, error) {
 	if err := envelopespec.CheckWellFormed(env); err != nil {
-		return nil, err
+		return Parcel{}, err
 	}
 
 	m, err := envelopespec.UnmarshalMessage(ma, env)
 	if err != nil {
-		return nil, err
+		return Parcel{}, err
 	}
 
 	createdAt, err := envelopespec.UnmarshalTime(env.MetaData.CreatedAt)
 	if err != nil {
-		return nil, err
+		return Parcel{}, err
 	}
 
 	scheduledFor, err := envelopespec.UnmarshalTime(env.MetaData.ScheduledFor)
 	if err != nil {
-		return nil, err
+		return Parcel{}, err
 	}
 
-	return &Parcel{
+	return Parcel{
 		Envelope:     env,
 		Message:      m,
 		CreatedAt:    createdAt,

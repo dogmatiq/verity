@@ -63,7 +63,7 @@ var _ = Describe("type Stream", func() {
 					Client:    messagingspec.NewEventStreamClient(conn),
 					Marshaler: in.Marshaler,
 				},
-				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
+				Append: func(ctx context.Context, parcels ...parcel.Parcel) {
 					stream.Append(parcels...)
 				},
 			}
@@ -90,7 +90,7 @@ var _ = Describe("type Stream", func() {
 		conn     *grpc.ClientConn
 		stream   *Stream
 		types    message.TypeSet
-		pcl      *parcel.Parcel
+		pcl      parcel.Parcel
 	)
 
 	BeforeEach(func() {

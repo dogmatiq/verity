@@ -16,7 +16,7 @@ type scope struct {
 	packer   *parcel.Packer
 	logger   logging.Logger
 	work     *handler.UnitOfWork
-	cause    *parcel.Parcel
+	cause    parcel.Parcel
 }
 
 // RecordEvent records the occurrence of an event as a result of the command

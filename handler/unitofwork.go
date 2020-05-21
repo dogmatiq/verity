@@ -20,17 +20,17 @@ type UnitOfWork struct {
 }
 
 // ExecuteCommand updates the unit-of-work to execute the command in p.
-func (w *UnitOfWork) ExecuteCommand(p *parcel.Parcel) {
+func (w *UnitOfWork) ExecuteCommand(p parcel.Parcel) {
 	w.saveQueueMessage(p, p.CreatedAt)
 }
 
 // ScheduleTimeout updates the unit-of-work to schedule the timeout in p.
-func (w *UnitOfWork) ScheduleTimeout(p *parcel.Parcel) {
+func (w *UnitOfWork) ScheduleTimeout(p parcel.Parcel) {
 	w.saveQueueMessage(p, p.ScheduledFor)
 }
 
 // RecordEvent updates the unit-of-work to record the event in p.
-func (w *UnitOfWork) RecordEvent(p *parcel.Parcel) {
+func (w *UnitOfWork) RecordEvent(p parcel.Parcel) {
 	w.saveEvent(p)
 
 	if w.queueEvents != nil && w.queueEvents.HasM(p.Message) {
@@ -49,7 +49,7 @@ func (w *UnitOfWork) Observe(obs Observer) {
 }
 
 // saveQueueMessage adds a SaveQueueMessage operation to the batch for p.
-func (w *UnitOfWork) saveQueueMessage(p *parcel.Parcel, next time.Time) {
+func (w *UnitOfWork) saveQueueMessage(p parcel.Parcel, next time.Time) {
 	qm := persistence.QueueMessage{
 		NextAttemptAt: next,
 		Envelope:      p.Envelope,
@@ -74,7 +74,7 @@ func (w *UnitOfWork) saveQueueMessage(p *parcel.Parcel, next time.Time) {
 }
 
 // saveEvent adds a SaveEvent operation to the batch for p.
-func (w *UnitOfWork) saveEvent(p *parcel.Parcel) {
+func (w *UnitOfWork) saveEvent(p parcel.Parcel) {
 	w.batch = append(
 		w.batch,
 		persistence.SaveEvent{

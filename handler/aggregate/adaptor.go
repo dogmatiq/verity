@@ -48,7 +48,7 @@ type Adaptor struct {
 func (a *Adaptor) HandleMessage(
 	ctx context.Context,
 	w *handler.UnitOfWork,
-	p *parcel.Parcel,
+	p parcel.Parcel,
 ) (err error) {
 	defer mlog.LogHandlerResult(
 		a.Logger,
@@ -99,7 +99,7 @@ func (a *Adaptor) HandleMessage(
 func (a *Adaptor) load(
 	ctx context.Context,
 	w *handler.UnitOfWork,
-	p *parcel.Parcel,
+	p parcel.Parcel,
 ) (*Instance, error) {
 	id := mustRoute(a.Handler, p.Message)
 

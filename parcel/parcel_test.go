@@ -36,7 +36,7 @@ var _ = Describe("type Parcel", func() {
 			p, err := FromEnvelope(Marshaler, env)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(p).To(EqualX(
-				&Parcel{
+				Parcel{
 					Envelope:     env,
 					Message:      MessageA1,
 					CreatedAt:    createdAt,

@@ -9,5 +9,5 @@ import (
 // Handler is an interface for handling messages.
 type Handler interface {
 	// HandleMessage handles the message in p.
-	HandleMessage(ctx context.Context, w *UnitOfWork, p *parcel.Parcel) error
+	HandleMessage(ctx context.Context, w *UnitOfWork, p parcel.Parcel) error
 }

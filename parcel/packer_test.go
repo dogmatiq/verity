@@ -71,7 +71,7 @@ var _ = Describe("type Packer", func() {
 			p := packer.PackCommand(MessageC1)
 
 			Expect(p).To(EqualX(
-				&Parcel{
+				Parcel{
 					Envelope: &envelopespec.Envelope{
 						MetaData: &envelopespec.MetaData{
 							MessageId:     "00000001",
@@ -111,7 +111,7 @@ var _ = Describe("type Packer", func() {
 			p := packer.PackEvent(MessageE1)
 
 			Expect(p).To(EqualX(
-				&Parcel{
+				Parcel{
 					Envelope: &envelopespec.Envelope{
 						MetaData: &envelopespec.MetaData{
 							MessageId:     "00000001",
@@ -189,7 +189,7 @@ var _ = Describe("type Packer", func() {
 				"it returns a new envelope",
 				func(cause dogma.Message) {
 					p := packer.PackChildCommand(
-						&Parcel{
+						Parcel{
 							Envelope: parent,
 							Message:  cause,
 						},
@@ -199,7 +199,7 @@ var _ = Describe("type Packer", func() {
 					)
 
 					Expect(p).To(EqualX(
-						&Parcel{
+						Parcel{
 							Envelope: &envelopespec.Envelope{
 								MetaData: &envelopespec.MetaData{
 									MessageId:     "00000001",
@@ -231,7 +231,7 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildCommand(
-							&Parcel{
+							Parcel{
 								Envelope: parent,
 								Message:  cause,
 							},
@@ -250,7 +250,7 @@ var _ = Describe("type Packer", func() {
 				func(m dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildCommand(
-							&Parcel{
+							Parcel{
 								Envelope: parent,
 								Message:  MessageF1,
 							},
@@ -271,7 +271,7 @@ var _ = Describe("type Packer", func() {
 				"it returns a new envelope",
 				func(cause dogma.Message) {
 					p := packer.PackChildEvent(
-						&Parcel{
+						Parcel{
 							Envelope: parent,
 							Message:  cause,
 						},
@@ -281,7 +281,7 @@ var _ = Describe("type Packer", func() {
 					)
 
 					Expect(p).To(EqualX(
-						&Parcel{
+						Parcel{
 							Envelope: &envelopespec.Envelope{
 								MetaData: &envelopespec.MetaData{
 									MessageId:     "00000001",
@@ -312,7 +312,7 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildEvent(
-							&Parcel{
+							Parcel{
 								Envelope: parent,
 								Message:  cause,
 							},
@@ -332,7 +332,7 @@ var _ = Describe("type Packer", func() {
 				func(m dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildEvent(
-							&Parcel{
+							Parcel{
 								Envelope: parent,
 								Message:  MessageD1,
 							},
@@ -354,7 +354,7 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message) {
 					scheduledFor := time.Now()
 					p := packer.PackChildTimeout(
-						&Parcel{
+						Parcel{
 							Envelope: parent,
 							Message:  cause,
 						},
@@ -365,7 +365,7 @@ var _ = Describe("type Packer", func() {
 					)
 
 					Expect(p).To(EqualX(
-						&Parcel{
+						Parcel{
 							Envelope: &envelopespec.Envelope{
 								MetaData: &envelopespec.MetaData{
 									MessageId:     "00000001",
@@ -399,7 +399,7 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildTimeout(
-							&Parcel{
+							Parcel{
 								Envelope: parent,
 								Message:  cause,
 							},
@@ -419,7 +419,7 @@ var _ = Describe("type Packer", func() {
 				func(m dogma.Message, x string) {
 					Expect(func() {
 						packer.PackChildTimeout(
-							&Parcel{
+							Parcel{
 								Envelope: parent,
 								Message:  MessageF1,
 							},

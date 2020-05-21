@@ -21,7 +21,7 @@ import (
 var _ = Describe("type EntryPoint", func() {
 	var (
 		handler    *HandlerStub
-		cause      *parcel.Parcel
+		cause      parcel.Parcel
 		ack        *AcknowledgerStub
 		entryPoint *EntryPoint
 	)
@@ -45,7 +45,7 @@ var _ = Describe("type EntryPoint", func() {
 			handler.HandleMessageFunc = func(
 				_ context.Context,
 				_ *UnitOfWork,
-				p *parcel.Parcel,
+				p parcel.Parcel,
 			) error {
 				called = true
 				Expect(p).To(Equal(cause))
@@ -59,10 +59,10 @@ var _ = Describe("type EntryPoint", func() {
 
 		When("the message is handled successfully", func() {
 			var (
-				command        *parcel.Parcel
-				timeout        *parcel.Parcel
-				unqueuedEvent  *parcel.Parcel
-				queuedEvent    *parcel.Parcel
+				command        parcel.Parcel
+				timeout        parcel.Parcel
+				unqueuedEvent  parcel.Parcel
+				queuedEvent    parcel.Parcel
 				oper           persistence.Operation
 				expectedResult Result
 			)
@@ -88,7 +88,7 @@ var _ = Describe("type EntryPoint", func() {
 				handler.HandleMessageFunc = func(
 					ctx context.Context,
 					w *UnitOfWork,
-					p *parcel.Parcel,
+					p parcel.Parcel,
 				) error {
 					w.ExecuteCommand(command)
 					w.ScheduleTimeout(timeout)
@@ -221,7 +221,7 @@ var _ = Describe("type EntryPoint", func() {
 				handler.HandleMessageFunc = func(
 					ctx context.Context,
 					w *UnitOfWork,
-					p *parcel.Parcel,
+					p parcel.Parcel,
 				) error {
 					w.Observe(func(res Result, err error) {
 						called = true
@@ -242,7 +242,7 @@ var _ = Describe("type EntryPoint", func() {
 				handler.HandleMessageFunc = func(
 					context.Context,
 					*UnitOfWork,
-					*parcel.Parcel,
+					parcel.Parcel,
 				) error {
 					return errors.New("<error>")
 				}
@@ -268,7 +268,7 @@ var _ = Describe("type EntryPoint", func() {
 				handler.HandleMessageFunc = func(
 					_ context.Context,
 					w *UnitOfWork,
-					_ *parcel.Parcel,
+					_ parcel.Parcel,
 				) error {
 					w.Observe(func(_ Result, err error) {
 						called = true
@@ -355,7 +355,7 @@ var _ = Describe("type EntryPoint", func() {
 				handler.HandleMessageFunc = func(
 					_ context.Context,
 					w *UnitOfWork,
-					_ *parcel.Parcel,
+					_ parcel.Parcel,
 				) error {
 					w.Observe(func(_ Result, err error) {
 						called = true

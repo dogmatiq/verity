@@ -36,7 +36,7 @@ var _ = Describe("type MessageTypeRouter", func() {
 		upstream.HandleMessageFunc = func(
 			_ context.Context,
 			w *UnitOfWork,
-			p *parcel.Parcel,
+			p parcel.Parcel,
 		) error {
 			Expect(w).To(BeIdenticalTo(work))
 			Expect(p).To(BeIdenticalTo(pcl))
@@ -53,7 +53,7 @@ var _ = Describe("type MessageTypeRouter", func() {
 		upstream.HandleMessageFunc = func(
 			_ context.Context,
 			w *UnitOfWork,
-			p *parcel.Parcel,
+			p parcel.Parcel,
 		) error {
 			Fail("unexpected call")
 			return nil

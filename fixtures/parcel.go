@@ -37,7 +37,7 @@ func NewParcel(
 	id string,
 	m dogma.Message,
 	times ...time.Time,
-) *parcel.Parcel {
+) parcel.Parcel {
 	if id == "" {
 		id = uuid.New().String()
 	}
@@ -59,7 +59,7 @@ func NewParcel(
 	cleanseTime(&createdAt)
 	cleanseTime(&scheduledFor)
 
-	p := &parcel.Parcel{
+	p := parcel.Parcel{
 		Envelope: &envelopespec.Envelope{
 			MetaData: &envelopespec.MetaData{
 				MessageId:     id,

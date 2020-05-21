@@ -8,5 +8,5 @@ type Event struct {
 	Offset uint64
 
 	// Parcel contains the event from the stream.
-	Parcel *parcel.Parcel
+	Parcel parcel.Parcel
 }

@@ -30,7 +30,7 @@ var _ = Describe("type Adaptor", func() {
 		upstream   *AggregateMessageHandler
 		packer     *parcel.Packer
 		logger     *logging.BufferedLogger
-		cause      *parcel.Parcel
+		cause      parcel.Parcel
 		adaptor    *Adaptor
 		ack        *AcknowledgerStub
 		entryPoint *handler.EntryPoint

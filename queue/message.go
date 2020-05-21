@@ -8,6 +8,5 @@ import (
 // Message is a message on the queue.
 type Message struct {
 	persistence.QueueMessage
-
-	Parcel *parcel.Parcel
+	Parcel parcel.Parcel
 }

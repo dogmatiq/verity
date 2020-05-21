@@ -19,7 +19,7 @@ type scope struct {
 	packer      *parcel.Packer
 	logger      logging.Logger
 	work        *handler.UnitOfWork
-	cause       *parcel.Parcel
+	cause       parcel.Parcel
 	instance    *Instance // the aggregate instance, this is always within a cache record
 	created     bool      // true if Create() has been called successfully at least once
 	destroyed   bool      // true if Destroy() has been called successfully at least once

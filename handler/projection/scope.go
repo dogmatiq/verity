@@ -10,7 +10,7 @@ import (
 
 // scope is an implementation of dogma.ProjectionEventScope.
 type scope struct {
-	cause  *parcel.Parcel
+	cause  parcel.Parcel
 	logger logging.Logger
 }
 

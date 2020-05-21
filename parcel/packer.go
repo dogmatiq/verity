@@ -38,13 +38,13 @@ type Packer struct {
 }
 
 // PackCommand returns a parcel containing the given command message.
-func (p *Packer) PackCommand(m dogma.Message) *Parcel {
+func (p *Packer) PackCommand(m dogma.Message) Parcel {
 	p.checkProducedRole(m, message.CommandRole)
 	return p.new(m)
 }
 
 // PackEvent returns a parcel containing the given event message.
-func (p *Packer) PackEvent(m dogma.Message) *Parcel {
+func (p *Packer) PackEvent(m dogma.Message) Parcel {
 	p.checkProducedRole(m, message.EventRole)
 	return p.new(m)
 }
@@ -52,11 +52,11 @@ func (p *Packer) PackEvent(m dogma.Message) *Parcel {
 // PackChildCommand returns a parcel containing the given command message,
 // configured as a child of c, the cause.
 func (p *Packer) PackChildCommand(
-	c *Parcel,
+	c Parcel,
 	m dogma.Message,
 	handler *envelopespec.Identity,
 	instanceID string,
-) *Parcel {
+) Parcel {
 	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
 	p.checkProducedRole(m, message.CommandRole)
 
@@ -71,11 +71,11 @@ func (p *Packer) PackChildCommand(
 // PackChildEvent returns a parcel containing the given event message,
 // configured as a child of c, the cause.
 func (p *Packer) PackChildEvent(
-	c *Parcel,
+	c Parcel,
 	m dogma.Message,
 	handler *envelopespec.Identity,
 	instanceID string,
-) *Parcel {
+) Parcel {
 	p.checkConsumedRole(c.Message, message.CommandRole)
 	p.checkProducedRole(m, message.EventRole)
 
@@ -90,12 +90,12 @@ func (p *Packer) PackChildEvent(
 // PackChildTimeout returns a parcel containing the given timeout message,
 // configured as a child of c, the cause.
 func (p *Packer) PackChildTimeout(
-	c *Parcel,
+	c Parcel,
 	m dogma.Message,
 	t time.Time,
 	handler *envelopespec.Identity,
 	instanceID string,
-) *Parcel {
+) Parcel {
 	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
 	p.checkProducedRole(m, message.TimeoutRole)
 
@@ -113,11 +113,11 @@ func (p *Packer) PackChildTimeout(
 }
 
 // new returns an envelope containing the given message.
-func (p *Packer) new(m dogma.Message) *Parcel {
+func (p *Packer) new(m dogma.Message) Parcel {
 	id := p.generateID()
 	now := p.now()
 
-	env := &Parcel{
+	env := Parcel{
 		Envelope: &envelopespec.Envelope{
 			MetaData: &envelopespec.MetaData{
 				MessageId:     id,
@@ -142,11 +142,11 @@ func (p *Packer) new(m dogma.Message) *Parcel {
 // newChild returns an envelope containing the given message, which was a
 // produced as a result of handling a causal message.
 func (p *Packer) newChild(
-	c *Parcel,
+	c Parcel,
 	m dogma.Message,
 	handler *envelopespec.Identity,
 	instanceID string,
-) *Parcel {
+) Parcel {
 	parcel := p.new(m)
 
 	parcel.Envelope.MetaData.CausationId = c.Envelope.MetaData.MessageId

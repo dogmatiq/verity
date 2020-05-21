@@ -41,7 +41,7 @@ var _ = Describe("type Stream", func() {
 
 			return streamtest.Out{
 				Stream: stream,
-				Append: func(ctx context.Context, parcels ...*parcel.Parcel) {
+				Append: func(ctx context.Context, parcels ...parcel.Parcel) {
 					var batch persistence.Batch
 					for _, p := range parcels {
 						batch = append(batch, persistence.SaveEvent{

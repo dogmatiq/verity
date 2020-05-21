@@ -16,7 +16,7 @@ type MessageTypeRouter map[message.Type]Handler
 func (r MessageTypeRouter) HandleMessage(
 	ctx context.Context,
 	w *UnitOfWork,
-	p *parcel.Parcel,
+	p parcel.Parcel,
 ) error {
 	mt := message.TypeOf(p.Message)
 

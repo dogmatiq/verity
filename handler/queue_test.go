@@ -27,7 +27,7 @@ var _ = Describe("type QueueConsumer", func() {
 		cancel    context.CancelFunc
 		dataStore *DataStoreStub
 		mqueue    *queue.Queue
-		pcl       *parcel.Parcel
+		pcl       parcel.Parcel
 		handler   *HandlerStub
 		consumer  *QueueConsumer
 	)
@@ -98,7 +98,7 @@ var _ = Describe("type QueueConsumer", func() {
 			handler.HandleMessageFunc = func(
 				ctx context.Context,
 				w *UnitOfWork,
-				p *parcel.Parcel,
+				p parcel.Parcel,
 			) error {
 				defer GinkgoRecover()
 				defer cancel()
@@ -179,7 +179,7 @@ var _ = Describe("type QueueConsumer", func() {
 				handler.HandleMessageFunc = func(
 					context.Context,
 					*UnitOfWork,
-					*parcel.Parcel,
+					parcel.Parcel,
 				) error {
 					return errors.New("<error>")
 				}
