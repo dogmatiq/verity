@@ -27,14 +27,14 @@ var _ = Describe("type Stream", func() {
 
 			cache := &memorystream.Stream{
 				// don't cache the first event from our tests so we force use of
-				// both the cache and the event store.
+				// both the cache and the repository.
 				FirstOffset: 1,
 			}
 
 			stream := &Stream{
 				App:        in.Application.Identity(),
 				Types:      in.EventTypes,
-				Repository: dataStore.EventStoreRepository(),
+				Repository: dataStore,
 				Marshaler:  in.Marshaler,
 				Cache:      cache,
 			}

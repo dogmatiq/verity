@@ -12,7 +12,6 @@ import (
 	. "github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -114,28 +113,28 @@ var _ = Describe("type EntryPoint", func() {
 				expectedResult = Result{
 					Queued: []queue.Message{
 						{
-							Parcel: command,
-							Item: &queuestore.Item{
+							QueueMessage: persistence.QueueMessage{
 								Revision:      1,
 								NextAttemptAt: command.CreatedAt,
 								Envelope:      command.Envelope,
 							},
+							Parcel: command,
 						},
 						{
-							Parcel: timeout,
-							Item: &queuestore.Item{
+							QueueMessage: persistence.QueueMessage{
 								Revision:      1,
 								NextAttemptAt: timeout.ScheduledFor,
 								Envelope:      timeout.Envelope,
 							},
+							Parcel: timeout,
 						},
 						{
-							Parcel: queuedEvent,
-							Item: &queuestore.Item{
+							QueueMessage: persistence.QueueMessage{
 								Revision:      1,
 								NextAttemptAt: queuedEvent.CreatedAt,
 								Envelope:      queuedEvent.Envelope,
 							},
+							Parcel: queuedEvent,
 						},
 					},
 					Events: []eventstream.Event{
@@ -161,15 +160,15 @@ var _ = Describe("type EntryPoint", func() {
 					Expect(b).To(EqualX(
 						persistence.Batch{
 							// commands ...
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									NextAttemptAt: command.CreatedAt,
 									Envelope:      command.Envelope,
 								},
 							},
 							// timeouts ...
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									NextAttemptAt: timeout.ScheduledFor,
 									Envelope:      timeout.Envelope,
 								},
@@ -181,8 +180,8 @@ var _ = Describe("type EntryPoint", func() {
 							persistence.SaveEvent{
 								Envelope: queuedEvent.Envelope,
 							},
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									NextAttemptAt: queuedEvent.CreatedAt,
 									Envelope:      queuedEvent.Envelope,
 								},

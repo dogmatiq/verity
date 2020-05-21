@@ -1,4 +1,4 @@
-package postgres
+package mysql
 
 import (
 	"context"
@@ -6,12 +6,10 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/provider/sql/internal/query"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence"
 )
 
-// UpdateNextOffset increments the eventstore offset by 1 and returns the new
-// value.
+// UpdateNextOffset increments the next offset by one and returns the new value.
 func (driver) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
@@ -19,23 +17,30 @@ func (driver) UpdateNextOffset(
 ) (_ uint64, err error) {
 	defer sqlx.Recover(&err)
 
-	o := sqlx.QueryInt64(
+	sqlx.Exec(
 		ctx,
 		tx,
-		`INSERT INTO infix.event_offset AS o (
-			source_app_key
-		) VALUES (
-			$1
-		) ON CONFLICT (source_app_key) DO UPDATE SET
-			next_offset = o.next_offset + 1
-		RETURNING next_offset`,
+		`INSERT INTO event_offset SET
+			source_app_key = ?
+		ON DUPLICATE KEY UPDATE
+			next_offset = next_offset + 1`,
 		ak,
 	)
 
-	return uint64(o), nil
+	next := sqlx.QueryInt64(
+		ctx,
+		tx,
+		`SELECT
+			next_offset
+		FROM event_offset
+		WHERE source_app_key = ?`,
+		ak,
+	)
+
+	return uint64(next), nil
 }
 
-// InsertEvent saves an event to the eventstore at a specific offset.
+// InsertEvent saves an event at a specific offset.
 func (driver) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
@@ -44,24 +49,21 @@ func (driver) InsertEvent(
 ) error {
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO infix.event (
-				"offset",
-				message_id,
-				causation_id,
-				correlation_id,
-				source_app_name,
-				source_app_key,
-				source_handler_name,
-				source_handler_key,
-				source_instance_id,
-				created_at,
-				description,
-				portable_name,
-				media_type,
-				data
-			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-			)`,
+		`INSERT INTO event SET
+				offset = ?,
+				message_id = ?,
+				causation_id = ?,
+				correlation_id = ?,
+				source_app_name = ?,
+				source_app_key = ?,
+				source_handler_name = ?,
+				source_handler_key = ?,
+				source_instance_id = ?,
+				created_at = ?,
+				description = ?,
+				portable_name = ?,
+				media_type = ?,
+				data = ?`,
 		o,
 		env.GetMetaData().GetMessageId(),
 		env.GetMetaData().GetCausationId(),
@@ -89,21 +91,18 @@ func (driver) InsertEventFilter(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	f eventstore.Filter,
+	f map[string]struct{},
 ) (_ int64, err error) {
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
 	defer tx.Rollback()
 
-	id := sqlx.QueryInt64(
+	id := sqlx.Insert(
 		ctx,
 		tx,
-		`INSERT INTO infix.event_filter (
-			app_key
-		) VALUES (
-			$1
-		) RETURNING id`,
+		`INSERT INTO event_filter SET
+			app_key = ?`,
 		ak,
 	)
 
@@ -111,12 +110,9 @@ func (driver) InsertEventFilter(
 		sqlx.Exec(
 			ctx,
 			tx,
-			`INSERT INTO infix.event_filter_name (
-				filter_id,
-				portable_name
-			) VALUES (
-				$1, $2
-			)`,
+			`INSERT INTO event_filter_name SET
+				filter_id = ?,
+				portable_name = ?`,
 			id,
 			n,
 		)
@@ -135,8 +131,8 @@ func (driver) DeleteEventFilter(
 ) error {
 	_, err := db.ExecContext(
 		ctx,
-		`DELETE FROM infix.event_filter
-		WHERE id = $1`,
+		`DELETE FROM event_filter
+		WHERE id = ?`,
 		f,
 	)
 	return err
@@ -150,14 +146,14 @@ func (driver) PurgeEventFilters(
 ) error {
 	_, err := db.ExecContext(
 		ctx,
-		`DELETE FROM infix.event_filter
-		WHERE app_key = $1`,
+		`DELETE FROM event_filter
+		WHERE app_key = ?`,
 		ak,
 	)
 	return err
 }
 
-// SelectNextEventOffset selects the next "unused" offset from the event store.
+// SelectNextEventOffset selects the next "unused" offset.
 func (driver) SelectNextEventOffset(
 	ctx context.Context,
 	db *sql.DB,
@@ -167,7 +163,7 @@ func (driver) SelectNextEventOffset(
 		ctx,
 		`SELECT
 			next_offset
-		FROM infix.event_offset`,
+		FROM event_offset`,
 	)
 
 	var next uint64
@@ -180,21 +176,19 @@ func (driver) SelectNextEventOffset(
 	return next, err
 }
 
-// SelectEventsByType selects events from the eventstore that match the
-// given event types query.
+// SelectEventsByType selects events that match the given type filter.
 //
-// f is a filter ID, as returned by InsertEventFilter(). If the query does
-// not use a filter, f is zero.
+// f is a filter ID, as returned by InsertEventFilter(). o is the minimum offset
+// to include in the results.
 func (driver) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	q eventstore.Query,
 	f int64,
+	o uint64,
 ) (*sql.Rows, error) {
-	qb := query.Builder{Numeric: true}
-
-	qb.Write(
+	return db.QueryContext(
+		ctx,
 		`SELECT
 			e.offset,
 			e.message_id,
@@ -210,47 +204,20 @@ func (driver) SelectEventsByType(
 			e.portable_name,
 			e.media_type,
 			e.data
-		FROM infix.event AS e`,
-	)
-
-	if f != 0 {
-		qb.Write(
-			`INNER JOIN infix.event_filter_name AS ft
-			ON ft.filter_id = ?
-			AND ft.portable_name = e.portable_name`,
-			f,
-		)
-	}
-
-	qb.Write(
-		`WHERE e.source_app_key = ?
-		AND e.offset >= ?`,
+		FROM event AS e
+		INNER JOIN event_filter_name AS ft
+		ON ft.portable_name = e.portable_name
+		WHERE e.source_app_key = ?
+		AND e.offset >= ?
+		AND ft.filter_id = ?
+		ORDER BY e.offset`,
 		ak,
-		q.MinOffset,
-	)
-
-	if q.AggregateHandlerKey != "" {
-		qb.Write(
-			`AND e.source_handler_key = ?
-			AND e.source_instance_id = ?`,
-			q.AggregateHandlerKey,
-			q.AggregateInstanceID,
-		)
-	}
-
-	qb.Write(
-		`ORDER BY e.offset`,
-	)
-
-	return db.QueryContext(
-		ctx,
-		qb.String(),
-		qb.Parameters...,
+		o,
+		f,
 	)
 }
 
-// SelectEventsBySource selects events from the eventstore that match the
-// given source, namely the source's key and id.
+// SelectEventsBySource selects events that were produced by a specific handler.
 func (driver) SelectEventsBySource(
 	ctx context.Context,
 	db *sql.DB,
@@ -274,11 +241,11 @@ func (driver) SelectEventsBySource(
 			e.portable_name,
 			e.media_type,
 			e.data
-		FROM infix.event AS e
-		WHERE e.source_app_key = $1
-		AND e.source_handler_key = $2
-		AND e.source_instance_id = $3
-		AND e.offset >= $4
+		FROM event AS e
+		WHERE e.source_app_key = ?
+		AND e.source_handler_key = ?
+		AND e.source_instance_id = ?
+		AND e.offset >= ?
 		ORDER BY e.offset`,
 		ak,
 		hk,
@@ -298,9 +265,9 @@ func (driver) SelectOffsetByMessageID(
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
-			e.offset
-		FROM infix.event AS e
-		WHERE e.message_id = $1`,
+		e.offset
+		FROM event AS e
+		WHERE e.message_id = ?`,
 		id,
 	)
 
@@ -316,22 +283,22 @@ func (driver) SelectOffsetByMessageID(
 // ScanEvent scans the next event from a row-set returned by SelectEvents().
 func (driver) ScanEvent(
 	rows *sql.Rows,
-	i *eventstore.Item,
+	ev *persistence.Event,
 ) error {
 	return rows.Scan(
-		&i.Offset,
-		&i.Envelope.MetaData.MessageId,
-		&i.Envelope.MetaData.CausationId,
-		&i.Envelope.MetaData.CorrelationId,
-		&i.Envelope.MetaData.Source.Application.Name,
-		&i.Envelope.MetaData.Source.Application.Key,
-		&i.Envelope.MetaData.Source.Handler.Name,
-		&i.Envelope.MetaData.Source.Handler.Key,
-		&i.Envelope.MetaData.Source.InstanceId,
-		&i.Envelope.MetaData.CreatedAt,
-		&i.Envelope.MetaData.Description,
-		&i.Envelope.PortableName,
-		&i.Envelope.MediaType,
-		&i.Envelope.Data,
+		&ev.Offset,
+		&ev.Envelope.MetaData.MessageId,
+		&ev.Envelope.MetaData.CausationId,
+		&ev.Envelope.MetaData.CorrelationId,
+		&ev.Envelope.MetaData.Source.Application.Name,
+		&ev.Envelope.MetaData.Source.Application.Key,
+		&ev.Envelope.MetaData.Source.Handler.Name,
+		&ev.Envelope.MetaData.Source.Handler.Key,
+		&ev.Envelope.MetaData.Source.InstanceId,
+		&ev.Envelope.MetaData.CreatedAt,
+		&ev.Envelope.MetaData.Description,
+		&ev.Envelope.PortableName,
+		&ev.Envelope.MediaType,
+		&ev.Envelope.Data,
 	)
 }

@@ -5,10 +5,6 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // ProviderStub is a test implementation of the persistence.Provider interface.
@@ -39,12 +35,13 @@ func (p *ProviderStub) Open(ctx context.Context, k string) (persistence.DataStor
 type DataStoreStub struct {
 	persistence.DataStore
 
-	AggregateStoreRepositoryFunc func() aggregatestore.Repository
-	OffsetStoreRepositoryFunc    func() offsetstore.Repository
-	EventStoreRepositoryFunc     func() eventstore.Repository
-	QueueStoreRepositoryFunc     func() queuestore.Repository
-	PersistFunc                  func(context.Context, persistence.Batch) (persistence.Result, error)
-	CloseFunc                    func() error
+	LoadAggregateMetaDataFunc func(context.Context, string, string) (*persistence.AggregateMetaData, error)
+	LoadEventsByTypeFunc      func(context.Context, map[string]struct{}, uint64) (persistence.EventResult, error)
+	LoadEventsBySourceFunc    func(context.Context, string, string, string) (persistence.EventResult, error)
+	LoadOffsetFunc            func(context.Context, string) (uint64, error)
+	LoadQueueMessagesFunc     func(context.Context, int) ([]persistence.QueueMessage, error)
+	PersistFunc               func(context.Context, persistence.Batch) (persistence.Result, error)
+	CloseFunc                 func() error
 }
 
 // NewDataStoreStub returns a new data-store stub that uses an in-memory
@@ -62,81 +59,85 @@ func NewDataStoreStub() *DataStoreStub {
 	return ds.(*DataStoreStub)
 }
 
-// AggregateStoreRepository returns the application's aggregate store
-// repository.
-func (ds *DataStoreStub) AggregateStoreRepository() aggregatestore.Repository {
-	if ds.EventStoreRepositoryFunc != nil {
-		return ds.AggregateStoreRepositoryFunc()
+// LoadAggregateMetaData loads the meta-data for an aggregate instance.
+func (ds *DataStoreStub) LoadAggregateMetaData(
+	ctx context.Context,
+	hk, id string,
+) (*persistence.AggregateMetaData, error) {
+	if ds.LoadAggregateMetaDataFunc != nil {
+		return ds.LoadAggregateMetaDataFunc(ctx, hk, id)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.AggregateStoreRepository()
-
-		if r != nil {
-			r = &AggregateStoreRepositoryStub{Repository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadAggregateMetaData(ctx, hk, id)
 	}
 
-	return nil
+	return nil, nil
 }
 
-// EventStoreRepository returns the application's event store repository.
-func (ds *DataStoreStub) EventStoreRepository() eventstore.Repository {
-	if ds.EventStoreRepositoryFunc != nil {
-		return ds.EventStoreRepositoryFunc()
+// LoadEventsBySource loads the events produced by a specific handler.
+func (ds *DataStoreStub) LoadEventsBySource(
+	ctx context.Context,
+	hk, id, d string,
+) (persistence.EventResult, error) {
+	if ds.LoadEventsBySourceFunc != nil {
+		return ds.LoadEventsBySourceFunc(ctx, hk, id, d)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.EventStoreRepository()
-
-		if r != nil {
-			r = &EventStoreRepositoryStub{Repository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadEventsBySource(ctx, hk, id, d)
 	}
 
-	return nil
+	return nil, nil
 }
 
-// OffsetStoreRepository returns the application's offset store repository.
-func (ds *DataStoreStub) OffsetStoreRepository() offsetstore.Repository {
-	if ds.OffsetStoreRepositoryFunc != nil {
-		return ds.OffsetStoreRepositoryFunc()
+// LoadEventsByType loads events that match a specific set of message types.
+func (ds *DataStoreStub) LoadEventsByType(
+	ctx context.Context,
+	f map[string]struct{},
+	o uint64,
+) (persistence.EventResult, error) {
+	if ds.LoadEventsByTypeFunc != nil {
+		return ds.LoadEventsByTypeFunc(ctx, f, o)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.OffsetStoreRepository()
-
-		if r != nil {
-			r = &OffsetStoreRepositoryStub{Repository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadEventsByType(ctx, f, o)
 	}
 
-	return nil
+	return nil, nil
 }
 
-// QueueStoreRepository returns the application's queue store repository.
-func (ds *DataStoreStub) QueueStoreRepository() queuestore.Repository {
-	if ds.QueueStoreRepositoryFunc != nil {
-		return ds.QueueStoreRepositoryFunc()
+// LoadOffset loads the offset associated with a specific application.
+func (ds *DataStoreStub) LoadOffset(
+	ctx context.Context,
+	ak string,
+) (uint64, error) {
+	if ds.LoadOffsetFunc != nil {
+		return ds.LoadOffsetFunc(ctx, ak)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.QueueStoreRepository()
-
-		if r != nil {
-			r = &QueueStoreRepositoryStub{Repository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadOffset(ctx, ak)
 	}
 
-	return nil
+	return 0, nil
+}
+
+// LoadQueueMessages loads the next n messages from the queue.
+func (ds *DataStoreStub) LoadQueueMessages(
+	ctx context.Context,
+	n int,
+) ([]persistence.QueueMessage, error) {
+	if ds.LoadQueueMessagesFunc != nil {
+		return ds.LoadQueueMessagesFunc(ctx, n)
+	}
+
+	if ds.DataStore != nil {
+		return ds.DataStore.LoadQueueMessages(ctx, n)
+	}
+
+	return nil, nil
 }
 
 // Persist commits a batch of operations atomically.
@@ -160,6 +161,41 @@ func (ds *DataStoreStub) Close() error {
 
 	if ds.DataStore != nil {
 		return ds.DataStore.Close()
+	}
+
+	return nil
+}
+
+// EventResultStub is a test implementation of the persistence.EventResult
+// interface.
+type EventResultStub struct {
+	persistence.EventResult
+
+	NextFunc  func(context.Context) (persistence.Event, bool, error)
+	CloseFunc func() error
+}
+
+// Next returns the next event in the result.
+func (r *EventResultStub) Next(ctx context.Context) (persistence.Event, bool, error) {
+	if r.NextFunc != nil {
+		return r.NextFunc(ctx)
+	}
+
+	if r.EventResult != nil {
+		return r.EventResult.Next(ctx)
+	}
+
+	return persistence.Event{}, false, nil
+}
+
+// Close closes the cursor.
+func (r *EventResultStub) Close() error {
+	if r.CloseFunc != nil {
+		return r.CloseFunc()
+	}
+
+	if r.EventResult != nil {
+		return r.EventResult.Close()
 	}
 
 	return nil

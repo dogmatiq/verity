@@ -1,11 +1,11 @@
-package postgres
+package sqlite
 
 import (
 	"context"
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"github.com/dogmatiq/infix/persistence"
 )
 
 // InsertAggregateMetaData inserts meta-data for an aggregate instance.
@@ -15,14 +15,14 @@ func (driver) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
 	res := sqlx.Exec(
 		ctx,
 		tx,
-		`INSERT INTO infix.aggregate_metadata (
+		`INSERT INTO aggregate_metadata (
 			app_key,
 			handler_key,
 			instance_id,
@@ -49,14 +49,14 @@ func (driver) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE infix.aggregate_metadata SET
+		`UPDATE aggregate_metadata SET
 			revision = revision + 1,
 			instance_exists = $1,
 			last_destroyed_by = $2
@@ -78,14 +78,14 @@ func (driver) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (*aggregatestore.MetaData, error) {
+) (*persistence.AggregateMetaData, error) {
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
 			revision,
 			instance_exists,
 			last_destroyed_by
-		FROM infix.aggregate_metadata
+		FROM aggregate_metadata
 		WHERE app_key = $1
 		AND handler_key = $2
 		AND instance_id = $3`,
@@ -94,7 +94,7 @@ func (driver) SelectAggregateMetaData(
 		id,
 	)
 
-	md := &aggregatestore.MetaData{
+	md := &persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}

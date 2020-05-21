@@ -5,12 +5,11 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 )
 
-// aggregateStoreDriver is the subset of the Driver interface that is concerned
-// with the aggregatestore subsystem.
-type aggregateStoreDriver interface {
+// AggregateDriver is the subset of the Driver interface that is concerned with
+// aggregates.
+type AggregateDriver interface {
 	// InsertAggregateMetaData inserts meta-data for an aggregate instance.
 	//
 	// It returns false if the row already exists.
@@ -18,7 +17,7 @@ type aggregateStoreDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		md *aggregatestore.MetaData,
+		md *persistence.AggregateMetaData,
 	) (bool, error)
 
 	// UpdateAggregateMetaData updates meta-data for an aggregate instance.
@@ -28,7 +27,7 @@ type aggregateStoreDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		md *aggregatestore.MetaData,
+		md *persistence.AggregateMetaData,
 	) (bool, error)
 
 	// SelectAggregateMetaData selects an aggregate instance's meta-data.
@@ -36,16 +35,16 @@ type aggregateStoreDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak, hk, id string,
-	) (*aggregatestore.MetaData, error)
+	) (*persistence.AggregateMetaData, error)
 }
 
-// LoadMetaData loads the meta-data for an aggregate instance.
+// LoadAggregateMetaData loads the meta-data for an aggregate instance.
 //
 // ak is the aggregate handler's identity key, id is the instance ID.
-func (ds *dataStore) LoadMetaData(
+func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (*aggregatestore.MetaData, error) {
+) (*persistence.AggregateMetaData, error) {
 	return ds.driver.SelectAggregateMetaData(
 		ctx,
 		ds.db,

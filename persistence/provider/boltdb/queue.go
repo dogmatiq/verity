@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
@@ -16,12 +15,12 @@ var (
 	// queueBucketKey is the key for the root bucket for the message queue.
 	queueBucketKey = []byte("queue")
 
-	// queueItemsBucketKey is the key for a child bucket that contains each
+	// queueMessagesBucketKey is the key for a child bucket that contains each
 	// queued message.
 	//
 	// The keys are the application-defined message ID. The values are
-	// pb.QueueItem values marshaled using protocol buffers.
-	queueItemsBucketKey = []byte("items")
+	// pb.QueueMessage values marshaled using protocol buffers.
+	queueMessagesBucketKey = []byte("messages")
 
 	// queueOrderBucketKey is the key for a child bucket that is used to index
 	// the queued messages by their next-attempt time.
@@ -40,10 +39,10 @@ var (
 func (ds *dataStore) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) (_ []*queuestore.Item, err error) {
+) (_ []persistence.QueueMessage, err error) {
 	defer bboltx.Recover(&err)
 
-	var result []*queuestore.Item
+	var result []persistence.QueueMessage
 
 	bboltx.View(
 		ds.db,
@@ -57,9 +56,9 @@ func (ds *dataStore) LoadQueueMessages(
 				return
 			}
 
-			items := bboltx.Bucket(
+			messages := bboltx.Bucket(
 				queue,
-				queueItemsBucketKey,
+				queueMessagesBucketKey,
 			)
 
 			order := bboltx.Bucket(
@@ -75,9 +74,12 @@ func (ds *dataStore) LoadQueueMessages(
 				id, _ := idCursor.First()
 
 				for id != nil {
-					data := items.Get(id)
-					item := unmarshalQueueItem(data)
-					result = append(result, item)
+					result = append(
+						result,
+						unmarshalQueueMessage(
+							messages.Get(id),
+						),
+					)
 
 					if len(result) == n {
 						return
@@ -94,20 +96,20 @@ func (ds *dataStore) LoadQueueMessages(
 	return result, nil
 }
 
-// VisitSaveQueueItem applies the changes in a "SaveQueueItem" operation to the
-// database.
-func (c *committer) VisitSaveQueueItem(
+// VisitSaveQueueMessage applies the changes in a "SaveQueueMessage" operation
+// to the database.
+func (c *committer) VisitSaveQueueMessage(
 	ctx context.Context,
-	op persistence.SaveQueueItem,
+	op persistence.SaveQueueMessage,
 ) error {
 	queue := bboltx.CreateBucketIfNotExists(
 		c.root,
 		queueBucketKey,
 	)
 
-	items := bboltx.CreateBucketIfNotExists(
+	messages := bboltx.CreateBucketIfNotExists(
 		queue,
-		queueItemsBucketKey,
+		queueMessagesBucketKey,
 	)
 
 	order := bboltx.CreateBucketIfNotExists(
@@ -115,20 +117,20 @@ func (c *committer) VisitSaveQueueItem(
 		queueOrderBucketKey,
 	)
 
-	old := loadQueueItem(items, op.Item.ID())
+	old := loadQueueMessage(messages, op.Message.ID())
 
-	if op.Item.Revision != old.GetRevision() {
+	if op.Message.Revision != old.GetRevision() {
 		return persistence.ConflictError{
 			Cause: op,
 		}
 	}
 
 	// Ensure the envelope can not be modified.
-	if op.Item.Revision > 0 {
-		op.Item.Envelope = old.GetEnvelope()
+	if op.Message.Revision > 0 {
+		op.Message.Envelope = old.GetEnvelope()
 	}
 
-	new := saveQueueItem(items, op.Item)
+	new := saveQueueMessage(messages, op.Message)
 
 	if new.GetNextAttemptAt() != old.GetNextAttemptAt() {
 		if old != nil {
@@ -141,11 +143,11 @@ func (c *committer) VisitSaveQueueItem(
 	return nil
 }
 
-// VisitRemoveQueueItem applies the changes in a "RemoveQueueItem" operation to
-// the database.
-func (c *committer) VisitRemoveQueueItem(
+// VisitRemoveQueueMessage applies the changes in a "RemoveQueueMessage"
+// operation to the database.
+func (c *committer) VisitRemoveQueueMessage(
 	ctx context.Context,
-	op persistence.RemoveQueueItem,
+	op persistence.RemoveQueueMessage,
 ) error {
 	queue, ok := bboltx.TryBucket(
 		c.root,
@@ -157,14 +159,14 @@ func (c *committer) VisitRemoveQueueItem(
 		}
 	}
 
-	items := bboltx.Bucket(
+	messages := bboltx.Bucket(
 		queue,
-		queueItemsBucketKey,
+		queueMessagesBucketKey,
 	)
 
-	old := loadQueueItem(items, op.Item.ID())
+	old := loadQueueMessage(messages, op.Message.ID())
 
-	if op.Item.Revision != old.GetRevision() {
+	if op.Message.Revision != old.GetRevision() {
 		return persistence.ConflictError{
 			Cause: op,
 		}
@@ -175,81 +177,81 @@ func (c *committer) VisitRemoveQueueItem(
 		queueOrderBucketKey,
 	)
 
-	bboltx.Delete(items, []byte(op.Item.ID()))
+	bboltx.Delete(messages, []byte(op.Message.ID()))
 	removeQueueOrder(order, old)
 
 	return nil
 }
 
-// unmarshalQueueItem unmarshals a queuestore.Item from its binary
+// unmarshalQueueMessage unmarshals a persistence.QueueMessage from its binary
 // representation.
-func unmarshalQueueItem(data []byte) *queuestore.Item {
-	var i pb.QueueItem
-	bboltx.Must(proto.Unmarshal(data, &i))
+func unmarshalQueueMessage(data []byte) persistence.QueueMessage {
+	var m pb.QueueMessage
+	bboltx.Must(proto.Unmarshal(data, &m))
 
-	next, err := time.Parse(time.RFC3339Nano, i.NextAttemptAt)
+	next, err := time.Parse(time.RFC3339Nano, m.NextAttemptAt)
 	bboltx.Must(err)
 
-	return &queuestore.Item{
-		Revision:      i.Revision,
-		FailureCount:  uint(i.FailureCount),
+	return persistence.QueueMessage{
+		Revision:      m.Revision,
+		FailureCount:  uint(m.FailureCount),
 		NextAttemptAt: next,
-		Envelope:      i.Envelope,
+		Envelope:      m.Envelope,
 	}
 }
 
-// saveQueueItem saves a queue item to b.
-func saveQueueItem(b *bbolt.Bucket, i queuestore.Item) *pb.QueueItem {
-	v := &pb.QueueItem{
-		Revision:      i.Revision + 1,
-		FailureCount:  uint64(i.FailureCount),
-		NextAttemptAt: i.NextAttemptAt.Format(time.RFC3339Nano),
-		Envelope:      i.Envelope,
+// saveQueueMessage saves a persistence.QueueMessage to b.
+func saveQueueMessage(b *bbolt.Bucket, m persistence.QueueMessage) *pb.QueueMessage {
+	v := &pb.QueueMessage{
+		Revision:      m.Revision + 1,
+		FailureCount:  uint64(m.FailureCount),
+		NextAttemptAt: m.NextAttemptAt.Format(time.RFC3339Nano),
+		Envelope:      m.Envelope,
 	}
 
 	data, err := proto.Marshal(v)
 	bboltx.Must(err)
-	bboltx.Put(b, []byte(i.ID()), data)
+	bboltx.Put(b, []byte(m.ID()), data)
 
 	return v
 }
 
-// loadQueueItem loads a queue item with a specific message ID from b.
-func loadQueueItem(b *bbolt.Bucket, id string) *pb.QueueItem {
+// loadQueueMessage loads a queue message with a specific message ID from b.
+func loadQueueMessage(b *bbolt.Bucket, id string) *pb.QueueMessage {
 	data := b.Get([]byte(id))
 	if data == nil {
 		return nil
 	}
 
-	var item pb.QueueItem
-	err := proto.Unmarshal(data, &item)
+	var m pb.QueueMessage
+	err := proto.Unmarshal(data, &m)
 	bboltx.Must(err)
 
-	return &item
+	return &m
 }
 
-// saveQueueOrder adds a record for i to the order bucket.
-func saveQueueOrder(order *bbolt.Bucket, i *pb.QueueItem) {
-	id := i.GetEnvelope().GetMetaData().GetMessageId()
+// saveQueueOrder adds a record for m to the order bucket.
+func saveQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
+	id := m.GetEnvelope().GetMetaData().GetMessageId()
 
 	bboltx.Put(
 		bboltx.CreateBucketIfNotExists(
 			order,
-			[]byte(i.NextAttemptAt),
+			[]byte(m.NextAttemptAt),
 		),
 		[]byte(id),
 		nil,
 	)
 }
 
-// removeQueueOrder removes the record for i from the order bucket.
-func removeQueueOrder(order *bbolt.Bucket, i *pb.QueueItem) {
-	id := i.GetEnvelope().GetMetaData().GetMessageId()
+// removeQueueOrder removes the record for m from the order bucket.
+func removeQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
+	id := m.GetEnvelope().GetMetaData().GetMessageId()
 
 	bboltx.Delete(
 		bboltx.Bucket(
 			order,
-			[]byte(i.NextAttemptAt),
+			[]byte(m.NextAttemptAt),
 		),
 		[]byte(id),
 	)

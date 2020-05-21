@@ -9,7 +9,6 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -23,7 +22,6 @@ var _ = Describe("type Queue", func() {
 		ctx                       context.Context
 		cancel                    context.CancelFunc
 		dataStore                 *DataStoreStub
-		repository                *QueueStoreRepositoryStub
 		queue                     *Queue
 		parcel0, parcel1, parcel2 *parcel.Parcel
 		push                      func(*parcel.Parcel, ...time.Time)
@@ -37,10 +35,9 @@ var _ = Describe("type Queue", func() {
 		parcel2 = NewParcel("<message-2>", MessageA3)
 
 		dataStore = NewDataStoreStub()
-		repository = dataStore.QueueStoreRepository().(*QueueStoreRepositoryStub)
 
 		queue = &Queue{
-			Repository: repository,
+			Repository: dataStore,
 			Marshaler:  Marshaler,
 		}
 
@@ -55,7 +52,7 @@ var _ = Describe("type Queue", func() {
 				next = n
 			}
 
-			i := queuestore.Item{
+			m := persistence.QueueMessage{
 				NextAttemptAt: next,
 				Envelope:      p.Envelope,
 			}
@@ -63,19 +60,19 @@ var _ = Describe("type Queue", func() {
 			_, err := dataStore.Persist(
 				ctx,
 				persistence.Batch{
-					persistence.SaveQueueItem{
-						Item: i,
+					persistence.SaveQueueMessage{
+						Message: m,
 					},
 				},
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			i.Revision++
+			m.Revision++
 
 			queue.Add([]Message{
 				{
-					Parcel: p,
-					Item:   &i,
+					QueueMessage: m,
+					Parcel:       p,
 				},
 			})
 		}
@@ -231,7 +228,7 @@ var _ = Describe("type Queue", func() {
 				var message Message
 
 				BeforeEach(func() {
-					i := queuestore.Item{
+					m := persistence.QueueMessage{
 						NextAttemptAt: time.Now(),
 						Envelope:      parcel0.Envelope,
 					}
@@ -239,18 +236,18 @@ var _ = Describe("type Queue", func() {
 					_, err := dataStore.Persist(
 						ctx,
 						persistence.Batch{
-							persistence.SaveQueueItem{
-								Item: i,
+							persistence.SaveQueueMessage{
+								Message: m,
 							},
 						},
 					)
 					Expect(err).ShouldNot(HaveOccurred())
 
-					i.Revision++
+					m.Revision++
 
 					message = Message{
-						Parcel: parcel0,
-						Item:   &i,
+						QueueMessage: m,
+						Parcel:       parcel0,
 					}
 				})
 
@@ -339,20 +336,20 @@ var _ = Describe("type Queue", func() {
 					_, err := dataStore.Persist(
 						ctx,
 						persistence.Batch{
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									NextAttemptAt: time.Now(),
 									Envelope:      parcel0.Envelope,
 								},
 							},
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									NextAttemptAt: time.Now().Add(10 * time.Millisecond),
 									Envelope:      parcel1.Envelope,
 								},
 							},
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									NextAttemptAt: time.Now().Add(5 * time.Millisecond),
 									Envelope:      parcel2.Envelope,
 								},
@@ -390,8 +387,8 @@ var _ = Describe("type Queue", func() {
 							_, err = dataStore.Persist(
 								ctx,
 								persistence.Batch{
-									persistence.RemoveQueueItem{
-										Item: *m.Item,
+									persistence.RemoveQueueMessage{
+										Message: m.QueueMessage,
 									},
 								},
 							)
@@ -400,10 +397,10 @@ var _ = Describe("type Queue", func() {
 						}
 
 						// Setup the repository to fail if it is used again.
-						repository.LoadQueueMessagesFunc = func(
+						dataStore.LoadQueueMessagesFunc = func(
 							context.Context,
 							int,
-						) ([]*queuestore.Item, error) {
+						) ([]persistence.QueueMessage, error) {
 							Fail("unexpected call")
 							return nil, nil
 						}
@@ -430,8 +427,8 @@ var _ = Describe("type Queue", func() {
 						_, err = dataStore.Persist(
 							ctx,
 							persistence.Batch{
-								persistence.RemoveQueueItem{
-									Item: *m.Item,
+								persistence.RemoveQueueMessage{
+									Message: m.QueueMessage,
 								},
 							},
 						)
@@ -450,10 +447,10 @@ var _ = Describe("type Queue", func() {
 	When("the queue is not running", func() {
 		Describe("func Run()", func() {
 			It("returns an error if messages can not be loaded from the repository", func() {
-				repository.LoadQueueMessagesFunc = func(
+				dataStore.LoadQueueMessagesFunc = func(
 					context.Context,
 					int,
-				) ([]*queuestore.Item, error) {
+				) ([]persistence.QueueMessage, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -464,11 +461,11 @@ var _ = Describe("type Queue", func() {
 			It("returns an error if a message can not be unmarshaled", func() {
 				queue.Marshaler = &codec.Marshaler{} // an empty marshaler cannot unmarshal anything
 
-				repository.LoadQueueMessagesFunc = func(
+				dataStore.LoadQueueMessagesFunc = func(
 					context.Context,
 					int,
-				) ([]*queuestore.Item, error) {
-					return []*queuestore.Item{
+				) ([]persistence.QueueMessage, error) {
+					return []persistence.QueueMessage{
 						{
 							Envelope: parcel0.Envelope,
 						},
@@ -495,11 +492,11 @@ var _ = Describe("type Queue", func() {
 				queue.Add(
 					[]Message{
 						{
-							Parcel: parcel0,
-							Item: &queuestore.Item{
+							QueueMessage: persistence.QueueMessage{
 								Revision: 1,
 								Envelope: parcel0.Envelope,
 							},
+							Parcel: parcel0,
 						},
 					},
 				)
@@ -510,11 +507,11 @@ var _ = Describe("type Queue", func() {
 			It("does not block", func() {
 				queue.Requeue(
 					Message{
-						Parcel: parcel0,
-						Item: &queuestore.Item{
+						QueueMessage: persistence.QueueMessage{
 							Revision: 1,
 							Envelope: parcel0.Envelope,
 						},
+						Parcel: parcel0,
 					},
 				)
 			})
@@ -524,11 +521,11 @@ var _ = Describe("type Queue", func() {
 			It("does not block", func() {
 				queue.Remove(
 					Message{
-						Parcel: parcel0,
-						Item: &queuestore.Item{
+						QueueMessage: persistence.QueueMessage{
 							Revision: 1,
 							Envelope: parcel0.Envelope,
 						},
+						Parcel: parcel0,
 					},
 				)
 			})

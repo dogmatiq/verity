@@ -16,7 +16,6 @@ import (
 	. "github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -25,35 +24,32 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		ctx           context.Context
-		cancel        context.CancelFunc
-		aggregateRepo *AggregateStoreRepositoryStub
-		eventRepo     *EventStoreRepositoryStub
-		upstream      *AggregateMessageHandler
-		packer        *parcel.Packer
-		logger        *logging.BufferedLogger
-		cause         *parcel.Parcel
-		adaptor       *Adaptor
-		ack           *AcknowledgerStub
-		entryPoint    *handler.EntryPoint
+		ctx        context.Context
+		cancel     context.CancelFunc
+		dataStore  *DataStoreStub
+		upstream   *AggregateMessageHandler
+		packer     *parcel.Packer
+		logger     *logging.BufferedLogger
+		cause      *parcel.Parcel
+		adaptor    *Adaptor
+		ack        *AcknowledgerStub
+		entryPoint *handler.EntryPoint
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		aggregateRepo = &AggregateStoreRepositoryStub{
-			LoadMetaDataFunc: func(
-				_ context.Context,
-				hk, id string,
-			) (*aggregatestore.MetaData, error) {
-				return &aggregatestore.MetaData{
-					HandlerKey: hk,
-					InstanceID: id,
-				}, nil
-			},
-		}
+		dataStore = NewDataStoreStub()
 
-		eventRepo = &EventStoreRepositoryStub{}
+		dataStore.LoadAggregateMetaDataFunc = func(
+			_ context.Context,
+			hk, id string,
+		) (*persistence.AggregateMetaData, error) {
+			return &persistence.AggregateMetaData{
+				HandlerKey: hk,
+				InstanceID: id,
+			}, nil
+		}
 
 		upstream = &AggregateMessageHandler{
 			ConfigureFunc: func(c dogma.AggregateConfigurer) {
@@ -94,9 +90,9 @@ var _ = Describe("type Adaptor", func() {
 			},
 			Handler: upstream,
 			Loader: &Loader{
-				AggregateStore: aggregateRepo,
-				EventStore:     eventRepo,
-				Marshaler:      Marshaler,
+				AggregateRepository: dataStore,
+				EventRepository:     dataStore,
+				Marshaler:           Marshaler,
 			},
 			Packer:      packer,
 			LoadTimeout: 1 * time.Second,
@@ -117,6 +113,7 @@ var _ = Describe("type Adaptor", func() {
 	})
 
 	AfterEach(func() {
+		dataStore.Close()
 		cancel()
 	})
 
@@ -149,11 +146,11 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("returns an error if the instance can not be loaded", func() {
-			aggregateRepo.LoadMetaDataFunc = func(
+			dataStore.LoadAggregateMetaDataFunc = func(
 				context.Context,
 				string,
 				string,
-			) (*aggregatestore.MetaData, error) {
+			) (*persistence.AggregateMetaData, error) {
 				return nil, errors.New("<error>")
 			}
 
@@ -219,7 +216,7 @@ var _ = Describe("type Adaptor", func() {
 								},
 							},
 							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
+								MetaData: persistence.AggregateMetaData{
 									HandlerKey:     "<aggregate-key>",
 									InstanceID:     "<instance>",
 									InstanceExists: true,
@@ -528,7 +525,7 @@ var _ = Describe("type Adaptor", func() {
 									},
 								},
 								persistence.SaveAggregateMetaData{
-									MetaData: aggregatestore.MetaData{
+									MetaData: persistence.AggregateMetaData{
 										HandlerKey:      "<aggregate-key>",
 										InstanceID:      "<instance>",
 										Revision:        1,

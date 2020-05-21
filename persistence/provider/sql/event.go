@@ -7,22 +7,21 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"go.uber.org/multierr"
 )
 
-// eventStoreDriver is the subset of the Driver interface that is concerned
-// with the eventstore subsystem.
-type eventStoreDriver interface {
-	// UpdateNextOffset increments the eventstore offset by 1 and returns the
-	// new value.
+// EventDriver is the subset of the Driver interface that is concerned with
+// events.
+type EventDriver interface {
+	// UpdateNextOffset increments the next offset by one and returns the new
+	// value.
 	UpdateNextOffset(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
 	) (uint64, error)
 
-	// InsertEvent saves an event to the eventstore at a specific offset.
+	// InsertEvent saves an event at a specific offset.
 	InsertEvent(
 		ctx context.Context,
 		tx *sql.Tx,
@@ -38,7 +37,7 @@ type eventStoreDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
-		f eventstore.Filter,
+		f map[string]struct{},
 	) (int64, error)
 
 	// DeleteEventFilter deletes an event filter.
@@ -57,29 +56,27 @@ type eventStoreDriver interface {
 		ak string,
 	) error
 
-	// SelectNextEventOffset selects the next "unused" offset from the
-	// eventstore.
+	// SelectNextEventOffset selects the next "unused" offset.
 	SelectNextEventOffset(
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
 	) (uint64, error)
 
-	// SelectEventsByType selects events from the eventstore that match the
-	// given query.
+	// SelectEventsByType selects events that match the given type filter.
 	//
-	// f is a filter ID, as returned by InsertEventFilter(). If the query does
-	// not use a filter, f is zero.
+	// f is a filter ID, as returned by InsertEventFilter(). o is the minimum
+	// offset to include in the results.
 	SelectEventsByType(
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
-		q eventstore.Query,
 		f int64,
+		o uint64,
 	) (*sql.Rows, error)
 
-	// SelectEventsBySource selects events from the eventstore that were
-	// produced by a specific handler.
+	// SelectEventsBySource selects events that were produced by a specific
+	// handler.
 	SelectEventsBySource(
 		ctx context.Context,
 		db *sql.DB,
@@ -100,43 +97,45 @@ type eventStoreDriver interface {
 	// SelectEventsByType() and SelectEventsBySource().
 	ScanEvent(
 		rows *sql.Rows,
-		i *eventstore.Item,
+		ev *persistence.Event,
 	) error
 }
 
-// NextEventOffset returns the next "unused" offset within the store.
+// NextEventOffset returns the next "unused" offset.
 func (ds *dataStore) NextEventOffset(
 	ctx context.Context,
 ) (uint64, error) {
 	return ds.driver.SelectNextEventOffset(ctx, ds.db, ds.appKey)
 }
 
-// QueryEvents queries events in the repository.
-func (ds *dataStore) QueryEvents(
+// LoadEventsByType loads events that match a specific set of message types.
+//
+// f is the set of message types to include in the result. The keys of f are
+// the "portable type name" produced when the events are marshaled.
+//
+// o specifies the (inclusive) lower-bound of the offset range to include in
+// the results.
+func (ds *dataStore) LoadEventsByType(
 	ctx context.Context,
-	q eventstore.Query,
-) (eventstore.Result, error) {
-	var filterID int64
-
-	if len(q.Filter) > 0 {
-		var err error
-		filterID, err = ds.driver.InsertEventFilter(
-			ctx,
-			ds.db,
-			ds.appKey,
-			q.Filter,
-		)
-		if err != nil {
-			return nil, err
-		}
+	f map[string]struct{},
+	o uint64,
+) (persistence.EventResult, error) {
+	filterID, err := ds.driver.InsertEventFilter(
+		ctx,
+		ds.db,
+		ds.appKey,
+		f,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	rows, err := ds.driver.SelectEventsByType(
 		ctx,
 		ds.db,
 		ds.appKey,
-		q,
 		filterID,
+		o,
 	)
 	if err != nil {
 		return nil, err
@@ -163,7 +162,7 @@ func (ds *dataStore) QueryEvents(
 func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, m string,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	var offset uint64
 
 	if m != "" {
@@ -177,7 +176,7 @@ func (ds *dataStore) LoadEventsBySource(
 		}
 
 		if !ok {
-			return nil, eventstore.UnknownMessageError{
+			return nil, persistence.UnknownMessageError{
 				MessageID: m,
 			}
 		}
@@ -205,8 +204,7 @@ func (ds *dataStore) LoadEventsBySource(
 // take to delete the event filter.
 const closeTimeout = 1 * time.Second
 
-// eventResult is an implementation of eventstore.Result for the SQL event
-// store.
+// eventResult is an implementation of persistence.EventResult for SQL.
 type eventResult struct {
 	db       *sql.DB
 	rows     *sql.Rows
@@ -219,9 +217,9 @@ type eventResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventResult) Next(
 	ctx context.Context,
-) (*eventstore.Item, bool, error) {
+) (persistence.Event, bool, error) {
 	if r.rows.Next() {
-		i := &eventstore.Item{
+		ev := persistence.Event{
 			Envelope: &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
 					Source: &envelopespec.Source{
@@ -232,12 +230,12 @@ func (r *eventResult) Next(
 			},
 		}
 
-		err := r.driver.ScanEvent(r.rows, i)
+		err := r.driver.ScanEvent(r.rows, &ev)
 
-		return i, true, err
+		return ev, true, err
 	}
 
-	return nil, false, nil
+	return persistence.Event{}, false, nil
 }
 
 // Close closes the cursor.

@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -15,14 +14,12 @@ import (
 func declareOffsetOperationTests(tc *TestContext) {
 	ginkgo.Context("offset operations", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository offsetstore.Repository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.OffsetStoreRepository()
 		})
 
 		ginkgo.AfterEach(func() {
@@ -42,7 +39,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 						},
 					)
 
-					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(1))
 				})
 
@@ -63,7 +60,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 						},
 					))
 
-					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(0))
 				})
 			})
@@ -92,7 +89,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 						},
 					)
 
-					actual := loadOffset(tc.Context, repository, "<source-app-key>")
+					actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(123))
 				})
 
@@ -115,7 +112,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 							},
 						))
 
-						actual := loadOffset(tc.Context, repository, "<source-app-key>")
+						actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
 						gomega.Expect(actual).To(gomega.BeEquivalentTo(5))
 					},
 					table.Entry("zero", 0),
@@ -150,13 +147,13 @@ func declareOffsetOperationTests(tc *TestContext) {
 				go fn("<source-app3-key>", 3)
 				g.Wait()
 
-				actual := loadOffset(tc.Context, repository, "<source-app1-key>")
+				actual := loadOffset(tc.Context, dataStore, "<source-app1-key>")
 				gomega.Expect(actual).To(gomega.BeEquivalentTo(1))
 
-				actual = loadOffset(tc.Context, repository, "<source-app2-key>")
+				actual = loadOffset(tc.Context, dataStore, "<source-app2-key>")
 				gomega.Expect(actual).To(gomega.BeEquivalentTo(2))
 
-				actual = loadOffset(tc.Context, repository, "<source-app3-key>")
+				actual = loadOffset(tc.Context, dataStore, "<source-app3-key>")
 				gomega.Expect(actual).To(gomega.BeEquivalentTo(3))
 			})
 		})

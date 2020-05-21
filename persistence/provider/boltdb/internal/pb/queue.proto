@@ -5,8 +5,9 @@ option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/inter
 
 import "draftspecs/envelopespec/envelope.proto";
 
-// QueueItem is a protocol buffers representation of a queuestore.Item.
-message QueueItem{
+// QueueMessage is a protocol buffers representation of a
+// persistence.QueueMessage.
+message QueueMessage{
   uint64 revision = 1;
   uint64 failure_count = 2;
   string next_attempt_at = 3;

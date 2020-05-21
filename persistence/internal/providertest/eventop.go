@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -19,20 +18,25 @@ import (
 func declareEventOperationTests(tc *TestContext) {
 	ginkgo.Context("event operations", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository eventstore.Repository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 
 			env0, env1, env2 *envelopespec.Envelope
+			filter           map[string]struct{}
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.EventStoreRepository()
 
 			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
 			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1)
+
+			filter = map[string]struct{}{
+				env0.PortableName: {},
+				env1.PortableName: {},
+				env2.PortableName: {},
+			}
 		})
 
 		ginkgo.AfterEach(func() {
@@ -40,7 +44,7 @@ func declareEventOperationTests(tc *TestContext) {
 		})
 
 		ginkgo.Describe("type persistence.SaveEvent", func() {
-			ginkgo.It("saves the event to the store", func() {
+			ginkgo.It("saves the event", func() {
 				persist(
 					tc.Context,
 					dataStore,
@@ -52,9 +56,9 @@ func declareEventOperationTests(tc *TestContext) {
 					},
 				)
 
-				items := queryEvents(tc.Context, repository, eventstore.Query{})
-				gomega.Expect(items).To(gomegax.EqualX(
-					[]eventstore.Item{
+				events := loadEventsByType(tc.Context, dataStore, filter, 0)
+				gomega.Expect(events).To(gomegax.EqualX(
+					[]persistence.Event{
 						{
 							Offset:   0,
 							Envelope: env0,
@@ -67,7 +71,7 @@ func declareEventOperationTests(tc *TestContext) {
 				))
 			})
 
-			ginkgo.It("has a corresponding item in the result", func() {
+			ginkgo.It("has a corresponding offset in the result", func() {
 				res := persist(
 					tc.Context,
 					dataStore,
@@ -91,7 +95,7 @@ func declareEventOperationTests(tc *TestContext) {
 				var (
 					g      sync.WaitGroup
 					m      sync.Mutex
-					expect []eventstore.Item
+					expect []persistence.Event
 				)
 
 				fn := func(env *envelopespec.Envelope) {
@@ -109,7 +113,7 @@ func declareEventOperationTests(tc *TestContext) {
 					m.Lock()
 					expect = append(
 						expect,
-						eventstore.Item{
+						persistence.Event{
 							Offset:   res.EventOffsets[env.MetaData.MessageId],
 							Envelope: env,
 						},
@@ -132,8 +136,8 @@ func declareEventOperationTests(tc *TestContext) {
 					},
 				)
 
-				items := queryEvents(tc.Context, repository, eventstore.Query{})
-				gomega.Expect(items).To(gomegax.EqualX(expect))
+				events := loadEventsByType(tc.Context, dataStore, filter, 0)
+				gomega.Expect(events).To(gomegax.EqualX(expect))
 			})
 		})
 	})

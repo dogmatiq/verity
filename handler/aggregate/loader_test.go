@@ -10,8 +10,6 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
@@ -20,21 +18,17 @@ import (
 
 var _ = Describe("type Loader", func() {
 	var (
-		ctx           context.Context
-		cancel        context.CancelFunc
-		dataStore     *DataStoreStub
-		aggregateRepo *AggregateStoreRepositoryStub
-		eventRepo     *EventStoreRepositoryStub
-		base          *AggregateRoot
-		loader        *Loader
+		ctx       context.Context
+		cancel    context.CancelFunc
+		dataStore *DataStoreStub
+		base      *AggregateRoot
+		loader    *Loader
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		dataStore = NewDataStoreStub()
-		aggregateRepo = dataStore.AggregateStoreRepository().(*AggregateStoreRepositoryStub)
-		eventRepo = dataStore.EventStoreRepository().(*EventStoreRepositoryStub)
 
 		base = &AggregateRoot{
 			Value: &[]dogma.Message{},
@@ -45,9 +39,9 @@ var _ = Describe("type Loader", func() {
 		}
 
 		loader = &Loader{
-			AggregateStore: aggregateRepo,
-			EventStore:     eventRepo,
-			Marshaler:      Marshaler,
+			AggregateRepository: dataStore,
+			EventRepository:     dataStore,
+			Marshaler:           Marshaler,
 		}
 	})
 
@@ -61,11 +55,11 @@ var _ = Describe("type Loader", func() {
 
 	Describe("func Load()", func() {
 		It("returns an error if the meta-data can not be loaded", func() {
-			aggregateRepo.LoadMetaDataFunc = func(
+			dataStore.LoadAggregateMetaDataFunc = func(
 				context.Context,
 				string,
 				string,
-			) (*aggregatestore.MetaData, error) {
+			) (*persistence.AggregateMetaData, error) {
 				return nil, errors.New("<error>")
 			}
 
@@ -79,7 +73,7 @@ var _ = Describe("type Loader", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
-						MetaData: aggregatestore.MetaData{
+						MetaData: persistence.AggregateMetaData{
 							HandlerKey: "<handler-key>",
 							InstanceID: "<instance>",
 						},
@@ -89,10 +83,12 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("does not attempt to load events", func() {
-				eventRepo.QueryEventsFunc = func(
+				dataStore.LoadEventsBySourceFunc = func(
 					context.Context,
-					eventstore.Query,
-				) (eventstore.Result, error) {
+					string,
+					string,
+					string,
+				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -113,7 +109,7 @@ var _ = Describe("type Loader", func() {
 							Envelope: NewEnvelope("<event-1>", MessageE2),
 						},
 						persistence.SaveAggregateMetaData{
-							MetaData: aggregatestore.MetaData{
+							MetaData: persistence.AggregateMetaData{
 								HandlerKey:     "<handler-key>",
 								InstanceID:     "<instance>",
 								InstanceExists: true,
@@ -129,7 +125,7 @@ var _ = Describe("type Loader", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
-						MetaData: aggregatestore.MetaData{
+						MetaData: persistence.AggregateMetaData{
 							HandlerKey:     "<handler-key>",
 							InstanceID:     "<instance>",
 							Revision:       1,
@@ -152,12 +148,12 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("returns an error if the events can not be loaded", func() {
-				eventRepo.LoadEventsBySourceFunc = func(
+				dataStore.LoadEventsBySourceFunc = func(
 					context.Context,
 					string,
 					string,
 					string,
-				) (eventstore.Result, error) {
+				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -172,10 +168,12 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("does not attempt to load events for a stateless aggregate", func() {
-				eventRepo.QueryEventsFunc = func(
+				dataStore.LoadEventsBySourceFunc = func(
 					context.Context,
-					eventstore.Query,
-				) (eventstore.Result, error) {
+					string,
+					string,
+					string,
+				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -189,7 +187,7 @@ var _ = Describe("type Loader", func() {
 						ctx,
 						persistence.Batch{
 							persistence.SaveAggregateMetaData{
-								MetaData: aggregatestore.MetaData{
+								MetaData: persistence.AggregateMetaData{
 									HandlerKey:      "<handler-key>",
 									InstanceID:      "<instance>",
 									Revision:        1,
@@ -203,10 +201,12 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("does not attempt to load events", func() {
-					eventRepo.QueryEventsFunc = func(
+					dataStore.LoadEventsBySourceFunc = func(
 						context.Context,
-						eventstore.Query,
-					) (eventstore.Result, error) {
+						string,
+						string,
+						string,
+					) (persistence.EventResult, error) {
 						return nil, errors.New("<error>")
 					}
 
@@ -223,7 +223,7 @@ var _ = Describe("type Loader", func() {
 									Envelope: NewEnvelope("<event-2>", MessageE3),
 								},
 								persistence.SaveAggregateMetaData{
-									MetaData: aggregatestore.MetaData{
+									MetaData: persistence.AggregateMetaData{
 										HandlerKey:      "<handler-key>",
 										InstanceID:      "<instance>",
 										Revision:        2,

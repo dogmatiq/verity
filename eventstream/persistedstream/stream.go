@@ -6,12 +6,12 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 )
 
-// Stream is an implementation of Stream that reads events from a
-// eventstore.Repository.
+// Stream is an implementation of eventstream.Stream that reads events from a
+// persistence.EventRepository.
 type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity
@@ -19,8 +19,8 @@ type Stream struct {
 	// Types is the set of supported event types.
 	Types message.TypeCollection
 
-	// Repository is the event store repository used to query events.
-	Repository eventstore.Repository
+	// Repository is the event repository used to load events.
+	Repository persistence.EventRepository
 
 	// Marshaler is used to unmarshal messages.
 	Marshaler marshalkit.Marshaler
@@ -68,17 +68,14 @@ func (s *Stream) Open(
 		return nil, ctx.Err()
 	}
 
-	q := eventstore.Query{
-		MinOffset: o,
-	}
-
+	rf := map[string]struct{}{}
 	f.Range(func(mt message.Type) bool {
 		n := marshalkit.MustMarshalType(
 			s.Marshaler,
 			mt.ReflectType(),
 		)
 
-		q.Filter.Add(n)
+		rf[n] = struct{}{}
 
 		return true
 	})
@@ -86,13 +83,14 @@ func (s *Stream) Open(
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
 	c := &cursor{
-		repository: s.Repository,
-		query:      q,
-		marshaler:  s.Marshaler,
-		cache:      s.Cache,
-		filter:     f,
-		cancel:     cancelConsume,
-		events:     make(chan *eventstream.Event, s.PreFetch),
+		repository:       s.Repository,
+		repositoryFilter: rf,
+		marshaler:        s.Marshaler,
+		cache:            s.Cache,
+		cacheFilter:      f,
+		offset:           o,
+		cancel:           cancelConsume,
+		events:           make(chan *eventstream.Event, s.PreFetch),
 	}
 
 	go c.consume(consumeCtx)

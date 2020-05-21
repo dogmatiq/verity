@@ -100,7 +100,7 @@ var _ = Describe("type server", func() {
 			)
 		})
 
-		It("exposes messages from the event store", func() {
+		It("exposes messages from the data-store", func() {
 			req := &messagingspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"MessageA", "MessageB"},

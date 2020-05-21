@@ -1,21 +1,21 @@
-package queuestore_test
+package persistence_test
 
 import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
-	. "github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	. "github.com/dogmatiq/infix/persistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type Item", func() {
+var _ = Describe("type Event", func() {
 	Describe("func ID()", func() {
 		It("returns the ID from the envelope", func() {
-			item := &Item{
+			ev := &Event{
 				Envelope: NewEnvelope("<id>", MessageA1),
 			}
 
-			Expect(item.ID()).To(Equal("<id>"))
+			Expect(ev.ID()).To(Equal("<id>"))
 		})
 	})
 })

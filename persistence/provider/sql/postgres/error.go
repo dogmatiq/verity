@@ -6,9 +6,7 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/lib/pq"
 )
 
@@ -69,14 +67,14 @@ func (d errorConverter) LockApplication(
 }
 
 //
-// aggregatestore
+// aggregate
 //
 
 func (d errorConverter) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 ) (bool, error) {
 	ok, err := d.d.InsertAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
@@ -86,7 +84,7 @@ func (d errorConverter) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 ) (bool, error) {
 	ok, err := d.d.UpdateAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
@@ -96,13 +94,13 @@ func (d errorConverter) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (*aggregatestore.MetaData, error) {
+) (*persistence.AggregateMetaData, error) {
 	md, err := d.d.SelectAggregateMetaData(ctx, db, ak, hk, id)
 	return md, convertContextErrors(ctx, err)
 }
 
 //
-// eventstore
+// event
 //
 
 func (d errorConverter) UpdateNextOffset(
@@ -128,7 +126,7 @@ func (d errorConverter) InsertEventFilter(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	f eventstore.Filter,
+	f map[string]struct{},
 ) (int64, error) {
 	id, err := d.d.InsertEventFilter(ctx, db, ak, f)
 	return id, convertContextErrors(ctx, err)
@@ -165,10 +163,10 @@ func (d errorConverter) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	q eventstore.Query,
 	f int64,
+	o uint64,
 ) (*sql.Rows, error) {
-	rows, err := d.d.SelectEventsByType(ctx, db, ak, q, f)
+	rows, err := d.d.SelectEventsByType(ctx, db, ak, f, o)
 	return rows, convertContextErrors(ctx, err)
 }
 
@@ -193,13 +191,13 @@ func (d errorConverter) SelectOffsetByMessageID(
 
 func (d errorConverter) ScanEvent(
 	rows *sql.Rows,
-	i *eventstore.Item,
+	ev *persistence.Event,
 ) error {
-	return d.d.ScanEvent(rows, i)
+	return d.d.ScanEvent(rows, ev)
 }
 
 //
-// offsetstore
+// offset
 //
 
 func (d errorConverter) LoadOffset(
@@ -239,9 +237,9 @@ func (d errorConverter) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (bool, error) {
-	ok, err := d.d.InsertQueueMessage(ctx, tx, ak, i)
+	ok, err := d.d.InsertQueueMessage(ctx, tx, ak, m)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -249,9 +247,9 @@ func (d errorConverter) UpdateQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (bool, error) {
-	ok, err := d.d.UpdateQueueMessage(ctx, tx, ak, i)
+	ok, err := d.d.UpdateQueueMessage(ctx, tx, ak, m)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -259,9 +257,9 @@ func (d errorConverter) DeleteQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (bool, error) {
-	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, i)
+	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, m)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -277,7 +275,7 @@ func (d errorConverter) SelectQueueMessages(
 
 func (d errorConverter) ScanQueueMessage(
 	rows *sql.Rows,
-	i *queuestore.Item,
+	m *persistence.QueueMessage,
 ) error {
-	return d.d.ScanQueueMessage(rows, i)
+	return d.d.ScanQueueMessage(rows, m)
 }

@@ -8,10 +8,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
@@ -37,26 +33,6 @@ func newDataStore(
 		appKey:  k,
 		release: r,
 	}
-}
-
-// AggregateStoreRepository returns application's aggregate store repository.
-func (ds *dataStore) AggregateStoreRepository() aggregatestore.Repository {
-	return ds
-}
-
-// EventStoreRepository returns the application's event store repository.
-func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return ds
-}
-
-// OffsetStoreRepository returns the application's event store repository.
-func (ds *dataStore) OffsetStoreRepository() offsetstore.Repository {
-	return ds
-}
-
-// QueueStoreRepository returns the application's queue store repository.
-func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
-	return ds
 }
 
 // Persist commits a batch of operations atomically.

@@ -10,7 +10,6 @@ import (
 	. "github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -43,7 +42,7 @@ var _ = Describe("type QueueConsumer", func() {
 		handler = &HandlerStub{}
 
 		mqueue = &queue.Queue{
-			Repository: dataStore.QueueStoreRepository(),
+			Repository: dataStore,
 			Marshaler:  Marshaler,
 		}
 
@@ -64,7 +63,7 @@ var _ = Describe("type QueueConsumer", func() {
 			mqueue.Run(ctx)
 		}()
 
-		i := queuestore.Item{
+		m := persistence.QueueMessage{
 			NextAttemptAt: pcl.CreatedAt,
 			Envelope:      pcl.Envelope,
 		}
@@ -72,19 +71,19 @@ var _ = Describe("type QueueConsumer", func() {
 		_, err := dataStore.Persist(
 			ctx,
 			persistence.Batch{
-				persistence.SaveQueueItem{
-					Item: i,
+				persistence.SaveQueueMessage{
+					Message: m,
 				},
 			},
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		i.Revision++
+		m.Revision++
 
 		mqueue.Add([]queue.Message{
 			{
-				Parcel: pcl,
-				Item:   &i,
+				QueueMessage: m,
+				Parcel:       pcl,
 			},
 		})
 	})
@@ -150,9 +149,9 @@ var _ = Describe("type QueueConsumer", func() {
 			})
 
 			It("removes the message from the data-store", func() {
-				items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+				messages, err := dataStore.LoadQueueMessages(ctx, 1)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(items).To(BeEmpty())
+				Expect(messages).To(BeEmpty())
 			})
 
 			It("removes the message from the queue", func() {
@@ -190,10 +189,10 @@ var _ = Describe("type QueueConsumer", func() {
 			})
 
 			It("updates the message in the data-store", func() {
-				items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+				messages, err := dataStore.LoadQueueMessages(ctx, 1)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(items).To(EqualX(
-					[]*queuestore.Item{
+				Expect(messages).To(EqualX(
+					[]persistence.QueueMessage{
 						{
 							Revision:      2,
 							NextAttemptAt: time.Now(),
@@ -217,10 +216,10 @@ var _ = Describe("type QueueConsumer", func() {
 				})
 
 				It("sets the next attempt time using the strategy", func() {
-					items, err := dataStore.QueueStoreRepository().LoadQueueMessages(ctx, 1)
+					messages, err := dataStore.LoadQueueMessages(ctx, 1)
 					Expect(err).ShouldNot(HaveOccurred())
-					Expect(items).To(EqualX(
-						[]*queuestore.Item{
+					Expect(messages).To(EqualX(
+						[]persistence.QueueMessage{
 							{
 								Revision:      2,
 								NextAttemptAt: time.Now().Add(5 * time.Second),

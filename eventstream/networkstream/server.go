@@ -31,9 +31,6 @@ func WithApplication(
 }
 
 // RegisterServer registers an event stream server for the given streams.
-//
-// repos is a map of application key to the eventstore.Repository for that
-// application.
 func RegisterServer(
 	s *grpc.Server,
 	m marshalkit.TypeMarshaler,

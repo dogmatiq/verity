@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -21,17 +20,15 @@ import (
 func declareQueueOperationTests(tc *TestContext) {
 	ginkgo.Context("queue operations", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository queuestore.Repository
-			tearDown   func()
-			now        time.Time
+			dataStore persistence.DataStore
+			tearDown  func()
+			now       time.Time
 
 			env0, env1, env2 *envelopespec.Envelope
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.QueueStoreRepository()
 
 			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2)
@@ -44,14 +41,14 @@ func declareQueueOperationTests(tc *TestContext) {
 			tearDown()
 		})
 
-		ginkgo.Describe("type persistence.SaveQueueItem", func() {
+		ginkgo.Describe("type persistence.SaveQueueMessage", func() {
 			ginkgo.When("the message is already on the queue", func() {
 				ginkgo.BeforeEach(func() {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								NextAttemptAt: now,
 								Envelope:      env0,
 							},
@@ -59,14 +56,14 @@ func declareQueueOperationTests(tc *TestContext) {
 					)
 				})
 
-				ginkgo.It("updates the item", func() {
+				ginkgo.It("updates the message", func() {
 					next := now.Add(1 * time.Hour)
 
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision:      1,
 								NextAttemptAt: next,
 								FailureCount:  123,
@@ -75,9 +72,9 @@ func declareQueueOperationTests(tc *TestContext) {
 						},
 					)
 
-					item := loadQueueItem(tc.Context, repository)
-					gomega.Expect(item).To(gomegax.EqualX(
-						queuestore.Item{
+					m := loadQueueMessage(tc.Context, dataStore)
+					gomega.Expect(m).To(gomegax.EqualX(
+						persistence.QueueMessage{
 							Revision:      2,
 							NextAttemptAt: next,
 							FailureCount:  123,
@@ -87,18 +84,18 @@ func declareQueueOperationTests(tc *TestContext) {
 				})
 
 				ginkgo.It("increments the revision even if no meta-data has changed", func() {
-					item := loadQueueItem(tc.Context, repository)
+					m := loadQueueMessage(tc.Context, dataStore)
 
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: item,
+						persistence.SaveQueueMessage{
+							Message: m,
 						},
 					)
 
-					item = loadQueueItem(tc.Context, repository)
-					gomega.Expect(item.Revision).To(
+					m = loadQueueMessage(tc.Context, dataStore)
+					gomega.Expect(m.Revision).To(
 						gomega.BeEquivalentTo(2),
 						"revision was not incremented correctly",
 					)
@@ -109,8 +106,8 @@ func declareQueueOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								NextAttemptAt: now.Add(-1 * time.Hour),
 								Envelope:      env1,
 							},
@@ -121,8 +118,8 @@ func declareQueueOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision:      1,
 								NextAttemptAt: now.Add(-10 * time.Hour),
 								Envelope:      env0,
@@ -130,8 +127,8 @@ func declareQueueOperationTests(tc *TestContext) {
 						},
 					)
 
-					item := loadQueueItem(tc.Context, repository)
-					gomega.Expect(item.Envelope).To(
+					m := loadQueueMessage(tc.Context, dataStore)
+					gomega.Expect(m.Envelope).To(
 						gomegax.EqualX(env0),
 						"env0 was expected to be at the head of the queue",
 					)
@@ -144,8 +141,8 @@ func declareQueueOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision:      1,
 								NextAttemptAt: now,
 								Envelope:      env,
@@ -153,24 +150,24 @@ func declareQueueOperationTests(tc *TestContext) {
 						},
 					)
 
-					item := loadQueueItem(tc.Context, repository)
-					gomega.Expect(item.Envelope).To(
+					m := loadQueueMessage(tc.Context, dataStore)
+					gomega.Expect(m.Envelope).To(
 						gomegax.EqualX(env0),
 						"envelope was updated, not just the meta-data",
 					)
 				})
 
 				table.DescribeTable(
-					"it does not update the item when an OCC conflict occurs",
+					"it does not update the message when an OCC conflict occurs",
 					func(conflictingRevision int) {
-						// Update the item once more so that it's up to
+						// Update the message once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
 						persist(
 							tc.Context,
 							dataStore,
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									Revision:      1,
 									NextAttemptAt: now,
 									Envelope:      env0,
@@ -178,8 +175,8 @@ func declareQueueOperationTests(tc *TestContext) {
 							},
 						)
 
-						op := persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						op := persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision:      uint64(conflictingRevision),
 								NextAttemptAt: now,
 								Envelope:      env0,
@@ -196,9 +193,9 @@ func declareQueueOperationTests(tc *TestContext) {
 							},
 						))
 
-						item := loadQueueItem(tc.Context, repository)
-						gomega.Expect(item).To(gomegax.EqualX(
-							queuestore.Item{
+						m := loadQueueMessage(tc.Context, dataStore)
+						gomega.Expect(m).To(gomegax.EqualX(
+							persistence.QueueMessage{
 								Revision:      2,
 								NextAttemptAt: now,
 								Envelope:      env0,
@@ -212,20 +209,20 @@ func declareQueueOperationTests(tc *TestContext) {
 			})
 
 			ginkgo.When("the message is not yet on the queue", func() {
-				ginkgo.It("saves the item with an initial revision of 1", func() {
+				ginkgo.It("saves the message with an initial revision of 1", func() {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						},
 					)
 
-					item := loadQueueItem(tc.Context, repository)
-					gomega.Expect(item.Revision).To(gomega.BeEquivalentTo(1))
+					m := loadQueueMessage(tc.Context, dataStore)
+					gomega.Expect(m.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
 				ginkgo.It("saves messages that were not created by a handler", func() {
@@ -235,25 +232,25 @@ func declareQueueOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								NextAttemptAt: now,
 								Envelope:      env0,
 							},
 						},
 					)
 
-					item := loadQueueItem(tc.Context, repository)
+					m := loadQueueMessage(tc.Context, dataStore)
 					gomega.Expect(
-						item.Envelope.MetaData.Source,
+						m.Envelope.MetaData.Source,
 					).To(gomegax.EqualX(
 						env0.MetaData.Source,
 					))
 				})
 
-				ginkgo.It("does not save the item when an OCC conflict occurs", func() {
-					op := persistence.SaveQueueItem{
-						Item: queuestore.Item{
+				ginkgo.It("does not save the message when an OCC conflict occurs", func() {
+					op := persistence.SaveQueueMessage{
+						Message: persistence.QueueMessage{
 							Revision:      123,
 							NextAttemptAt: now,
 							Envelope:      env0,
@@ -270,20 +267,20 @@ func declareQueueOperationTests(tc *TestContext) {
 						},
 					))
 
-					items := loadQueueItems(tc.Context, repository, 1)
-					gomega.Expect(items).To(gomega.BeEmpty())
+					messages := loadQueueMessages(tc.Context, dataStore, 1)
+					gomega.Expect(messages).To(gomega.BeEmpty())
 				})
 			})
 		})
 
-		ginkgo.Describe("type RemoveQueueItem", func() {
+		ginkgo.Describe("type RemoveQueueMessage", func() {
 			ginkgo.When("the message is on the queue", func() {
 				ginkgo.BeforeEach(func() {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								NextAttemptAt: now,
 								Envelope:      env0,
 							},
@@ -295,16 +292,16 @@ func declareQueueOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.RemoveQueueItem{
-							Item: queuestore.Item{
+						persistence.RemoveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision: 1,
 								Envelope: env0,
 							},
 						},
 					)
 
-					items := loadQueueItems(tc.Context, repository, 1)
-					gomega.Expect(items).To(gomega.BeEmpty())
+					messages := loadQueueMessages(tc.Context, dataStore, 1)
+					gomega.Expect(messages).To(gomega.BeEmpty())
 				})
 
 				ginkgo.It("maintains the correct queue order", func() {
@@ -313,8 +310,8 @@ func declareQueueOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: queuestore.Item{
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
 								NextAttemptAt: now.Add(1 * time.Hour),
 								Envelope:      env1,
 							},
@@ -326,16 +323,16 @@ func declareQueueOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.RemoveQueueItem{
-							Item: queuestore.Item{
+						persistence.RemoveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision: 1,
 								Envelope: env0,
 							},
 						},
 					)
 
-					item := loadQueueItem(tc.Context, repository)
-					gomega.Expect(item.Envelope).To(
+					m := loadQueueMessage(tc.Context, dataStore)
+					gomega.Expect(m.Envelope).To(
 						gomegax.EqualX(env1),
 						"env1 was expected to be at the head of the queue",
 					)
@@ -350,8 +347,8 @@ func declareQueueOperationTests(tc *TestContext) {
 						persist(
 							tc.Context,
 							dataStore,
-							persistence.SaveQueueItem{
-								Item: queuestore.Item{
+							persistence.SaveQueueMessage{
+								Message: persistence.QueueMessage{
 									Revision:      1,
 									NextAttemptAt: now,
 									Envelope:      env0,
@@ -359,8 +356,8 @@ func declareQueueOperationTests(tc *TestContext) {
 							},
 						)
 
-						op := persistence.RemoveQueueItem{
-							Item: queuestore.Item{
+						op := persistence.RemoveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision:      uint64(conflictingRevision),
 								NextAttemptAt: now,
 								Envelope:      env0,
@@ -377,9 +374,9 @@ func declareQueueOperationTests(tc *TestContext) {
 							},
 						))
 
-						item := loadQueueItem(tc.Context, repository)
-						gomega.Expect(item).To(gomegax.EqualX(
-							queuestore.Item{
+						m := loadQueueMessage(tc.Context, dataStore)
+						gomega.Expect(m).To(gomegax.EqualX(
+							persistence.QueueMessage{
 								Revision:      2,
 								NextAttemptAt: now,
 								Envelope:      env0,
@@ -396,8 +393,8 @@ func declareQueueOperationTests(tc *TestContext) {
 				table.DescribeTable(
 					"returns an OCC conflict error",
 					func(conflictingRevision int) {
-						op := persistence.RemoveQueueItem{
-							Item: queuestore.Item{
+						op := persistence.RemoveQueueMessage{
+							Message: persistence.QueueMessage{
 								Revision:      uint64(conflictingRevision),
 								NextAttemptAt: now,
 								Envelope:      env0,
@@ -414,8 +411,8 @@ func declareQueueOperationTests(tc *TestContext) {
 							},
 						))
 
-						items := loadQueueItems(tc.Context, repository, 1)
-						gomega.Expect(items).To(
+						messages := loadQueueMessages(tc.Context, dataStore, 1)
+						gomega.Expect(messages).To(
 							gomega.BeEmpty(),
 							"removal of non-existent message caused it to exist",
 						)
@@ -427,17 +424,17 @@ func declareQueueOperationTests(tc *TestContext) {
 		})
 
 		ginkgo.It("serializes operations from competing transactions", func() {
-			item0 := queuestore.Item{
+			m0 := persistence.QueueMessage{
 				NextAttemptAt: now,
 				Envelope:      env0,
 			}
 
-			item1 := queuestore.Item{
+			m1 := persistence.QueueMessage{
 				NextAttemptAt: now,
 				Envelope:      env1,
 			}
 
-			item2 := queuestore.Item{
+			m2 := persistence.QueueMessage{
 				NextAttemptAt: now,
 				Envelope:      env2,
 			}
@@ -445,16 +442,16 @@ func declareQueueOperationTests(tc *TestContext) {
 			persist(
 				tc.Context,
 				dataStore,
-				persistence.SaveQueueItem{
-					Item: item0,
+				persistence.SaveQueueMessage{
+					Message: m0,
 				},
-				persistence.SaveQueueItem{
-					Item: item1,
+				persistence.SaveQueueMessage{
+					Message: m1,
 				},
 			)
 
-			item0.Revision++
-			item1.Revision++
+			m0.Revision++
+			m1.Revision++
 
 			var g sync.WaitGroup
 			g.Add(3)
@@ -467,16 +464,16 @@ func declareQueueOperationTests(tc *TestContext) {
 				persist(
 					tc.Context,
 					dataStore,
-					persistence.SaveQueueItem{
-						Item: item2,
+					persistence.SaveQueueMessage{
+						Message: m2,
 					},
 				)
 
-				item2.Revision++
+				m2.Revision++
 			}()
 
 			// update
-			item1.NextAttemptAt = now.Add(+1 * time.Hour)
+			m1.NextAttemptAt = now.Add(+1 * time.Hour)
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
@@ -484,12 +481,12 @@ func declareQueueOperationTests(tc *TestContext) {
 				persist(
 					tc.Context,
 					dataStore,
-					persistence.SaveQueueItem{
-						Item: item1,
+					persistence.SaveQueueMessage{
+						Message: m1,
 					},
 				)
 
-				item1.Revision++
+				m1.Revision++
 			}()
 
 			// remove
@@ -500,17 +497,21 @@ func declareQueueOperationTests(tc *TestContext) {
 				persist(
 					tc.Context,
 					dataStore,
-					persistence.RemoveQueueItem{
-						Item: item0,
+					persistence.RemoveQueueMessage{
+						Message: m0,
 					},
 				)
 			}()
 
 			g.Wait()
 
-			expected := []queuestore.Item{item2, item1}
-			items := loadQueueItems(tc.Context, repository, len(expected)+1)
-			gomega.Expect(items).To(gomegax.EqualX(expected))
+			messages := loadQueueMessages(tc.Context, dataStore, 3)
+			gomega.Expect(messages).To(gomegax.EqualX(
+				[]persistence.QueueMessage{
+					m2,
+					m1,
+				},
+			))
 		})
 	})
 }

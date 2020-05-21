@@ -5,10 +5,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/offsetstore"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"go.uber.org/multierr"
 )
 
@@ -16,22 +12,15 @@ import (
 // closed data-store.
 var ErrDataStoreClosed = errors.New("data store is closed")
 
-// DataStore is an interface used by the engine to persist and retrieve
-// data for a specific application.
+// DataStore is an interface used by the engine to persist and retrieve data for
+// a specific application.
 type DataStore interface {
+	AggregateRepository
+	EventRepository
+	OffsetRepository
+	QueueRepository
+
 	Persister
-
-	// AggregateStoreRepository returns application's aggregate store repository.
-	AggregateStoreRepository() aggregatestore.Repository
-
-	// EventStoreRepository returns the application's event store repository.
-	EventStoreRepository() eventstore.Repository
-
-	// OffsetStoreRepository returns the application's offset store repository.
-	OffsetStoreRepository() offsetstore.Repository
-
-	// QueueStoreRepository returns the application's queue store repository.
-	QueueStoreRepository() queuestore.Repository
 
 	// Close closes the data store.
 	//

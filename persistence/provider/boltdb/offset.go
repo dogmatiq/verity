@@ -14,7 +14,7 @@ var (
 	// The keys are the event offsets encoded as 8-byte big-endian packets. The
 	// values are envelopespec. Envelope values marshaled using protocol
 	// buffers.
-	offsetBucketKey = []byte("offsetstore")
+	offsetBucketKey = []byte("offset")
 )
 
 // LoadOffset loads the offset associated with a specific application.

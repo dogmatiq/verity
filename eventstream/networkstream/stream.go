@@ -10,8 +10,8 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// Stream is an implementation of Stream that consumes messages via the
-// dogma.messaging.v1 EventStream gRPC API.
+// Stream is an implementation of eventstream.Stream that consumes messages via
+// the dogma.messaging.v1 EventStream gRPC API.
 type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity

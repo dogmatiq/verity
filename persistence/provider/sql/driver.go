@@ -12,9 +12,9 @@ import (
 
 // Driver is used to interface with the underlying SQL database.
 type Driver interface {
-	aggregateStoreDriver
-	eventStoreDriver
-	offsetStoreDriver
+	AggregateDriver
+	EventDriver
+	OffsetDriver
 	queueDriver
 
 	// Begin starts a transaction for use in a peristence.Transaction.

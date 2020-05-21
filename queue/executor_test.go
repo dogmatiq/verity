@@ -11,7 +11,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/dogmatiq/infix/queue"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
@@ -23,32 +22,30 @@ var _ dogma.CommandExecutor = (*CommandExecutor)(nil)
 
 var _ = Describe("type CommandExecutor", func() {
 	var (
-		ctx        context.Context
-		cancel     context.CancelFunc
-		dataStore  *DataStoreStub
-		repository *QueueStoreRepositoryStub
-		queue      *Queue
-		loaded     chan struct{}
-		executor   *CommandExecutor
+		ctx       context.Context
+		cancel    context.CancelFunc
+		dataStore *DataStoreStub
+		queue     *Queue
+		loaded    chan struct{}
+		executor  *CommandExecutor
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		dataStore = NewDataStoreStub()
-		repository = dataStore.QueueStoreRepository().(*QueueStoreRepositoryStub)
 
 		loaded = make(chan struct{})
-		repository.LoadQueueMessagesFunc = func(
+		dataStore.LoadQueueMessagesFunc = func(
 			ctx context.Context,
 			n int,
-		) ([]*queuestore.Item, error) {
+		) ([]persistence.QueueMessage, error) {
 			defer close(loaded)
-			return repository.Repository.LoadQueueMessages(ctx, n)
+			return dataStore.DataStore.LoadQueueMessages(ctx, n)
 		}
 
 		queue = &Queue{
-			Repository: repository,
+			Repository: dataStore,
 			Marshaler:  Marshaler,
 		}
 
@@ -80,11 +77,11 @@ var _ = Describe("type CommandExecutor", func() {
 			err := executor.ExecuteCommand(ctx, MessageA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			repository.LoadQueueMessagesFunc = nil
-			items, err := repository.LoadQueueMessages(ctx, 2)
+			dataStore.LoadQueueMessagesFunc = nil
+			messages, err := dataStore.LoadQueueMessages(ctx, 2)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(items).To(EqualX(
-				[]*queuestore.Item{
+			Expect(messages).To(EqualX(
+				[]persistence.QueueMessage{
 					{
 						Revision:      1,
 						NextAttemptAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),

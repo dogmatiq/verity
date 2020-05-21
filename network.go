@@ -70,7 +70,7 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 				k,
 				&persistedstream.Stream{
 					App:        a.Config.Identity(),
-					Repository: a.DataStore.EventStoreRepository(),
+					Repository: a.DataStore,
 					Marshaler: networkstream.NoopUnmarshaler{
 						Marshaler: e.opts.Marshaler,
 					},

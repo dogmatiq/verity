@@ -21,7 +21,7 @@ func (driver) LoadOffset(
 		ctx,
 		`SELECT
 			next_offset
-		FROM infix.offset_store
+		FROM infix.stream_offset
 		WHERE app_key = $1
 		AND source_app_key = $2`,
 		ak,
@@ -49,7 +49,7 @@ func (driver) InsertOffset(
 ) (bool, error) {
 	res, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO infix.offset_store (
+		`INSERT INTO infix.stream_offset (
 			app_key,
 			source_app_key,
 			next_offset
@@ -84,7 +84,7 @@ func (driver) UpdateOffset(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE infix.offset_store SET
+		`UPDATE infix.stream_offset SET
 			next_offset = $1
 		WHERE app_key = $2
 		AND source_app_key = $3

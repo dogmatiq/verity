@@ -1,11 +1,11 @@
-package sqlite
+package mysql
 
 import (
 	"context"
 	"database/sql"
 
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
+	"github.com/dogmatiq/infix/persistence"
 )
 
 // InsertAggregateMetaData inserts meta-data for an aggregate instance.
@@ -15,31 +15,23 @@ func (driver) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
-) (_ bool, err error) {
-	defer sqlx.Recover(&err)
-
-	res := sqlx.Exec(
+	md *persistence.AggregateMetaData,
+) (bool, error) {
+	return insertIgnore(
 		ctx,
 		tx,
-		`INSERT INTO aggregate_metadata (
-			app_key,
-			handler_key,
-			instance_id,
-			instance_exists,
-			last_destroyed_by
-		) VALUES (
-			$1, $2, $3, $4, $5
-		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
+		`INSERT INTO aggregate_metadata SET
+			app_key = ?,
+			handler_key = ?,
+			instance_id = ?,
+			instance_exists = ?,
+			last_destroyed_by = ?`,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
 		md.InstanceExists,
 		md.LastDestroyedBy,
 	)
-
-	n, err := res.RowsAffected()
-	return n == 1, err
 }
 
 // UpdateAggregateMetaData updates meta-data for an aggregate instance.
@@ -49,7 +41,7 @@ func (driver) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *aggregatestore.MetaData,
+	md *persistence.AggregateMetaData,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
@@ -58,12 +50,12 @@ func (driver) UpdateAggregateMetaData(
 		tx,
 		`UPDATE aggregate_metadata SET
 			revision = revision + 1,
-			instance_exists = $1,
-			last_destroyed_by = $2
-		WHERE app_key = $3
-		AND handler_key = $4
-		AND instance_id = $5
-		AND revision = $6`,
+			instance_exists = ?,
+			last_destroyed_by = ?
+		WHERE app_key = ?
+		AND handler_key = ?
+		AND instance_id = ?
+		AND revision = ?`,
 		md.InstanceExists,
 		md.LastDestroyedBy,
 		ak,
@@ -78,7 +70,7 @@ func (driver) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (*aggregatestore.MetaData, error) {
+) (*persistence.AggregateMetaData, error) {
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
@@ -86,15 +78,15 @@ func (driver) SelectAggregateMetaData(
 			instance_exists,
 			last_destroyed_by
 		FROM aggregate_metadata
-		WHERE app_key = $1
-		AND handler_key = $2
-		AND instance_id = $3`,
+		WHERE app_key = ?
+		AND handler_key = ?
+		AND instance_id = ?`,
 		ak,
 		hk,
 		id,
 	)
 
-	md := &aggregatestore.MetaData{
+	md := &persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}

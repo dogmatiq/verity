@@ -13,6 +13,7 @@ type NoopUnmarshaler struct {
 	marshalkit.Marshaler
 }
 
+// Unmarshal always returns nil, nil.
 func (NoopUnmarshaler) Unmarshal(marshalkit.Packet) (interface{}, error) {
 	return nil, nil
 }

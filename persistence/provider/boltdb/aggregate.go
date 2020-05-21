@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
-	"github.com/dogmatiq/infix/persistence/subsystem/aggregatestore"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
@@ -26,16 +25,16 @@ var (
 	aggregateMetaDataBucketKey = []byte("metadata")
 )
 
-// LoadMetaData loads the meta-data for an aggregate instance.
+// LoadAggregateMetaData loads the meta-data for an aggregate instance.
 //
 // ak is the aggregate handler's identity key, id is the instance ID.
-func (ds *dataStore) LoadMetaData(
+func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (_ *aggregatestore.MetaData, err error) {
+) (_ *persistence.AggregateMetaData, err error) {
 	defer bboltx.Recover(&err)
 
-	md := &aggregatestore.MetaData{
+	md := &persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}
@@ -50,7 +49,7 @@ func (ds *dataStore) LoadMetaData(
 				[]byte(hk),
 				aggregateMetaDataBucketKey,
 			); ok {
-				pb := loadAggregateStoreMetaData(metadata, id)
+				pb := loadAggregateMetaData(metadata, id)
 				md.Revision = pb.GetRevision()
 				md.InstanceExists = pb.GetInstanceExists()
 				md.LastDestroyedBy = pb.GetLastDestroyedBy()
@@ -74,7 +73,7 @@ func (c *committer) VisitSaveAggregateMetaData(
 		aggregateMetaDataBucketKey,
 	)
 
-	existing := loadAggregateStoreMetaData(metadata, op.MetaData.InstanceID)
+	existing := loadAggregateMetaData(metadata, op.MetaData.InstanceID)
 
 	if op.MetaData.Revision != existing.GetRevision() {
 		return persistence.ConflictError{
@@ -89,7 +88,7 @@ func (c *committer) VisitSaveAggregateMetaData(
 
 // saveAggregateMetaData saves aggregate meta-data to b. md.Revision is
 // incremented before saving.
-func saveAggregateMetaData(b *bbolt.Bucket, md aggregatestore.MetaData) {
+func saveAggregateMetaData(b *bbolt.Bucket, md persistence.AggregateMetaData) {
 	data, err := proto.Marshal(
 		&pb.AggregateMetaData{
 			Revision:        md.Revision + 1,
@@ -101,8 +100,8 @@ func saveAggregateMetaData(b *bbolt.Bucket, md aggregatestore.MetaData) {
 	bboltx.Put(b, []byte(md.InstanceID), data)
 }
 
-// loadAggregateStoreMetaData returns aggregate meta-data loaded from b.
-func loadAggregateStoreMetaData(b *bbolt.Bucket, id string) *pb.AggregateMetaData {
+// loadAggregateMetaData returns aggregate meta-data loaded from b.
+func loadAggregateMetaData(b *bbolt.Bucket, id string) *pb.AggregateMetaData {
 	data := b.Get([]byte(id))
 	if data == nil {
 		return nil

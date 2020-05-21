@@ -5,14 +5,13 @@ import (
 	"sort"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // LoadQueueMessages loads the next n messages from the queue.
 func (ds *dataStore) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) ([]*queuestore.Item, error) {
+) ([]persistence.QueueMessage, error) {
 	ds.db.mutex.RLock()
 	defer ds.db.mutex.RUnlock()
 
@@ -21,31 +20,37 @@ func (ds *dataStore) LoadQueueMessages(
 		n = max
 	}
 
-	items := make([]*queuestore.Item, n)
-	for i, it := range ds.db.queue.order[:n] {
-		items[i] = cloneQueueItem(it)
+	messages := make([]persistence.QueueMessage, n)
+	for i, m := range ds.db.queue.order[:n] {
+		// Clone the envelope on the way out so inadvertent manipulation of
+		// the envelope by the caller does not affect the data in the
+		// database.
+		clone := *m
+		clone.Envelope = cloneEnvelope(m.Envelope)
+
+		messages[i] = clone
 	}
 
-	return items, nil
+	return messages, nil
 }
 
-// queueDatabase contains data taht is committed to the queue store.
+// queueDatabase contains message queue data.
 type queueDatabase struct {
-	order []*queuestore.Item
-	items map[string]*queuestore.Item
+	order    []*persistence.QueueMessage
+	messages map[string]*persistence.QueueMessage
 }
 
-// VisitSaveQueueItem returns an error if a "SaveQueueItem" operation can not be
-// applied to the database.
-func (v *validator) VisitSaveQueueItem(
+// VisitSaveQueueMessage returns an error if a "SaveQueueMessage" operation can
+// not be applied to the database.
+func (v *validator) VisitSaveQueueMessage(
 	_ context.Context,
-	op persistence.SaveQueueItem,
+	op persistence.SaveQueueMessage,
 ) error {
-	if x, ok := v.db.queue.items[op.Item.ID()]; ok {
-		if op.Item.Revision == x.Revision {
+	if x, ok := v.db.queue.messages[op.Message.ID()]; ok {
+		if op.Message.Revision == x.Revision {
 			return nil
 		}
-	} else if op.Item.Revision == 0 {
+	} else if op.Message.Revision == 0 {
 		return nil
 	}
 
@@ -54,14 +59,14 @@ func (v *validator) VisitSaveQueueItem(
 	}
 }
 
-// VisitRemoveQueueItem returns an error if a "RemoveQueueItem" operation can
-// not be applied to the database.
-func (v *validator) VisitRemoveQueueItem(
+// VisitRemoveQueueMessage returns an error if a "RemoveQueueMessage" operation
+// can not be applied to the database.
+func (v *validator) VisitRemoveQueueMessage(
 	ctx context.Context,
-	op persistence.RemoveQueueItem,
+	op persistence.RemoveQueueMessage,
 ) error {
-	if x, ok := v.db.queue.items[op.Item.ID()]; ok {
-		if op.Item.Revision == x.Revision {
+	if x, ok := v.db.queue.messages[op.Message.ID()]; ok {
+		if op.Message.Revision == x.Revision {
 			return nil
 		}
 	}
@@ -71,38 +76,39 @@ func (v *validator) VisitRemoveQueueItem(
 	}
 }
 
-// VisitSaveQueueItem applies the changes in a "SaveQueueItem" operation to the
-// database.
-func (c *committer) VisitSaveQueueItem(
+// VisitSaveQueueMessage applies the changes in a "SaveQueueMessage" operation
+// to the database.
+func (c *committer) VisitSaveQueueMessage(
 	ctx context.Context,
-	op persistence.SaveQueueItem,
+	op persistence.SaveQueueMessage,
 ) error {
-	if op.Item.Revision == 0 {
-		c.insertQueueItem(op)
+	if op.Message.Revision == 0 {
+		c.insertQueueMessage(op)
 	} else {
-		c.updateQueueItem(op)
+		c.updateQueueMessage(op)
 	}
 	return nil
 }
 
-// insertQueueItem inserts a new item into the queue.
-func (c *committer) insertQueueItem(op persistence.SaveQueueItem) {
-	item := cloneQueueItem(&op.Item)
-	item.Revision++
+// insertQueueMessage inserts a new message into the queue.
+func (c *committer) insertQueueMessage(op persistence.SaveQueueMessage) {
+	m := op.Message
+	m.Envelope = cloneEnvelope(m.Envelope)
+	m.Revision++
 
-	// Add the new item to the queue.
-	if c.db.queue.items == nil {
-		c.db.queue.items = map[string]*queuestore.Item{}
+	// Add the new message to the queue.
+	if c.db.queue.messages == nil {
+		c.db.queue.messages = map[string]*persistence.QueueMessage{}
 	}
-	c.db.queue.items[item.ID()] = item
+	c.db.queue.messages[m.ID()] = &m
 
-	// Find the index in the ordered queue where the item belongs. It's the
-	// index of the first item that has a NextAttemptedAt greater than
-	// the new item's.
+	// Find the index in the ordered queue where the message belongs. It's the
+	// index of the first message that has a NextAttemptedAt greater than
+	// that of the new message.
 	index := sort.Search(
 		len(c.db.queue.order),
 		func(i int) bool {
-			return op.Item.NextAttemptAt.Before(
+			return op.Message.NextAttemptAt.Before(
 				c.db.queue.order[i].NextAttemptAt,
 			)
 		},
@@ -111,24 +117,27 @@ func (c *committer) insertQueueItem(op persistence.SaveQueueItem) {
 	// Expand the size of the queue.
 	c.db.queue.order = append(c.db.queue.order, nil)
 
-	// Shift lower-priority items further back to make space for the new item.
+	// Shift lower-priority messages further back to make space for the new one.
 	copy(c.db.queue.order[index+1:], c.db.queue.order[index:])
 
-	// Insert the new item at it's sorted index.
-	c.db.queue.order[index] = item
+	// Insert the new message at it's sorted index.
+	c.db.queue.order[index] = &m
 }
 
-// updateQueueItem updates an existing item.
-func (c *committer) updateQueueItem(op persistence.SaveQueueItem) {
-	existing := c.db.queue.items[op.Item.ID()]
+// updateQueueMessage updates an existing message.
+func (c *committer) updateQueueMessage(op persistence.SaveQueueMessage) {
+	existing := c.db.queue.messages[op.Message.ID()]
 
-	// Apply the changes to the database.
-	copyQueueItemMetaData(existing, &op.Item)
+	// Apply the changes to the database, ensuring that the envelope is never
+	// changed.
+	env := existing.Envelope
+	*existing = op.Message
+	existing.Envelope = env
 	existing.Revision++
 
-	// Queue items are typically updated after an error, when their next-attempt
-	// time is updated as per the backoff strategy, so in practice we always
-	// need to sort.
+	// Queue messages are typically updated after an error, when their
+	// next-attempt time is updated as per the backoff strategy, so in practice
+	// we always need to sort.
 	sort.Slice(
 		c.db.queue.order,
 		func(i, j int) bool {
@@ -139,17 +148,17 @@ func (c *committer) updateQueueItem(op persistence.SaveQueueItem) {
 	)
 }
 
-// VisitRemoveQueueItem applies the changes in a "RemoveQueueItem" operation to
-// the database.
-func (c *committer) VisitRemoveQueueItem(
+// VisitRemoveQueueMessage applies the changes in a "RemoveQueueMessage"
+// operation to the database.
+func (c *committer) VisitRemoveQueueMessage(
 	ctx context.Context,
-	op persistence.RemoveQueueItem,
+	op persistence.RemoveQueueMessage,
 ) error {
-	existing := c.db.queue.items[op.Item.ID()]
-	delete(c.db.queue.items, op.Item.ID())
+	existing := c.db.queue.messages[op.Message.ID()]
+	delete(c.db.queue.messages, op.Message.ID())
 
-	// Use a binary search to find the index of the first item with the same
-	// next-attempt time as the item we're trying to remove.
+	// Use a binary search to find the index of the first message with the same
+	// next-attempt time as the message we're trying to remove.
 	start := sort.Search(
 		len(c.db.queue.order),
 		func(i int) bool {
@@ -159,11 +168,11 @@ func (c *committer) VisitRemoveQueueItem(
 		},
 	)
 
-	// Then scan through the slice from that index to find the specific item.
-	// It's probably the item at the start index, but more than one item may
-	// have the same next-attempt time.
-	for i, item := range c.db.queue.order[start:] {
-		if item.ID() == op.Item.ID() {
+	// Then scan through the slice from that index to find the specific message.
+	// It's probably the message at the start index, but more than one message
+	// may have the same next-attempt time.
+	for i, m := range c.db.queue.order[start:] {
+		if m.ID() == op.Message.ID() {
 			c.db.queue.order = append(
 				c.db.queue.order[:i],
 				c.db.queue.order[i+1:]...,
@@ -173,19 +182,4 @@ func (c *committer) VisitRemoveQueueItem(
 	}
 
 	return nil
-}
-
-// copyQueueItemMetaData assigns meta-data from src to dest, retaining dest's
-// original envelope.
-func copyQueueItemMetaData(dest, src *queuestore.Item) {
-	env := dest.Envelope
-	*dest = *src
-	dest.Envelope = env
-}
-
-// cloneQueueItem returns a deep clone of an eventstore.Item.
-func cloneQueueItem(i *queuestore.Item) *queuestore.Item {
-	clone := *i
-	clone.Envelope = cloneEnvelope(clone.Envelope)
-	return &clone
 }
