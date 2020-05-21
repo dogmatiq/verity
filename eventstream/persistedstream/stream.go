@@ -68,17 +68,14 @@ func (s *Stream) Open(
 		return nil, ctx.Err()
 	}
 
-	q := eventstore.Query{
-		MinOffset: o,
-	}
-
+	rf := map[string]struct{}{}
 	f.Range(func(mt message.Type) bool {
 		n := marshalkit.MustMarshalType(
 			s.Marshaler,
 			mt.ReflectType(),
 		)
 
-		q.Filter.Add(n)
+		rf[n] = struct{}{}
 
 		return true
 	})
@@ -86,13 +83,14 @@ func (s *Stream) Open(
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
 	c := &cursor{
-		repository: s.Repository,
-		query:      q,
-		marshaler:  s.Marshaler,
-		cache:      s.Cache,
-		filter:     f,
-		cancel:     cancelConsume,
-		events:     make(chan *eventstream.Event, s.PreFetch),
+		repository:       s.Repository,
+		repositoryFilter: rf,
+		marshaler:        s.Marshaler,
+		cache:            s.Cache,
+		cacheFilter:      f,
+		offset:           o,
+		cancel:           cancelConsume,
+		events:           make(chan *eventstream.Event, s.PreFetch),
 	}
 
 	go c.consume(consumeCtx)

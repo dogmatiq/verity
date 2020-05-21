@@ -22,13 +22,14 @@ func loadAggregateMetaData(
 	return *md
 }
 
-// queryEvents queries the event store and returns a slice of the results.
-func queryEvents(
+// loadEventsByType loads events of a specifc type.
+func loadEventsByType(
 	ctx context.Context,
 	r eventstore.Repository,
-	q eventstore.Query,
+	f map[string]struct{},
+	o uint64,
 ) []eventstore.Item {
-	res, err := r.QueryEvents(ctx, q)
+	res, err := r.LoadEventsByType(ctx, f, o)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 

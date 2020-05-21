@@ -17,15 +17,25 @@ func (ds *dataStore) NextEventOffset(
 	return uint64(len(ds.db.event.items)), nil
 }
 
-// QueryEvents queries events in the repository.
-func (ds *dataStore) QueryEvents(
+// LoadEventsByType loads events that match a specific set of message types.
+//
+// f is the set of message types to include in the result. The keys of f are
+// the "portable type name" produced when the events are marshaled.
+//
+// o specifies the (inclusive) lower-bound of the offset range to include in
+// the results.
+func (ds *dataStore) LoadEventsByType(
 	ctx context.Context,
-	q eventstore.Query,
+	f map[string]struct{},
+	o uint64,
 ) (eventstore.Result, error) {
 	return &eventResult{
 		db:    ds.db,
-		pred:  q.IsMatch,
-		index: int(q.MinOffset),
+		index: int(o),
+		pred: func(item *eventstore.Item) bool {
+			_, ok := f[item.Envelope.PortableName]
+			return ok
+		},
 	}, nil
 }
 
@@ -63,12 +73,12 @@ func (ds *dataStore) LoadEventsBySource(
 	}
 
 	return &eventResult{
-		db: ds.db,
+		db:    ds.db,
+		index: int(o),
 		pred: func(i *eventstore.Item) bool {
 			return hk == i.Envelope.MetaData.Source.Handler.Key &&
 				id == i.Envelope.MetaData.Source.InstanceId
 		},
-		index: int(o),
 	}, nil
 }
 

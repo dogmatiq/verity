@@ -13,15 +13,16 @@ import (
 
 // cursor is an eventstream.Cursor that reads events from the event store.
 type cursor struct {
-	repository eventstore.Repository
-	query      eventstore.Query
-	marshaler  marshalkit.ValueMarshaler
-	cache      eventstream.Stream
-	filter     message.TypeCollection
-	once       sync.Once
-	cancel     context.CancelFunc
-	events     chan *eventstream.Event
-	err        error
+	repository       eventstore.Repository
+	repositoryFilter map[string]struct{}
+	marshaler        marshalkit.ValueMarshaler
+	cache            eventstream.Stream
+	cacheFilter      message.TypeCollection
+	offset           uint64
+	once             sync.Once
+	cancel           context.CancelFunc
+	events           chan *eventstream.Event
+	err              error
 }
 
 // Next returns the next event in the stream that matches the filter.
@@ -98,7 +99,7 @@ func (c *cursor) consume(ctx context.Context) {
 // A nil return value indicates that the cache does not have the required events
 // and that the event store should be queried instead.
 func (c *cursor) consumeFromCache(ctx context.Context) error {
-	cur, err := c.cache.Open(ctx, c.query.MinOffset, c.filter)
+	cur, err := c.cache.Open(ctx, c.offset, c.cacheFilter)
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func (c *cursor) consumeFromStore(ctx context.Context) error {
 		return err
 	}
 
-	res, err := c.repository.QueryEvents(ctx, c.query)
+	res, err := c.repository.LoadEventsByType(ctx, c.repositoryFilter, c.offset)
 	if err != nil {
 		return err
 	}
@@ -148,10 +149,10 @@ func (c *cursor) consumeFromStore(ctx context.Context) error {
 			// We've run out of events from the store, so we bail to consume
 			// from the recent event cache instead.
 
-			if next > c.query.MinOffset {
+			if next > c.offset {
 				// There were more events after the last event that matched our
 				// filter, we skip over all of them when we hit the cache.
-				c.query.MinOffset = next
+				c.offset = next
 			}
 
 			return nil
@@ -176,7 +177,7 @@ func (c *cursor) consumeFromStore(ctx context.Context) error {
 func (c *cursor) send(ctx context.Context, ev *eventstream.Event) error {
 	select {
 	case c.events <- ev:
-		c.query.MinOffset = ev.Offset + 1
+		c.offset = ev.Offset + 1
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

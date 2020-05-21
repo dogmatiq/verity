@@ -86,9 +86,11 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("does not attempt to load events", func() {
-				eventRepo.QueryEventsFunc = func(
+				eventRepo.LoadEventsBySourceFunc = func(
 					context.Context,
-					eventstore.Query,
+					string,
+					string,
+					string,
 				) (eventstore.Result, error) {
 					return nil, errors.New("<error>")
 				}
@@ -169,9 +171,11 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("does not attempt to load events for a stateless aggregate", func() {
-				eventRepo.QueryEventsFunc = func(
+				eventRepo.LoadEventsBySourceFunc = func(
 					context.Context,
-					eventstore.Query,
+					string,
+					string,
+					string,
 				) (eventstore.Result, error) {
 					return nil, errors.New("<error>")
 				}
@@ -200,9 +204,11 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("does not attempt to load events", func() {
-					eventRepo.QueryEventsFunc = func(
+					eventRepo.LoadEventsBySourceFunc = func(
 						context.Context,
-						eventstore.Query,
+						string,
+						string,
+						string,
 					) (eventstore.Result, error) {
 						return nil, errors.New("<error>")
 					}

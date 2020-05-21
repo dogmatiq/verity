@@ -6,7 +6,6 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/provider/sql/internal/query"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
@@ -89,7 +88,7 @@ func (driver) InsertEventFilter(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	f eventstore.Filter,
+	f map[string]struct{},
 ) (_ int64, err error) {
 	defer sqlx.Recover(&err)
 
@@ -183,18 +182,17 @@ func (driver) SelectNextEventOffset(
 // SelectEventsByType selects events from the eventstore that match the
 // given event types query.
 //
-// f is a filter ID, as returned by InsertEventFilter(). If the query does
-// not use a filter, f is zero.
+// f is a filter ID, as returned by InsertEventFilter(). o is the minimum
+// offset to include in the results.
 func (driver) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	q eventstore.Query,
 	f int64,
+	o uint64,
 ) (*sql.Rows, error) {
-	qb := query.Builder{Numeric: true}
-
-	qb.Write(
+	return db.QueryContext(
+		ctx,
 		`SELECT
 			e.offset,
 			e.message_id,
@@ -210,42 +208,16 @@ func (driver) SelectEventsByType(
 			e.portable_name,
 			e.media_type,
 			e.data
-		FROM infix.event AS e`,
-	)
-
-	if f != 0 {
-		qb.Write(
-			`INNER JOIN infix.event_filter_name AS ft
-			ON ft.filter_id = ?
-			AND ft.portable_name = e.portable_name`,
-			f,
-		)
-	}
-
-	qb.Write(
-		`WHERE e.source_app_key = ?
-		AND e.offset >= ?`,
+		FROM infix.event AS e
+		INNER JOIN infix.event_filter_name AS ft
+		ON ft.portable_name = e.portable_name
+		WHERE e.source_app_key = $1
+		AND e.offset >= $2
+		AND ft.filter_id = $3
+		ORDER BY e.offset`,
 		ak,
-		q.MinOffset,
-	)
-
-	if q.AggregateHandlerKey != "" {
-		qb.Write(
-			`AND e.source_handler_key = ?
-			AND e.source_instance_id = ?`,
-			q.AggregateHandlerKey,
-			q.AggregateInstanceID,
-		)
-	}
-
-	qb.Write(
-		`ORDER BY e.offset`,
-	)
-
-	return db.QueryContext(
-		ctx,
-		qb.String(),
-		qb.Parameters...,
+		o,
+		f,
 	)
 }
 

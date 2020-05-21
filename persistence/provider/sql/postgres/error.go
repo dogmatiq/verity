@@ -128,7 +128,7 @@ func (d errorConverter) InsertEventFilter(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	f eventstore.Filter,
+	f map[string]struct{},
 ) (int64, error) {
 	id, err := d.d.InsertEventFilter(ctx, db, ak, f)
 	return id, convertContextErrors(ctx, err)
@@ -165,10 +165,10 @@ func (d errorConverter) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-	q eventstore.Query,
 	f int64,
+	o uint64,
 ) (*sql.Rows, error) {
-	rows, err := d.d.SelectEventsByType(ctx, db, ak, q, f)
+	rows, err := d.d.SelectEventsByType(ctx, db, ak, f, o)
 	return rows, convertContextErrors(ctx, err)
 }
 

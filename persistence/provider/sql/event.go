@@ -38,7 +38,7 @@ type eventStoreDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
-		f eventstore.Filter,
+		f map[string]struct{},
 	) (int64, error)
 
 	// DeleteEventFilter deletes an event filter.
@@ -68,14 +68,14 @@ type eventStoreDriver interface {
 	// SelectEventsByType selects events from the eventstore that match the
 	// given query.
 	//
-	// f is a filter ID, as returned by InsertEventFilter(). If the query does
-	// not use a filter, f is zero.
+	// f is a filter ID, as returned by InsertEventFilter(). o is the minimum
+	// offset to include in the results.
 	SelectEventsByType(
 		ctx context.Context,
 		db *sql.DB,
 		ak string,
-		q eventstore.Query,
 		f int64,
+		o uint64,
 	) (*sql.Rows, error)
 
 	// SelectEventsBySource selects events from the eventstore that were
@@ -111,32 +111,34 @@ func (ds *dataStore) NextEventOffset(
 	return ds.driver.SelectNextEventOffset(ctx, ds.db, ds.appKey)
 }
 
-// QueryEvents queries events in the repository.
-func (ds *dataStore) QueryEvents(
+// LoadEventsByType loads events that match a specific set of message types.
+//
+// f is the set of message types to include in the result. The keys of f are
+// the "portable type name" produced when the events are marshaled.
+//
+// o specifies the (inclusive) lower-bound of the offset range to include in
+// the results.
+func (ds *dataStore) LoadEventsByType(
 	ctx context.Context,
-	q eventstore.Query,
+	f map[string]struct{},
+	o uint64,
 ) (eventstore.Result, error) {
-	var filterID int64
-
-	if len(q.Filter) > 0 {
-		var err error
-		filterID, err = ds.driver.InsertEventFilter(
-			ctx,
-			ds.db,
-			ds.appKey,
-			q.Filter,
-		)
-		if err != nil {
-			return nil, err
-		}
+	filterID, err := ds.driver.InsertEventFilter(
+		ctx,
+		ds.db,
+		ds.appKey,
+		f,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	rows, err := ds.driver.SelectEventsByType(
 		ctx,
 		ds.db,
 		ds.appKey,
-		q,
 		filterID,
+		o,
 	)
 	if err != nil {
 		return nil, err

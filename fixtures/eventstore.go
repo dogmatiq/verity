@@ -11,7 +11,7 @@ import (
 type EventStoreRepositoryStub struct {
 	eventstore.Repository
 
-	QueryEventsFunc        func(context.Context, eventstore.Query) (eventstore.Result, error)
+	LoadEventsByTypeFunc   func(context.Context, map[string]struct{}, uint64) (eventstore.Result, error)
 	LoadEventsBySourceFunc func(context.Context, string, string, string) (eventstore.Result, error)
 }
 
@@ -31,14 +31,18 @@ func (r *EventStoreRepositoryStub) LoadEventsBySource(
 	return nil, nil
 }
 
-// QueryEvents queries events in the repository.
-func (r *EventStoreRepositoryStub) QueryEvents(ctx context.Context, q eventstore.Query) (eventstore.Result, error) {
-	if r.QueryEventsFunc != nil {
-		return r.QueryEventsFunc(ctx, q)
+// LoadEventsByType loads events that match a specific set of message types.
+func (r *EventStoreRepositoryStub) LoadEventsByType(
+	ctx context.Context,
+	f map[string]struct{},
+	o uint64,
+) (eventstore.Result, error) {
+	if r.LoadEventsByTypeFunc != nil {
+		return r.LoadEventsByTypeFunc(ctx, f, o)
 	}
 
 	if r.Repository != nil {
-		return r.Repository.QueryEvents(ctx, q)
+		return r.Repository.LoadEventsByType(ctx, f, o)
 	}
 
 	return nil, nil
