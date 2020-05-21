@@ -74,7 +74,7 @@ func (d errorConverter) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *persistence.AggregateMetaData,
+	md persistence.AggregateMetaData,
 ) (bool, error) {
 	ok, err := d.d.InsertAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
@@ -84,7 +84,7 @@ func (d errorConverter) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *persistence.AggregateMetaData,
+	md persistence.AggregateMetaData,
 ) (bool, error) {
 	ok, err := d.d.UpdateAggregateMetaData(ctx, tx, ak, md)
 	return ok, convertContextErrors(ctx, err)
@@ -94,7 +94,7 @@ func (d errorConverter) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (*persistence.AggregateMetaData, error) {
+) (persistence.AggregateMetaData, error) {
 	md, err := d.d.SelectAggregateMetaData(ctx, db, ak, hk, id)
 	return md, convertContextErrors(ctx, err)
 }

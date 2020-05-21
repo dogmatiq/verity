@@ -15,7 +15,7 @@ func (driver) InsertAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *persistence.AggregateMetaData,
+	md persistence.AggregateMetaData,
 ) (bool, error) {
 	return insertIgnore(
 		ctx,
@@ -41,7 +41,7 @@ func (driver) UpdateAggregateMetaData(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	md *persistence.AggregateMetaData,
+	md persistence.AggregateMetaData,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
@@ -70,7 +70,7 @@ func (driver) SelectAggregateMetaData(
 	ctx context.Context,
 	db *sql.DB,
 	ak, hk, id string,
-) (*persistence.AggregateMetaData, error) {
+) (persistence.AggregateMetaData, error) {
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
@@ -86,7 +86,7 @@ func (driver) SelectAggregateMetaData(
 		id,
 	)
 
-	md := &persistence.AggregateMetaData{
+	md := persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}

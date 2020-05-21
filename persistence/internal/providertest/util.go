@@ -17,7 +17,7 @@ func loadAggregateMetaData(
 	md, err := r.LoadAggregateMetaData(ctx, hk, id)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	return *md
+	return md
 }
 
 // loadEventsByType loads events of a specifc type.

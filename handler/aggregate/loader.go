@@ -42,7 +42,7 @@ func (l *Loader) Load(
 		return nil, err
 	}
 
-	inst := &Instance{*md, base}
+	inst := &Instance{md, base}
 
 	if base == dogma.StatelessAggregateRoot {
 		return inst, nil
@@ -61,7 +61,7 @@ func (l *Loader) Load(
 
 func (l *Loader) applyEvents(
 	ctx context.Context,
-	md *persistence.AggregateMetaData,
+	md persistence.AggregateMetaData,
 	base dogma.AggregateRoot,
 ) error {
 	res, err := l.EventRepository.LoadEventsBySource(

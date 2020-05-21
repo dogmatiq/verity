@@ -44,8 +44,8 @@ var _ = Describe("type Adaptor", func() {
 		dataStore.LoadAggregateMetaDataFunc = func(
 			_ context.Context,
 			hk, id string,
-		) (*persistence.AggregateMetaData, error) {
-			return &persistence.AggregateMetaData{
+		) (persistence.AggregateMetaData, error) {
+			return persistence.AggregateMetaData{
 				HandlerKey: hk,
 				InstanceID: id,
 			}, nil
@@ -150,8 +150,8 @@ var _ = Describe("type Adaptor", func() {
 				context.Context,
 				string,
 				string,
-			) (*persistence.AggregateMetaData, error) {
-				return nil, errors.New("<error>")
+			) (persistence.AggregateMetaData, error) {
+				return persistence.AggregateMetaData{}, errors.New("<error>")
 			}
 
 			err := entryPoint.HandleMessage(ctx, ack, cause)
