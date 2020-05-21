@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )
@@ -34,7 +33,7 @@ var (
 	eventNextOffsetKey = []byte("offset")
 )
 
-// NextEventOffset returns the next "unused" offset within the store.
+// NextEventOffset returns the next "unused" offset.
 func (ds *dataStore) NextEventOffset(
 	ctx context.Context,
 ) (_ uint64, err error) {
@@ -74,8 +73,8 @@ func (ds *dataStore) LoadEventsByType(
 		db:     ds.db,
 		appKey: ds.appKey,
 		offset: o,
-		pred: func(item *eventstore.Item) bool {
-			_, ok := f[item.Envelope.PortableName]
+		pred: func(env *envelopespec.Envelope) bool {
+			_, ok := f[env.PortableName]
 			return ok
 		},
 	}, nil
@@ -109,9 +108,9 @@ func (ds *dataStore) LoadEventsBySource(
 		db:     ds.db,
 		appKey: ds.appKey,
 		offset: offset,
-		pred: func(i *eventstore.Item) bool {
-			return hk == i.Envelope.MetaData.Source.Handler.Key &&
-				id == i.Envelope.MetaData.Source.InstanceId
+		pred: func(env *envelopespec.Envelope) bool {
+			s := env.MetaData.Source
+			return s.Handler.Key == hk && s.InstanceId == id
 		},
 	}, nil
 }
@@ -143,13 +142,12 @@ func (ds *dataStore) offsetOf(id string) (uint64, error) {
 	return offset, err
 }
 
-// eventResult is an implementation of persistence.EventResult for the BoltDB event
-// store.
+// eventResult is an implementation of persistence.EventResult for BoltDB.
 type eventResult struct {
 	db     *bbolt.DB
 	appKey []byte
 	offset uint64
-	pred   func(*eventstore.Item) bool
+	pred   func(*envelopespec.Envelope) bool
 }
 
 // Next returns the next event in the result.
@@ -157,10 +155,10 @@ type eventResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventResult) Next(
 	ctx context.Context,
-) (_ *eventstore.Item, _ bool, err error) {
+) (_ persistence.Event, _ bool, err error) {
 	defer bboltx.Recover(&err)
 
-	var match *eventstore.Item
+	var match persistence.Event
 
 	bboltx.View(
 		r.db,
@@ -189,24 +187,20 @@ func (r *eventResult) Next(
 					return
 				}
 
-				candidate := &eventstore.Item{
-					Offset:   r.offset,
-					Envelope: env,
-				}
-
-				ok = r.pred(candidate)
+				ok = r.pred(env)
 				r.offset++
 
 				if ok {
 					// We got a match, bail so we can return it.
-					match = candidate
+					match.Offset = r.offset - 1
+					match.Envelope = env
 					return
 				}
 			}
 		},
 	)
 
-	return match, match != nil, nil
+	return match, match.Envelope != nil, nil
 }
 
 // Close closes the cursor.

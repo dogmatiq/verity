@@ -7,7 +7,6 @@ import (
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
@@ -22,64 +21,64 @@ func declareEventRepositoryTests(tc *TestContext) {
 			dataStore persistence.DataStore
 			tearDown  func()
 
-			item0, item1, item2, item3, item4, item5 eventstore.Item
-			filter                                   map[string]struct{}
+			ev0, ev1, ev2, ev3, ev4, ev5 persistence.Event
+			filter                       map[string]struct{}
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 
-			item0 = eventstore.Item{
+			ev0 = persistence.Event{
 				Offset:   0,
 				Envelope: infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
 			}
 
-			item1 = eventstore.Item{
+			ev1 = persistence.Event{
 				Offset:   1,
 				Envelope: infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
 			}
 
-			item2 = eventstore.Item{
+			ev2 = persistence.Event{
 				Offset:   2,
 				Envelope: infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1),
 			}
 
-			item3 = eventstore.Item{
+			ev3 = persistence.Event{
 				Offset:   3,
 				Envelope: infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageA2),
 			}
 
-			item4 = eventstore.Item{
+			ev4 = persistence.Event{
 				Offset:   4,
 				Envelope: infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageB2),
 			}
 
-			item5 = eventstore.Item{
+			ev5 = persistence.Event{
 				Offset:   5,
 				Envelope: infixfixtures.NewEnvelope("<message-5>", dogmafixtures.MessageC2),
 			}
 
 			// Setup some different source handler values to test the aggregate
 			// instance filtering.
-			item0.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			item0.Envelope.MetaData.Source.InstanceId = "<instance-a>"
+			ev0.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			ev0.Envelope.MetaData.Source.InstanceId = "<instance-a>"
 
-			item1.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			item1.Envelope.MetaData.Source.InstanceId = "<instance-b>"
+			ev1.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			ev1.Envelope.MetaData.Source.InstanceId = "<instance-b>"
 
-			item2.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			item2.Envelope.MetaData.Source.InstanceId = "<instance-a>"
+			ev2.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			ev2.Envelope.MetaData.Source.InstanceId = "<instance-a>"
 
-			item3.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			item3.Envelope.MetaData.Source.InstanceId = "<instance-b>"
+			ev3.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
+			ev3.Envelope.MetaData.Source.InstanceId = "<instance-b>"
 
 			filter = map[string]struct{}{
-				item0.Envelope.PortableName: {},
-				item1.Envelope.PortableName: {},
-				item2.Envelope.PortableName: {},
-				item3.Envelope.PortableName: {},
-				item4.Envelope.PortableName: {},
-				item5.Envelope.PortableName: {},
+				ev0.Envelope.PortableName: {},
+				ev1.Envelope.PortableName: {},
+				ev2.Envelope.PortableName: {},
+				ev3.Envelope.PortableName: {},
+				ev4.Envelope.PortableName: {},
+				ev5.Envelope.PortableName: {},
 			}
 		})
 
@@ -98,26 +97,26 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			ginkgo.Describe("func LoadEventsByType()", func() {
 				ginkgo.It("returns an empty result", func() {
-					items := loadEventsByType(
+					events := loadEventsByType(
 						tc.Context,
 						dataStore,
 						filter,
 						0,
 					)
-					gomega.Expect(items).To(gomega.BeEmpty())
+					gomega.Expect(events).To(gomega.BeEmpty())
 				})
 			})
 
 			ginkgo.Describe("func LoadEventsBySource()", func() {
 				ginkgo.It("returns an empty result", func() {
-					items := loadEventsBySource(
+					events := loadEventsBySource(
 						tc.Context,
 						dataStore,
 						"<aggregate>",
 						"<instance-a>",
 						"",
 					)
-					gomega.Expect(items).To(gomega.BeEmpty())
+					gomega.Expect(events).To(gomega.BeEmpty())
 				})
 			})
 		})
@@ -128,22 +127,22 @@ func declareEventRepositoryTests(tc *TestContext) {
 					tc.Context,
 					dataStore,
 					persistence.SaveEvent{
-						Envelope: item0.Envelope,
+						Envelope: ev0.Envelope,
 					},
 					persistence.SaveEvent{
-						Envelope: item1.Envelope,
+						Envelope: ev1.Envelope,
 					},
 					persistence.SaveEvent{
-						Envelope: item2.Envelope,
+						Envelope: ev2.Envelope,
 					},
 					persistence.SaveEvent{
-						Envelope: item3.Envelope,
+						Envelope: ev3.Envelope,
 					},
 					persistence.SaveEvent{
-						Envelope: item4.Envelope,
+						Envelope: ev4.Envelope,
 					},
 					persistence.SaveEvent{
-						Envelope: item5.Envelope,
+						Envelope: ev5.Envelope,
 					},
 				)
 			})
@@ -173,7 +172,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			ginkgo.Describe("func LoadEventsByType()", func() {
 				ginkgo.It("returns events that match the type filter", func() {
-					items := loadEventsByType(
+					events := loadEventsByType(
 						tc.Context,
 						dataStore,
 						map[string]struct{}{
@@ -183,43 +182,43 @@ func declareEventRepositoryTests(tc *TestContext) {
 						0,
 					)
 
-					gomega.Expect(items).To(gomegax.EqualX(
-						[]eventstore.Item{
-							item0,
-							item2,
-							item3,
-							item5,
+					gomega.Expect(events).To(gomegax.EqualX(
+						[]persistence.Event{
+							ev0,
+							ev2,
+							ev3,
+							ev5,
 						},
 					))
 				})
 
 				ginkgo.It("returns events at or after the minimum offset", func() {
-					items := loadEventsByType(
+					events := loadEventsByType(
 						tc.Context,
 						dataStore,
 						filter,
 						2,
 					)
 
-					gomega.Expect(items).To(gomegax.EqualX(
-						[]eventstore.Item{
-							item2,
-							item3,
-							item4,
-							item5,
+					gomega.Expect(events).To(gomegax.EqualX(
+						[]persistence.Event{
+							ev2,
+							ev3,
+							ev4,
+							ev5,
 						},
 					))
 				})
 
 				ginkgo.It("returns an empty result if the minimum offset is larger than the largest offset", func() {
-					items := loadEventsByType(
+					events := loadEventsByType(
 						tc.Context,
 						dataStore,
 						filter,
 						100,
 					)
 
-					gomega.Expect(items).To(gomega.BeEmpty())
+					gomega.Expect(events).To(gomega.BeEmpty())
 				})
 
 				ginkgo.It("correctly applies filters in concurrently accessed results", func() {
@@ -229,7 +228,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 						defer g.Done()
 						defer ginkgo.GinkgoRecover()
 
-						items := loadEventsByType(
+						events := loadEventsByType(
 							tc.Context,
 							dataStore,
 							map[string]struct{}{
@@ -237,10 +236,10 @@ func declareEventRepositoryTests(tc *TestContext) {
 							},
 							0,
 						)
-						gomega.Expect(items).To(gomegax.EqualX(
-							[]eventstore.Item{
-								item0,
-								item3,
+						gomega.Expect(events).To(gomegax.EqualX(
+							[]persistence.Event{
+								ev0,
+								ev3,
 							},
 						))
 					}
@@ -255,32 +254,32 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			ginkgo.Describe("func LoadEventsBySource()", func() {
 				ginkgo.It("returns the events produced by the given source instance", func() {
-					items := loadEventsBySource(
+					events := loadEventsBySource(
 						tc.Context,
 						dataStore,
 						"<aggregate>",
 						"<instance-a>",
 						"",
 					)
-					gomega.Expect(items).To(gomegax.EqualX(
-						[]eventstore.Item{
-							item0,
-							item2,
+					gomega.Expect(events).To(gomegax.EqualX(
+						[]persistence.Event{
+							ev0,
+							ev2,
 						},
 					))
 				})
 
 				ginkgo.It("only returns events recorded after the barrier message", func() {
-					items := loadEventsBySource(
+					events := loadEventsBySource(
 						tc.Context,
 						dataStore,
 						"<aggregate>",
 						"<instance-a>",
-						item0.ID(),
+						ev0.ID(),
 					)
-					gomega.Expect(items).To(gomegax.EqualX(
-						[]eventstore.Item{
-							item2,
+					gomega.Expect(events).To(gomegax.EqualX(
+						[]persistence.Event{
+							ev2,
 						},
 					))
 				})
@@ -313,7 +312,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveEvent{
-							Envelope: item0.Envelope,
+							Envelope: ev0.Envelope,
 						},
 					)
 
@@ -324,11 +323,11 @@ func declareEventRepositoryTests(tc *TestContext) {
 					ctx, cancel := context.WithCancel(tc.Context)
 					cancel()
 
-					item, ok, err := res.Next(ctx)
+					ev, ok, err := res.Next(ctx)
 					if err != nil {
 						gomega.Expect(err).To(gomega.Equal(context.Canceled))
 					} else {
-						gomega.Expect(item).To(gomegax.EqualX(&item0))
+						gomega.Expect(ev).To(gomegax.EqualX(ev0))
 						gomega.Expect(ok).To(gomega.BeTrue())
 					}
 				})

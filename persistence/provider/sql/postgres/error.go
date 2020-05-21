@@ -7,7 +7,6 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/lib/pq"
 )
@@ -193,9 +192,9 @@ func (d errorConverter) SelectOffsetByMessageID(
 
 func (d errorConverter) ScanEvent(
 	rows *sql.Rows,
-	i *eventstore.Item,
+	ev *persistence.Event,
 ) error {
-	return d.d.ScanEvent(rows, i)
+	return d.d.ScanEvent(rows, ev)
 }
 
 //

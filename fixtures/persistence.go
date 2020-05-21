@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -176,12 +175,12 @@ func (ds *DataStoreStub) Close() error {
 type EventResultStub struct {
 	persistence.EventResult
 
-	NextFunc  func(context.Context) (*eventstore.Item, bool, error)
+	NextFunc  func(context.Context) (persistence.Event, bool, error)
 	CloseFunc func() error
 }
 
 // Next returns the next event in the result.
-func (r *EventResultStub) Next(ctx context.Context) (*eventstore.Item, bool, error) {
+func (r *EventResultStub) Next(ctx context.Context) (persistence.Event, bool, error) {
 	if r.NextFunc != nil {
 		return r.NextFunc(ctx)
 	}
@@ -190,7 +189,7 @@ func (r *EventResultStub) Next(ctx context.Context) (*eventstore.Item, bool, err
 		return r.EventResult.Next(ctx)
 	}
 
-	return nil, false, nil
+	return persistence.Event{}, false, nil
 }
 
 // Close closes the cursor.

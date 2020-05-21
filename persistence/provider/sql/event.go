@@ -7,7 +7,6 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"go.uber.org/multierr"
 )
 
@@ -57,8 +56,7 @@ type eventStoreDriver interface {
 		ak string,
 	) error
 
-	// SelectNextEventOffset selects the next "unused" offset from the
-	// eventstore.
+	// SelectNextEventOffset selects the next "unused" offset.
 	SelectNextEventOffset(
 		ctx context.Context,
 		db *sql.DB,
@@ -100,11 +98,11 @@ type eventStoreDriver interface {
 	// SelectEventsByType() and SelectEventsBySource().
 	ScanEvent(
 		rows *sql.Rows,
-		i *eventstore.Item,
+		ev *persistence.Event,
 	) error
 }
 
-// NextEventOffset returns the next "unused" offset within the store.
+// NextEventOffset returns the next "unused" offset.
 func (ds *dataStore) NextEventOffset(
 	ctx context.Context,
 ) (uint64, error) {
@@ -221,9 +219,9 @@ type eventResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventResult) Next(
 	ctx context.Context,
-) (*eventstore.Item, bool, error) {
+) (persistence.Event, bool, error) {
 	if r.rows.Next() {
-		i := &eventstore.Item{
+		ev := persistence.Event{
 			Envelope: &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
 					Source: &envelopespec.Source{
@@ -234,12 +232,12 @@ func (r *eventResult) Next(
 			},
 		}
 
-		err := r.driver.ScanEvent(r.rows, i)
+		err := r.driver.ScanEvent(r.rows, &ev)
 
-		return i, true, err
+		return ev, true, err
 	}
 
-	return nil, false, nil
+	return persistence.Event{}, false, nil
 }
 
 // Close closes the cursor.

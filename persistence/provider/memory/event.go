@@ -3,18 +3,18 @@ package memory
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
-// NextEventOffset returns the next "unused" offset within the store.
+// NextEventOffset returns the next "unused" offset.
 func (ds *dataStore) NextEventOffset(
 	ctx context.Context,
 ) (uint64, error) {
 	ds.db.mutex.RLock()
 	defer ds.db.mutex.RUnlock()
 
-	return uint64(len(ds.db.event.items)), nil
+	return uint64(len(ds.db.event.events)), nil
 }
 
 // LoadEventsByType loads events that match a specific set of message types.
@@ -32,8 +32,8 @@ func (ds *dataStore) LoadEventsByType(
 	return &eventResult{
 		db:    ds.db,
 		index: int(o),
-		pred: func(item *eventstore.Item) bool {
-			_, ok := f[item.Envelope.PortableName]
+		pred: func(env *envelopespec.Envelope) bool {
+			_, ok := f[env.PortableName]
 			return ok
 		},
 	}, nil
@@ -53,41 +53,38 @@ func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, m string,
 ) (persistence.EventResult, error) {
-	var o uint64
+	var offset uint64
 
 	if m != "" {
 		ds.db.mutex.RLock()
 		defer ds.db.mutex.RUnlock()
 
-		var ok bool
-		o, ok = ds.db.event.offsets[m]
+		o, ok := ds.db.event.offsets[m]
 		if !ok {
 			return nil, persistence.UnknownMessageError{
 				MessageID: m,
 			}
 		}
 
-		// Increment the offset to select all messages after the barrier
-		// message exclusively.
-		o++
+		offset = o + 1 // start with the message AFTER the barrier message.
 	}
 
 	return &eventResult{
 		db:    ds.db,
-		index: int(o),
-		pred: func(i *eventstore.Item) bool {
-			return hk == i.Envelope.MetaData.Source.Handler.Key &&
-				id == i.Envelope.MetaData.Source.InstanceId
+		index: int(offset),
+		pred: func(env *envelopespec.Envelope) bool {
+			s := env.MetaData.Source
+			return s.Handler.Key == hk && s.InstanceId == id
 		},
 	}, nil
 }
 
 // eventResult is an implementation of persistence.EventResult for the in-memory
-// event store.
+// provider.
 type eventResult struct {
 	db    *database
-	pred  func(*eventstore.Item) bool
 	index int
+	pred  func(*envelopespec.Envelope) bool
 }
 
 // Next returns the next event in the result.
@@ -95,38 +92,36 @@ type eventResult struct {
 // It returns false if the are no more events in the result.
 func (r *eventResult) Next(
 	ctx context.Context,
-) (*eventstore.Item, bool, error) {
-	r.db.mutex.RLock()
-
+) (persistence.Event, bool, error) {
 	// We only have to hold the mutex long enough to make the slice that is our
-	// "view" of the items. The individual items are never modified and so they
-	// are safe to read concurrently without synchronization. Any future append
-	// will either add elements to the tail of the underlying array, or allocate
-	// a new array, neither of which we will see via this slice.
-	var items []eventstore.Item
-	if len(r.db.event.items) > r.index {
-		items = r.db.event.items[r.index:]
+	// "view" of the events. The individual events are never modified and so
+	// they are safe to read concurrently without synchronization. Any future
+	// append will either add elements to the tail of the underlying array, or
+	// allocate a new array, neither of which we will see via this slice.
+	var events []persistence.Event
+	r.db.mutex.RLock()
+	if len(r.db.event.events) > r.index {
+		events = r.db.event.events[r.index:]
 	}
-
 	r.db.mutex.RUnlock()
 
-	// Iterate through the items looking for a match for the query.
-	for i, item := range items {
-		if r.pred(&item) {
+	// Iterate through the events looking for a predicate match.
+	for i, ev := range events {
+		if r.pred(ev.Envelope) {
 			r.index += i + 1
 
 			// Clone the envelope on the way out so inadvertent manipulation of
 			// the envelope by the caller does not affect the data in the
 			// database.
-			item.Envelope = cloneEnvelope(item.Envelope)
+			ev.Envelope = cloneEnvelope(ev.Envelope)
 
-			return &item, true, nil
+			return ev, true, nil
 		}
 	}
 
-	r.index += len(items) + 1
+	r.index += len(events) + 1
 
-	return nil, false, nil
+	return persistence.Event{}, false, nil
 }
 
 // Close closes the cursor.
@@ -136,7 +131,7 @@ func (r *eventResult) Close() error {
 
 // eventDatabase contains data that is committed to the event store.
 type eventDatabase struct {
-	items   []eventstore.Item
+	events  []persistence.Event
 	offsets map[string]uint64
 }
 
@@ -155,27 +150,26 @@ func (c *committer) VisitSaveEvent(
 	_ context.Context,
 	op persistence.SaveEvent,
 ) error {
-	offset := uint64(len(c.db.event.items))
+	offset := uint64(len(c.db.event.events))
 
-	c.db.event.items = append(
-		c.db.event.items,
-		eventstore.Item{
-			Offset:   offset,
-			Envelope: cloneEnvelope(op.Envelope),
-		},
-	)
+	ev := persistence.Event{
+		Offset:   offset,
+		Envelope: cloneEnvelope(op.Envelope),
+	}
+
+	c.db.event.events = append(c.db.event.events, ev)
 
 	if c.db.event.offsets == nil {
 		c.db.event.offsets = map[string]uint64{}
 	}
 
-	c.db.event.offsets[op.Envelope.MetaData.MessageId] = offset
+	c.db.event.offsets[ev.ID()] = offset
 
 	if c.result.EventOffsets == nil {
 		c.result.EventOffsets = map[string]uint64{}
 	}
 
-	c.result.EventOffsets[op.Envelope.MetaData.MessageId] = offset
+	c.result.EventOffsets[ev.ID()] = offset
 
 	return nil
 }

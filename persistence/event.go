@@ -58,7 +58,7 @@ type EventResult interface {
 	// Next returns the next event in the result.
 	//
 	// It returns false if the are no more events in the result.
-	Next(ctx context.Context) (*Event, bool, error)
+	Next(ctx context.Context) (Event, bool, error)
 
 	// Close closes the cursor.
 	Close() error

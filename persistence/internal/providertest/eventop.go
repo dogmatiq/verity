@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -57,9 +56,9 @@ func declareEventOperationTests(tc *TestContext) {
 					},
 				)
 
-				items := loadEventsByType(tc.Context, dataStore, filter, 0)
-				gomega.Expect(items).To(gomegax.EqualX(
-					[]eventstore.Item{
+				events := loadEventsByType(tc.Context, dataStore, filter, 0)
+				gomega.Expect(events).To(gomegax.EqualX(
+					[]persistence.Event{
 						{
 							Offset:   0,
 							Envelope: env0,
@@ -72,7 +71,7 @@ func declareEventOperationTests(tc *TestContext) {
 				))
 			})
 
-			ginkgo.It("has a corresponding item in the result", func() {
+			ginkgo.It("has a corresponding offset in the result", func() {
 				res := persist(
 					tc.Context,
 					dataStore,
@@ -96,7 +95,7 @@ func declareEventOperationTests(tc *TestContext) {
 				var (
 					g      sync.WaitGroup
 					m      sync.Mutex
-					expect []eventstore.Item
+					expect []persistence.Event
 				)
 
 				fn := func(env *envelopespec.Envelope) {
@@ -114,7 +113,7 @@ func declareEventOperationTests(tc *TestContext) {
 					m.Lock()
 					expect = append(
 						expect,
-						eventstore.Item{
+						persistence.Event{
 							Offset:   res.EventOffsets[env.MetaData.MessageId],
 							Envelope: env,
 						},
@@ -137,8 +136,8 @@ func declareEventOperationTests(tc *TestContext) {
 					},
 				)
 
-				items := loadEventsByType(tc.Context, dataStore, filter, 0)
-				gomega.Expect(items).To(gomegax.EqualX(expect))
+				events := loadEventsByType(tc.Context, dataStore, filter, 0)
+				gomega.Expect(events).To(gomegax.EqualX(expect))
 			})
 		})
 	})

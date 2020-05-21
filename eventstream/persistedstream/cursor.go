@@ -140,7 +140,7 @@ func (c *cursor) consumeFromStore(ctx context.Context) error {
 	defer res.Close()
 
 	for {
-		i, ok, err := res.Next(ctx)
+		pev, ok, err := res.Next(ctx)
 		if err != nil {
 			return err
 		}
@@ -159,10 +159,10 @@ func (c *cursor) consumeFromStore(ctx context.Context) error {
 		}
 
 		ev := &eventstream.Event{
-			Offset: i.Offset,
+			Offset: pev.Offset,
 		}
 
-		ev.Parcel, err = parcel.FromEnvelope(c.marshaler, i.Envelope)
+		ev.Parcel, err = parcel.FromEnvelope(c.marshaler, pev.Envelope)
 		if err != nil {
 			return err
 		}

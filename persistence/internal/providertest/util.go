@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -28,22 +27,22 @@ func loadEventsByType(
 	r persistence.EventRepository,
 	f map[string]struct{},
 	o uint64,
-) []eventstore.Item {
+) []persistence.Event {
 	res, err := r.LoadEventsByType(ctx, f, o)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 
-	var items []eventstore.Item
+	var events []persistence.Event
 
 	for {
-		i, ok, err := res.Next(ctx)
+		ev, ok, err := res.Next(ctx)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		if !ok {
-			return items
+			return events
 		}
 
-		items = append(items, *i)
+		events = append(events, ev)
 	}
 }
 
@@ -53,22 +52,22 @@ func loadEventsBySource(
 	r persistence.EventRepository,
 	hk, id string,
 	m string,
-) []eventstore.Item {
+) []persistence.Event {
 	res, err := r.LoadEventsBySource(ctx, hk, id, m)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 
-	var items []eventstore.Item
+	var events []persistence.Event
 
 	for {
-		i, ok, err := res.Next(ctx)
+		ev, ok, err := res.Next(ctx)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		if !ok {
-			return items
+			return events
 		}
 
-		items = append(items, *i)
+		events = append(events, ev)
 	}
 }
 
