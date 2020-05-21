@@ -95,7 +95,7 @@ func (w *UnitOfWork) saveEvent(p parcel.Parcel) {
 func (w *UnitOfWork) populateEventOffsets(pr persistence.Result) {
 	for i := range w.result.Events {
 		ev := &w.result.Events[i]
-		ev.Offset = pr.EventOffsets[ev.Parcel.Envelope.GetMessageId()] // TODO: https://github.com/dogmatiq/infix/issues/268
+		ev.Offset = pr.EventOffsets[ev.ID()]
 	}
 }
 

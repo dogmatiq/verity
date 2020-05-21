@@ -25,6 +25,11 @@ type Parcel struct {
 	ScheduledFor time.Time
 }
 
+// ID returns the ID of the message.
+func (p Parcel) ID() string {
+	return p.Envelope.GetMessageId()
+}
+
 // FromEnvelope constructs a parcel from an envelope.
 func FromEnvelope(
 	ma marshalkit.ValueMarshaler,
