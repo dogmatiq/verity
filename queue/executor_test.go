@@ -86,19 +86,15 @@ var _ = Describe("type CommandExecutor", func() {
 						Revision:      1,
 						NextAttemptAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						Envelope: &envelopespec.Envelope{
-							MetaData: &envelopespec.MetaData{
-								MessageId:     "0",
-								CorrelationId: "0",
-								CausationId:   "0",
-								Source: &envelopespec.Source{
-									Application: &envelopespec.Identity{
-										Name: "<app-name>",
-										Key:  "<app-key>",
-									},
-								},
-								CreatedAt:   "2000-01-01T00:00:00Z",
-								Description: "{A1}",
+							MessageId:     "0",
+							CorrelationId: "0",
+							CausationId:   "0",
+							SourceApplication: &envelopespec.Identity{
+								Name: "<app-name>",
+								Key:  "<app-key>",
 							},
+							CreatedAt:    "2000-01-01T00:00:00Z",
+							Description:  "{A1}",
 							PortableName: MessageAPortableName,
 							MediaType:    MessageA1Packet.MediaType,
 							Data:         MessageA1Packet.Data,

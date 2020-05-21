@@ -19,16 +19,16 @@ func LogConsume(
 		log,
 		String(
 			[]IconWithLabel{
-				MessageIDIcon.WithID(env.MetaData.MessageId),
-				CausationIDIcon.WithID(env.MetaData.CausationId),
-				CorrelationIDIcon.WithID(env.MetaData.CorrelationId),
+				MessageIDIcon.WithID(env.GetMessageId()),
+				CausationIDIcon.WithID(env.GetCausationId()),
+				CorrelationIDIcon.WithID(env.GetCorrelationId()),
 			},
 			[]Icon{
 				ConsumeIcon,
 				retryIcon(fc),
 			},
-			env.PortableName,
-			env.MetaData.Description,
+			env.GetPortableName(),
+			env.GetDescription(),
 		),
 	)
 }
@@ -42,16 +42,16 @@ func LogProduce(
 		log,
 		String(
 			[]IconWithLabel{
-				MessageIDIcon.WithID(env.MetaData.MessageId),
-				CausationIDIcon.WithID(env.MetaData.CausationId),
-				CorrelationIDIcon.WithID(env.MetaData.CorrelationId),
+				MessageIDIcon.WithID(env.GetMessageId()),
+				CausationIDIcon.WithID(env.GetCausationId()),
+				CorrelationIDIcon.WithID(env.GetCorrelationId()),
 			},
 			[]Icon{
 				ProduceIcon,
 				"",
 			},
-			env.PortableName,
-			env.MetaData.Description,
+			env.GetPortableName(),
+			env.GetDescription(),
 		),
 	)
 }
@@ -67,15 +67,15 @@ func LogNack(
 		log,
 		String(
 			[]IconWithLabel{
-				MessageIDIcon.WithID(env.MetaData.MessageId),
-				CausationIDIcon.WithID(env.MetaData.CausationId),
-				CorrelationIDIcon.WithID(env.MetaData.CorrelationId),
+				MessageIDIcon.WithID(env.GetMessageId()),
+				CausationIDIcon.WithID(env.GetCausationId()),
+				CorrelationIDIcon.WithID(env.GetCorrelationId()),
 			},
 			[]Icon{
 				ConsumeErrorIcon,
 				ErrorIcon,
 			},
-			env.PortableName,
+			env.GetPortableName(),
 			cause.Error(),
 			fmt.Sprintf("next retry in %s", delay),
 		),
@@ -93,15 +93,15 @@ func LogFromScope(
 		log,
 		String(
 			[]IconWithLabel{
-				MessageIDIcon.WithID(env.MetaData.MessageId),
-				CausationIDIcon.WithID(env.MetaData.CausationId),
-				CorrelationIDIcon.WithID(env.MetaData.CorrelationId),
+				MessageIDIcon.WithID(env.GetMessageId()),
+				CausationIDIcon.WithID(env.GetCausationId()),
+				CorrelationIDIcon.WithID(env.GetCorrelationId()),
 			},
 			[]Icon{
 				ConsumeIcon,
 				"",
 			},
-			env.PortableName,
+			env.GetPortableName(),
 			fmt.Sprintf(f, v...),
 		),
 	)
@@ -155,9 +155,9 @@ func LogHandlerResult(
 		log,
 		String(
 			[]IconWithLabel{
-				MessageIDIcon.WithID(env.MetaData.MessageId),
-				CausationIDIcon.WithID(env.MetaData.CausationId),
-				CorrelationIDIcon.WithID(env.MetaData.CorrelationId),
+				MessageIDIcon.WithID(env.GetMessageId()),
+				CausationIDIcon.WithID(env.GetCausationId()),
+				CorrelationIDIcon.WithID(env.GetCorrelationId()),
 			},
 			[]Icon{
 				HandlerTypeIcon(ht),

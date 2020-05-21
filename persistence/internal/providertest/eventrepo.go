@@ -60,17 +60,17 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			// Setup some different source handler values to test the aggregate
 			// instance filtering.
-			ev0.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			ev0.Envelope.MetaData.Source.InstanceId = "<instance-a>"
+			ev0.Envelope.SourceHandler.Key = "<aggregate>"
+			ev0.Envelope.SourceInstanceId = "<instance-a>"
 
-			ev1.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			ev1.Envelope.MetaData.Source.InstanceId = "<instance-b>"
+			ev1.Envelope.SourceHandler.Key = "<aggregate>"
+			ev1.Envelope.SourceInstanceId = "<instance-b>"
 
-			ev2.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			ev2.Envelope.MetaData.Source.InstanceId = "<instance-a>"
+			ev2.Envelope.SourceHandler.Key = "<aggregate>"
+			ev2.Envelope.SourceInstanceId = "<instance-a>"
 
-			ev3.Envelope.MetaData.Source.Handler.Key = "<aggregate>"
-			ev3.Envelope.MetaData.Source.InstanceId = "<instance-b>"
+			ev3.Envelope.SourceHandler.Key = "<aggregate>"
+			ev3.Envelope.SourceInstanceId = "<instance-b>"
 
 			filter = map[string]struct{}{
 				ev0.Envelope.PortableName: {},

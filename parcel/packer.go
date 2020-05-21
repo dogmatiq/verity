@@ -106,7 +106,7 @@ func (p *Packer) PackChildTimeout(
 		instanceID,
 	)
 
-	parcel.Envelope.MetaData.ScheduledFor = envelopespec.MarshalTime(t)
+	parcel.Envelope.ScheduledFor = envelopespec.MarshalTime(t)
 	parcel.ScheduledFor = t
 
 	return parcel
@@ -119,16 +119,12 @@ func (p *Packer) new(m dogma.Message) Parcel {
 
 	env := Parcel{
 		Envelope: &envelopespec.Envelope{
-			MetaData: &envelopespec.MetaData{
-				MessageId:     id,
-				CorrelationId: id,
-				CausationId:   id,
-				Source: &envelopespec.Source{
-					Application: p.Application,
-				},
-				CreatedAt:   envelopespec.MarshalTime(now),
-				Description: dogma.DescribeMessage(m),
-			},
+			MessageId:         id,
+			CorrelationId:     id,
+			CausationId:       id,
+			SourceApplication: p.Application,
+			CreatedAt:         envelopespec.MarshalTime(now),
+			Description:       dogma.DescribeMessage(m),
 		},
 		Message:   m,
 		CreatedAt: now,
@@ -149,10 +145,10 @@ func (p *Packer) newChild(
 ) Parcel {
 	parcel := p.new(m)
 
-	parcel.Envelope.MetaData.CausationId = c.Envelope.MetaData.MessageId
-	parcel.Envelope.MetaData.CorrelationId = c.Envelope.MetaData.CorrelationId
-	parcel.Envelope.MetaData.Source.Handler = handler
-	parcel.Envelope.MetaData.Source.InstanceId = instanceID
+	parcel.Envelope.CausationId = c.Envelope.GetMessageId()
+	parcel.Envelope.CorrelationId = c.Envelope.GetCorrelationId()
+	parcel.Envelope.SourceHandler = handler
+	parcel.Envelope.SourceInstanceId = instanceID
 
 	return parcel
 }

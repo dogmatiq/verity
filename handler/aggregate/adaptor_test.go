@@ -198,21 +198,17 @@ var _ = Describe("type Adaptor", func() {
 						persistence.Batch{
 							persistence.SaveEvent{
 								Envelope: &envelopespec.Envelope{
-									MetaData: &envelopespec.MetaData{
-										MessageId:     "0",
-										CausationId:   "<consume>",
-										CorrelationId: "<correlation>",
-										Source: &envelopespec.Source{
-											Application: packer.Application,
-											Handler:     adaptor.Identity,
-											InstanceId:  "<instance>",
-										},
-										CreatedAt:   "2000-01-01T00:00:00Z",
-										Description: "{E1}",
-									},
-									PortableName: MessageEPortableName,
-									MediaType:    MessageE1Packet.MediaType,
-									Data:         MessageE1Packet.Data,
+									MessageId:         "0",
+									CausationId:       "<consume>",
+									CorrelationId:     "<correlation>",
+									SourceApplication: packer.Application,
+									SourceHandler:     adaptor.Identity,
+									SourceInstanceId:  "<instance>",
+									CreatedAt:         "2000-01-01T00:00:00Z",
+									Description:       "{E1}",
+									PortableName:      MessageEPortableName,
+									MediaType:         MessageE1Packet.MediaType,
+									Data:              MessageE1Packet.Data,
 								},
 							},
 							persistence.SaveAggregateMetaData{
@@ -507,21 +503,17 @@ var _ = Describe("type Adaptor", func() {
 							persistence.Batch{
 								persistence.SaveEvent{
 									Envelope: &envelopespec.Envelope{
-										MetaData: &envelopespec.MetaData{
-											MessageId:     "2",
-											CausationId:   "<consume>",
-											CorrelationId: "<correlation>",
-											Source: &envelopespec.Source{
-												Application: packer.Application,
-												Handler:     adaptor.Identity,
-												InstanceId:  "<instance>",
-											},
-											CreatedAt:   "2000-01-01T00:00:02Z",
-											Description: "{E3}",
-										},
-										PortableName: MessageEPortableName,
-										MediaType:    MessageE3Packet.MediaType,
-										Data:         MessageE3Packet.Data,
+										MessageId:         "2",
+										CausationId:       "<consume>",
+										CorrelationId:     "<correlation>",
+										SourceApplication: packer.Application,
+										SourceHandler:     adaptor.Identity,
+										SourceInstanceId:  "<instance>",
+										CreatedAt:         "2000-01-01T00:00:02Z",
+										Description:       "{E3}",
+										PortableName:      MessageEPortableName,
+										MediaType:         MessageE3Packet.MediaType,
+										Data:              MessageE3Packet.Data,
 									},
 								},
 								persistence.SaveAggregateMetaData{

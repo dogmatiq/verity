@@ -136,7 +136,7 @@ func declareQueueOperationTests(tc *TestContext) {
 
 				ginkgo.It("does not update the envelope", func() {
 					env := proto.Clone(env0).(*envelopespec.Envelope)
-					env.MetaData.CausationId = "<different>"
+					env.CausationId = "<different>"
 
 					persist(
 						tc.Context,
@@ -226,8 +226,8 @@ func declareQueueOperationTests(tc *TestContext) {
 				})
 
 				ginkgo.It("saves messages that were not created by a handler", func() {
-					env0.MetaData.Source.Handler = &envelopespec.Identity{}
-					env0.MetaData.Source.InstanceId = ""
+					env0.SourceHandler = &envelopespec.Identity{}
+					env0.SourceInstanceId = ""
 
 					persist(
 						tc.Context,
@@ -241,11 +241,7 @@ func declareQueueOperationTests(tc *TestContext) {
 					)
 
 					m := loadQueueMessage(tc.Context, dataStore)
-					gomega.Expect(
-						m.Envelope.MetaData.Source,
-					).To(gomegax.EqualX(
-						env0.MetaData.Source,
-					))
+					gomega.Expect(m.Envelope).To(gomegax.EqualX(env0))
 				})
 
 				ginkgo.It("does not save the message when an OCC conflict occurs", func() {

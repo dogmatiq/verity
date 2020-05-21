@@ -33,7 +33,7 @@ func (ds *dataStore) LoadEventsByType(
 		db:    ds.db,
 		index: int(o),
 		pred: func(env *envelopespec.Envelope) bool {
-			_, ok := f[env.PortableName]
+			_, ok := f[env.GetPortableName()]
 			return ok
 		},
 	}, nil
@@ -73,8 +73,8 @@ func (ds *dataStore) LoadEventsBySource(
 		db:    ds.db,
 		index: int(offset),
 		pred: func(env *envelopespec.Envelope) bool {
-			s := env.MetaData.Source
-			return s.Handler.Key == hk && s.InstanceId == id
+			return env.GetSourceHandler().GetKey() == hk &&
+				env.GetSourceInstanceId() == id
 		},
 	}, nil
 }

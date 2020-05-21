@@ -104,8 +104,8 @@ var _ = Describe("type EntryPoint", func() {
 				) (persistence.Result, error) {
 					return persistence.Result{
 						EventOffsets: map[string]uint64{
-							unqueuedEvent.Envelope.MetaData.MessageId: 0,
-							queuedEvent.Envelope.MetaData.MessageId:   1,
+							unqueuedEvent.Envelope.GetMessageId(): 0,
+							queuedEvent.Envelope.GetMessageId():   1,
 						},
 					}, nil
 				}

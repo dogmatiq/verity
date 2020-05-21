@@ -232,7 +232,7 @@ func loadQueueMessage(b *bbolt.Bucket, id string) *pb.QueueMessage {
 
 // saveQueueOrder adds a record for m to the order bucket.
 func saveQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
-	id := m.GetEnvelope().GetMetaData().GetMessageId()
+	id := m.GetEnvelope().GetMessageId()
 
 	bboltx.Put(
 		bboltx.CreateBucketIfNotExists(
@@ -246,7 +246,7 @@ func saveQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
 
 // removeQueueOrder removes the record for m from the order bucket.
 func removeQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
-	id := m.GetEnvelope().GetMetaData().GetMessageId()
+	id := m.GetEnvelope().GetMessageId()
 
 	bboltx.Delete(
 		bboltx.Bucket(

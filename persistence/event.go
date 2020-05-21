@@ -14,7 +14,7 @@ type Event struct {
 
 // ID returns the ID of the message.
 func (e Event) ID() string {
-	return e.Envelope.MetaData.MessageId
+	return e.Envelope.GetMessageId()
 }
 
 // EventRepository is an interface for reading event messages.
@@ -76,5 +76,5 @@ func (op SaveEvent) AcceptVisitor(ctx context.Context, v OperationVisitor) error
 }
 
 func (op SaveEvent) entityKey() entityKey {
-	return entityKey{"event", op.Envelope.MetaData.MessageId}
+	return entityKey{"event", op.Envelope.GetMessageId()}
 }

@@ -61,25 +61,21 @@ func NewParcel(
 
 	p := parcel.Parcel{
 		Envelope: &envelopespec.Envelope{
-			MetaData: &envelopespec.MetaData{
-				MessageId:     id,
-				CausationId:   "<cause>",
-				CorrelationId: "<correlation>",
-				Source: &envelopespec.Source{
-					Application: &envelopespec.Identity{
-						Name: "<app-name>",
-						Key:  "<app-key>",
-					},
-					Handler: &envelopespec.Identity{
-						Name: "<handler-name>",
-						Key:  "<handler-key>",
-					},
-					InstanceId: "<instance>",
-				},
-				CreatedAt:    envelopespec.MarshalTime(createdAt),
-				ScheduledFor: envelopespec.MarshalTime(scheduledFor),
-				Description:  dogma.DescribeMessage(m),
+			MessageId:     id,
+			CausationId:   "<cause>",
+			CorrelationId: "<correlation>",
+			SourceApplication: &envelopespec.Identity{
+				Name: "<app-name>",
+				Key:  "<app-key>",
 			},
+			SourceHandler: &envelopespec.Identity{
+				Name: "<handler-name>",
+				Key:  "<handler-key>",
+			},
+			SourceInstanceId: "<instance>",
+			CreatedAt:        envelopespec.MarshalTime(createdAt),
+			ScheduledFor:     envelopespec.MarshalTime(scheduledFor),
+			Description:      dogma.DescribeMessage(m),
 		},
 		Message:      m,
 		CreatedAt:    createdAt,

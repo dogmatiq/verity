@@ -74,12 +74,8 @@ func (ds *dataStore) LoadQueueMessages(
 	for rows.Next() {
 		m := persistence.QueueMessage{
 			Envelope: &envelopespec.Envelope{
-				MetaData: &envelopespec.MetaData{
-					Source: &envelopespec.Source{
-						Application: &envelopespec.Identity{},
-						Handler:     &envelopespec.Identity{},
-					},
-				},
+				SourceApplication: &envelopespec.Identity{},
+				SourceHandler:     &envelopespec.Identity{},
 			},
 		}
 

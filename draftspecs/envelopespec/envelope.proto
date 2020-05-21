@@ -3,7 +3,7 @@ package dogma.envelope.v1;
 
 option go_package = "github.com/dogmatiq/infix/draftspecs/envelopespec";
 
-// Identity is a protocol buffers representation of the configkit.Identity type.
+// Identity is the identity of a Dogma application or handler.
 message Identity {
   // Name is the entity's unique name.
   string name = 1;
@@ -12,62 +12,51 @@ message Identity {
   string key = 2;
 }
 
-message Source {
-  // Application is the identity of the Dogma application that produced this
-  // message.
-  Identity application = 1;
-
-  // Handler is the identity of the handler that produced the message. It is the
-  // zero-value if the message was not produced by a handler.
-  Identity handler = 2;
-
-  // InstanceID is the aggregate or process instance that produced the message.
-  // It is empty if the message was not produced by a handler, or it was
-  // produced by an integration handler.
-  string instance_id = 3;
-}
-
-// MetaData is a protocol buffers representation of the envelope.MetaData type.
-message MetaData  {
-  // MessageID is a unique identifier for the message.
+// Envelope is a container for a marshaled message and it meta-data.
+message Envelope {
+  // MessageId is a unique identifier for the message.
   string message_id = 1;
 
-  // CausationID is the ID of the message that was being handled when the
-  // message identified by MessageID was produced.
+  // CausationId is the ID of the message that was the direct cause of the
+  // message in this envelope.
   string causation_id = 2;
 
-  // CorrelationID is the ID of the "root" message that entered the application
-  // to cause the message identified by MessageID, either directly or
-  // indirectly.
+  // CorrelationId is the ID of the first ancestor of the message in this
+  // envelope that was not caused by another message.
   string correlation_id = 3;
 
-  // Source describes the source of the message.
-  Source source = 4;
+  // SourceApplication is the identity of the Dogma application that produced
+  // the message in this envelope.
+  Identity source_application = 4;
+
+  // SourceHandler is the identity of the Dogma handler that produced the
+  // message in this envelope. It is the zero-value if the message was not
+  // produced by a handler.
+  Identity source_handler = 5;
+
+  // SourceInstanceId is the ID of the aggregate or process instance that
+  // produced the message in this envelope. It is empty if the message was not
+  // produced by a handler, or it was produced by an integration handler.
+  string source_instance_id = 6;
 
   // CreatedAt is the time at which the message was created, marshaled in
   // RFC-3339 format, with nanoseconds.
-  string created_at = 5;
+  string created_at = 7;
 
   // ScheduledFor is the time at which a timeout message was scheduled, RFC-3339
   // format, with nanoseconds.
-  string scheduled_for = 6;
+  string scheduled_for = 8;
 
   // Description is a human-readable description of the message.
-  string description = 7;
-}
-
-// Envelope is a protocol buffers representation of the envelope.Envelope type.
-message Envelope {
-  // MetaData is the message meta-data.
-  MetaData meta_data = 1;
+  string description = 9;
 
   // PortableName is the unique name used to identify messages of this type.
-  string portable_name = 2;
+  string portable_name = 10;
 
   // MediaType is a MIME media-type describing the content and encoding of the
   // binary message data.
-  string media_type = 3;
+  string media_type = 11;
 
   // Data is the binary message data.
-  bytes data = 4;
+  bytes data = 12;
 }

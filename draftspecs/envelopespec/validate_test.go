@@ -28,56 +28,56 @@ var _ = Describe("func CheckWellFormed()", func() {
 	})
 
 	It("returns an error if the message ID is empty", func() {
-		env.MetaData.MessageId = ""
+		env.MessageId = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("returns an error if the causation ID is empty", func() {
-		env.MetaData.CausationId = ""
+		env.CausationId = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("returns an error if the correlation ID is empty", func() {
-		env.MetaData.CorrelationId = ""
+		env.CorrelationId = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("returns an error if the source app name is empty", func() {
-		env.MetaData.Source.Application.Name = ""
+		env.SourceApplication.Name = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).To(MatchError("application identity is invalid: identity name must not be empty"))
 	})
 
 	It("returns an error if the source app key is empty", func() {
-		env.MetaData.Source.Application.Key = ""
+		env.SourceApplication.Key = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).To(MatchError("application identity is invalid: identity key must not be empty"))
 	})
 
 	It("returns an error if the source handler name is empty", func() {
-		env.MetaData.Source.Handler.Name = ""
+		env.SourceHandler.Name = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).To(MatchError("handler identity is invalid: identity name must not be empty"))
 	})
 
 	It("returns an error if the source handler key is empty", func() {
-		env.MetaData.Source.Handler.Key = ""
+		env.SourceHandler.Key = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).To(MatchError("handler identity is invalid: identity key must not be empty"))
 	})
 
 	It("returns an error if the source handler is empty but the instance ID is set", func() {
-		env.MetaData.Source.Handler = nil
+		env.SourceHandler = nil
 
 		err := CheckWellFormed(env)
 		Expect(err).To(MatchError("source instance ID must not be specified without providing a handler identity"))
@@ -85,8 +85,8 @@ var _ = Describe("func CheckWellFormed()", func() {
 
 	When("there is no source handler", func() {
 		BeforeEach(func() {
-			env.MetaData.Source.Handler = nil
-			env.MetaData.Source.InstanceId = ""
+			env.SourceHandler = nil
+			env.SourceInstanceId = ""
 		})
 
 		It("returns an error if the message is a timeout", func() {
@@ -95,7 +95,7 @@ var _ = Describe("func CheckWellFormed()", func() {
 		})
 
 		It("does not return an error if the message is not a timeout", func() {
-			env.MetaData.ScheduledFor = ""
+			env.ScheduledFor = ""
 
 			err := CheckWellFormed(env)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -103,14 +103,14 @@ var _ = Describe("func CheckWellFormed()", func() {
 	})
 
 	It("does not return an error if the message description is empty", func() {
-		env.MetaData.Description = ""
+		env.Description = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("returns an error if the created-at timestamp is empty", func() {
-		env.MetaData.CreatedAt = ""
+		env.CreatedAt = ""
 
 		err := CheckWellFormed(env)
 		Expect(err).To(MatchError("created-at time must not be empty"))
@@ -146,7 +146,7 @@ var _ = Describe("func MustBeWellFormed()", func() {
 			time.Now(),
 			time.Now(),
 		)
-		env.MetaData = nil
+		env.MessageId = ""
 
 		Expect(func() {
 			MustBeWellFormed(env)

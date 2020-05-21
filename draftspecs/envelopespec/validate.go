@@ -16,9 +16,42 @@ import (
 // It does not perform "deep" validation, such as ensuring messages, times, etc
 // can be unmarshaled.
 func CheckWellFormed(env *Envelope) error {
-	if err := checkMetaData(env.GetMetaData()); err != nil {
-		return err
+	if env.GetMessageId() == "" {
+		return errors.New("message ID must not be empty")
 	}
+
+	if env.GetCausationId() == "" {
+		return errors.New("causation ID must not be empty")
+	}
+
+	if env.GetCorrelationId() == "" {
+		return errors.New("correlation ID must not be empty")
+	}
+
+	if err := checkIdentity(env.GetSourceApplication()); err != nil {
+		return fmt.Errorf("application identity is invalid: %w", err)
+	}
+
+	h := env.GetSourceHandler()
+
+	if isEmpty(h) {
+		if env.GetSourceInstanceId() != "" {
+			return errors.New("source instance ID must not be specified without providing a handler identity")
+		}
+	} else if err := checkIdentity(h); err != nil {
+		return fmt.Errorf("handler identity is invalid: %w", err)
+	}
+
+	if env.GetCreatedAt() == "" {
+		return errors.New("created-at time must not be empty")
+	}
+
+	if env.GetScheduledFor() != "" && env.GetSourceInstanceId() == "" {
+		return errors.New("scheduled-for time must not be specified without a providing source handler and instance ID")
+	}
+
+	// Note: we allow md.Description to be empty. Some messages may simply not
+	// have a concise human-readable description available.
 
 	if env.GetPortableName() == "" {
 		return errors.New("portable name must not be empty")
@@ -40,59 +73,6 @@ func MustBeWellFormed(env *Envelope) {
 	if err := CheckWellFormed(env); err != nil {
 		panic(err)
 	}
-}
-
-// checkMetaData returns an error if md is not well-formed.
-func checkMetaData(md *MetaData) error {
-	src := md.GetSource()
-
-	if err := checkSource(src); err != nil {
-		return err
-	}
-
-	if md.GetMessageId() == "" {
-		return errors.New("message ID must not be empty")
-	}
-
-	if md.GetCausationId() == "" {
-		return errors.New("causation ID must not be empty")
-	}
-
-	if md.GetCorrelationId() == "" {
-		return errors.New("correlation ID must not be empty")
-	}
-
-	if md.GetCreatedAt() == "" {
-		return errors.New("created-at time must not be empty")
-	}
-
-	if md.GetScheduledFor() != "" && src.GetInstanceId() == "" {
-		return errors.New("scheduled-for time must not be specified without a providing source handler and instance ID")
-	}
-
-	// Note: we allow md.Description to be empty. Some messages may simply not
-	// have a concise human-readable description available.
-
-	return nil
-}
-
-// checkSource returns an error if src is not well-formed.
-func checkSource(src *Source) error {
-	if err := checkIdentity(src.GetApplication()); err != nil {
-		return fmt.Errorf("application identity is invalid: %w", err)
-	}
-
-	h := src.GetHandler()
-
-	if isEmpty(h) {
-		if src.GetInstanceId() != "" {
-			return errors.New("source instance ID must not be specified without providing a handler identity")
-		}
-	} else if err := checkIdentity(h); err != nil {
-		return fmt.Errorf("handler identity is invalid: %w", err)
-	}
-
-	return nil
 }
 
 // checkIdentity returns an error if id is not well-formed.

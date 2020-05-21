@@ -73,19 +73,15 @@ var _ = Describe("type Packer", func() {
 			Expect(p).To(EqualX(
 				Parcel{
 					Envelope: &envelopespec.Envelope{
-						MetaData: &envelopespec.MetaData{
-							MessageId:     "00000001",
-							CausationId:   "00000001",
-							CorrelationId: "00000001",
-							Source: &envelopespec.Source{
-								Application: app,
-							},
-							CreatedAt:   nowString,
-							Description: "{C1}",
-						},
-						PortableName: MessageCPortableName,
-						MediaType:    MessageC1Packet.MediaType,
-						Data:         MessageC1Packet.Data,
+						MessageId:         "00000001",
+						CausationId:       "00000001",
+						CorrelationId:     "00000001",
+						SourceApplication: app,
+						CreatedAt:         nowString,
+						Description:       "{C1}",
+						PortableName:      MessageCPortableName,
+						MediaType:         MessageC1Packet.MediaType,
+						Data:              MessageC1Packet.Data,
 					},
 					Message:   MessageC1,
 					CreatedAt: now,
@@ -113,19 +109,15 @@ var _ = Describe("type Packer", func() {
 			Expect(p).To(EqualX(
 				Parcel{
 					Envelope: &envelopespec.Envelope{
-						MetaData: &envelopespec.MetaData{
-							MessageId:     "00000001",
-							CausationId:   "00000001",
-							CorrelationId: "00000001",
-							Source: &envelopespec.Source{
-								Application: app,
-							},
-							CreatedAt:   nowString,
-							Description: "{E1}",
-						},
-						PortableName: MessageEPortableName,
-						MediaType:    MessageE1Packet.MediaType,
-						Data:         MessageE1Packet.Data,
+						MessageId:         "00000001",
+						CausationId:       "00000001",
+						CorrelationId:     "00000001",
+						SourceApplication: app,
+						CreatedAt:         nowString,
+						Description:       "{E1}",
+						PortableName:      MessageEPortableName,
+						MediaType:         MessageE1Packet.MediaType,
+						Data:              MessageE1Packet.Data,
 					},
 					Message:   MessageE1,
 					CreatedAt: now,
@@ -151,7 +143,7 @@ var _ = Describe("type Packer", func() {
 
 		p := packer.PackCommand(MessageC1)
 
-		_, err := uuid.Parse(p.Envelope.MetaData.MessageId)
+		_, err := uuid.Parse(p.Envelope.GetMessageId())
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -160,7 +152,7 @@ var _ = Describe("type Packer", func() {
 
 		p := packer.PackCommand(MessageC1)
 
-		createdAt, err := envelopespec.UnmarshalTime(p.Envelope.MetaData.CreatedAt)
+		createdAt, err := envelopespec.UnmarshalTime(p.Envelope.GetCreatedAt())
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(createdAt).To(BeTemporally("~", time.Now()))
 	})
@@ -170,16 +162,12 @@ var _ = Describe("type Packer", func() {
 
 		BeforeEach(func() {
 			parent = &envelopespec.Envelope{
-				MetaData: &envelopespec.MetaData{
-					MessageId:     "<cause>",
-					CausationId:   "<cause>",
-					CorrelationId: "<cause>",
-					Source: &envelopespec.Source{
-						Application: &envelopespec.Identity{
-							Name: "<app-name>",
-							Key:  "<app-key>",
-						},
-					},
+				MessageId:     "<cause>",
+				CausationId:   "<cause>",
+				CorrelationId: "<cause>",
+				SourceApplication: &envelopespec.Identity{
+					Name: "<app-name>",
+					Key:  "<app-key>",
 				},
 			}
 		})
@@ -201,21 +189,17 @@ var _ = Describe("type Packer", func() {
 					Expect(p).To(EqualX(
 						Parcel{
 							Envelope: &envelopespec.Envelope{
-								MetaData: &envelopespec.MetaData{
-									MessageId:     "00000001",
-									CausationId:   "<cause>",
-									CorrelationId: "<cause>",
-									Source: &envelopespec.Source{
-										Application: app,
-										Handler:     handler,
-										InstanceId:  "<instance>",
-									},
-									CreatedAt:   nowString,
-									Description: "{C1}",
-								},
-								PortableName: MessageCPortableName,
-								MediaType:    MessageC1Packet.MediaType,
-								Data:         MessageC1Packet.Data,
+								MessageId:         "00000001",
+								CausationId:       "<cause>",
+								CorrelationId:     "<cause>",
+								SourceApplication: app,
+								SourceHandler:     handler,
+								SourceInstanceId:  "<instance>",
+								CreatedAt:         nowString,
+								Description:       "{C1}",
+								PortableName:      MessageCPortableName,
+								MediaType:         MessageC1Packet.MediaType,
+								Data:              MessageC1Packet.Data,
 							},
 							Message:   MessageC1,
 							CreatedAt: now,
@@ -283,21 +267,17 @@ var _ = Describe("type Packer", func() {
 					Expect(p).To(EqualX(
 						Parcel{
 							Envelope: &envelopespec.Envelope{
-								MetaData: &envelopespec.MetaData{
-									MessageId:     "00000001",
-									CausationId:   "<cause>",
-									CorrelationId: "<cause>",
-									Source: &envelopespec.Source{
-										Application: app,
-										Handler:     handler,
-										InstanceId:  "<instance>",
-									},
-									CreatedAt:   nowString,
-									Description: "{E1}",
-								},
-								PortableName: MessageEPortableName,
-								MediaType:    MessageE1Packet.MediaType,
-								Data:         MessageE1Packet.Data,
+								MessageId:         "00000001",
+								CausationId:       "<cause>",
+								CorrelationId:     "<cause>",
+								SourceApplication: app,
+								SourceHandler:     handler,
+								SourceInstanceId:  "<instance>",
+								CreatedAt:         nowString,
+								Description:       "{E1}",
+								PortableName:      MessageEPortableName,
+								MediaType:         MessageE1Packet.MediaType,
+								Data:              MessageE1Packet.Data,
 							},
 							Message:   MessageE1,
 							CreatedAt: now,
@@ -367,22 +347,18 @@ var _ = Describe("type Packer", func() {
 					Expect(p).To(EqualX(
 						Parcel{
 							Envelope: &envelopespec.Envelope{
-								MetaData: &envelopespec.MetaData{
-									MessageId:     "00000001",
-									CausationId:   "<cause>",
-									CorrelationId: "<cause>",
-									Source: &envelopespec.Source{
-										Application: app,
-										Handler:     handler,
-										InstanceId:  "<instance>",
-									},
-									CreatedAt:    nowString,
-									ScheduledFor: envelopespec.MarshalTime(scheduledFor),
-									Description:  "{T1}",
-								},
-								PortableName: MessageTPortableName,
-								MediaType:    MessageT1Packet.MediaType,
-								Data:         MessageT1Packet.Data,
+								MessageId:         "00000001",
+								CausationId:       "<cause>",
+								CorrelationId:     "<cause>",
+								SourceApplication: app,
+								SourceHandler:     handler,
+								SourceInstanceId:  "<instance>",
+								CreatedAt:         nowString,
+								ScheduledFor:      envelopespec.MarshalTime(scheduledFor),
+								Description:       "{T1}",
+								PortableName:      MessageTPortableName,
+								MediaType:         MessageT1Packet.MediaType,
+								Data:              MessageT1Packet.Data,
 							},
 							Message:      MessageT1,
 							CreatedAt:    now,

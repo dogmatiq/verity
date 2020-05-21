@@ -85,8 +85,8 @@ func declareEventOperationTests(tc *TestContext) {
 
 				gomega.Expect(res.EventOffsets).To(
 					gomega.Equal(map[string]uint64{
-						env0.MetaData.MessageId: 0,
-						env1.MetaData.MessageId: 1,
+						env0.GetMessageId(): 0,
+						env1.GetMessageId(): 1,
 					}),
 				)
 			})
@@ -114,7 +114,7 @@ func declareEventOperationTests(tc *TestContext) {
 					expect = append(
 						expect,
 						persistence.Event{
-							Offset:   res.EventOffsets[env.MetaData.MessageId],
+							Offset:   res.EventOffsets[env.GetMessageId()],
 							Envelope: env,
 						},
 					)
