@@ -122,7 +122,7 @@ func (ds *dataStore) LoadEventsByType(
 	ctx context.Context,
 	f map[string]struct{},
 	o uint64,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	filterID, err := ds.driver.InsertEventFilter(
 		ctx,
 		ds.db,
@@ -165,7 +165,7 @@ func (ds *dataStore) LoadEventsByType(
 func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, m string,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	var offset uint64
 
 	if m != "" {
@@ -207,7 +207,7 @@ func (ds *dataStore) LoadEventsBySource(
 // take to delete the event filter.
 const closeTimeout = 1 * time.Second
 
-// eventResult is an implementation of eventstore.Result for the SQL event
+// eventResult is an implementation of persistence.EventResult for the SQL event
 // store.
 type eventResult struct {
 	db       *sql.DB

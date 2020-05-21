@@ -3,6 +3,7 @@ package fixtures
 import (
 	"context"
 
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 )
 
@@ -11,15 +12,15 @@ import (
 type EventStoreRepositoryStub struct {
 	eventstore.Repository
 
-	LoadEventsByTypeFunc   func(context.Context, map[string]struct{}, uint64) (eventstore.Result, error)
-	LoadEventsBySourceFunc func(context.Context, string, string, string) (eventstore.Result, error)
+	LoadEventsByTypeFunc   func(context.Context, map[string]struct{}, uint64) (persistence.EventResult, error)
+	LoadEventsBySourceFunc func(context.Context, string, string, string) (persistence.EventResult, error)
 }
 
 // LoadEventsBySource loads the events produced by a specific handler.
 func (r *EventStoreRepositoryStub) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, d string,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	if r.LoadEventsBySourceFunc != nil {
 		return r.LoadEventsBySourceFunc(ctx, hk, id, d)
 	}
@@ -36,7 +37,7 @@ func (r *EventStoreRepositoryStub) LoadEventsByType(
 	ctx context.Context,
 	f map[string]struct{},
 	o uint64,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	if r.LoadEventsByTypeFunc != nil {
 		return r.LoadEventsByTypeFunc(ctx, f, o)
 	}
@@ -46,39 +47,4 @@ func (r *EventStoreRepositoryStub) LoadEventsByType(
 	}
 
 	return nil, nil
-}
-
-// EventStoreResultStub is a test implementation of the eventstore.Result
-// interface.
-type EventStoreResultStub struct {
-	eventstore.Result
-
-	NextFunc  func(context.Context) (*eventstore.Item, bool, error)
-	CloseFunc func() error
-}
-
-// Next returns the next event in the result.
-func (r *EventStoreResultStub) Next(ctx context.Context) (*eventstore.Item, bool, error) {
-	if r.NextFunc != nil {
-		return r.NextFunc(ctx)
-	}
-
-	if r.Result != nil {
-		return r.Result.Next(ctx)
-	}
-
-	return nil, false, nil
-}
-
-// Close closes the cursor.
-func (r *EventStoreResultStub) Close() error {
-	if r.CloseFunc != nil {
-		return r.CloseFunc()
-	}
-
-	if r.Result != nil {
-		return r.Result.Close()
-	}
-
-	return nil
 }

@@ -69,7 +69,7 @@ func (ds *dataStore) LoadEventsByType(
 	ctx context.Context,
 	f map[string]struct{},
 	o uint64,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	return &eventResult{
 		db:     ds.db,
 		appKey: ds.appKey,
@@ -94,7 +94,7 @@ func (ds *dataStore) LoadEventsByType(
 func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, m string,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	var offset uint64
 
 	if m != "" {
@@ -143,7 +143,7 @@ func (ds *dataStore) offsetOf(id string) (uint64, error) {
 	return offset, err
 }
 
-// eventResult is an implementation of eventstore.Result for the BoltDB event
+// eventResult is an implementation of persistence.EventResult for the BoltDB event
 // store.
 type eventResult struct {
 	db     *bbolt.DB

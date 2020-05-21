@@ -10,7 +10,6 @@ import (
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
@@ -91,7 +90,7 @@ var _ = Describe("type Loader", func() {
 					string,
 					string,
 					string,
-				) (eventstore.Result, error) {
+				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -156,7 +155,7 @@ var _ = Describe("type Loader", func() {
 					string,
 					string,
 					string,
-				) (eventstore.Result, error) {
+				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -176,7 +175,7 @@ var _ = Describe("type Loader", func() {
 					string,
 					string,
 					string,
-				) (eventstore.Result, error) {
+				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
 
@@ -209,7 +208,7 @@ var _ = Describe("type Loader", func() {
 						string,
 						string,
 						string,
-					) (eventstore.Result, error) {
+					) (persistence.EventResult, error) {
 						return nil, errors.New("<error>")
 					}
 

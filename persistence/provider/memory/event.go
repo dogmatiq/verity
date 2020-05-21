@@ -28,7 +28,7 @@ func (ds *dataStore) LoadEventsByType(
 	ctx context.Context,
 	f map[string]struct{},
 	o uint64,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	return &eventResult{
 		db:    ds.db,
 		index: int(o),
@@ -52,7 +52,7 @@ func (ds *dataStore) LoadEventsByType(
 func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
 	hk, id, m string,
-) (eventstore.Result, error) {
+) (persistence.EventResult, error) {
 	var o uint64
 
 	if m != "" {
@@ -82,7 +82,7 @@ func (ds *dataStore) LoadEventsBySource(
 	}, nil
 }
 
-// eventResult is an implementation of eventstore.Result for the in-memory
+// eventResult is an implementation of persistence.EventResult for the in-memory
 // event store.
 type eventResult struct {
 	db    *database

@@ -155,3 +155,38 @@ func (ds *DataStoreStub) Close() error {
 
 	return nil
 }
+
+// EventResultStub is a test implementation of the persistence.EventResult
+// interface.
+type EventResultStub struct {
+	persistence.EventResult
+
+	NextFunc  func(context.Context) (*eventstore.Item, bool, error)
+	CloseFunc func() error
+}
+
+// Next returns the next event in the result.
+func (r *EventResultStub) Next(ctx context.Context) (*eventstore.Item, bool, error) {
+	if r.NextFunc != nil {
+		return r.NextFunc(ctx)
+	}
+
+	if r.EventResult != nil {
+		return r.EventResult.Next(ctx)
+	}
+
+	return nil, false, nil
+}
+
+// Close closes the cursor.
+func (r *EventResultStub) Close() error {
+	if r.CloseFunc != nil {
+		return r.CloseFunc()
+	}
+
+	if r.EventResult != nil {
+		return r.EventResult.Close()
+	}
+
+	return nil
+}
