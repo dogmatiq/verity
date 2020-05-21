@@ -12,11 +12,11 @@ import (
 type HandlerStub struct {
 	handler.Handler
 
-	HandleMessageFunc func(context.Context, *handler.UnitOfWork, *parcel.Parcel) error
+	HandleMessageFunc func(context.Context, *handler.UnitOfWork, parcel.Parcel) error
 }
 
 // HandleMessage handles the message in p.
-func (h *HandlerStub) HandleMessage(ctx context.Context, w *handler.UnitOfWork, p *parcel.Parcel) error {
+func (h *HandlerStub) HandleMessage(ctx context.Context, w *handler.UnitOfWork, p parcel.Parcel) error {
 	if h.HandleMessageFunc != nil {
 		return h.HandleMessageFunc(ctx, w, p)
 	}

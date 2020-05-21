@@ -30,7 +30,7 @@ var _ = Describe("type server", func() {
 		server   *grpc.Server
 		client   messagingspec.EventStreamClient
 
-		parcel0, parcel1, parcel2, parcel3 *parcel.Parcel
+		parcel0, parcel1, parcel2, parcel3 parcel.Parcel
 	)
 
 	BeforeEach(func() {

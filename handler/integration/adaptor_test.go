@@ -28,7 +28,7 @@ var _ = Describe("type Adaptor", func() {
 		upstream   *IntegrationMessageHandler
 		packer     *parcel.Packer
 		logger     *logging.BufferedLogger
-		cause      *parcel.Parcel
+		cause      parcel.Parcel
 		adaptor    *Adaptor
 		result     handler.Result
 		ack        *AcknowledgerStub
@@ -121,7 +121,7 @@ var _ = Describe("type Adaptor", func() {
 					[]eventstream.Event{
 						{
 							Offset: 0,
-							Parcel: &parcel.Parcel{
+							Parcel: parcel.Parcel{
 								Envelope: &envelopespec.Envelope{
 									MetaData: &envelopespec.MetaData{
 										MessageId:     "0",

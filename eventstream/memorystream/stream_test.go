@@ -28,7 +28,7 @@ var _ = Describe("type Stream", func() {
 
 			return streamtest.Out{
 				Stream: stream,
-				Append: func(_ context.Context, parcels ...*parcel.Parcel) {
+				Append: func(_ context.Context, parcels ...parcel.Parcel) {
 					stream.Append(parcels...)
 				},
 			}

@@ -40,7 +40,7 @@ type Acknowledger interface {
 func (ep *EntryPoint) HandleMessage(
 	ctx context.Context,
 	a Acknowledger,
-	p *parcel.Parcel,
+	p parcel.Parcel,
 ) error {
 	// Setup a new unit-of-work. We copy the observers so that we don't mess
 	// with the underlying array of ep.Observers as we append new elements while

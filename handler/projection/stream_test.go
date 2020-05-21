@@ -21,7 +21,7 @@ var _ eventstream.Handler = (*StreamAdaptor)(nil)
 
 var _ = Describe("type StreamAdaptor", func() {
 	var (
-		pcl     *parcel.Parcel
+		pcl     parcel.Parcel
 		handler *ProjectionMessageHandler
 		logger  *logging.BufferedLogger
 		adaptor *StreamAdaptor

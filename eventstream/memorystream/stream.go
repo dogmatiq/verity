@@ -126,7 +126,7 @@ func (s *Stream) Open(
 }
 
 // Append adds events to the tail of the stream.
-func (s *Stream) Append(parcels ...*parcel.Parcel) {
+func (s *Stream) Append(parcels ...parcel.Parcel) {
 	s.m.Lock()
 
 	tail := s.loadTail()

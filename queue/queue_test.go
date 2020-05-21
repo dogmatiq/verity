@@ -23,8 +23,8 @@ var _ = Describe("type Queue", func() {
 		cancel                    context.CancelFunc
 		dataStore                 *DataStoreStub
 		queue                     *Queue
-		parcel0, parcel1, parcel2 *parcel.Parcel
-		push                      func(*parcel.Parcel, ...time.Time)
+		parcel0, parcel1, parcel2 parcel.Parcel
+		push                      func(parcel.Parcel, ...time.Time)
 	)
 
 	BeforeEach(func() {
@@ -44,7 +44,7 @@ var _ = Describe("type Queue", func() {
 		// push is a helper function for testing the queue that persists a
 		// message then adds it to the queue.
 		push = func(
-			p *parcel.Parcel,
+			p parcel.Parcel,
 			nextOptional ...time.Time,
 		) {
 			next := time.Now()

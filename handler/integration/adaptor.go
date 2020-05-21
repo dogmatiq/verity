@@ -40,7 +40,7 @@ type Adaptor struct {
 func (a *Adaptor) HandleMessage(
 	ctx context.Context,
 	w *handler.UnitOfWork,
-	p *parcel.Parcel,
+	p parcel.Parcel,
 ) (err error) {
 	defer mlog.LogHandlerResult(
 		a.Logger,

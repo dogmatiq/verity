@@ -52,7 +52,7 @@ type Out struct {
 	AssumeBlockingDuration time.Duration
 
 	// Append is a function that appends messages to the stream.
-	Append func(context.Context, ...*parcel.Parcel)
+	Append func(context.Context, ...parcel.Parcel)
 }
 
 const (
