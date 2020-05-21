@@ -62,7 +62,7 @@ func (ds *dataStore) LoadEventsBySource(
 		var ok bool
 		o, ok = ds.db.event.offsets[m]
 		if !ok {
-			return nil, eventstore.UnknownMessageError{
+			return nil, persistence.UnknownMessageError{
 				MessageID: m,
 			}
 		}

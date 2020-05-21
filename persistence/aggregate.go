@@ -46,3 +46,12 @@ type SaveAggregateMetaData struct {
 	// and the entire batch of operations is rejected.
 	MetaData AggregateMetaData
 }
+
+// AcceptVisitor calls v.VisitSaveAggregateMetaData().
+func (op SaveAggregateMetaData) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
+	return v.VisitSaveAggregateMetaData(ctx, op)
+}
+
+func (op SaveAggregateMetaData) entityKey() entityKey {
+	return entityKey{"aggregate", op.MetaData.HandlerKey, op.MetaData.InstanceID}
+}

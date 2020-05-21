@@ -22,16 +22,57 @@ type Result struct {
 	EventOffsets map[string]uint64
 }
 
-// ConflictError is an error indicating one or more operations within a batch
-// caused an optimistic concurrency conflict.
-type ConflictError struct {
-	// Cause is the operation that caused the conflict.
-	Cause Operation
+// Operation is a persistence operation that can be performed as part of an
+// atomic batch.
+type Operation interface {
+	// AcceptVisitor calls the appropriate visit method on the given visitor.
+	AcceptVisitor(context.Context, OperationVisitor) error
+
+	// entityKey a value that identifies the persisted "entity" that the
+	// operation manipulates. No two operations in the same batch may operate
+	// upon the same entity.
+	entityKey() entityKey
 }
 
-func (e ConflictError) Error() string {
-	return fmt.Sprintf(
-		"optimistic concurrency conflict in %T operation",
-		e.Cause,
-	)
+// OperationVisitor visits persistence operations.
+type OperationVisitor interface {
+	VisitSaveAggregateMetaData(context.Context, SaveAggregateMetaData) error
+	VisitSaveEvent(context.Context, SaveEvent) error
+	VisitSaveQueueItem(context.Context, SaveQueueItem) error
+	VisitRemoveQueueItem(context.Context, RemoveQueueItem) error
+	VisitSaveOffset(context.Context, SaveOffset) error
+}
+
+// Batch is a set of operations that are committed to the data store atomically
+// using a Persister.
+type Batch []Operation
+
+// MustValidate panics if the batch contains any operations that operate on the
+// same entity.
+func (b Batch) MustValidate() {
+	for i, x := range b {
+		xk := x.entityKey()
+
+		for _, y := range b[i+1:] {
+			yk := y.entityKey()
+
+			if xk == yk {
+				panic(fmt.Sprintf(
+					"batch contains multiple operations for the same entity (%s)",
+					xk,
+				))
+			}
+		}
+	}
+}
+
+// AcceptVisitor visits each operation in the batch.
+func (b Batch) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
+	for _, op := range b {
+		if err := op.AcceptVisitor(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

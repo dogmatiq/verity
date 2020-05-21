@@ -134,7 +134,7 @@ func (ds *dataStore) offsetOf(id string) (uint64, error) {
 				}
 			}
 
-			return &eventstore.UnknownMessageError{
+			return persistence.UnknownMessageError{
 				MessageID: id,
 			}
 		},

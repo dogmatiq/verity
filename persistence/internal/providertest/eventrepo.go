@@ -295,9 +295,11 @@ func declareEventRepositoryTests(tc *TestContext) {
 						"<unknown>",
 					)
 					gomega.Expect(err).Should(gomega.HaveOccurred())
-					gomega.Expect(err).To(
-						gomega.MatchError("message with ID '<unknown>' cannot be found"),
-					)
+					gomega.Expect(err).To(gomega.Equal(
+						persistence.UnknownMessageError{
+							MessageID: "<unknown>",
+						},
+					))
 				})
 			})
 		})

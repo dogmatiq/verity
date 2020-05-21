@@ -179,7 +179,7 @@ func (ds *dataStore) LoadEventsBySource(
 		}
 
 		if !ok {
-			return nil, eventstore.UnknownMessageError{
+			return nil, persistence.UnknownMessageError{
 				MessageID: m,
 			}
 		}

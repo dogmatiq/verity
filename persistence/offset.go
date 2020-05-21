@@ -27,3 +27,12 @@ type SaveOffset struct {
 	// NextOffset is the next offset to consume from this application.
 	NextOffset uint64
 }
+
+// AcceptVisitor calls v.VisitSaveOffset().
+func (op SaveOffset) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
+	return v.VisitSaveOffset(ctx, op)
+}
+
+func (op SaveOffset) entityKey() entityKey {
+	return entityKey{"offset", op.ApplicationKey}
+}
