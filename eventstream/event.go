@@ -10,3 +10,8 @@ type Event struct {
 	// Parcel contains the event from the stream.
 	Parcel parcel.Parcel
 }
+
+// ID returns the ID of the message.
+func (e Event) ID() string {
+	return e.Parcel.ID()
+}

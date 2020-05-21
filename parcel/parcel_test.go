@@ -31,6 +31,16 @@ var _ = Describe("type Parcel", func() {
 		)
 	})
 
+	Describe("func ID()", func() {
+		It("returns the ID from the envelope", func() {
+			p := Parcel{
+				Envelope: env,
+			}
+
+			Expect(p.ID()).To(Equal("<id>"))
+		})
+	})
+
 	Describe("func FromEnvelope()", func() {
 		It("returns a parcel containing the given envelope", func() {
 			p, err := FromEnvelope(Marshaler, env)

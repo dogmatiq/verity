@@ -102,7 +102,7 @@ var _ = Describe("type QueueConsumer", func() {
 			) error {
 				defer GinkgoRecover()
 				defer cancel()
-				Expect(p.Envelope.GetMessageId()).To(Equal("<id>"))
+				Expect(p.ID()).To(Equal("<id>"))
 				return nil
 			}
 

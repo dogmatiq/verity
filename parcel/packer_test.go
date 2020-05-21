@@ -143,7 +143,7 @@ var _ = Describe("type Packer", func() {
 
 		p := packer.PackCommand(MessageC1)
 
-		_, err := uuid.Parse(p.Envelope.GetMessageId())
+		_, err := uuid.Parse(p.ID())
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 

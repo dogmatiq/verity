@@ -81,7 +81,7 @@ func (s *scope) RecordEvent(m dogma.Message) {
 
 	s.instance.Root.ApplyEvent(m)
 	s.work.RecordEvent(p)
-	s.lastEventID = p.Envelope.GetMessageId()
+	s.lastEventID = p.ID()
 
 	mlog.LogProduce(s.logger, p.Envelope)
 }
