@@ -11,7 +11,7 @@ import (
 	"github.com/dogmatiq/marshalkit"
 )
 
-// cursor is an eventstream.Cursor that reads events from the event store.
+// cursor is an eventstream.Cursor that reads events from an event repository.
 type cursor struct {
 	repository       persistence.EventRepository
 	repositoryFilter map[string]struct{}
@@ -73,8 +73,9 @@ func (c *cursor) close(cause error) bool {
 	return ok
 }
 
-// consume queries the store, unmarshals the query results, and pipes the events
-// over the c.events channel to a goroutine that calls Next().
+// consume obtains events from the cache or the event repository as necessary,
+// and pipes the them over the c.events channel to a goroutine that calls
+// Next().
 //
 // It exits when the ctx is canceled or some other error occurs while reading
 // from the underlying cursor.
@@ -87,7 +88,7 @@ func (c *cursor) consume(ctx context.Context) {
 			return
 		}
 
-		if err := c.consumeFromStore(ctx); err != nil {
+		if err := c.consumeFromRepository(ctx); err != nil {
 			c.close(err)
 			return
 		}
@@ -97,7 +98,7 @@ func (c *cursor) consume(ctx context.Context) {
 // consumeFromCache attempts to obtain events from the in-memory cache.
 //
 // A nil return value indicates that the cache does not have the required events
-// and that the event store should be queried instead.
+// and that the repository should be queried instead.
 func (c *cursor) consumeFromCache(ctx context.Context) error {
 	cur, err := c.cache.Open(ctx, c.offset, c.cacheFilter)
 	if err != nil {
@@ -119,12 +120,12 @@ func (c *cursor) consumeFromCache(ctx context.Context) error {
 	}
 }
 
-// consumeFromStore attempts to obtain events from the event store.
+// consumeFromRepository attempts to obtain events from the event repository.
 //
-// A nil return value indicates that the requested offset is not in the store so
-// that the cache (which blocks until new events are recorded) should be used
-// instead.
-func (c *cursor) consumeFromStore(ctx context.Context) error {
+// A nil return value indicates that the requested offset is not in the
+// repository and that the cache (which blocks until new events are recorded)
+// should be used instead.
+func (c *cursor) consumeFromRepository(ctx context.Context) error {
 	// Query the "next" offset before we run our event query. When we exhaust
 	// the result of QueryEvents() we know we've at least checked up to this
 	// offset, even if the event AT this offset doesn't match our filter.
@@ -146,8 +147,8 @@ func (c *cursor) consumeFromStore(ctx context.Context) error {
 		}
 
 		if !ok {
-			// We've run out of events from the store, so we bail to consume
-			// from the recent event cache instead.
+			// We've run out of events from the repository, so we bail to
+			// consume from the recent event cache instead.
 
 			if next > c.offset {
 				// There were more events after the last event that matched our

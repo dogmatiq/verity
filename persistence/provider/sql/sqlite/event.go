@@ -1,4 +1,4 @@
-package postgres
+package sqlite
 
 import (
 	"context"
@@ -9,8 +9,7 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// UpdateNextOffset increments the eventstore offset by 1 and returns the new
-// value.
+// UpdateNextOffset increments the next offset by one and returns the new value.
 func (driver) UpdateNextOffset(
 	ctx context.Context,
 	tx *sql.Tx,
@@ -18,23 +17,32 @@ func (driver) UpdateNextOffset(
 ) (_ uint64, err error) {
 	defer sqlx.Recover(&err)
 
-	o := sqlx.QueryInt64(
+	sqlx.Exec(
 		ctx,
 		tx,
-		`INSERT INTO infix.event_offset AS o (
+		`INSERT INTO event_offset AS o (
 			source_app_key
 		) VALUES (
 			$1
 		) ON CONFLICT (source_app_key) DO UPDATE SET
-			next_offset = o.next_offset + 1
-		RETURNING next_offset`,
+			next_offset = o.next_offset + 1`,
 		ak,
 	)
 
-	return uint64(o), nil
+	next := sqlx.QueryInt64(
+		ctx,
+		tx,
+		`SELECT
+			next_offset
+		FROM event_offset
+		WHERE source_app_key = $1`,
+		ak,
+	)
+
+	return uint64(next), nil
 }
 
-// InsertEvent saves an event to the eventstore at a specific offset.
+// InsertEvent saves an event at a specific offset.
 func (driver) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
@@ -43,8 +51,8 @@ func (driver) InsertEvent(
 ) error {
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO infix.event (
-				"offset",
+		`INSERT INTO event (
+				offset,
 				message_id,
 				causation_id,
 				correlation_id,
@@ -95,14 +103,14 @@ func (driver) InsertEventFilter(
 	tx := sqlx.Begin(ctx, db)
 	defer tx.Rollback()
 
-	id := sqlx.QueryInt64(
+	id := sqlx.Insert(
 		ctx,
 		tx,
-		`INSERT INTO infix.event_filter (
+		`INSERT INTO event_filter (
 			app_key
 		) VALUES (
 			$1
-		) RETURNING id`,
+		)`,
 		ak,
 	)
 
@@ -110,7 +118,7 @@ func (driver) InsertEventFilter(
 		sqlx.Exec(
 			ctx,
 			tx,
-			`INSERT INTO infix.event_filter_name (
+			`INSERT INTO event_filter_name (
 				filter_id,
 				portable_name
 			) VALUES (
@@ -131,14 +139,29 @@ func (driver) DeleteEventFilter(
 	ctx context.Context,
 	db *sql.DB,
 	f int64,
-) error {
-	_, err := db.ExecContext(
+) (err error) {
+	defer sqlx.Recover(&err)
+
+	tx := sqlx.Begin(ctx, db)
+	defer tx.Rollback()
+
+	sqlx.Exec(
 		ctx,
-		`DELETE FROM infix.event_filter
+		tx,
+		`DELETE FROM event_filter
 		WHERE id = $1`,
 		f,
 	)
-	return err
+
+	sqlx.Exec(
+		ctx,
+		tx,
+		`DELETE FROM event_filter_name
+		WHERE filter_id = $1`,
+		f,
+	)
+
+	return tx.Commit()
 }
 
 // PurgeEventFilters deletes all event filters for the given application.
@@ -146,17 +169,34 @@ func (driver) PurgeEventFilters(
 	ctx context.Context,
 	db *sql.DB,
 	ak string,
-) error {
-	_, err := db.ExecContext(
+) (err error) {
+	tx := sqlx.Begin(ctx, db)
+	defer tx.Rollback()
+
+	sqlx.Exec(
 		ctx,
-		`DELETE FROM infix.event_filter
+		tx,
+		`DELETE FROM event_filter_name
+		WHERE filter_id IN (
+			SELECT id
+			FROM event_filter
+			WHERE app_key = $1
+		)`,
+		ak,
+	)
+
+	sqlx.Exec(
+		ctx,
+		tx,
+		`DELETE FROM event_filter
 		WHERE app_key = $1`,
 		ak,
 	)
-	return err
+
+	return tx.Commit()
 }
 
-// SelectNextEventOffset selects the next "unused" offset from the event store.
+// SelectNextEventOffset selects the next "unused" offset.
 func (driver) SelectNextEventOffset(
 	ctx context.Context,
 	db *sql.DB,
@@ -166,7 +206,7 @@ func (driver) SelectNextEventOffset(
 		ctx,
 		`SELECT
 			next_offset
-		FROM infix.event_offset`,
+		FROM event_offset`,
 	)
 
 	var next uint64
@@ -179,11 +219,10 @@ func (driver) SelectNextEventOffset(
 	return next, err
 }
 
-// SelectEventsByType selects events from the eventstore that match the
-// given event types query.
+// SelectEventsByType selects events that match the given type filter.
 //
-// f is a filter ID, as returned by InsertEventFilter(). o is the minimum
-// offset to include in the results.
+// f is a filter ID, as returned by InsertEventFilter(). o is the minimum offset
+// to include in the results.
 func (driver) SelectEventsByType(
 	ctx context.Context,
 	db *sql.DB,
@@ -208,8 +247,8 @@ func (driver) SelectEventsByType(
 			e.portable_name,
 			e.media_type,
 			e.data
-		FROM infix.event AS e
-		INNER JOIN infix.event_filter_name AS ft
+		FROM event AS e
+		INNER JOIN event_filter_name AS ft
 		ON ft.portable_name = e.portable_name
 		WHERE e.source_app_key = $1
 		AND e.offset >= $2
@@ -221,8 +260,7 @@ func (driver) SelectEventsByType(
 	)
 }
 
-// SelectEventsBySource selects events from the eventstore that match the
-// given source, namely the source's key and id.
+// SelectEventsBySource selects events that were produced by a specific handler.
 func (driver) SelectEventsBySource(
 	ctx context.Context,
 	db *sql.DB,
@@ -246,7 +284,7 @@ func (driver) SelectEventsBySource(
 			e.portable_name,
 			e.media_type,
 			e.data
-		FROM infix.event AS e
+		FROM event AS e
 		WHERE e.source_app_key = $1
 		AND e.source_handler_key = $2
 		AND e.source_instance_id = $3
@@ -271,7 +309,7 @@ func (driver) SelectOffsetByMessageID(
 		ctx,
 		`SELECT
 			e.offset
-		FROM infix.event AS e
+		FROM event AS e
 		WHERE e.message_id = $1`,
 		id,
 	)

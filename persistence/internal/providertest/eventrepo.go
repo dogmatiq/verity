@@ -14,9 +14,9 @@ import (
 )
 
 // declareEventRepositoryTests declares a functional test-suite for a specific
-// eventstore.Repository implementation.
+// persistence.EventRepository implementation.
 func declareEventRepositoryTests(tc *TestContext) {
-	ginkgo.Describe("type eventstore.Repository", func() {
+	ginkgo.Describe("type persistence.EventRepository", func() {
 		var (
 			dataStore persistence.DataStore
 			tearDown  func()
@@ -301,7 +301,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 			})
 		})
 
-		ginkgo.Describe("type eventstore.Result", func() {
+		ginkgo.Describe("type persistence.EventResult", func() {
 			ginkgo.Describe("func Next()", func() {
 				ginkgo.It("returns an error if the context is canceled", func() {
 					// This test ensures that the implementation returns

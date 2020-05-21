@@ -20,9 +20,9 @@ const DefaultBufferSize = 100
 // an in-memory buffer.
 //
 // It is primarily intended as a cache of the most recent events from an
-// application's event store. While implementation details reflect and favor
-// that use case, it is a well-behaved stream implementation that can also be
-// used for testing and prototyping.
+// application's event repository. Although the implementation details reflect
+// and favor that use case, it is a well-behaved stream implementation that can
+// also be used for testing and prototyping.
 //
 // The stream is "self truncating", dropping the oldest events when the size
 // exceeds a pre-defined limit.
@@ -46,9 +46,9 @@ type Stream struct {
 	// that will never be buffered, rather than waiting until they timeout, or
 	// worse yet blocking forever if their context has no deadline.
 	//
-	// When the stream is used as an event store cache, this should be set to
-	// the next unused offset in the event store before new events are allowed
-	// to be produced.
+	// When the stream is used as a recent event cache, this should be set to
+	// the next unused offset in the event repository before new events are
+	// allowed to be produced.
 	FirstOffset uint64
 
 	// BufferSize is the maximum number of messages to buffer in memory. If it
@@ -99,8 +99,8 @@ func (s *Stream) Open(
 
 	// Load the tail of the linked-list first to see if the requested offset is
 	// the next expected offset. This should be the common case when used as
-	// event store cache because the memory stream is only queried when no more
-	// events can be loaded from the persistence store.
+	// recent event cache because the memory stream is only queried when no more
+	// events can be loaded from the event repository.
 	n := s.loadTail()
 
 	if n == nil {
@@ -280,7 +280,7 @@ func (s *Stream) storeTail(n *node) {
 }
 
 // elem is a version of eventstream.Event that implements pqueue.Elem.
-// It allows events to be stored in the "reorder" queue.
+// It allows events to be placed in the "reorder" queue.
 type elem eventstream.Event
 
 func (e *elem) Less(v pqueue.Elem) bool {

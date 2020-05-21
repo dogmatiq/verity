@@ -44,7 +44,7 @@ func declareEventOperationTests(tc *TestContext) {
 		})
 
 		ginkgo.Describe("type persistence.SaveEvent", func() {
-			ginkgo.It("saves the event to the store", func() {
+			ginkgo.It("saves the event", func() {
 				persist(
 					tc.Context,
 					dataStore,

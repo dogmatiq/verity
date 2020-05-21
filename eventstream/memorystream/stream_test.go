@@ -53,7 +53,7 @@ var _ = Describe("type Stream", func() {
 				MessageEType,
 			),
 			// For the purposes of our test, we assume there are already 100
-			// events in the store.
+			// persisted events.
 			FirstOffset: 100,
 		}
 	})

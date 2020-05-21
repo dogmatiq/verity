@@ -183,7 +183,7 @@ func copyQueueItemMetaData(dest, src *queuestore.Item) {
 	dest.Envelope = env
 }
 
-// cloneQueueItem returns a deep clone of an eventstore.Item.
+// cloneQueueItem returns a deep clone of an queuestore.Item.
 func cloneQueueItem(i *queuestore.Item) *queuestore.Item {
 	clone := *i
 	clone.Envelope = cloneEnvelope(clone.Envelope)

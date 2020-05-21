@@ -24,7 +24,7 @@ func CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	)
 
 	createAggregateSchema(ctx, db)
-	createEventStoreSchema(ctx, db)
+	createEventSchema(ctx, db)
 	createOffsetSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
@@ -51,8 +51,7 @@ func DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	return nil
 }
 
-// createAggregateSchema creates the schema elements required to store
-// aggregates.
+// createAggregateSchema creates the schema elements for aggregates.
 func createAggregateSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
@@ -70,9 +69,8 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 	)
 }
 
-// createEventStoreSchema creates the schema elements required by the event
-// store subsystem.
-func createEventStoreSchema(ctx context.Context, db *sql.DB) {
+// createEventSchema creates the schema elements for events.
+func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
@@ -147,7 +145,7 @@ func createEventStoreSchema(ctx context.Context, db *sql.DB) {
 	)
 }
 
-// createOffsetSchema creates the schema elements required to store offsets.
+// createOffsetSchema creates the schema elements for stream offsets.
 func createOffsetSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
@@ -162,8 +160,7 @@ func createOffsetSchema(ctx context.Context, db *sql.DB) {
 	)
 }
 
-// createQueueSchema creates the schema elements required by the message queue
-// subsystem.
+// createQueueSchema creates the schema elements for the message queue.
 func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,

@@ -129,7 +129,7 @@ func (r *eventResult) Close() error {
 	return nil
 }
 
-// eventDatabase contains data that is committed to the event store.
+// eventDatabase contains event related data.
 type eventDatabase struct {
 	events  []persistence.Event
 	offsets map[string]uint64

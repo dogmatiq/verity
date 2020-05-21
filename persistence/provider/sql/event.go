@@ -10,18 +10,18 @@ import (
 	"go.uber.org/multierr"
 )
 
-// eventStoreDriver is the subset of the Driver interface that is concerned
-// with the eventstore subsystem.
-type eventStoreDriver interface {
-	// UpdateNextOffset increments the eventstore offset by 1 and returns the
-	// new value.
+// EventDriver is the subset of the Driver interface that is concerned with
+// events.
+type EventDriver interface {
+	// UpdateNextOffset increments the next offset by one and returns the new
+	// value.
 	UpdateNextOffset(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
 	) (uint64, error)
 
-	// InsertEvent saves an event to the eventstore at a specific offset.
+	// InsertEvent saves an event at a specific offset.
 	InsertEvent(
 		ctx context.Context,
 		tx *sql.Tx,
@@ -63,8 +63,7 @@ type eventStoreDriver interface {
 		ak string,
 	) (uint64, error)
 
-	// SelectEventsByType selects events from the eventstore that match the
-	// given query.
+	// SelectEventsByType selects events that match the given type filter.
 	//
 	// f is a filter ID, as returned by InsertEventFilter(). o is the minimum
 	// offset to include in the results.
@@ -76,8 +75,8 @@ type eventStoreDriver interface {
 		o uint64,
 	) (*sql.Rows, error)
 
-	// SelectEventsBySource selects events from the eventstore that were
-	// produced by a specific handler.
+	// SelectEventsBySource selects events that were produced by a specific
+	// handler.
 	SelectEventsBySource(
 		ctx context.Context,
 		db *sql.DB,
@@ -205,8 +204,7 @@ func (ds *dataStore) LoadEventsBySource(
 // take to delete the event filter.
 const closeTimeout = 1 * time.Second
 
-// eventResult is an implementation of persistence.EventResult for the SQL event
-// store.
+// eventResult is an implementation of persistence.EventResult for SQL.
 type eventResult struct {
 	db       *sql.DB
 	rows     *sql.Rows

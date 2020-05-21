@@ -101,7 +101,7 @@ func (d errorConverter) SelectAggregateMetaData(
 }
 
 //
-// eventstore
+// event
 //
 
 func (d errorConverter) UpdateNextOffset(
