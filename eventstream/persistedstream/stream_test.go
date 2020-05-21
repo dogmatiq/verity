@@ -34,7 +34,7 @@ var _ = Describe("type Stream", func() {
 			stream := &Stream{
 				App:        in.Application.Identity(),
 				Types:      in.EventTypes,
-				Repository: dataStore.EventStoreRepository(),
+				Repository: dataStore,
 				Marshaler:  in.Marshaler,
 				Cache:      cache,
 			}

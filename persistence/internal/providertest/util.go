@@ -25,7 +25,7 @@ func loadAggregateMetaData(
 // loadEventsByType loads events of a specifc type.
 func loadEventsByType(
 	ctx context.Context,
-	r eventstore.Repository,
+	r persistence.EventRepository,
 	f map[string]struct{},
 	o uint64,
 ) []eventstore.Item {
@@ -50,7 +50,7 @@ func loadEventsByType(
 // loadEventsBySource loads events produced by a specific handler.
 func loadEventsBySource(
 	ctx context.Context,
-	r eventstore.Repository,
+	r persistence.EventRepository,
 	hk, id string,
 	m string,
 ) []eventstore.Item {

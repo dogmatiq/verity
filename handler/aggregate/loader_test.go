@@ -21,7 +21,6 @@ var _ = Describe("type Loader", func() {
 		ctx       context.Context
 		cancel    context.CancelFunc
 		dataStore *DataStoreStub
-		eventRepo *EventStoreRepositoryStub
 		base      *AggregateRoot
 		loader    *Loader
 	)
@@ -30,7 +29,6 @@ var _ = Describe("type Loader", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		dataStore = NewDataStoreStub()
-		eventRepo = dataStore.EventStoreRepository().(*EventStoreRepositoryStub)
 
 		base = &AggregateRoot{
 			Value: &[]dogma.Message{},
@@ -41,9 +39,9 @@ var _ = Describe("type Loader", func() {
 		}
 
 		loader = &Loader{
-			AggregateRepo: dataStore,
-			EventStore:    eventRepo,
-			Marshaler:     Marshaler,
+			AggregateRepository: dataStore,
+			EventRepository:     dataStore,
+			Marshaler:           Marshaler,
 		}
 	})
 
@@ -85,7 +83,7 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("does not attempt to load events", func() {
-				eventRepo.LoadEventsBySourceFunc = func(
+				dataStore.LoadEventsBySourceFunc = func(
 					context.Context,
 					string,
 					string,
@@ -150,7 +148,7 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("returns an error if the events can not be loaded", func() {
-				eventRepo.LoadEventsBySourceFunc = func(
+				dataStore.LoadEventsBySourceFunc = func(
 					context.Context,
 					string,
 					string,
@@ -170,7 +168,7 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("does not attempt to load events for a stateless aggregate", func() {
-				eventRepo.LoadEventsBySourceFunc = func(
+				dataStore.LoadEventsBySourceFunc = func(
 					context.Context,
 					string,
 					string,
@@ -203,7 +201,7 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("does not attempt to load events", func() {
-					eventRepo.LoadEventsBySourceFunc = func(
+					dataStore.LoadEventsBySourceFunc = func(
 						context.Context,
 						string,
 						string,

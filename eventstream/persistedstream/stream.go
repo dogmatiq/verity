@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -19,8 +19,8 @@ type Stream struct {
 	// Types is the set of supported event types.
 	Types message.TypeCollection
 
-	// Repository is the event store repository used to query events.
-	Repository eventstore.Repository
+	// Repository is the event repository used to load events.
+	Repository persistence.EventRepository
 
 	// Marshaler is used to unmarshal messages.
 	Marshaler marshalkit.Marshaler

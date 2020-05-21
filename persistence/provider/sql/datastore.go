@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
@@ -35,11 +34,6 @@ func newDataStore(
 		appKey:  k,
 		release: r,
 	}
-}
-
-// EventStoreRepository returns the application's event store repository.
-func (ds *dataStore) EventStoreRepository() eventstore.Repository {
-	return ds
 }
 
 // QueueStoreRepository returns the application's queue store repository.

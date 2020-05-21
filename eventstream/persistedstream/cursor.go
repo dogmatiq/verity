@@ -7,13 +7,13 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 )
 
 // cursor is an eventstream.Cursor that reads events from the event store.
 type cursor struct {
-	repository       eventstore.Repository
+	repository       persistence.EventRepository
 	repositoryFilter map[string]struct{}
 	marshaler        marshalkit.ValueMarshaler
 	cache            eventstream.Stream

@@ -32,13 +32,6 @@ func declareDataStoreTests(tc *TestContext) {
 			}
 		})
 
-		ginkgo.Describe("func EventStoreRepository()", func() {
-			ginkgo.It("returns a non-nil repository", func() {
-				r := dataStore.EventStoreRepository()
-				gomega.Expect(r).NotTo(gomega.BeNil())
-			})
-		})
-
 		ginkgo.Describe("func QueueStoreRepository()", func() {
 			ginkgo.It("returns a non-nil repository", func() {
 				r := dataStore.QueueStoreRepository()

@@ -18,10 +18,7 @@ var ErrDataStoreClosed = errors.New("data store is closed")
 type DataStore interface {
 	Persister
 	AggregateRepository
-
-	// EventStoreRepository returns the application's event store repository.
-	EventStoreRepository() EventRepository
-
+	EventRepository
 	OffsetRepository
 
 	// QueueStoreRepository returns the application's queue store repository.

@@ -19,9 +19,8 @@ import (
 func declareEventOperationTests(tc *TestContext) {
 	ginkgo.Context("event operations", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository eventstore.Repository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 
 			env0, env1, env2 *envelopespec.Envelope
 			filter           map[string]struct{}
@@ -29,7 +28,6 @@ func declareEventOperationTests(tc *TestContext) {
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.EventStoreRepository()
 
 			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
 			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
@@ -59,7 +57,7 @@ func declareEventOperationTests(tc *TestContext) {
 					},
 				)
 
-				items := loadEventsByType(tc.Context, repository, filter, 0)
+				items := loadEventsByType(tc.Context, dataStore, filter, 0)
 				gomega.Expect(items).To(gomegax.EqualX(
 					[]eventstore.Item{
 						{
@@ -139,7 +137,7 @@ func declareEventOperationTests(tc *TestContext) {
 					},
 				)
 
-				items := loadEventsByType(tc.Context, repository, filter, 0)
+				items := loadEventsByType(tc.Context, dataStore, filter, 0)
 				gomega.Expect(items).To(gomegax.EqualX(expect))
 			})
 		})

@@ -19,9 +19,8 @@ import (
 func declareEventRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type eventstore.Repository", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository eventstore.Repository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 
 			item0, item1, item2, item3, item4, item5 eventstore.Item
 			filter                                   map[string]struct{}
@@ -29,7 +28,6 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.EventStoreRepository()
 
 			item0 = eventstore.Item{
 				Offset:   0,
@@ -92,7 +90,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 		ginkgo.When("the store is empty", func() {
 			ginkgo.Describe("func NextEventOffset()", func() {
 				ginkgo.It("returns zero", func() {
-					o, err := repository.NextEventOffset(tc.Context)
+					o, err := dataStore.NextEventOffset(tc.Context)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.BeEquivalentTo(0))
 				})
@@ -102,7 +100,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ginkgo.It("returns an empty result", func() {
 					items := loadEventsByType(
 						tc.Context,
-						repository,
+						dataStore,
 						filter,
 						0,
 					)
@@ -114,7 +112,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ginkgo.It("returns an empty result", func() {
 					items := loadEventsBySource(
 						tc.Context,
-						repository,
+						dataStore,
 						"<aggregate>",
 						"<instance-a>",
 						"",
@@ -152,7 +150,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			ginkgo.Describe("func NextEventOffset()", func() {
 				ginkgo.It("returns the offset after the last recorded event", func() {
-					o, err := repository.NextEventOffset(tc.Context)
+					o, err := dataStore.NextEventOffset(tc.Context)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(o).To(gomega.BeEquivalentTo(6))
 				})
@@ -164,7 +162,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 					ctx, cancel := context.WithCancel(tc.Context)
 					cancel()
 
-					o, err := repository.NextEventOffset(ctx)
+					o, err := dataStore.NextEventOffset(ctx)
 					if err != nil {
 						gomega.Expect(err).To(gomega.Equal(context.Canceled))
 					} else {
@@ -177,7 +175,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ginkgo.It("returns events that match the type filter", func() {
 					items := loadEventsByType(
 						tc.Context,
-						repository,
+						dataStore,
 						map[string]struct{}{
 							marshalfixtures.MessageAPortableName: {},
 							marshalfixtures.MessageCPortableName: {},
@@ -198,7 +196,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ginkgo.It("returns events at or after the minimum offset", func() {
 					items := loadEventsByType(
 						tc.Context,
-						repository,
+						dataStore,
 						filter,
 						2,
 					)
@@ -216,7 +214,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ginkgo.It("returns an empty result if the minimum offset is larger than the largest offset", func() {
 					items := loadEventsByType(
 						tc.Context,
-						repository,
+						dataStore,
 						filter,
 						100,
 					)
@@ -233,7 +231,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 						items := loadEventsByType(
 							tc.Context,
-							repository,
+							dataStore,
 							map[string]struct{}{
 								marshalfixtures.MessageAPortableName: {},
 							},
@@ -259,7 +257,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ginkgo.It("returns the events produced by the given source instance", func() {
 					items := loadEventsBySource(
 						tc.Context,
-						repository,
+						dataStore,
 						"<aggregate>",
 						"<instance-a>",
 						"",
@@ -275,7 +273,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ginkgo.It("only returns events recorded after the barrier message", func() {
 					items := loadEventsBySource(
 						tc.Context,
-						repository,
+						dataStore,
 						"<aggregate>",
 						"<instance-a>",
 						item0.ID(),
@@ -288,7 +286,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 				})
 
 				ginkgo.It("returns an error if the barrier message is not found", func() {
-					_, err := repository.LoadEventsBySource(
+					_, err := dataStore.LoadEventsBySource(
 						tc.Context,
 						"<aggregate>",
 						"<instance-a>",
@@ -319,7 +317,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 						},
 					)
 
-					res, err := repository.LoadEventsByType(tc.Context, filter, 0)
+					res, err := dataStore.LoadEventsByType(tc.Context, filter, 0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					defer res.Close()
 
@@ -338,7 +336,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			ginkgo.Describe("func Close()", func() {
 				ginkgo.It("does not return an error if the result is open", func() {
-					res, err := repository.LoadEventsByType(tc.Context, filter, 0)
+					res, err := dataStore.LoadEventsByType(tc.Context, filter, 0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					err = res.Close()
@@ -350,7 +348,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 					// already closed is implementation defined, so this test
 					// simply verifies that it returns *something* without
 					// panicking.
-					res, err := repository.LoadEventsByType(tc.Context, filter, 0)
+					res, err := dataStore.LoadEventsByType(tc.Context, filter, 0)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 					res.Close()

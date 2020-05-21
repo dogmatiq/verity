@@ -114,9 +114,7 @@ func (e *Engine) newEventCache(
 	cfg configkit.RichApplication,
 	ds persistence.DataStore,
 ) (*memorystream.Stream, error) {
-	r := ds.EventStoreRepository()
-
-	next, err := r.NextEventOffset(ctx)
+	next, err := ds.NextEventOffset(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +140,7 @@ func (e *Engine) newEventStream(
 ) *persistedstream.Stream {
 	return &persistedstream.Stream{
 		App:        cfg.Identity(),
-		Repository: ds.EventStoreRepository(),
+		Repository: ds,
 		Marshaler:  e.opts.Marshaler,
 		Cache:      cache,
 		// TODO: https://github.com/dogmatiq/infix/issues/76
@@ -188,9 +186,9 @@ func (e *Engine) newEntryPoint(
 		appLogger:    l,
 		engineLogger: e.logger,
 		loader: &aggregate.Loader{
-			AggregateRepo: ds,
-			EventStore:    ds.EventStoreRepository(),
-			Marshaler:     e.opts.Marshaler,
+			AggregateRepository: ds,
+			EventRepository:     ds,
+			Marshaler:           e.opts.Marshaler,
 		},
 	}
 

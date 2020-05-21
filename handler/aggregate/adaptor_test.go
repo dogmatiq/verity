@@ -27,7 +27,6 @@ var _ = Describe("type Adaptor", func() {
 		ctx        context.Context
 		cancel     context.CancelFunc
 		dataStore  *DataStoreStub
-		eventRepo  *EventStoreRepositoryStub
 		upstream   *AggregateMessageHandler
 		packer     *parcel.Packer
 		logger     *logging.BufferedLogger
@@ -51,8 +50,6 @@ var _ = Describe("type Adaptor", func() {
 				InstanceID: id,
 			}, nil
 		}
-
-		eventRepo = &EventStoreRepositoryStub{}
 
 		upstream = &AggregateMessageHandler{
 			ConfigureFunc: func(c dogma.AggregateConfigurer) {
@@ -93,9 +90,9 @@ var _ = Describe("type Adaptor", func() {
 			},
 			Handler: upstream,
 			Loader: &Loader{
-				AggregateRepo: dataStore,
-				EventStore:    eventRepo,
-				Marshaler:     Marshaler,
+				AggregateRepository: dataStore,
+				EventRepository:     dataStore,
+				Marshaler:           Marshaler,
 			},
 			Packer:      packer,
 			LoadTimeout: 1 * time.Second,

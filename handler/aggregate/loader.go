@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/eventstore"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -19,13 +18,13 @@ type Instance struct {
 
 // Loader loads aggregate instances from their historical events.
 type Loader struct {
-	// AggregateRepo is the repository used to load an aggregate instance's
+	// AggregateRepository is the repository used to load an aggregate instance's
 	// revisions and snapshots.
-	AggregateRepo persistence.AggregateRepository
+	AggregateRepository persistence.AggregateRepository
 
-	// EventStore is the repository used to load an aggregate instance's
+	// EventRepository is the repository used to load an aggregate instance's
 	// historical events.
-	EventStore eventstore.Repository
+	EventRepository persistence.EventRepository
 
 	// Marshaler is used to marshal/unmarshal aggregate snapshots and historical
 	// events,
@@ -38,7 +37,7 @@ func (l *Loader) Load(
 	hk, id string,
 	base dogma.AggregateRoot,
 ) (*Instance, error) {
-	md, err := l.AggregateRepo.LoadAggregateMetaData(ctx, hk, id)
+	md, err := l.AggregateRepository.LoadAggregateMetaData(ctx, hk, id)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +64,7 @@ func (l *Loader) applyEvents(
 	md *persistence.AggregateMetaData,
 	base dogma.AggregateRoot,
 ) error {
-	res, err := l.EventStore.LoadEventsBySource(
+	res, err := l.EventRepository.LoadEventsBySource(
 		ctx,
 		md.HandlerKey,
 		md.InstanceID,

@@ -38,7 +38,8 @@ type DataStoreStub struct {
 	persistence.DataStore
 
 	LoadAggregateMetaDataFunc func(context.Context, string, string) (*persistence.AggregateMetaData, error)
-	EventStoreRepositoryFunc  func() eventstore.Repository
+	LoadEventsByTypeFunc      func(context.Context, map[string]struct{}, uint64) (persistence.EventResult, error)
+	LoadEventsBySourceFunc    func(context.Context, string, string, string) (persistence.EventResult, error)
 	LoadOffsetFunc            func(context.Context, string) (uint64, error)
 	QueueStoreRepositoryFunc  func() queuestore.Repository
 	PersistFunc               func(context.Context, persistence.Batch) (persistence.Result, error)
@@ -76,23 +77,37 @@ func (ds *DataStoreStub) LoadAggregateMetaData(
 	return nil, nil
 }
 
-// EventStoreRepository returns the application's event store repository.
-func (ds *DataStoreStub) EventStoreRepository() eventstore.Repository {
-	if ds.EventStoreRepositoryFunc != nil {
-		return ds.EventStoreRepositoryFunc()
+// LoadEventsBySource loads the events produced by a specific handler.
+func (ds *DataStoreStub) LoadEventsBySource(
+	ctx context.Context,
+	hk, id, d string,
+) (persistence.EventResult, error) {
+	if ds.LoadEventsBySourceFunc != nil {
+		return ds.LoadEventsBySourceFunc(ctx, hk, id, d)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.EventStoreRepository()
-
-		if r != nil {
-			r = &EventStoreRepositoryStub{Repository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadEventsBySource(ctx, hk, id, d)
 	}
 
-	return nil
+	return nil, nil
+}
+
+// LoadEventsByType loads events that match a specific set of message types.
+func (ds *DataStoreStub) LoadEventsByType(
+	ctx context.Context,
+	f map[string]struct{},
+	o uint64,
+) (persistence.EventResult, error) {
+	if ds.LoadEventsByTypeFunc != nil {
+		return ds.LoadEventsByTypeFunc(ctx, f, o)
+	}
+
+	if ds.DataStore != nil {
+		return ds.DataStore.LoadEventsByType(ctx, f, o)
+	}
+
+	return nil, nil
 }
 
 // LoadOffset loads the offset associated with a specific application.
