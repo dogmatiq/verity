@@ -53,7 +53,7 @@ type Cursor interface {
 	//
 	// It returns ErrTruncated if the next event can not be obtained because it
 	// occupies a portion of the stream that has been truncated.
-	Next(ctx context.Context) (*Event, error)
+	Next(ctx context.Context) (Event, error)
 
 	// Close discards the cursor.
 	//

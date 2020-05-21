@@ -28,25 +28,25 @@ type cursor struct {
 //
 // It returns ErrTruncated if the next event can not be obtained because it
 // occupies a portion of the stream that has been truncated.
-func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
+func (c *cursor) Next(ctx context.Context) (eventstream.Event, error) {
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return eventstream.Event{}, ctx.Err()
 	case <-c.closed:
-		return nil, eventstream.ErrCursorClosed
+		return eventstream.Event{}, eventstream.ErrCursorClosed
 	default:
 	}
 
 	// The offset we want is before the node we have, we must have requested an
 	// offset that has already been truncated from the buffer.
 	if c.offset < c.node.offset {
-		return nil, eventstream.ErrTruncated
+		return eventstream.Event{}, eventstream.ErrTruncated
 	}
 
 	for {
 		ev, err := c.wait(ctx)
 		if err != nil {
-			return nil, err
+			return eventstream.Event{}, err
 		}
 
 		if ev.Offset == c.offset {
@@ -76,13 +76,13 @@ func (c *cursor) Close() error {
 
 // wait blocks until the event in c.node is available, then returns it.
 // c.node advances to the next node on success.
-func (c *cursor) wait(ctx context.Context) (*eventstream.Event, error) {
+func (c *cursor) wait(ctx context.Context) (eventstream.Event, error) {
 	if ch := c.node.ready(); ch != nil {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return eventstream.Event{}, ctx.Err()
 		case <-c.closed:
-			return nil, eventstream.ErrCursorClosed
+			return eventstream.Event{}, eventstream.ErrCursorClosed
 		case <-ch:
 			break // keep to see coverage
 		}

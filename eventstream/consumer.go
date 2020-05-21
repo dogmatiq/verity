@@ -23,7 +23,7 @@ type Handler interface {
 	//
 	// o must be the offset that would be returned by NextOffset(). On success,
 	// the next call to NextOffset() will return ev.Offset + 1.
-	HandleEvent(ctx context.Context, o uint64, ev *Event) error
+	HandleEvent(ctx context.Context, o uint64, ev Event) error
 }
 
 // Consumer reads events from a stream in order to handle them.

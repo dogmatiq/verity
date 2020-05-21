@@ -61,7 +61,7 @@ func (a *StreamAdaptor) NextOffset(
 func (a *StreamAdaptor) HandleEvent(
 	ctx context.Context,
 	o uint64,
-	ev *eventstream.Event,
+	ev eventstream.Event,
 ) (err error) {
 	source := ev.Parcel.Envelope.MetaData.Source.Application
 

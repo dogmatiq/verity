@@ -90,7 +90,7 @@ func (s *Stream) Open(
 		cacheFilter:      f,
 		offset:           o,
 		cancel:           cancelConsume,
-		events:           make(chan *eventstream.Event, s.PreFetch),
+		events:           make(chan eventstream.Event, s.PreFetch),
 	}
 
 	go c.consume(consumeCtx)

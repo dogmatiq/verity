@@ -10,10 +10,10 @@ import (
 // node is a member of a singly-linked list used to store historical events in
 // memory.
 type node struct {
-	offset   uint64             // immutable, can be read at any time
-	resolved unsafe.Pointer     // atomic (*chan struct{}), closed when resolved
-	event    *eventstream.Event // guarded by resolved channel
-	next     *node              // guarded by resolved channel
+	offset   uint64            // immutable, can be read at any time
+	resolved unsafe.Pointer    // atomic (*chan struct{}), closed when resolved
+	event    eventstream.Event // guarded by resolved channel
+	next     *node             // guarded by resolved channel
 }
 
 // ready returns a channel that is closed when n.event and n.next have been
@@ -47,7 +47,7 @@ func (n *node) ready() <-chan struct{} {
 }
 
 // resolve populates n.event and n.next and closes the "resolved" channel.
-func (n *node) resolve(ev *eventstream.Event) {
+func (n *node) resolve(ev eventstream.Event) {
 	n.event = ev
 	n.next = &node{offset: n.offset + 1}
 

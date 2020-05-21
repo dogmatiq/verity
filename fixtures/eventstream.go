@@ -66,7 +66,7 @@ type EventStreamHandlerStub struct {
 	eventstream.Handler
 
 	NextOffsetFunc  func(context.Context, configkit.Identity) (uint64, error)
-	HandleEventFunc func(context.Context, uint64, *eventstream.Event) error
+	HandleEventFunc func(context.Context, uint64, eventstream.Event) error
 }
 
 // NextOffset returns the offset of the next event to be consumed from a
@@ -90,7 +90,7 @@ func (h *EventStreamHandlerStub) NextOffset(
 func (h *EventStreamHandlerStub) HandleEvent(
 	ctx context.Context,
 	o uint64,
-	ev *eventstream.Event,
+	ev eventstream.Event,
 ) error {
 	if h.HandleEventFunc != nil {
 		return h.HandleEventFunc(ctx, o, ev)

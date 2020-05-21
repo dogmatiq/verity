@@ -16,7 +16,7 @@ type cursor struct {
 	marshaler marshalkit.ValueMarshaler
 	once      sync.Once
 	cancel    context.CancelFunc
-	events    chan *eventstream.Event
+	events    chan eventstream.Event
 	err       error
 }
 
@@ -30,16 +30,16 @@ type cursor struct {
 //
 // It returns ErrTruncated if the next event can not be obtained because it
 // occupies a portion of the stream that has been truncated.
-func (c *cursor) Next(ctx context.Context) (*eventstream.Event, error) {
+func (c *cursor) Next(ctx context.Context) (eventstream.Event, error) {
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return eventstream.Event{}, ctx.Err()
 	case ev, ok := <-c.events:
 		if ok {
 			return ev, nil
 		}
 
-		return nil, c.err
+		return eventstream.Event{}, c.err
 	}
 }
 
@@ -96,7 +96,7 @@ func (c *cursor) recv() error {
 		return err
 	}
 
-	ev := &eventstream.Event{
+	ev := eventstream.Event{
 		Offset: res.Offset,
 	}
 
