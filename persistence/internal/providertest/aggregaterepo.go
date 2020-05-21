@@ -83,7 +83,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
 				} else {
-					gomega.Expect(md).To(gomega.Equal(&expect))
+					gomega.Expect(md).To(gomega.Equal(expect))
 				}
 			})
 		})

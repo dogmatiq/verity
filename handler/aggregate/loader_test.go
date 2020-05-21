@@ -59,8 +59,8 @@ var _ = Describe("type Loader", func() {
 				context.Context,
 				string,
 				string,
-			) (*persistence.AggregateMetaData, error) {
-				return nil, errors.New("<error>")
+			) (persistence.AggregateMetaData, error) {
+				return persistence.AggregateMetaData{}, errors.New("<error>")
 			}
 
 			_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)

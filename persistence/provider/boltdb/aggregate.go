@@ -31,10 +31,10 @@ var (
 func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (_ *persistence.AggregateMetaData, err error) {
+) (_ persistence.AggregateMetaData, err error) {
 	defer bboltx.Recover(&err)
 
-	md := &persistence.AggregateMetaData{
+	md := persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}

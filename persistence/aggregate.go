@@ -33,7 +33,7 @@ type AggregateRepository interface {
 	LoadAggregateMetaData(
 		ctx context.Context,
 		hk, id string,
-	) (*AggregateMetaData, error)
+	) (AggregateMetaData, error)
 }
 
 // SaveAggregateMetaData is an Operation that creates or updates meta-data about

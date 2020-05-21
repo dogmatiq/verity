@@ -12,15 +12,15 @@ import (
 func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (*persistence.AggregateMetaData, error) {
+) (persistence.AggregateMetaData, error) {
 	ds.db.mutex.RLock()
 	defer ds.db.mutex.RUnlock()
 
 	if md, ok := ds.db.aggregate.metadata[hk][id]; ok {
-		return &md, nil
+		return md, nil
 	}
 
-	return &persistence.AggregateMetaData{
+	return persistence.AggregateMetaData{
 		HandlerKey: hk,
 		InstanceID: id,
 	}, nil

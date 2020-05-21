@@ -17,7 +17,7 @@ type AggregateDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		md *persistence.AggregateMetaData,
+		md persistence.AggregateMetaData,
 	) (bool, error)
 
 	// UpdateAggregateMetaData updates meta-data for an aggregate instance.
@@ -27,7 +27,7 @@ type AggregateDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		md *persistence.AggregateMetaData,
+		md persistence.AggregateMetaData,
 	) (bool, error)
 
 	// SelectAggregateMetaData selects an aggregate instance's meta-data.
@@ -35,7 +35,7 @@ type AggregateDriver interface {
 		ctx context.Context,
 		db *sql.DB,
 		ak, hk, id string,
-	) (*persistence.AggregateMetaData, error)
+	) (persistence.AggregateMetaData, error)
 }
 
 // LoadAggregateMetaData loads the meta-data for an aggregate instance.
@@ -44,7 +44,7 @@ type AggregateDriver interface {
 func (ds *dataStore) LoadAggregateMetaData(
 	ctx context.Context,
 	hk, id string,
-) (*persistence.AggregateMetaData, error) {
+) (persistence.AggregateMetaData, error) {
 	return ds.driver.SelectAggregateMetaData(
 		ctx,
 		ds.db,
@@ -69,7 +69,7 @@ func (c *committer) VisitSaveAggregateMetaData(
 		ctx,
 		c.tx,
 		c.appKey,
-		&op.MetaData,
+		op.MetaData,
 	)
 	if ok || err != nil {
 		return err
