@@ -74,7 +74,7 @@ func (ds *dataStore) LoadEventsByType(
 		appKey: ds.appKey,
 		offset: o,
 		pred: func(env *envelopespec.Envelope) bool {
-			_, ok := f[env.PortableName]
+			_, ok := f[env.GetPortableName()]
 			return ok
 		},
 	}, nil
@@ -109,8 +109,8 @@ func (ds *dataStore) LoadEventsBySource(
 		appKey: ds.appKey,
 		offset: offset,
 		pred: func(env *envelopespec.Envelope) bool {
-			s := env.MetaData.Source
-			return s.Handler.Key == hk && s.InstanceId == id
+			return env.GetSourceHandler().GetKey() == hk &&
+				env.GetSourceInstanceId() == id
 		},
 	}, nil
 }
@@ -229,7 +229,7 @@ func (c *committer) VisitSaveEvent(
 		eventOffsetsBucketKey,
 	)
 
-	id := op.Envelope.MetaData.MessageId
+	id := op.Envelope.GetMessageId()
 
 	// Load the next free offset.
 	offset := unmarshalUint64(

@@ -55,7 +55,7 @@ var _ = Describe("type Stream", func() {
 					var events []eventstream.Event
 					for _, p := range parcels {
 						events = append(events, eventstream.Event{
-							Offset: res.EventOffsets[p.Envelope.MetaData.MessageId],
+							Offset: res.EventOffsets[p.Envelope.GetMessageId()],
 							Parcel: p,
 						})
 					}

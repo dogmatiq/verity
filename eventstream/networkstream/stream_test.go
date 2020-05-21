@@ -172,7 +172,7 @@ var _ = Describe("type Stream", func() {
 	Describe("type cursor", func() {
 		Describe("func Next()", func() {
 			It("returns an error if the server returns an invalid envelope", func() {
-				pcl.Envelope.MetaData.MessageId = ""
+				pcl.Envelope.MessageId = ""
 
 				cur, err := stream.Open(ctx, 0, types)
 				Expect(err).ShouldNot(HaveOccurred())

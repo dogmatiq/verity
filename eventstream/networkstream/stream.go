@@ -46,7 +46,7 @@ func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error)
 	// server and the client.
 	types := message.TypeSet{}
 	for _, t := range res.GetMessageTypes() {
-		rt, err := s.Marshaler.UnmarshalType(t.PortableName)
+		rt, err := s.Marshaler.UnmarshalType(t.GetPortableName())
 		if err == nil {
 			types.Add(message.TypeFromReflect(rt))
 		}

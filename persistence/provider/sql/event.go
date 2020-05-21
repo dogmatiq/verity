@@ -221,12 +221,8 @@ func (r *eventResult) Next(
 	if r.rows.Next() {
 		ev := persistence.Event{
 			Envelope: &envelopespec.Envelope{
-				MetaData: &envelopespec.MetaData{
-					Source: &envelopespec.Source{
-						Application: &envelopespec.Identity{},
-						Handler:     &envelopespec.Identity{},
-					},
-				},
+				SourceApplication: &envelopespec.Identity{},
+				SourceHandler:     &envelopespec.Identity{},
 			},
 		}
 
@@ -289,7 +285,7 @@ func (c *committer) VisitSaveEvent(
 		c.result.EventOffsets = map[string]uint64{}
 	}
 
-	c.result.EventOffsets[op.Envelope.MetaData.MessageId] = offset
+	c.result.EventOffsets[op.Envelope.GetMessageId()] = offset
 
 	return nil
 }

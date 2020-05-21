@@ -17,7 +17,7 @@ type QueueMessage struct {
 
 // ID returns the ID of the message.
 func (m QueueMessage) ID() string {
-	return m.Envelope.MetaData.MessageId
+	return m.Envelope.GetMessageId()
 }
 
 // QueueRepository is an interface for reading queued messages.

@@ -46,7 +46,7 @@ var _ = Describe("type Parcel", func() {
 		})
 
 		It("returns an error if the envelope is not well-formed", func() {
-			env.MetaData.MessageId = ""
+			env.MessageId = ""
 
 			_, err := FromEnvelope(Marshaler, env)
 			Expect(err).Should(HaveOccurred())
@@ -60,13 +60,14 @@ var _ = Describe("type Parcel", func() {
 		})
 
 		It("returns an error if the created-at time can not be unmarshaled", func() {
-			env.MetaData.CreatedAt = "<malformed>"
+			env.CreatedAt = "<malformed>"
 
 			_, err := FromEnvelope(Marshaler, env)
 			Expect(err).Should(HaveOccurred())
 		})
+
 		It("returns an error if the scheduled-for time can not be unmarshaled", func() {
-			env.MetaData.ScheduledFor = "<malformed>"
+			env.ScheduledFor = "<malformed>"
 
 			_, err := FromEnvelope(Marshaler, env)
 			Expect(err).Should(HaveOccurred())

@@ -113,14 +113,14 @@ func Declare(
 			cfg := configkit.FromApplication(&dogmafixtures.Application{
 				ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 					// use the application identity from the envelope fixtures
-					id := event0.Parcel.Envelope.MetaData.Source.Application
-					c.Identity(id.Name, id.Key)
+					id := event0.Parcel.Envelope.GetSourceApplication()
+					c.Identity(id.GetName(), id.GetKey())
 
 					c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
 						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 							// use the handler identity from the envelope fixtures
-							id := event0.Parcel.Envelope.MetaData.Source.Handler
-							c.Identity(id.Name, id.Key)
+							id := event0.Parcel.Envelope.GetSourceHandler()
+							c.Identity(id.GetName(), id.GetKey())
 
 							c.ConsumesCommandType(dogmafixtures.MessageX{})
 

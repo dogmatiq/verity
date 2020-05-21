@@ -39,12 +39,12 @@ func FromEnvelope(
 		return Parcel{}, err
 	}
 
-	createdAt, err := envelopespec.UnmarshalTime(env.MetaData.CreatedAt)
+	createdAt, err := envelopespec.UnmarshalTime(env.GetCreatedAt())
 	if err != nil {
 		return Parcel{}, err
 	}
 
-	scheduledFor, err := envelopespec.UnmarshalTime(env.MetaData.ScheduledFor)
+	scheduledFor, err := envelopespec.UnmarshalTime(env.GetScheduledFor())
 	if err != nil {
 		return Parcel{}, err
 	}

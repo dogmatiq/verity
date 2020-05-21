@@ -63,7 +63,7 @@ func (a *StreamAdaptor) HandleEvent(
 	o uint64,
 	ev eventstream.Event,
 ) (err error) {
-	source := ev.Parcel.Envelope.MetaData.Source.Application
+	ak := ev.Parcel.Envelope.GetSourceApplication().GetKey()
 
 	defer mlog.LogHandlerResult(
 		a.Logger,
@@ -72,7 +72,7 @@ func (a *StreamAdaptor) HandleEvent(
 		configkit.ProjectionHandlerType,
 		&err,
 		"resource %s, expected version: %d, new version: %d",
-		source.Key,
+		ak,
 		o,
 		ev.Offset+1,
 	)
@@ -87,7 +87,7 @@ func (a *StreamAdaptor) HandleEvent(
 
 	ok, err := a.Handler.HandleEvent(
 		ctx,
-		resource.FromApplicationKey(source.Key),
+		resource.FromApplicationKey(ak),
 		resource.MarshalOffset(o),
 		resource.MarshalOffset(ev.Offset+1),
 		scope{
