@@ -75,12 +75,12 @@ func (l *Loader) applyEvents(
 	}
 
 	for {
-		i, ok, err := res.Next(ctx)
+		ev, ok, err := res.Next(ctx)
 		if !ok || err != nil {
 			return err
 		}
 
-		p, err := parcel.FromEnvelope(l.Marshaler, i.Envelope)
+		p, err := parcel.FromEnvelope(l.Marshaler, ev.Envelope)
 		if err != nil {
 			return err
 		}

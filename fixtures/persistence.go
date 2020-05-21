@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/provider/memory"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // ProviderStub is a test implementation of the persistence.Provider interface.
@@ -40,7 +39,7 @@ type DataStoreStub struct {
 	LoadEventsByTypeFunc      func(context.Context, map[string]struct{}, uint64) (persistence.EventResult, error)
 	LoadEventsBySourceFunc    func(context.Context, string, string, string) (persistence.EventResult, error)
 	LoadOffsetFunc            func(context.Context, string) (uint64, error)
-	QueueStoreRepositoryFunc  func() queuestore.Repository
+	LoadQueueMessagesFunc     func(context.Context, int) ([]persistence.QueueMessage, error)
 	PersistFunc               func(context.Context, persistence.Batch) (persistence.Result, error)
 	CloseFunc                 func() error
 }
@@ -125,23 +124,20 @@ func (ds *DataStoreStub) LoadOffset(
 	return 0, nil
 }
 
-// QueueStoreRepository returns the application's queue store repository.
-func (ds *DataStoreStub) QueueStoreRepository() queuestore.Repository {
-	if ds.QueueStoreRepositoryFunc != nil {
-		return ds.QueueStoreRepositoryFunc()
+// LoadQueueMessages loads the next n messages from the queue.
+func (ds *DataStoreStub) LoadQueueMessages(
+	ctx context.Context,
+	n int,
+) ([]persistence.QueueMessage, error) {
+	if ds.LoadQueueMessagesFunc != nil {
+		return ds.LoadQueueMessagesFunc(ctx, n)
 	}
 
 	if ds.DataStore != nil {
-		r := ds.DataStore.QueueStoreRepository()
-
-		if r != nil {
-			r = &QueueStoreRepositoryStub{Repository: r}
-		}
-
-		return r
+		return ds.DataStore.LoadQueueMessages(ctx, n)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Persist commits a batch of operations atomically.

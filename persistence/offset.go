@@ -13,8 +13,8 @@ type OffsetRepository interface {
 	LoadOffset(ctx context.Context, ak string) (uint64, error)
 }
 
-// SaveOffset is a persistence operation that persists the offset of the next
-// event to be consumed from a specific application.
+// SaveOffset is an Operation that persists the offset of the next event to be
+// consumed from a specific application.
 type SaveOffset struct {
 	// ApplicationKey is the identity key of the source application.
 	ApplicationKey string

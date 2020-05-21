@@ -76,8 +76,8 @@ func (c *QueueConsumer) Run(ctx context.Context) error {
 func (c *QueueConsumer) handle(ctx context.Context, m queue.Message) error {
 	mlog.LogConsume(
 		c.Logger,
-		m.Item.Envelope,
-		m.Item.FailureCount,
+		m.Envelope,
+		m.FailureCount,
 	)
 
 	return c.EntryPoint.HandleMessage(
@@ -108,8 +108,8 @@ func (a *queueAcknowledger) Ack(ctx context.Context, b persistence.Batch) (persi
 		ctx,
 		append(
 			b,
-			persistence.RemoveQueueItem{
-				Item: *a.message.Item,
+			persistence.RemoveQueueMessage{
+				Message: a.message.QueueMessage,
 			},
 		),
 	)
@@ -127,13 +127,13 @@ func (a *queueAcknowledger) Nack(ctx context.Context, cause error) error {
 		bs = backoff.DefaultStrategy
 	}
 
-	delay := bs(cause, a.message.Item.FailureCount)
-	a.message.Item.NextAttemptAt = time.Now().Add(delay)
-	a.message.Item.FailureCount++
+	delay := bs(cause, a.message.FailureCount)
+	a.message.NextAttemptAt = time.Now().Add(delay)
+	a.message.FailureCount++
 
 	mlog.LogNack(
 		a.logger,
-		a.message.Item.Envelope,
+		a.message.Envelope,
 		cause,
 		delay,
 	)
@@ -141,15 +141,15 @@ func (a *queueAcknowledger) Nack(ctx context.Context, cause error) error {
 	if _, err := a.persister.Persist(
 		ctx,
 		persistence.Batch{
-			persistence.SaveQueueItem{
-				Item: *a.message.Item,
+			persistence.SaveQueueMessage{
+				Message: a.message.QueueMessage,
 			},
 		},
 	); err != nil {
 		return err
 	}
 
-	a.message.Item.Revision++
+	a.message.Revision++
 	a.queue.Requeue(a.message)
 
 	return nil

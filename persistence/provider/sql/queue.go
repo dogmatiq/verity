@@ -6,7 +6,6 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // queueDriver is the subset of the Driver interface that is concerned with the
@@ -19,28 +18,28 @@ type queueDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		i *queuestore.Item,
+		m persistence.QueueMessage,
 	) (bool, error)
 
 	// UpdateQueueMessage updates meta-data about a message that is already on
 	// the queue.
 	//
-	// It returns false if the row does not exist or i.Revision is not current.
+	// It returns false if the row does not exist or m.Revision is not current.
 	UpdateQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		i *queuestore.Item,
+		m persistence.QueueMessage,
 	) (bool, error)
 
 	// DeleteQueueMessage deletes a message from the queue.
 	//
-	// It returns false if the row does not exist or i.Revision is not current.
+	// It returns false if the row does not exist or m.Revision is not current.
 	DeleteQueueMessage(
 		ctx context.Context,
 		tx *sql.Tx,
 		ak string,
-		i *queuestore.Item,
+		m persistence.QueueMessage,
 	) (bool, error)
 
 	// SelectQueueMessages selects up to n messages from the queue.
@@ -55,7 +54,7 @@ type queueDriver interface {
 	// SelectQueueMessages().
 	ScanQueueMessage(
 		rows *sql.Rows,
-		i *queuestore.Item,
+		m *persistence.QueueMessage,
 	) error
 }
 
@@ -63,17 +62,17 @@ type queueDriver interface {
 func (ds *dataStore) LoadQueueMessages(
 	ctx context.Context,
 	n int,
-) ([]*queuestore.Item, error) {
+) ([]persistence.QueueMessage, error) {
 	rows, err := ds.driver.SelectQueueMessages(ctx, ds.db, ds.appKey, n)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	result := make([]*queuestore.Item, 0, n)
+	result := make([]persistence.QueueMessage, 0, n)
 
 	for rows.Next() {
-		i := &queuestore.Item{
+		m := persistence.QueueMessage{
 			Envelope: &envelopespec.Envelope{
 				MetaData: &envelopespec.MetaData{
 					Source: &envelopespec.Source{
@@ -84,24 +83,24 @@ func (ds *dataStore) LoadQueueMessages(
 			},
 		}
 
-		if err := ds.driver.ScanQueueMessage(rows, i); err != nil {
+		if err := ds.driver.ScanQueueMessage(rows, &m); err != nil {
 			return nil, err
 		}
 
-		result = append(result, i)
+		result = append(result, m)
 	}
 
 	return result, nil
 }
 
-// VisitSaveQueueItem applies the changes in a "SaveQueueItem" operation to the
-// database.
-func (c *committer) VisitSaveQueueItem(
+// VisitSaveQueueMessage applies the changes in a "SaveQueueMessage" operation
+// to the database.
+func (c *committer) VisitSaveQueueMessage(
 	ctx context.Context,
-	op persistence.SaveQueueItem,
+	op persistence.SaveQueueMessage,
 ) error {
 	fn := c.driver.InsertQueueMessage
-	if op.Item.Revision > 0 {
+	if op.Message.Revision > 0 {
 		fn = c.driver.UpdateQueueMessage
 	}
 
@@ -109,7 +108,7 @@ func (c *committer) VisitSaveQueueItem(
 		ctx,
 		c.tx,
 		c.appKey,
-		&op.Item,
+		op.Message,
 	); ok || err != nil {
 		return err
 	}
@@ -119,17 +118,17 @@ func (c *committer) VisitSaveQueueItem(
 	}
 }
 
-// VisitRemoveQueueItem applies the changes in a "RemoveQueueItem" operation to
-// the database.
-func (c *committer) VisitRemoveQueueItem(
+// VisitRemoveQueueMessage applies the changes in a "RemoveQueueMessage"
+// operation to the database.
+func (c *committer) VisitRemoveQueueMessage(
 	ctx context.Context,
-	op persistence.RemoveQueueItem,
+	op persistence.RemoveQueueMessage,
 ) (err error) {
 	if ok, err := c.driver.DeleteQueueMessage(
 		ctx,
 		c.tx,
 		c.appKey,
-		&op.Item,
+		op.Message,
 	); ok || err != nil {
 		return err
 	}

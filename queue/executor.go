@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // CommandExecutor is an implementation of dogma.CommandExecutor that adds
@@ -21,7 +20,7 @@ type CommandExecutor struct {
 func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 	p := x.Packer.PackCommand(m)
 
-	i := queuestore.Item{
+	qm := persistence.QueueMessage{
 		NextAttemptAt: p.CreatedAt,
 		Envelope:      p.Envelope,
 	}
@@ -29,19 +28,19 @@ func (x *CommandExecutor) ExecuteCommand(ctx context.Context, m dogma.Message) e
 	if _, err := x.Persister.Persist(
 		ctx,
 		persistence.Batch{
-			persistence.SaveQueueItem{
-				Item: i,
+			persistence.SaveQueueMessage{
+				Message: qm,
 			},
 		},
 	); err != nil {
 		return err
 	}
 
-	i.Revision++
+	qm.Revision++
 
 	x.Queue.Add(
 		[]Message{
-			{p, &i},
+			{qm, p},
 		},
 	)
 

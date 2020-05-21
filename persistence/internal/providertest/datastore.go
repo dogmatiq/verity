@@ -32,13 +32,6 @@ func declareDataStoreTests(tc *TestContext) {
 			}
 		})
 
-		ginkgo.Describe("func QueueStoreRepository()", func() {
-			ginkgo.It("returns a non-nil repository", func() {
-				r := dataStore.QueueStoreRepository()
-				gomega.Expect(r).NotTo(gomega.BeNil())
-			})
-		})
-
 		ginkgo.Describe("func Close()", func() {
 			ginkgo.It("returns an error if the data-store is already closed", func() {
 				err := dataStore.Close()

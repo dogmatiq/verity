@@ -100,7 +100,7 @@ func (e *Engine) newQueue(
 	ds persistence.DataStore,
 ) *queue.Queue {
 	return &queue.Queue{
-		Repository: ds.QueueStoreRepository(),
+		Repository: ds,
 		Marshaler:  e.opts.Marshaler,
 		// TODO: https://github.com/dogmatiq/infix/issues/102
 		// Make buffer size configurable.

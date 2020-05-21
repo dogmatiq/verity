@@ -36,8 +36,8 @@ type AggregateRepository interface {
 	) (*AggregateMetaData, error)
 }
 
-// SaveAggregateMetaData is a persistence operation that creates or updates
-// meta-data about an aggregate instance.
+// SaveAggregateMetaData is an Operation that creates or updates meta-data about
+// an aggregate instance.
 type SaveAggregateMetaData struct {
 	// MetaData is the meta-data to persist.
 	//

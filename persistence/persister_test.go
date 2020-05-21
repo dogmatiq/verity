@@ -7,7 +7,6 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -24,8 +23,8 @@ var _ = Describe("type Operation (interface)", func() {
 			},
 			Entry("type SaveAggregateMetaData", SaveAggregateMetaData{}, "SaveAggregateMetaData"),
 			Entry("type SaveEvent", SaveEvent{}, "SaveEvent"),
-			Entry("type SaveQueueItem", SaveQueueItem{}, "SaveQueueItem"),
-			Entry("type RemoveQueueItem", RemoveQueueItem{}, "RemoveQueueItem"),
+			Entry("type SaveQueueMessage", SaveQueueMessage{}, "SaveQueueMessage"),
+			Entry("type RemoveQueueMessage", RemoveQueueMessage{}, "RemoveQueueMessage"),
 			Entry("type SaveOffset", SaveOffset{}, "SaveOffset"),
 		)
 	})
@@ -37,13 +36,13 @@ var _ = Describe("type Batch", func() {
 			env := NewEnvelope("<id>", MessageA1)
 
 			batch := Batch{
-				SaveQueueItem{
-					Item: queuestore.Item{
+				SaveQueueMessage{
+					Message: QueueMessage{
 						Envelope: env,
 					},
 				},
-				RemoveQueueItem{
-					Item: queuestore.Item{
+				RemoveQueueMessage{
+					Message: QueueMessage{
 						Envelope: env,
 					},
 				},
@@ -67,13 +66,13 @@ var _ = Describe("type Batch", func() {
 				SaveEvent{
 					Envelope: NewEnvelope("<id-1>", MessageA1),
 				},
-				SaveQueueItem{
-					Item: queuestore.Item{
+				SaveQueueMessage{
+					Message: QueueMessage{
 						Envelope: NewEnvelope("<id-1>", MessageA1), // Note, same as SaveEvent, this is allowed and required.
 					},
 				},
-				RemoveQueueItem{
-					Item: queuestore.Item{
+				RemoveQueueMessage{
+					Message: QueueMessage{
 						Envelope: NewEnvelope("<id-2>", MessageA1),
 					},
 				},
@@ -100,13 +99,13 @@ var _ = Describe("type Batch", func() {
 				SaveEvent{
 					Envelope: NewEnvelope("<id-1>", MessageA1),
 				},
-				SaveQueueItem{
-					Item: queuestore.Item{
+				SaveQueueMessage{
+					Message: QueueMessage{
 						Envelope: NewEnvelope("<id-1>", MessageA1), // Note, same as SaveEvent, this is allowed and required.
 					},
 				},
-				RemoveQueueItem{
-					Item: queuestore.Item{
+				RemoveQueueMessage{
+					Message: QueueMessage{
 						Envelope: NewEnvelope("<id-2>", MessageA1),
 					},
 				},
@@ -152,12 +151,12 @@ func (v *visitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {
 	return nil
 }
 
-func (v *visitor) VisitSaveQueueItem(_ context.Context, op SaveQueueItem) error {
+func (v *visitor) VisitSaveQueueMessage(_ context.Context, op SaveQueueMessage) error {
 	v.operations = append(v.operations, op)
 	return nil
 }
 
-func (v *visitor) VisitRemoveQueueItem(_ context.Context, op RemoveQueueItem) error {
+func (v *visitor) VisitRemoveQueueMessage(_ context.Context, op RemoveQueueMessage) error {
 	v.operations = append(v.operations, op)
 	return nil
 }
@@ -177,12 +176,12 @@ func (errorVisitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {
 	return errors.New("SaveEvent")
 }
 
-func (errorVisitor) VisitSaveQueueItem(_ context.Context, op SaveQueueItem) error {
-	return errors.New("SaveQueueItem")
+func (errorVisitor) VisitSaveQueueMessage(_ context.Context, op SaveQueueMessage) error {
+	return errors.New("SaveQueueMessage")
 }
 
-func (errorVisitor) VisitRemoveQueueItem(_ context.Context, op RemoveQueueItem) error {
-	return errors.New("RemoveQueueItem")
+func (errorVisitor) VisitRemoveQueueMessage(_ context.Context, op RemoveQueueMessage) error {
+	return errors.New("RemoveQueueMessage")
 }
 
 func (errorVisitor) VisitSaveOffset(_ context.Context, op SaveOffset) error {

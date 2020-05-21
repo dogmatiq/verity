@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // A Persister is an interface for committing batches of atomic operations to
@@ -38,8 +39,8 @@ type Operation interface {
 type OperationVisitor interface {
 	VisitSaveAggregateMetaData(context.Context, SaveAggregateMetaData) error
 	VisitSaveEvent(context.Context, SaveEvent) error
-	VisitSaveQueueItem(context.Context, SaveQueueItem) error
-	VisitRemoveQueueItem(context.Context, RemoveQueueItem) error
+	VisitSaveQueueMessage(context.Context, SaveQueueMessage) error
+	VisitRemoveQueueMessage(context.Context, RemoveQueueMessage) error
 	VisitSaveOffset(context.Context, SaveOffset) error
 }
 
@@ -75,4 +76,13 @@ func (b Batch) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
 	}
 
 	return nil
+}
+
+// entityKey uniquely identifies the entity that is affected by an operation.
+type entityKey [3]string
+
+func (k entityKey) String() string {
+	return strings.TrimSpace(
+		strings.Join(k[:], " "),
+	)
 }

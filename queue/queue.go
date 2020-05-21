@@ -8,7 +8,7 @@ import (
 
 	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -22,7 +22,7 @@ var DefaultBufferSize = runtime.GOMAXPROCS(0) * 10
 type Queue struct {
 	// Repository is used to load messages from the queue whenever the in-memory
 	// buffer is exhausted.
-	Repository queuestore.Repository
+	Repository persistence.QueueRepository
 
 	// Marshaler is used to unmarshal the messages loaded via the repository.
 	Marshaler marshalkit.ValueMarshaler
@@ -34,7 +34,7 @@ type Queue struct {
 	BufferSize int
 
 	// A "tracked" message is a message that is being managed by this Queue. All
-	// tracked messages are already persisted in the queue store.
+	// tracked messages are already persisted in the data-store.
 	//
 	// The tracked messages are always those with the highest-priority, that is,
 	// those that are scheduled to be handled the soonest.
@@ -61,8 +61,8 @@ type elem struct {
 }
 
 func (e elem) Less(v pdeque.Elem) bool {
-	return e.Item.NextAttemptAt.Before(
-		v.(elem).Item.NextAttemptAt,
+	return e.NextAttemptAt.Before(
+		v.(elem).NextAttemptAt,
 	)
 }
 
@@ -118,8 +118,8 @@ func (q *Queue) Remove(m Message) {
 
 // Run starts the queue.
 //
-// It coordinates the tracking of messages that are loaded from the queue store,
-// or manually added to the queue by Add().
+// It coordinates the tracking of messages that are loaded from a queue
+// repository or manually added to the queue by Add().
 func (q *Queue) Run(ctx context.Context) error {
 	q.init()
 	defer close(q.done)
@@ -166,7 +166,7 @@ func (q *Queue) tick(ctx context.Context) error {
 
 	if ok {
 		// There is a message at the head of the queue.
-		d := time.Until(m.Item.NextAttemptAt)
+		d := time.Until(m.NextAttemptAt)
 
 		if d <= 0 {
 			// The message is ready to be handled now.
@@ -238,28 +238,25 @@ func (q *Queue) load(ctx context.Context) error {
 	}
 
 	// Load messages up to our configured limit.
-	items, err := q.Repository.LoadQueueMessages(ctx, limit)
+	persisted, err := q.Repository.LoadQueueMessages(ctx, limit)
 	if err != nil {
 		return err
 	}
 
-	if len(items) < limit {
+	if len(persisted) < limit {
 		// We didn't get as many messages as we requested, so we know we have
 		// everything in memory.
 		q.exhaustive = true
 	}
 
-	messages := make([]Message, len(items))
-	for i, item := range items {
-		p, err := parcel.FromEnvelope(q.Marshaler, item.Envelope)
+	messages := make([]Message, len(persisted))
+	for i, m := range persisted {
+		p, err := parcel.FromEnvelope(q.Marshaler, m.Envelope)
 		if err != nil {
 			return err
 		}
 
-		messages[i] = Message{
-			Parcel: p,
-			Item:   item,
-		}
+		messages[i] = Message{m, p}
 	}
 
 	q.track(messages)

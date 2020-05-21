@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 )
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
@@ -34,11 +33,6 @@ func newDataStore(
 		appKey:  k,
 		release: r,
 	}
-}
-
-// QueueStoreRepository returns the application's queue store repository.
-func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
-	return ds
 }
 
 // Persist commits a batch of operations atomically.

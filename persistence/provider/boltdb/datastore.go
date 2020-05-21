@@ -6,7 +6,6 @@ import (
 
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"go.etcd.io/bbolt"
 )
 
@@ -17,11 +16,6 @@ type dataStore struct {
 
 	m       sync.RWMutex
 	release func(string) error
-}
-
-// QueueStoreRepository returns the application's queue store repository.
-func (ds *dataStore) QueueStoreRepository() queuestore.Repository {
-	return ds
 }
 
 // Persist commits a batch of operations atomically.

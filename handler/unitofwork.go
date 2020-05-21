@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/dogmatiq/infix/queue"
 )
 
@@ -22,12 +21,12 @@ type UnitOfWork struct {
 
 // ExecuteCommand updates the unit-of-work to execute the command in p.
 func (w *UnitOfWork) ExecuteCommand(p *parcel.Parcel) {
-	w.saveQueueItem(p, p.CreatedAt)
+	w.saveQueueMessage(p, p.CreatedAt)
 }
 
 // ScheduleTimeout updates the unit-of-work to schedule the timeout in p.
 func (w *UnitOfWork) ScheduleTimeout(p *parcel.Parcel) {
-	w.saveQueueItem(p, p.ScheduledFor)
+	w.saveQueueMessage(p, p.ScheduledFor)
 }
 
 // RecordEvent updates the unit-of-work to record the event in p.
@@ -35,7 +34,7 @@ func (w *UnitOfWork) RecordEvent(p *parcel.Parcel) {
 	w.saveEvent(p)
 
 	if w.queueEvents != nil && w.queueEvents.HasM(p.Message) {
-		w.saveQueueItem(p, p.CreatedAt)
+		w.saveQueueMessage(p, p.CreatedAt)
 	}
 }
 
@@ -49,27 +48,27 @@ func (w *UnitOfWork) Observe(obs Observer) {
 	w.observers = append(w.observers, obs)
 }
 
-// saveQueueItem adds a SaveQueueItem operation to the batch for p.
-func (w *UnitOfWork) saveQueueItem(p *parcel.Parcel, next time.Time) {
-	item := queuestore.Item{
+// saveQueueMessage adds a SaveQueueMessage operation to the batch for p.
+func (w *UnitOfWork) saveQueueMessage(p *parcel.Parcel, next time.Time) {
+	qm := persistence.QueueMessage{
 		NextAttemptAt: next,
 		Envelope:      p.Envelope,
 	}
 
 	w.batch = append(
 		w.batch,
-		persistence.SaveQueueItem{
-			Item: item,
+		persistence.SaveQueueMessage{
+			Message: qm,
 		},
 	)
 
-	item.Revision++
+	qm.Revision++
 
 	w.result.Queued = append(
 		w.result.Queued,
 		queue.Message{
-			Parcel: p,
-			Item:   &item,
+			QueueMessage: qm,
+			Parcel:       p,
 		},
 	)
 }

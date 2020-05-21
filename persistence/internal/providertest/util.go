@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
@@ -84,35 +83,30 @@ func loadOffset(
 	return o
 }
 
-// loadQueueItem loads the item at the head of the queue.
-func loadQueueItem(
+// loadQueueMessage loads the message at the head of the queue.
+func loadQueueMessage(
 	ctx context.Context,
-	r queuestore.Repository,
-) queuestore.Item {
-	items := loadQueueItems(ctx, r, 1)
+	r persistence.QueueRepository,
+) persistence.QueueMessage {
+	messages := loadQueueMessages(ctx, r, 1)
 
-	if len(items) == 0 {
+	if len(messages) == 0 {
 		ginkgo.Fail("no messages returned")
 	}
 
-	return items[0]
+	return messages[0]
 }
 
-// loadQueueItems loads n items at the head of the queue.
-func loadQueueItems(
+// loadQueueMessages loads n messages at the head of the queue.
+func loadQueueMessages(
 	ctx context.Context,
-	r queuestore.Repository,
+	r persistence.QueueRepository,
 	n int,
-) []queuestore.Item {
-	pointers, err := r.LoadQueueMessages(ctx, n)
+) []persistence.QueueMessage {
+	messages, err := r.LoadQueueMessages(ctx, n)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	items := make([]queuestore.Item, len(pointers))
-	for i, p := range pointers {
-		items[i] = *p
-	}
-
-	return items
+	return messages
 }
 
 // persist persists a batch of operations and asserts that there was no failure.
@@ -123,5 +117,6 @@ func persist(
 ) persistence.Result {
 	res, err := p.Persist(ctx, batch)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
 	return res
 }

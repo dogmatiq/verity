@@ -7,7 +7,6 @@ import (
 
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/lib/pq"
 )
 
@@ -238,9 +237,9 @@ func (d errorConverter) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (bool, error) {
-	ok, err := d.d.InsertQueueMessage(ctx, tx, ak, i)
+	ok, err := d.d.InsertQueueMessage(ctx, tx, ak, m)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -248,9 +247,9 @@ func (d errorConverter) UpdateQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (bool, error) {
-	ok, err := d.d.UpdateQueueMessage(ctx, tx, ak, i)
+	ok, err := d.d.UpdateQueueMessage(ctx, tx, ak, m)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -258,9 +257,9 @@ func (d errorConverter) DeleteQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (bool, error) {
-	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, i)
+	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, m)
 	return ok, convertContextErrors(ctx, err)
 }
 
@@ -276,7 +275,7 @@ func (d errorConverter) SelectQueueMessages(
 
 func (d errorConverter) ScanQueueMessage(
 	rows *sql.Rows,
-	i *queuestore.Item,
+	m *persistence.QueueMessage,
 ) error {
-	return d.d.ScanQueueMessage(rows, i)
+	return d.d.ScanQueueMessage(rows, m)
 }

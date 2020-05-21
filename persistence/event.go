@@ -13,7 +13,7 @@ type Event struct {
 }
 
 // ID returns the ID of the message.
-func (e *Event) ID() string {
+func (e Event) ID() string {
 	return e.Envelope.MetaData.MessageId
 }
 
@@ -64,7 +64,7 @@ type EventResult interface {
 	Close() error
 }
 
-// SaveEvent is a persistence operation that persists an event message.
+// SaveEvent is an Operation that persists an event message.
 type SaveEvent struct {
 	// Envelope is the envelope containing the event to persist.
 	Envelope *envelopespec.Envelope

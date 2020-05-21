@@ -7,7 +7,6 @@ import (
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -15,21 +14,19 @@ import (
 )
 
 // declareQueueRepositoryTests declares a functional test-suite for a specific
-// queuestore.Repository implementation.
+// persistence.QueueRepository implementation.
 func declareQueueRepositoryTests(tc *TestContext) {
-	ginkgo.Describe("type queuestore.Repository", func() {
+	ginkgo.Describe("type persistence.QueueRepository", func() {
 		var (
-			dataStore  persistence.DataStore
-			repository queuestore.Repository
-			tearDown   func()
+			dataStore persistence.DataStore
+			tearDown  func()
 
-			now                 time.Time
-			item0, item1, item2 queuestore.Item
+			now                          time.Time
+			message0, message1, message2 persistence.QueueMessage
 		)
 
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
-			repository = dataStore.QueueStoreRepository()
 
 			// Note, we use generated UUIDs for the message IDs to avoid them
 			// having any predictable effect on the queue order. Likewise, we
@@ -40,19 +37,19 @@ func declareQueueRepositoryTests(tc *TestContext) {
 
 			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
 
-			item0 = queuestore.Item{
+			message0 = persistence.QueueMessage{
 				FailureCount:  1,
 				NextAttemptAt: now.Add(3 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA3),
 			}
 
-			item1 = queuestore.Item{
+			message1 = persistence.QueueMessage{
 				FailureCount:  2,
 				NextAttemptAt: now.Add(-10 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA1),
 			}
 
-			item2 = queuestore.Item{
+			message2 = persistence.QueueMessage{
 				FailureCount:  3,
 				NextAttemptAt: now.Add(2 * time.Hour),
 				Envelope:      infixfixtures.NewEnvelope("", dogmafixtures.MessageA2),
@@ -65,53 +62,53 @@ func declareQueueRepositoryTests(tc *TestContext) {
 
 		ginkgo.Describe("func LoadQueueMessages()", func() {
 			ginkgo.It("returns an empty result if the queue is empty", func() {
-				items := loadQueueItems(tc.Context, repository, 10)
-				gomega.Expect(items).To(gomega.BeEmpty())
+				messages := loadQueueMessages(tc.Context, dataStore, 10)
+				gomega.Expect(messages).To(gomega.BeEmpty())
 			})
 
 			table.DescribeTable(
 				"it returns messages from the queue, ordered by their next attempt time",
-				func(n int, pointers ...*queuestore.Item) {
+				func(n int, pointers ...*persistence.QueueMessage) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveQueueItem{
-							Item: item0,
+						persistence.SaveQueueMessage{
+							Message: message0,
 						},
-						persistence.SaveQueueItem{
-							Item: item1,
+						persistence.SaveQueueMessage{
+							Message: message1,
 						},
-						persistence.SaveQueueItem{
-							Item: item2,
+						persistence.SaveQueueMessage{
+							Message: message2,
 						},
 					)
 
-					item0.Revision++
-					item1.Revision++
-					item2.Revision++
+					message0.Revision++
+					message1.Revision++
+					message2.Revision++
 
-					var expected []queuestore.Item
+					var expected []persistence.QueueMessage
 					for _, p := range pointers {
 						expected = append(expected, *p)
 					}
 
-					items := loadQueueItems(tc.Context, repository, n)
-					gomega.Expect(items).To(gomegax.EqualX(expected))
+					messages := loadQueueMessages(tc.Context, dataStore, n)
+					gomega.Expect(messages).To(gomegax.EqualX(expected))
 				},
 				table.Entry(
 					"it returns all the messages if the limit is equal the length of the queue",
 					3,
-					&item1, &item2, &item0,
+					&message1, &message2, &message0,
 				),
 				table.Entry(
 					"it returns all the messages if the limit is larger than the length of the queue",
 					10,
-					&item1, &item2, &item0,
+					&message1, &message2, &message0,
 				),
 				table.Entry(
 					"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
 					2,
-					&item1, &item2,
+					&message1, &message2,
 				),
 			)
 		})
@@ -124,19 +121,19 @@ func declareQueueRepositoryTests(tc *TestContext) {
 			persist(
 				tc.Context,
 				dataStore,
-				persistence.SaveQueueItem{
-					Item: item0,
+				persistence.SaveQueueMessage{
+					Message: message0,
 				},
 			)
 
 			ctx, cancel := context.WithCancel(tc.Context)
 			cancel()
 
-			items, err := repository.LoadQueueMessages(ctx, 1)
+			messages, err := dataStore.LoadQueueMessages(ctx, 1)
 			if err != nil {
 				gomega.Expect(err).To(gomega.Equal(context.Canceled))
 			} else {
-				gomega.Expect(items).To(gomega.HaveLen(1))
+				gomega.Expect(messages).To(gomega.HaveLen(1))
 			}
 		})
 	})

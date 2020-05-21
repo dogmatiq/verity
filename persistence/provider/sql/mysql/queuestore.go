@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence/subsystem/queuestore"
+	"github.com/dogmatiq/infix/persistence"
 )
 
 // InsertQueueMessage inserts a message in the queue.
@@ -16,7 +16,7 @@ func (driver) InsertQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (bool, error) {
 	return insertIgnore(
 		ctx,
@@ -40,34 +40,34 @@ func (driver) InsertQueueMessage(
 				media_type = ?,
 				data = ?`,
 		ak,
-		i.FailureCount,
-		i.NextAttemptAt,
-		i.Envelope.GetMetaData().GetMessageId(),
-		i.Envelope.GetMetaData().GetCausationId(),
-		i.Envelope.GetMetaData().GetCorrelationId(),
-		i.Envelope.GetMetaData().GetSource().GetApplication().GetName(),
-		i.Envelope.GetMetaData().GetSource().GetApplication().GetKey(),
-		i.Envelope.GetMetaData().GetSource().GetHandler().GetName(),
-		i.Envelope.GetMetaData().GetSource().GetHandler().GetKey(),
-		i.Envelope.GetMetaData().GetSource().GetInstanceId(),
-		i.Envelope.GetMetaData().GetCreatedAt(),
-		i.Envelope.GetMetaData().GetScheduledFor(),
-		i.Envelope.GetMetaData().GetDescription(),
-		i.Envelope.GetPortableName(),
-		i.Envelope.GetMediaType(),
-		i.Envelope.GetData(),
+		m.FailureCount,
+		m.NextAttemptAt,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Envelope.GetMetaData().GetCausationId(),
+		m.Envelope.GetMetaData().GetCorrelationId(),
+		m.Envelope.GetMetaData().GetSource().GetApplication().GetName(),
+		m.Envelope.GetMetaData().GetSource().GetApplication().GetKey(),
+		m.Envelope.GetMetaData().GetSource().GetHandler().GetName(),
+		m.Envelope.GetMetaData().GetSource().GetHandler().GetKey(),
+		m.Envelope.GetMetaData().GetSource().GetInstanceId(),
+		m.Envelope.GetMetaData().GetCreatedAt(),
+		m.Envelope.GetMetaData().GetScheduledFor(),
+		m.Envelope.GetMetaData().GetDescription(),
+		m.Envelope.GetPortableName(),
+		m.Envelope.GetMediaType(),
+		m.Envelope.GetData(),
 	)
 }
 
 // UpdateQueueMessage updates meta-data about a message that is already on
 // the queue.
 //
-// It returns false if the row does not exist or i.Revision is not current.
+// It returns false if the row does not exist or m.Revision is not current.
 func (driver) UpdateQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
@@ -81,22 +81,22 @@ func (driver) UpdateQueueMessage(
 		WHERE app_key = ?
 		AND message_id = ?
 		AND revision = ?`,
-		i.FailureCount,
-		i.NextAttemptAt,
+		m.FailureCount,
+		m.NextAttemptAt,
 		ak,
-		i.Envelope.GetMetaData().GetMessageId(),
-		i.Revision,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Revision,
 	), nil
 }
 
 // DeleteQueueMessage deletes a message from the queue.
 //
-// It returns false if the row does not exist or i.Revision is not current.
+// It returns false if the row does not exist or m.Revision is not current.
 func (driver) DeleteQueueMessage(
 	ctx context.Context,
 	tx *sql.Tx,
 	ak string,
-	i *queuestore.Item,
+	m persistence.QueueMessage,
 ) (_ bool, err error) {
 	defer sqlx.Recover(&err)
 
@@ -108,8 +108,8 @@ func (driver) DeleteQueueMessage(
 		AND message_id = ?
 		AND revision = ?`,
 		ak,
-		i.Envelope.GetMetaData().GetMessageId(),
-		i.Revision,
+		m.Envelope.GetMetaData().GetMessageId(),
+		m.Revision,
 	), nil
 }
 
@@ -153,34 +153,34 @@ func (driver) SelectQueueMessages(
 // SelectQueueMessages().
 func (driver) ScanQueueMessage(
 	rows *sql.Rows,
-	i *queuestore.Item,
+	m *persistence.QueueMessage,
 ) error {
 	var next string
 
 	err := rows.Scan(
-		&i.Revision,
-		&i.FailureCount,
+		&m.Revision,
+		&m.FailureCount,
 		&next,
-		&i.Envelope.MetaData.MessageId,
-		&i.Envelope.MetaData.CausationId,
-		&i.Envelope.MetaData.CorrelationId,
-		&i.Envelope.MetaData.Source.Application.Name,
-		&i.Envelope.MetaData.Source.Application.Key,
-		&i.Envelope.MetaData.Source.Handler.Name,
-		&i.Envelope.MetaData.Source.Handler.Key,
-		&i.Envelope.MetaData.Source.InstanceId,
-		&i.Envelope.MetaData.CreatedAt,
-		&i.Envelope.MetaData.ScheduledFor,
-		&i.Envelope.MetaData.Description,
-		&i.Envelope.PortableName,
-		&i.Envelope.MediaType,
-		&i.Envelope.Data,
+		&m.Envelope.MetaData.MessageId,
+		&m.Envelope.MetaData.CausationId,
+		&m.Envelope.MetaData.CorrelationId,
+		&m.Envelope.MetaData.Source.Application.Name,
+		&m.Envelope.MetaData.Source.Application.Key,
+		&m.Envelope.MetaData.Source.Handler.Name,
+		&m.Envelope.MetaData.Source.Handler.Key,
+		&m.Envelope.MetaData.Source.InstanceId,
+		&m.Envelope.MetaData.CreatedAt,
+		&m.Envelope.MetaData.ScheduledFor,
+		&m.Envelope.MetaData.Description,
+		&m.Envelope.PortableName,
+		&m.Envelope.MediaType,
+		&m.Envelope.Data,
 	)
 	if err != nil {
 		return err
 	}
 
-	i.NextAttemptAt, err = time.Parse(timeLayout, next)
+	m.NextAttemptAt, err = time.Parse(timeLayout, next)
 
 	return err
 }
