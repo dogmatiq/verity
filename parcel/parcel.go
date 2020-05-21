@@ -3,6 +3,7 @@ package parcel
 import (
 	"time"
 
+	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	"github.com/dogmatiq/marshalkit"
@@ -16,6 +17,9 @@ type Parcel struct {
 
 	// Message is the original representation of the message.
 	Message dogma.Message
+
+	// MessageType is the type of the message in the parcel.
+	MessageType message.Type
 
 	// CreatedAt is the time at which the message was created.
 	CreatedAt time.Time
@@ -57,6 +61,7 @@ func FromEnvelope(
 	return Parcel{
 		Envelope:     env,
 		Message:      m,
+		MessageType:  message.TypeOf(m),
 		CreatedAt:    createdAt,
 		ScheduledFor: scheduledFor,
 	}, nil

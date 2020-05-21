@@ -83,8 +83,9 @@ var _ = Describe("type Packer", func() {
 						MediaType:         MessageC1Packet.MediaType,
 						Data:              MessageC1Packet.Data,
 					},
-					Message:   MessageC1,
-					CreatedAt: now,
+					Message:     MessageC1,
+					MessageType: MessageCType,
+					CreatedAt:   now,
 				},
 			))
 		})
@@ -119,8 +120,9 @@ var _ = Describe("type Packer", func() {
 						MediaType:         MessageE1Packet.MediaType,
 						Data:              MessageE1Packet.Data,
 					},
-					Message:   MessageE1,
-					CreatedAt: now,
+					Message:     MessageE1,
+					MessageType: MessageEType,
+					CreatedAt:   now,
 				},
 			))
 		})
@@ -178,8 +180,9 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message) {
 					p := packer.PackChildCommand(
 						Parcel{
-							Envelope: parent,
-							Message:  cause,
+							Envelope:    parent,
+							Message:     cause,
+							MessageType: message.TypeOf(cause),
 						},
 						MessageC1,
 						handler,
@@ -201,8 +204,9 @@ var _ = Describe("type Packer", func() {
 								MediaType:         MessageC1Packet.MediaType,
 								Data:              MessageC1Packet.Data,
 							},
-							Message:   MessageC1,
-							CreatedAt: now,
+							Message:     MessageC1,
+							MessageType: MessageCType,
+							CreatedAt:   now,
 						},
 					))
 				},
@@ -216,8 +220,9 @@ var _ = Describe("type Packer", func() {
 					Expect(func() {
 						packer.PackChildCommand(
 							Parcel{
-								Envelope: parent,
-								Message:  cause,
+								Envelope:    parent,
+								Message:     cause,
+								MessageType: message.TypeOf(cause),
 							},
 							MessageC1,
 							handler,
@@ -235,8 +240,9 @@ var _ = Describe("type Packer", func() {
 					Expect(func() {
 						packer.PackChildCommand(
 							Parcel{
-								Envelope: parent,
-								Message:  MessageF1,
+								Envelope:    parent,
+								Message:     MessageF1,
+								MessageType: MessageFType,
 							},
 							m,
 							handler,
@@ -256,8 +262,9 @@ var _ = Describe("type Packer", func() {
 				func(cause dogma.Message) {
 					p := packer.PackChildEvent(
 						Parcel{
-							Envelope: parent,
-							Message:  cause,
+							Envelope:    parent,
+							Message:     cause,
+							MessageType: message.TypeOf(cause),
 						},
 						MessageE1,
 						handler,
@@ -279,8 +286,9 @@ var _ = Describe("type Packer", func() {
 								MediaType:         MessageE1Packet.MediaType,
 								Data:              MessageE1Packet.Data,
 							},
-							Message:   MessageE1,
-							CreatedAt: now,
+							Message:     MessageE1,
+							MessageType: MessageEType,
+							CreatedAt:   now,
 						},
 					))
 				},
@@ -293,8 +301,9 @@ var _ = Describe("type Packer", func() {
 					Expect(func() {
 						packer.PackChildEvent(
 							Parcel{
-								Envelope: parent,
-								Message:  cause,
+								Envelope:    parent,
+								Message:     cause,
+								MessageType: message.TypeOf(cause),
 							},
 							MessageE1,
 							handler,
@@ -313,8 +322,9 @@ var _ = Describe("type Packer", func() {
 					Expect(func() {
 						packer.PackChildEvent(
 							Parcel{
-								Envelope: parent,
-								Message:  MessageD1,
+								Envelope:    parent,
+								Message:     MessageD1,
+								MessageType: MessageDType,
 							},
 							m,
 							handler,
@@ -335,8 +345,9 @@ var _ = Describe("type Packer", func() {
 					scheduledFor := time.Now()
 					p := packer.PackChildTimeout(
 						Parcel{
-							Envelope: parent,
-							Message:  cause,
+							Envelope:    parent,
+							Message:     cause,
+							MessageType: message.TypeOf(cause),
 						},
 						MessageT1,
 						scheduledFor,
@@ -361,6 +372,7 @@ var _ = Describe("type Packer", func() {
 								Data:              MessageT1Packet.Data,
 							},
 							Message:      MessageT1,
+							MessageType:  MessageTType,
 							CreatedAt:    now,
 							ScheduledFor: scheduledFor,
 						},
@@ -376,8 +388,9 @@ var _ = Describe("type Packer", func() {
 					Expect(func() {
 						packer.PackChildTimeout(
 							Parcel{
-								Envelope: parent,
-								Message:  cause,
+								Envelope:    parent,
+								Message:     cause,
+								MessageType: message.TypeOf(cause),
 							},
 							MessageT1,
 							time.Now(),
@@ -396,8 +409,9 @@ var _ = Describe("type Packer", func() {
 					Expect(func() {
 						packer.PackChildTimeout(
 							Parcel{
-								Envelope: parent,
-								Message:  MessageF1,
+								Envelope:    parent,
+								Message:     MessageF1,
+								MessageType: MessageFType,
 							},
 							m,
 							time.Now(),

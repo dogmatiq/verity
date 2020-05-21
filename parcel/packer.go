@@ -39,14 +39,12 @@ type Packer struct {
 
 // PackCommand returns a parcel containing the given command message.
 func (p *Packer) PackCommand(m dogma.Message) Parcel {
-	p.checkProducedRole(m, message.CommandRole)
-	return p.new(m)
+	return p.new(m, message.CommandRole)
 }
 
 // PackEvent returns a parcel containing the given event message.
 func (p *Packer) PackEvent(m dogma.Message) Parcel {
-	p.checkProducedRole(m, message.EventRole)
-	return p.new(m)
+	return p.new(m, message.EventRole)
 }
 
 // PackChildCommand returns a parcel containing the given command message,
@@ -57,12 +55,12 @@ func (p *Packer) PackChildCommand(
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
-	p.checkProducedRole(m, message.CommandRole)
+	p.checkConsumedRole(c.MessageType, message.EventRole, message.TimeoutRole)
 
 	return p.newChild(
 		c,
 		m,
+		message.CommandRole,
 		handler,
 		instanceID,
 	)
@@ -76,12 +74,12 @@ func (p *Packer) PackChildEvent(
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	p.checkConsumedRole(c.Message, message.CommandRole)
-	p.checkProducedRole(m, message.EventRole)
+	p.checkConsumedRole(c.MessageType, message.CommandRole)
 
 	return p.newChild(
 		c,
 		m,
+		message.EventRole,
 		handler,
 		instanceID,
 	)
@@ -96,12 +94,12 @@ func (p *Packer) PackChildTimeout(
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
-	p.checkProducedRole(m, message.TimeoutRole)
+	p.checkConsumedRole(c.MessageType, message.EventRole, message.TimeoutRole)
 
 	parcel := p.newChild(
 		c,
 		m,
+		message.TimeoutRole,
 		handler,
 		instanceID,
 	)
@@ -113,7 +111,10 @@ func (p *Packer) PackChildTimeout(
 }
 
 // new returns an envelope containing the given message.
-func (p *Packer) new(m dogma.Message) Parcel {
+func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
+	mt := message.TypeOf(m)
+	p.checkProducedRole(mt, r)
+
 	id := p.generateID()
 	now := p.now()
 
@@ -126,8 +127,9 @@ func (p *Packer) new(m dogma.Message) Parcel {
 			CreatedAt:         envelopespec.MarshalTime(now),
 			Description:       dogma.DescribeMessage(m),
 		},
-		Message:   m,
-		CreatedAt: now,
+		Message:     m,
+		MessageType: mt,
+		CreatedAt:   now,
 	}
 
 	envelopespec.MarshalMessage(p.Marshaler, m, env.Envelope)
@@ -140,10 +142,11 @@ func (p *Packer) new(m dogma.Message) Parcel {
 func (p *Packer) newChild(
 	c Parcel,
 	m dogma.Message,
+	r message.Role,
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	parcel := p.new(m)
+	parcel := p.new(m, r)
 
 	parcel.Envelope.CausationId = c.Envelope.GetMessageId()
 	parcel.Envelope.CorrelationId = c.Envelope.GetCorrelationId()
@@ -173,8 +176,7 @@ func (p *Packer) generateID() string {
 }
 
 // checkProducedRole panics if mt does not fill one of the the given roles.
-func (p *Packer) checkProducedRole(m dogma.Message, roles ...message.Role) {
-	mt := message.TypeOf(m)
+func (p *Packer) checkProducedRole(mt message.Type, roles ...message.Role) {
 	x, ok := p.Produced[mt]
 
 	if !ok {
@@ -185,8 +187,7 @@ func (p *Packer) checkProducedRole(m dogma.Message, roles ...message.Role) {
 }
 
 // checkConsumedRole panics if mt does not fill one of the the given roles.
-func (p *Packer) checkConsumedRole(m dogma.Message, roles ...message.Role) {
-	mt := message.TypeOf(m)
+func (p *Packer) checkConsumedRole(mt message.Type, roles ...message.Role) {
 	x, ok := p.Consumed[mt]
 
 	if !ok {

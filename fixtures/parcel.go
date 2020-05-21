@@ -78,6 +78,7 @@ func NewParcel(
 			Description:      dogma.DescribeMessage(m),
 		},
 		Message:      m,
+		MessageType:  message.TypeOf(m),
 		CreatedAt:    createdAt,
 		ScheduledFor: scheduledFor,
 	}

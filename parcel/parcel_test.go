@@ -3,6 +3,7 @@ package parcel_test
 import (
 	"time"
 
+	. "github.com/dogmatiq/configkit/fixtures"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
@@ -49,6 +50,7 @@ var _ = Describe("type Parcel", func() {
 				Parcel{
 					Envelope:     env,
 					Message:      MessageA1,
+					MessageType:  MessageAType,
 					CreatedAt:    createdAt,
 					ScheduledFor: scheduledFor,
 				},

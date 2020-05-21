@@ -18,11 +18,9 @@ func (r MessageTypeRouter) HandleMessage(
 	w *UnitOfWork,
 	p parcel.Parcel,
 ) error {
-	mt := message.TypeOf(p.Message)
-
-	if h, ok := r[mt]; ok {
+	if h, ok := r[p.MessageType]; ok {
 		return h.HandleMessage(ctx, w, p)
 	}
 
-	return fmt.Errorf("no route for '%s' messages", mt)
+	return fmt.Errorf("no route for '%s' messages", p.MessageType)
 }
