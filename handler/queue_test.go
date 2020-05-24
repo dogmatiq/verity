@@ -97,7 +97,7 @@ var _ = Describe("type QueueConsumer", func() {
 		It("passes the request to the entry-point", func() {
 			handler.HandleMessageFunc = func(
 				ctx context.Context,
-				w *UnitOfWork,
+				w UnitOfWork,
 				p parcel.Parcel,
 			) error {
 				defer GinkgoRecover()
@@ -178,7 +178,7 @@ var _ = Describe("type QueueConsumer", func() {
 
 				handler.HandleMessageFunc = func(
 					context.Context,
-					*UnitOfWork,
+					UnitOfWork,
 					parcel.Parcel,
 				) error {
 					return errors.New("<error>")

@@ -39,7 +39,7 @@ type Adaptor struct {
 // HandleMessage handles the message in p.
 func (a *Adaptor) HandleMessage(
 	ctx context.Context,
-	w *handler.UnitOfWork,
+	w handler.UnitOfWork,
 	p parcel.Parcel,
 ) (err error) {
 	defer mlog.LogHandlerResult(

@@ -12,7 +12,38 @@ import (
 
 // UnitOfWork encapsulates the state changes made by one or more handlers in the
 // process of handling a single message.
-type UnitOfWork struct {
+type UnitOfWork interface {
+	// ExecuteCommand updates the unit-of-work to execute the command in p.
+	ExecuteCommand(p parcel.Parcel)
+
+	// ScheduleTimeout updates the unit-of-work to schedule the timeout in p.
+	ScheduleTimeout(p parcel.Parcel)
+
+	// RecordEvent updates the unit-of-work to record the event in p.
+	RecordEvent(p parcel.Parcel)
+
+	// Do updates the unit-of-work to include op in the persistence batch.
+	Do(op persistence.Operation)
+
+	// Observe adds an observer to be notified when the unit-of-work is complete.
+	Observe(obs Observer)
+}
+
+// Result is the result of a successful unit-of-work.
+type Result struct {
+	// Queued is the set of messages that were placed on the message queue,
+	// which may include events.
+	Queued []queue.Message
+
+	// Events is the set of events that were recorded in the unit-of-work.
+	Events []eventstream.Event
+}
+
+// Observer is a function that is notified of the result of a unit-of-work.
+type Observer func(Result, error)
+
+// unitOfWork is the implementation of UnitOfWork used by an EntryPoint.
+type unitOfWork struct {
 	queueEvents message.TypeCollection
 	batch       persistence.Batch
 	result      Result
@@ -20,17 +51,17 @@ type UnitOfWork struct {
 }
 
 // ExecuteCommand updates the unit-of-work to execute the command in p.
-func (w *UnitOfWork) ExecuteCommand(p parcel.Parcel) {
+func (w *unitOfWork) ExecuteCommand(p parcel.Parcel) {
 	w.saveQueueMessage(p, p.CreatedAt)
 }
 
 // ScheduleTimeout updates the unit-of-work to schedule the timeout in p.
-func (w *UnitOfWork) ScheduleTimeout(p parcel.Parcel) {
+func (w *unitOfWork) ScheduleTimeout(p parcel.Parcel) {
 	w.saveQueueMessage(p, p.ScheduledFor)
 }
 
 // RecordEvent updates the unit-of-work to record the event in p.
-func (w *UnitOfWork) RecordEvent(p parcel.Parcel) {
+func (w *unitOfWork) RecordEvent(p parcel.Parcel) {
 	w.saveEvent(p)
 
 	if w.queueEvents != nil && w.queueEvents.HasM(p.Message) {
@@ -39,17 +70,17 @@ func (w *UnitOfWork) RecordEvent(p parcel.Parcel) {
 }
 
 // Do updates the unit-of-work to include op in the persistence batch.
-func (w *UnitOfWork) Do(op persistence.Operation) {
+func (w *unitOfWork) Do(op persistence.Operation) {
 	w.batch = append(w.batch, op)
 }
 
 // Observe adds an observer to be notified when the unit-of-work is complete.
-func (w *UnitOfWork) Observe(obs Observer) {
+func (w *unitOfWork) Observe(obs Observer) {
 	w.observers = append(w.observers, obs)
 }
 
 // saveQueueMessage adds a SaveQueueMessage operation to the batch for p.
-func (w *UnitOfWork) saveQueueMessage(p parcel.Parcel, next time.Time) {
+func (w *unitOfWork) saveQueueMessage(p parcel.Parcel, next time.Time) {
 	qm := persistence.QueueMessage{
 		NextAttemptAt: next,
 		Envelope:      p.Envelope,
@@ -74,7 +105,7 @@ func (w *UnitOfWork) saveQueueMessage(p parcel.Parcel, next time.Time) {
 }
 
 // saveEvent adds a SaveEvent operation to the batch for p.
-func (w *UnitOfWork) saveEvent(p parcel.Parcel) {
+func (w *unitOfWork) saveEvent(p parcel.Parcel) {
 	w.batch = append(
 		w.batch,
 		persistence.SaveEvent{
@@ -92,7 +123,7 @@ func (w *UnitOfWork) saveEvent(p parcel.Parcel) {
 }
 
 // populateEventOffsets updates the events in w.result with their offsets.
-func (w *UnitOfWork) populateEventOffsets(pr persistence.Result) {
+func (w *unitOfWork) populateEventOffsets(pr persistence.Result) {
 	for i := range w.result.Events {
 		ev := &w.result.Events[i]
 		ev.Offset = pr.EventOffsets[ev.ID()]
@@ -100,21 +131,8 @@ func (w *UnitOfWork) populateEventOffsets(pr persistence.Result) {
 }
 
 // notifyObservers calls each observer in the unit-of-work.
-func (w *UnitOfWork) notifyObservers(err error) {
+func (w *unitOfWork) notifyObservers(err error) {
 	for _, obs := range w.observers {
 		obs(w.result, err)
 	}
 }
-
-// Result is the result of a successful unit-of-work.
-type Result struct {
-	// Queued is the set of messages that were placed on the message queue,
-	// which may include events.
-	Queued []queue.Message
-
-	// Events is the set of events that were recorded in the unit-of-work.
-	Events []eventstream.Event
-}
-
-// Observer is a function that is notified of the result of a unit-of-work.
-type Observer func(Result, error)

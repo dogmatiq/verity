@@ -15,7 +15,7 @@ type scope struct {
 	identity *envelopespec.Identity
 	packer   *parcel.Packer
 	logger   logging.Logger
-	work     *handler.UnitOfWork
+	work     handler.UnitOfWork
 	cause    parcel.Parcel
 }
 

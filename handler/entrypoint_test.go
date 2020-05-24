@@ -44,7 +44,7 @@ var _ = Describe("type EntryPoint", func() {
 			called := false
 			handler.HandleMessageFunc = func(
 				_ context.Context,
-				_ *UnitOfWork,
+				_ UnitOfWork,
 				p parcel.Parcel,
 			) error {
 				called = true
@@ -87,7 +87,7 @@ var _ = Describe("type EntryPoint", func() {
 
 				handler.HandleMessageFunc = func(
 					ctx context.Context,
-					w *UnitOfWork,
+					w UnitOfWork,
 					p parcel.Parcel,
 				) error {
 					w.ExecuteCommand(command)
@@ -220,7 +220,7 @@ var _ = Describe("type EntryPoint", func() {
 				next := handler.HandleMessageFunc
 				handler.HandleMessageFunc = func(
 					ctx context.Context,
-					w *UnitOfWork,
+					w UnitOfWork,
 					p parcel.Parcel,
 				) error {
 					w.Observe(func(res Result, err error) {
@@ -241,7 +241,7 @@ var _ = Describe("type EntryPoint", func() {
 			BeforeEach(func() {
 				handler.HandleMessageFunc = func(
 					context.Context,
-					*UnitOfWork,
+					UnitOfWork,
 					parcel.Parcel,
 				) error {
 					return errors.New("<error>")
@@ -267,7 +267,7 @@ var _ = Describe("type EntryPoint", func() {
 				called := false
 				handler.HandleMessageFunc = func(
 					_ context.Context,
-					w *UnitOfWork,
+					w UnitOfWork,
 					_ parcel.Parcel,
 				) error {
 					w.Observe(func(_ Result, err error) {
@@ -354,7 +354,7 @@ var _ = Describe("type EntryPoint", func() {
 				called := false
 				handler.HandleMessageFunc = func(
 					_ context.Context,
-					w *UnitOfWork,
+					w UnitOfWork,
 					_ parcel.Parcel,
 				) error {
 					w.Observe(func(_ Result, err error) {

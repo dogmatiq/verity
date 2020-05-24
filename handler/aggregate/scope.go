@@ -18,7 +18,7 @@ type scope struct {
 	handler     dogma.AggregateMessageHandler
 	packer      *parcel.Packer
 	logger      logging.Logger
-	work        *handler.UnitOfWork
+	work        handler.UnitOfWork
 	cause       parcel.Parcel
 	instance    *Instance // the aggregate instance, this is always within a cache record
 	created     bool      // true if Create() has been called successfully at least once
