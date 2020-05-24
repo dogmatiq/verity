@@ -1,3 +1,3 @@
-// Package aggregate implements a pipeline sink that dispatches to Dogma
-// aggregate message handlers.
+// Package aggregate provides an adaptor that exposes Dogma aggregate message
+// handlers as Infix handlers.
 package aggregate

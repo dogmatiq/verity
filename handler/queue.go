@@ -43,7 +43,7 @@ func (c *QueueConsumer) Run(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Perform the actual popping logic in a goroutine managed by g. That way
-	// Pop() is aborted when one of the pipeline goroutines fails.
+	// Pop() is aborted when one of the handler goroutines fails.
 	g.Go(func() error {
 		for {
 			m, err := c.Queue.Pop(ctx)
