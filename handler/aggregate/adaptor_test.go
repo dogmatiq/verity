@@ -24,16 +24,15 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		ctx        context.Context
-		cancel     context.CancelFunc
-		dataStore  *DataStoreStub
-		upstream   *AggregateMessageHandler
-		packer     *parcel.Packer
-		logger     *logging.BufferedLogger
-		cause      parcel.Parcel
-		adaptor    *Adaptor
-		ack        *AcknowledgerStub
-		entryPoint *handler.EntryPoint
+		ctx       context.Context
+		cancel    context.CancelFunc
+		dataStore *DataStoreStub
+		upstream  *AggregateMessageHandler
+		packer    *parcel.Packer
+		logger    *logging.BufferedLogger
+		work      *UnitOfWorkStub
+		cause     parcel.Parcel
+		adaptor   *Adaptor
 	)
 
 	BeforeEach(func() {
@@ -81,6 +80,8 @@ var _ = Describe("type Adaptor", func() {
 			}
 		}
 
+		work = &UnitOfWorkStub{}
+
 		cause = NewParcel("<consume>", MessageC1)
 
 		adaptor = &Adaptor{
@@ -97,18 +98,6 @@ var _ = Describe("type Adaptor", func() {
 			Packer:      packer,
 			LoadTimeout: 1 * time.Second,
 			Logger:      logger,
-		}
-
-		ack = &AcknowledgerStub{
-			// Return the Nack cause so it can be tested for on the outside of
-			// the entry-point.
-			NackFunc: func(_ context.Context, cause error) error {
-				return cause
-			},
-		}
-
-		entryPoint = &handler.EntryPoint{
-			Handler: adaptor,
 		}
 	})
 
@@ -128,7 +117,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(m).To(Equal(MessageC1))
 			}
 
-			err := entryPoint.HandleMessage(ctx, ack, cause)
+			err := adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
@@ -141,7 +130,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(s.InstanceID()).To(Equal("<instance>"))
 			}
 
-			err := entryPoint.HandleMessage(ctx, ack, cause)
+			err := adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -154,7 +143,7 @@ var _ = Describe("type Adaptor", func() {
 				return persistence.AggregateMetaData{}, errors.New("<error>")
 			}
 
-			err := entryPoint.HandleMessage(ctx, ack, cause)
+			err := adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).To(MatchError("<error>"))
 		})
 
@@ -164,7 +153,7 @@ var _ = Describe("type Adaptor", func() {
 			}
 
 			Expect(func() {
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			}).To(PanicWith("*fixtures.AggregateMessageHandler.RouteCommandToInstance() returned an empty instance ID while routing a fixtures.MessageC command"))
 		})
@@ -175,7 +164,7 @@ var _ = Describe("type Adaptor", func() {
 			}
 
 			Expect(func() {
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			}).To(PanicWith("*fixtures.AggregateMessageHandler.New() returned nil"))
 		})
@@ -190,42 +179,42 @@ var _ = Describe("type Adaptor", func() {
 					s.RecordEvent(MessageE1)
 				}
 
-				ack.AckFunc = func(
-					ctx context.Context,
-					b persistence.Batch,
-				) (persistence.Result, error) {
-					Expect(b).To(EqualX(
-						persistence.Batch{
-							persistence.SaveEvent{
-								Envelope: &envelopespec.Envelope{
-									MessageId:         "0",
-									CausationId:       "<consume>",
-									CorrelationId:     "<correlation>",
-									SourceApplication: packer.Application,
-									SourceHandler:     adaptor.Identity,
-									SourceInstanceId:  "<instance>",
-									CreatedAt:         "2000-01-01T00:00:00Z",
-									Description:       "{E1}",
-									PortableName:      MessageEPortableName,
-									MediaType:         MessageE1Packet.MediaType,
-									Data:              MessageE1Packet.Data,
-								},
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(work.Events).To(EqualX(
+					[]parcel.Parcel{
+						{
+							Envelope: &envelopespec.Envelope{
+								MessageId:         "0",
+								CausationId:       "<consume>",
+								CorrelationId:     "<correlation>",
+								SourceApplication: packer.Application,
+								SourceHandler:     adaptor.Identity,
+								SourceInstanceId:  "<instance>",
+								CreatedAt:         "2000-01-01T00:00:00Z",
+								Description:       "{E1}",
+								PortableName:      MessageEPortableName,
+								MediaType:         MessageE1Packet.MediaType,
+								Data:              MessageE1Packet.Data,
 							},
-							persistence.SaveAggregateMetaData{
-								MetaData: persistence.AggregateMetaData{
-									HandlerKey:     "<aggregate-key>",
-									InstanceID:     "<instance>",
-									InstanceExists: true,
-								},
+							Message:   MessageE1,
+							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+						},
+					},
+				))
+
+				Expect(work.Operations).To(EqualX(
+					[]persistence.Operation{
+						persistence.SaveAggregateMetaData{
+							MetaData: persistence.AggregateMetaData{
+								HandlerKey:     "<aggregate-key>",
+								InstanceID:     "<instance>",
+								InstanceExists: true,
 							},
 						},
-					))
-
-					return persistence.Result{}, nil
-				}
-
-				err := entryPoint.HandleMessage(ctx, ack, cause)
-				Expect(err).ShouldNot(HaveOccurred())
+					},
+				))
 			})
 
 			It("applies the event to the aggregate root", func() {
@@ -244,7 +233,7 @@ var _ = Describe("type Adaptor", func() {
 					))
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -257,7 +246,7 @@ var _ = Describe("type Adaptor", func() {
 				}
 
 				Expect(func() {
-					err := entryPoint.HandleMessage(ctx, ack, cause)
+					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("can not record event against non-existent instance"))
 			})
@@ -271,7 +260,7 @@ var _ = Describe("type Adaptor", func() {
 					s.RecordEvent(MessageE1)
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				Expect(logger.Messages()).To(ContainElement(
@@ -291,7 +280,7 @@ var _ = Describe("type Adaptor", func() {
 					s.Log("format %s", "<value>")
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -312,13 +301,15 @@ var _ = Describe("type Adaptor", func() {
 			ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
 			defer cancel()
 
-			err = entryPoint.HandleMessage(ctx, ack, cause)
+			err = adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).To(Equal(context.DeadlineExceeded))
 		})
 
 		It("retains the cache record if the unit-of-work is successful", func() {
-			err := entryPoint.HandleMessage(ctx, ack, cause)
+			err := adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).ShouldNot(HaveOccurred())
+
+			work.Succeed(handler.Result{})
 
 			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -326,15 +317,10 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("does not retain the cache record if the unit-of-work is unsuccessful", func() {
-			ack.AckFunc = func(
-				context.Context,
-				persistence.Batch,
-			) (persistence.Result, error) {
-				return persistence.Result{}, errors.New("<error>")
-			}
+			err := adaptor.HandleMessage(ctx, work, cause)
+			Expect(err).ShouldNot(HaveOccurred())
 
-			err := entryPoint.HandleMessage(ctx, ack, cause)
-			Expect(err).To(MatchError("<error>"))
+			work.Fail(errors.New("<error>"))
 
 			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -354,7 +340,7 @@ var _ = Describe("type Adaptor", func() {
 						s.RecordEvent(MessageE1)
 					}
 
-					err := entryPoint.HandleMessage(ctx, ack, cause)
+					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -367,7 +353,7 @@ var _ = Describe("type Adaptor", func() {
 					}
 
 					Expect(func() {
-						err := entryPoint.HandleMessage(ctx, ack, cause)
+						err := adaptor.HandleMessage(ctx, work, cause)
 						Expect(err).ShouldNot(HaveOccurred())
 					}).To(PanicWith("*fixtures.AggregateMessageHandler.HandleEvent() created the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
 				})
@@ -382,7 +368,7 @@ var _ = Describe("type Adaptor", func() {
 				}
 
 				Expect(func() {
-					err := entryPoint.HandleMessage(ctx, ack, cause)
+					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("can not access aggregate root of non-existent instance"))
 			})
@@ -396,7 +382,7 @@ var _ = Describe("type Adaptor", func() {
 				}
 
 				Expect(func() {
-					err := entryPoint.HandleMessage(ctx, ack, cause)
+					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("can not destroy non-existent instance"))
 			})
@@ -413,8 +399,11 @@ var _ = Describe("type Adaptor", func() {
 					s.RecordEvent(MessageE2)
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
+
+				work.Succeed(handler.Result{})
+				work = &UnitOfWorkStub{}
 
 				upstream.HandleCommandFunc = nil
 			})
@@ -428,7 +417,7 @@ var _ = Describe("type Adaptor", func() {
 					Expect(ok).To(BeFalse())
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -446,7 +435,7 @@ var _ = Describe("type Adaptor", func() {
 					))
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
@@ -466,7 +455,7 @@ var _ = Describe("type Adaptor", func() {
 						))
 					}
 
-					err := entryPoint.HandleMessage(ctx, ack, cause)
+					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -482,7 +471,7 @@ var _ = Describe("type Adaptor", func() {
 						Expect(ok).To(BeTrue())
 					}
 
-					err := entryPoint.HandleMessage(ctx, ack, cause)
+					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -495,44 +484,21 @@ var _ = Describe("type Adaptor", func() {
 						s.Destroy()
 					}
 
-					ack.AckFunc = func(
-						ctx context.Context,
-						b persistence.Batch,
-					) (persistence.Result, error) {
-						Expect(b).To(EqualX(
-							persistence.Batch{
-								persistence.SaveEvent{
-									Envelope: &envelopespec.Envelope{
-										MessageId:         "2",
-										CausationId:       "<consume>",
-										CorrelationId:     "<correlation>",
-										SourceApplication: packer.Application,
-										SourceHandler:     adaptor.Identity,
-										SourceInstanceId:  "<instance>",
-										CreatedAt:         "2000-01-01T00:00:02Z",
-										Description:       "{E3}",
-										PortableName:      MessageEPortableName,
-										MediaType:         MessageE3Packet.MediaType,
-										Data:              MessageE3Packet.Data,
-									},
-								},
-								persistence.SaveAggregateMetaData{
-									MetaData: persistence.AggregateMetaData{
-										HandlerKey:      "<aggregate-key>",
-										InstanceID:      "<instance>",
-										Revision:        1,
-										InstanceExists:  false,
-										LastDestroyedBy: "2", // deterministic ID from the packer
-									},
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(work.Operations).To(EqualX(
+						[]persistence.Operation{
+							persistence.SaveAggregateMetaData{
+								MetaData: persistence.AggregateMetaData{
+									HandlerKey:      "<aggregate-key>",
+									InstanceID:      "<instance>",
+									Revision:        1,
+									InstanceExists:  false,
+									LastDestroyedBy: "2", // deterministic ID from the packer
 								},
 							},
-						))
-
-						return persistence.Result{}, nil
-					}
-
-					err := entryPoint.HandleMessage(ctx, ack, cause)
-					Expect(err).ShouldNot(HaveOccurred())
+						},
+					))
 				})
 
 				It("panics if no event is recorded", func() {
@@ -544,7 +510,7 @@ var _ = Describe("type Adaptor", func() {
 					}
 
 					Expect(func() {
-						err := entryPoint.HandleMessage(ctx, ack, cause)
+						err := adaptor.HandleMessage(ctx, work, cause)
 						Expect(err).ShouldNot(HaveOccurred())
 					}).To(PanicWith("*fixtures.AggregateMessageHandler.HandleEvent() destroyed the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
 				})
@@ -562,8 +528,11 @@ var _ = Describe("type Adaptor", func() {
 					s.Destroy()
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
+
+				work.Succeed(handler.Result{})
+				work = &UnitOfWorkStub{}
 
 				upstream.HandleCommandFunc = nil
 			})
@@ -591,7 +560,7 @@ var _ = Describe("type Adaptor", func() {
 					s.RecordEvent(MessageE{Value: "<recreated>"})
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})

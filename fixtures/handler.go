@@ -62,6 +62,20 @@ func (w *UnitOfWorkStub) Observe(obs handler.Observer) {
 	w.Observers = append(w.Observers, obs)
 }
 
+// Succeed notifies the unit-of-work's observers of successful completion.
+func (w *UnitOfWorkStub) Succeed(res handler.Result) {
+	for _, obs := range w.Observers {
+		obs(res, nil)
+	}
+}
+
+// Fail notifies the unit-of-work's observers of an error.
+func (w *UnitOfWorkStub) Fail(err error) {
+	for _, obs := range w.Observers {
+		obs(handler.Result{}, err)
+	}
+}
+
 // AcknowledgerStub is a test implementation of the handler.Acknowledger
 // interface.
 type AcknowledgerStub struct {
