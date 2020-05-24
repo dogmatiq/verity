@@ -29,7 +29,7 @@ type AggregateMetaData struct {
 type AggregateRepository interface {
 	// LoadAggregateMetaData loads the meta-data for an aggregate instance.
 	//
-	// ak is the aggregate handler's identity key, id is the instance ID.
+	// hk is the aggregate handler's identity key, id is the instance ID.
 	LoadAggregateMetaData(
 		ctx context.Context,
 		hk, id string,
