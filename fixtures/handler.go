@@ -30,68 +30,36 @@ func (h *HandlerStub) HandleMessage(ctx context.Context, w handler.UnitOfWork, p
 
 // UnitOfWorkStub is a test implementation of the handler.UnitOfWork interface.
 type UnitOfWorkStub struct {
-	handler.UnitOfWork
-
-	ExecuteCommandFunc  func(parcel.Parcel)
-	ScheduleTimeoutFunc func(parcel.Parcel)
-	RecordEventFunc     func(parcel.Parcel)
-	DoFunc              func(persistence.Operation)
-	ObserveFunc         func(handler.Observer)
+	Commands   []parcel.Parcel
+	Events     []parcel.Parcel
+	Timeouts   []parcel.Parcel
+	Operations []persistence.Operation
+	Observers  []handler.Observer
 }
 
 // ExecuteCommand updates the unit-of-work to execute the command in p.
 func (w *UnitOfWorkStub) ExecuteCommand(p parcel.Parcel) {
-	if w.ExecuteCommandFunc != nil {
-		w.ExecuteCommandFunc(p)
-	}
-
-	if w.UnitOfWork != nil {
-		w.UnitOfWork.ExecuteCommand(p)
-	}
+	w.Commands = append(w.Commands, p)
 }
 
 // ScheduleTimeout updates the unit-of-work to schedule the timeout in p.
 func (w *UnitOfWorkStub) ScheduleTimeout(p parcel.Parcel) {
-	if w.ScheduleTimeoutFunc != nil {
-		w.ScheduleTimeoutFunc(p)
-	}
-
-	if w.UnitOfWork != nil {
-		w.UnitOfWork.ScheduleTimeout(p)
-	}
+	w.Timeouts = append(w.Timeouts, p)
 }
 
 // RecordEvent updates the unit-of-work to record the event in p.
 func (w *UnitOfWorkStub) RecordEvent(p parcel.Parcel) {
-	if w.RecordEventFunc != nil {
-		w.RecordEventFunc(p)
-	}
-
-	if w.UnitOfWork != nil {
-		w.UnitOfWork.RecordEvent(p)
-	}
+	w.Events = append(w.Events, p)
 }
 
 // Do updates the unit-of-work to include op in the persistence batch.
 func (w *UnitOfWorkStub) Do(op persistence.Operation) {
-	if w.DoFunc != nil {
-		w.DoFunc(op)
-	}
-
-	if w.UnitOfWork != nil {
-		w.UnitOfWork.Do(op)
-	}
+	w.Operations = append(w.Operations, op)
 }
 
 // Observe adds an observer to be notified when the unit-of-work is complete.
 func (w *UnitOfWorkStub) Observe(obs handler.Observer) {
-	if w.ObserveFunc != nil {
-		w.ObserveFunc(obs)
-	}
-
-	if w.UnitOfWork != nil {
-		w.UnitOfWork.Observe(obs)
-	}
+	w.Observers = append(w.Observers, obs)
 }
 
 // AcknowledgerStub is a test implementation of the handler.Acknowledger
