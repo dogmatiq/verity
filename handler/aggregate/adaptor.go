@@ -59,7 +59,9 @@ func (a *Adaptor) HandleMessage(
 		"",
 	)
 
-	inst, err := a.load(ctx, w, p)
+	id := a.route(p)
+
+	rec, err := a.load(ctx, w, id)
 	if err != nil {
 		return err
 	}
@@ -71,7 +73,7 @@ func (a *Adaptor) HandleMessage(
 		handler:  a.Handler,
 		packer:   a.Packer,
 		logger:   a.Logger,
-		instance: inst,
+		instance: rec.Instance.(*Instance),
 	}
 
 	a.Handler.HandleCommand(sc, p.Message)
@@ -87,11 +89,27 @@ func (a *Adaptor) HandleMessage(
 		MetaData: sc.instance.MetaData,
 	})
 
-	// We can safely increment the revision now, knowing that the cache record
-	// will be discarded if the unit-of-work is not persisted correctly.
-	sc.instance.MetaData.Revision++
+	if sc.instance.MetaData.InstanceExists {
+		sc.instance.MetaData.Revision++
+	} else {
+		a.Cache.Discard(rec)
+	}
 
 	return nil
+}
+
+// route returns the instance ID that the message in p is routed to, or panics
+// if the handler returns an empty string.
+func (a *Adaptor) route(p parcel.Parcel) string {
+	if id := a.Handler.RouteCommandToInstance(p.Message); id != "" {
+		return id
+	}
+
+	panic(fmt.Sprintf(
+		"%T.RouteCommandToInstance() returned an empty instance ID while routing a %T command",
+		a.Handler,
+		p.Message,
+	))
 }
 
 // load obtains an aggregate instance from the cache, falling back to a.Loader
@@ -99,51 +117,31 @@ func (a *Adaptor) HandleMessage(
 func (a *Adaptor) load(
 	ctx context.Context,
 	w handler.UnitOfWork,
-	p parcel.Parcel,
-) (*Instance, error) {
-	id := mustRoute(a.Handler, p.Message)
-
+	id string,
+) (*cache.Record, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.LoadTimeout)
 	defer cancel()
 
-	// Acquire a lock on the cache record for this instance, and bind it to the
-	// lifetime of w.
+	// Lock the cache record for this instance and bind it to the lifetime of w.
 	rec, err := a.Cache.Acquire(ctx, w, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if rec.Instance != nil {
-		// The cache record was already populated in with an instance, so we
-		// don't need to fallback to using the loader.
-		return rec.Instance.(*Instance), nil
+	if rec.Instance == nil {
+		// Otherwise, we need to load the instance from the data-store.
+		rec.Instance, err = a.Loader.Load(
+			ctx,
+			a.Identity.Key,
+			id,
+			mustNew(a.Handler),
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// Otherwise, we need to load the aggregate instance from the data-store.
-	inst, err := a.Loader.Load(
-		ctx,
-		a.Identity.Key,
-		id,
-		mustNew(a.Handler),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	// Finally, we populate the cache record with the instance.
-	rec.Instance = inst
-
-	return inst, nil
-}
-
-// mustRoute returns the instance ID that m is routed to, or panics if the
-// handler returns an empty string.
-func mustRoute(h dogma.AggregateMessageHandler, m dogma.Message) string {
-	if id := h.RouteCommandToInstance(m); id != "" {
-		return id
-	}
-
-	panic(fmt.Sprintf("%T.RouteCommandToInstance() returned an empty instance ID while routing a %T command", h, m))
+	return rec, nil
 }
 
 // mustNew returns a new aggregate root created by the handler, or panics if the
