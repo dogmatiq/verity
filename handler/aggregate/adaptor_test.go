@@ -294,9 +294,8 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("returns an error if the deadline is exceeded while acquiring the cache record", func() {
-			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
+			_, err := adaptor.Cache.Acquire(ctx, &UnitOfWorkStub{}, "<instance>")
 			Expect(err).ShouldNot(HaveOccurred())
-			defer rec.Release()
 
 			ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
 			defer cancel()
@@ -311,7 +310,7 @@ var _ = Describe("type Adaptor", func() {
 
 			work.Succeed(handler.Result{})
 
-			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
+			rec, err := adaptor.Cache.Acquire(ctx, &UnitOfWorkStub{}, "<instance>")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(rec.Instance).NotTo(BeNil())
 		})
@@ -322,7 +321,7 @@ var _ = Describe("type Adaptor", func() {
 
 			work.Fail(errors.New("<error>"))
 
-			rec, err := adaptor.Cache.Acquire(ctx, "<instance>")
+			rec, err := adaptor.Cache.Acquire(ctx, &UnitOfWorkStub{}, "<instance>")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(rec.Instance).To(BeNil())
 		})
