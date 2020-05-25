@@ -2,9 +2,12 @@ package cache_test
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
+	. "github.com/dogmatiq/infix/fixtures"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/infix/handler/cache"
 	. "github.com/dogmatiq/infix/handler/cache"
 	"github.com/dogmatiq/linger"
@@ -121,6 +124,53 @@ var _ = Describe("type Cache", func() {
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
 			})
+		})
+	})
+
+	Describe("func AcquireForUnitOfWork()", func() {
+		var work *UnitOfWorkStub
+
+		BeforeEach(func() {
+			work = &UnitOfWorkStub{}
+		})
+
+		It("unlocks the record when the unit-of-work succeeds", func() {
+			_, err := cache.AcquireForUnitOfWork(ctx, work, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			work.Succeed(handler.Result{})
+
+			rec, err := cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			rec.Release()
+		})
+
+		It("events the record when the unit-of-work fails", func() {
+			original, err := cache.AcquireForUnitOfWork(ctx, work, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			work.Fail(errors.New("<error>"))
+
+			rec, err := cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			defer rec.Release()
+
+			Expect(rec).NotTo(BeIdenticalTo(original))
+		})
+
+		It("returns an error if the deadline is exceeded", func() {
+			rec, err := cache.Acquire(ctx, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+			defer rec.Release()
+
+			ctx, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
+			defer cancel()
+
+			rec, err = cache.AcquireForUnitOfWork(ctx, work, "<id>")
+			if rec != nil {
+				rec.Release()
+			}
+			Expect(err).To(Equal(context.DeadlineExceeded))
 		})
 	})
 

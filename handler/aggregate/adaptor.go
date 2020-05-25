@@ -106,27 +106,12 @@ func (a *Adaptor) load(
 	ctx, cancel := context.WithTimeout(ctx, a.LoadTimeout)
 	defer cancel()
 
-	// Acquire a lock on the cache record for this instance.
-	rec, err := a.Cache.Acquire(ctx, id)
+	// Acquire a lock on the cache record for this instance, and bind it to the
+	// lifetime of w.
+	rec, err := a.Cache.AcquireForUnitOfWork(ctx, w, id)
 	if err != nil {
 		return nil, err
 	}
-
-	// Add an observer that releases the lock on the cache record only after the
-	// unit-of-work is complete.
-	w.Observe(func(_ handler.Result, err error) {
-		if err == nil {
-			// The unit-of-work was persisted successfully, so we call
-			// KeepAlive() to ensure rec stays in the cache when it is released.
-			//
-			// If the unit-of-work failed to persist, we have to discard the
-			// cached instance, because it is no longer in sync with what's
-			// persisted.
-			rec.KeepAlive()
-		}
-
-		rec.Release()
-	})
 
 	if rec.Instance != nil {
 		// The cache record was already populated in with an instance, so we

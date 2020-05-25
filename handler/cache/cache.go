@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/infix/handler"
 	"github.com/dogmatiq/linger"
 )
 
@@ -64,6 +65,43 @@ func (c *Cache) Acquire(ctx context.Context, id string) (*Record, error) {
 		// miserably.
 		rec.m.Unlock()
 	}
+}
+
+// AcquireForUnitOfWork locks and returns the cache record with the given ID,
+// and ties its lifetime to w.
+//
+// The record is automatically released when w is completed. It is removed from
+// the cache if w fails.
+//
+// If the record has already been acquired, it blocks until the record is
+// released or ctx is canceled.
+func (c *Cache) AcquireForUnitOfWork(
+	ctx context.Context,
+	w handler.UnitOfWork,
+	id string,
+) (*Record, error) {
+	rec, err := c.Acquire(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add an observer that releases the lock on the cache record only after the
+	// unit-of-work is complete.
+	w.Observe(func(_ handler.Result, err error) {
+		if err == nil {
+			// The unit-of-work was persisted successfully, so we call
+			// KeepAlive() to ensure rec stays in the cache when it is released.
+			//
+			// If the unit-of-work failed to persist, we have to discard the
+			// cached instance, because it is no longer in sync with what's
+			// persisted.
+			rec.KeepAlive()
+		}
+
+		rec.Release()
+	})
+
+	return rec, nil
 }
 
 // Run manages evicting idle records from the cache until ctx is canceled.
