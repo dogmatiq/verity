@@ -28,7 +28,7 @@ type Adaptor struct {
 	// Loader is used to load aggregate instances into memory.
 	Loader *Loader
 
-	// Cache is an in-memory cache of aggregate meta-data and roots.
+	// Cache is an in-memory cache of aggregate instances.
 	Cache cache.Cache
 
 	// Packer is used to create new parcels for events recorded by the
@@ -94,7 +94,7 @@ func (a *Adaptor) HandleMessage(
 	return nil
 }
 
-// load obtains an aggregate instance from the cache, falling back to s.Loader
+// load obtains an aggregate instance from the cache, falling back to a.Loader
 // for uncached instances.
 func (a *Adaptor) load(
 	ctx context.Context,

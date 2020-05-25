@@ -248,7 +248,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(func() {
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not record event against non-existent instance"))
+				}).To(PanicWith("can not record an event against an aggregate instance that has not been created"))
 			})
 
 			It("logs about the event", func() {
@@ -370,7 +370,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(func() {
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not access aggregate root of non-existent instance"))
+				}).To(PanicWith("can not access the root of an aggregate instance that has not been created"))
 			})
 
 			It("panics if the instance is destroyed", func() {
@@ -384,7 +384,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(func() {
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not destroy non-existent instance"))
+				}).To(PanicWith("can not destroy an aggregate instance that has not been created"))
 			})
 		})
 

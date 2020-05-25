@@ -46,7 +46,7 @@ func (s *scope) Create() bool {
 // Destroy destroys the targeted instance.
 func (s *scope) Destroy() {
 	if !s.instance.MetaData.InstanceExists {
-		panic("can not destroy non-existent instance")
+		panic("can not destroy an aggregate instance that has not been created")
 	}
 
 	s.instance.Root = mustNew(s.handler)
@@ -59,7 +59,7 @@ func (s *scope) Destroy() {
 // Root returns the root of the targeted aggregate instance.
 func (s *scope) Root() dogma.AggregateRoot {
 	if !s.instance.MetaData.InstanceExists {
-		panic("can not access aggregate root of non-existent instance")
+		panic("can not access the root of an aggregate instance that has not been created")
 	}
 
 	return s.instance.Root
@@ -69,7 +69,7 @@ func (s *scope) Root() dogma.AggregateRoot {
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
 	if !s.instance.MetaData.InstanceExists {
-		panic("can not record event against non-existent instance")
+		panic("can not record an event against an aggregate instance that has not been created")
 	}
 
 	p := s.packer.PackChildEvent(
