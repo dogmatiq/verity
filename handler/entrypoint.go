@@ -45,7 +45,7 @@ func (ep *EntryPoint) HandleMessage(
 	// Setup a new unit-of-work. We copy the observers so that we don't mess
 	// with the underlying array of ep.Observers as we append new elements while
 	// handling the message.
-	w := &UnitOfWork{
+	w := &unitOfWork{
 		queueEvents: ep.QueueEvents,
 		observers:   append([]Observer(nil), ep.Observers...),
 	}

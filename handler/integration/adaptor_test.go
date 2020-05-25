@@ -10,9 +10,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/infix/draftspecs/envelopespec"
-	"github.com/dogmatiq/infix/eventstream"
 	. "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/handler"
 	. "github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -23,16 +21,14 @@ import (
 
 var _ = Describe("type Adaptor", func() {
 	var (
-		ctx        context.Context
-		cancel     context.CancelFunc
-		upstream   *IntegrationMessageHandler
-		packer     *parcel.Packer
-		logger     *logging.BufferedLogger
-		cause      parcel.Parcel
-		adaptor    *Adaptor
-		result     handler.Result
-		ack        *AcknowledgerStub
-		entryPoint *handler.EntryPoint
+		ctx      context.Context
+		cancel   context.CancelFunc
+		upstream *IntegrationMessageHandler
+		packer   *parcel.Packer
+		logger   *logging.BufferedLogger
+		work     *UnitOfWorkStub
+		cause    parcel.Parcel
+		adaptor  *Adaptor
 	)
 
 	BeforeEach(func() {
@@ -55,6 +51,8 @@ var _ = Describe("type Adaptor", func() {
 
 		logger = &logging.BufferedLogger{}
 
+		work = &UnitOfWorkStub{}
+
 		cause = NewParcel("<consume>", MessageC1)
 
 		adaptor = &Adaptor{
@@ -65,17 +63,6 @@ var _ = Describe("type Adaptor", func() {
 			Handler: upstream,
 			Packer:  packer,
 			Logger:  logger,
-		}
-
-		ack = &AcknowledgerStub{}
-
-		entryPoint = &handler.EntryPoint{
-			Handler: adaptor,
-			Observers: []handler.Observer{
-				func(r handler.Result, _ error) {
-					result = r
-				},
-			},
 		}
 	})
 
@@ -96,7 +83,7 @@ var _ = Describe("type Adaptor", func() {
 				return nil
 			}
 
-			err := entryPoint.HandleMessage(ctx, ack, cause)
+			err := adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(called).To(BeTrue())
 		})
@@ -112,31 +99,28 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
 			It("adds the event to the unit-of-work", func() {
-				Expect(result.Events).To(EqualX(
-					[]eventstream.Event{
+				Expect(work.Events).To(EqualX(
+					[]parcel.Parcel{
 						{
-							Offset: 0,
-							Parcel: parcel.Parcel{
-								Envelope: &envelopespec.Envelope{
-									MessageId:         "0",
-									CausationId:       "<consume>",
-									CorrelationId:     "<correlation>",
-									SourceApplication: packer.Application,
-									SourceHandler:     adaptor.Identity,
-									CreatedAt:         "2000-01-01T00:00:00Z",
-									Description:       "{E1}",
-									PortableName:      MessageEPortableName,
-									MediaType:         MessageE1Packet.MediaType,
-									Data:              MessageE1Packet.Data,
-								},
-								Message:   MessageE1,
-								CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+							Envelope: &envelopespec.Envelope{
+								MessageId:         "0",
+								CausationId:       "<consume>",
+								CorrelationId:     "<correlation>",
+								SourceApplication: packer.Application,
+								SourceHandler:     adaptor.Identity,
+								CreatedAt:         "2000-01-01T00:00:00Z",
+								Description:       "{E1}",
+								PortableName:      MessageEPortableName,
+								MediaType:         MessageE1Packet.MediaType,
+								Data:              MessageE1Packet.Data,
 							},
+							Message:   MessageE1,
+							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
 					},
 				))
@@ -162,7 +146,7 @@ var _ = Describe("type Adaptor", func() {
 					return nil
 				}
 
-				err := entryPoint.HandleMessage(ctx, ack, cause)
+				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 

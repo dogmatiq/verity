@@ -15,13 +15,13 @@ import (
 
 var _ = Describe("type MessageTypeRouter", func() {
 	var (
-		work     *UnitOfWork
+		work     *UnitOfWorkStub
 		upstream *HandlerStub
 		router   MessageTypeRouter
 	)
 
 	BeforeEach(func() {
-		work = &UnitOfWork{}
+		work = &UnitOfWorkStub{}
 
 		upstream = &HandlerStub{}
 
@@ -35,7 +35,7 @@ var _ = Describe("type MessageTypeRouter", func() {
 
 		upstream.HandleMessageFunc = func(
 			_ context.Context,
-			w *UnitOfWork,
+			w UnitOfWork,
 			p parcel.Parcel,
 		) error {
 			Expect(w).To(BeIdenticalTo(work))
@@ -52,7 +52,7 @@ var _ = Describe("type MessageTypeRouter", func() {
 
 		upstream.HandleMessageFunc = func(
 			_ context.Context,
-			w *UnitOfWork,
+			w UnitOfWork,
 			p parcel.Parcel,
 		) error {
 			Fail("unexpected call")
