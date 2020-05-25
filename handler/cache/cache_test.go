@@ -24,6 +24,7 @@ var _ = Describe("type Cache", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+
 		cache = &Cache{
 			TTL:    20 * time.Millisecond,
 			Logger: logging.DebugLogger, // use a debug logger to ensure debug logging paths are covered
@@ -37,34 +38,37 @@ var _ = Describe("type Cache", func() {
 	Describe("func Acquire()", func() {
 		When("the instance has no record in the cache", func() {
 			It("returns a record with a nil instance", func() {
-				rec, err := cache.Acquire(ctx, "<id>")
+				rec, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(rec).NotTo(BeNil())
-				defer rec.Release()
-
 				Expect(rec.Instance).To(BeNil())
 			})
 
 			It("adds the record to the cache", func() {
-				rec1, err := cache.Acquire(ctx, "<id>")
+				w := &UnitOfWorkStub{}
+				rec1, err := cache.Acquire(ctx, w, "<id>")
 				Expect(err).ShouldNot(HaveOccurred())
-				rec1.KeepAlive()
-				rec1.Release()
+				w.Succeed(handler.Result{})
 
-				rec2, err := cache.Acquire(ctx, "<id>")
+				rec2, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 				Expect(err).ShouldNot(HaveOccurred())
-				defer rec2.Release()
 
 				Expect(rec1).To(BeIdenticalTo(rec2))
 			})
 		})
 
 		When("the instance has a record in the cache", func() {
-			var record *Record
+			var (
+				record *Record
+				work   *UnitOfWorkStub
+			)
 
 			BeforeEach(func() {
+
+				work = &UnitOfWorkStub{}
+
 				var err error
-				record, err = cache.Acquire(ctx, "<id>")
+				record, err = cache.Acquire(ctx, work, "<id>")
 				Expect(err).ShouldNot(HaveOccurred())
 
 				record.Instance = "<value>"
@@ -72,16 +76,13 @@ var _ = Describe("type Cache", func() {
 
 			When("the record is not locked", func() {
 				BeforeEach(func() {
-					record.KeepAlive()
-					record.Release()
+					work.Succeed(handler.Result{})
 				})
 
 				It("returns the same instance on subsequent invocations", func() {
-					rec, err := cache.Acquire(ctx, "<id>")
+					rec, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 					Expect(err).ShouldNot(HaveOccurred())
-					defer rec.Release()
-
-					Expect(rec.Instance).To(Equal("<value>"))
+					Expect(rec).To(BeIdenticalTo(record))
 				})
 			})
 
@@ -89,88 +90,76 @@ var _ = Describe("type Cache", func() {
 				It("blocks until the record is released", func() {
 					go func() {
 						time.Sleep(10 * time.Millisecond)
-						record.KeepAlive()
-						record.Release()
+						work.Succeed(handler.Result{})
 					}()
 
-					rec, err := cache.Acquire(ctx, "<id>")
+					rec, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 					Expect(err).ShouldNot(HaveOccurred())
-					defer rec.Release()
-
-					Expect(rec.Instance).To(Equal("<value>"))
+					Expect(rec).To(BeIdenticalTo(record))
 				})
 
 				It("creates a new record if the locked record is not kept", func() {
 					go func() {
 						time.Sleep(10 * time.Millisecond)
-						record.Release()
+						work.Fail(errors.New("<error>"))
 					}()
 
-					rec, err := cache.Acquire(ctx, "<id>")
+					rec, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 					Expect(err).ShouldNot(HaveOccurred())
-					defer rec.Release()
-
-					Expect(rec.Instance).To(BeNil())
+					Expect(rec).NotTo(BeIdenticalTo(record))
 				})
 
 				It("returns an error if the deadline is exceeded", func() {
 					ctx, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
 					defer cancel()
 
-					rec, err := cache.Acquire(ctx, "<id>")
-					if rec != nil {
-						rec.Release()
-					}
+					_, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 					Expect(err).To(Equal(context.DeadlineExceeded))
 				})
 			})
 		})
+
+		It("removes the record when the unit-of-work fails", func() {
+			w := &UnitOfWorkStub{}
+			rec1, err := cache.Acquire(ctx, w, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			w.Fail(errors.New("<error>"))
+
+			rec2, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(rec2).NotTo(BeIdenticalTo(rec1))
+		})
 	})
 
-	Describe("func AcquireForUnitOfWork()", func() {
-		var work *UnitOfWorkStub
+	Describe("func Discard()", func() {
+		It("removes the record from the cache even if the unit-of-work succeeds", func() {
+			w := &UnitOfWorkStub{}
+			rec1, err := cache.Acquire(ctx, w, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
 
-		BeforeEach(func() {
-			work = &UnitOfWorkStub{}
+			cache.Discard(rec1)
+			w.Succeed(handler.Result{})
+
+			rec2, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(rec2).NotTo(BeIdenticalTo(rec1))
 		})
 
-		It("unlocks the record when the unit-of-work succeeds", func() {
-			_, err := cache.AcquireForUnitOfWork(ctx, work, "<id>")
+		It("does not cause an error if the record is removed again because the unit-of-work fails", func() {
+			w := &UnitOfWorkStub{}
+			rec1, err := cache.Acquire(ctx, w, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			work.Succeed(handler.Result{})
+			cache.Discard(rec1)
+			w.Fail(errors.New("<error>"))
 
-			rec, err := cache.Acquire(ctx, "<id>")
-			Expect(err).ShouldNot(HaveOccurred())
-			rec.Release()
-		})
-
-		It("events the record when the unit-of-work fails", func() {
-			original, err := cache.AcquireForUnitOfWork(ctx, work, "<id>")
+			rec2, err := cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			work.Fail(errors.New("<error>"))
-
-			rec, err := cache.Acquire(ctx, "<id>")
-			Expect(err).ShouldNot(HaveOccurred())
-			defer rec.Release()
-
-			Expect(rec).NotTo(BeIdenticalTo(original))
-		})
-
-		It("returns an error if the deadline is exceeded", func() {
-			rec, err := cache.Acquire(ctx, "<id>")
-			Expect(err).ShouldNot(HaveOccurred())
-			defer rec.Release()
-
-			ctx, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
-			defer cancel()
-
-			rec, err = cache.AcquireForUnitOfWork(ctx, work, "<id>")
-			if rec != nil {
-				rec.Release()
-			}
-			Expect(err).To(Equal(context.DeadlineExceeded))
+			Expect(rec2).NotTo(BeIdenticalTo(rec1))
 		})
 	})
 
@@ -178,11 +167,11 @@ var _ = Describe("type Cache", func() {
 		It("evicts records that remain idle for two TTL periods", func() {
 			By("adding a record")
 
-			rec, err := cache.Acquire(ctx, "<id>")
+			w := &UnitOfWorkStub{}
+			rec, err := cache.Acquire(ctx, w, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
 			rec.Instance = "<value>"
-			rec.KeepAlive()
-			rec.Release()
+			w.Succeed(handler.Result{})
 
 			By("running the eviction loop for longer than twice the TTL")
 
@@ -193,14 +182,12 @@ var _ = Describe("type Cache", func() {
 
 			By("verifying that the value is not retained")
 
-			rec, err = cache.Acquire(ctx, "<id>")
+			rec, err = cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
-			defer rec.Release()
-
 			Expect(rec.Instance).To(BeNil())
 		})
 
-		It("does not evict records that are kept-alive after one TTL period", func() {
+		It("does not evict records that are used in a successful unit-of-work", func() {
 			runCtx, cancelRun := context.WithCancel(ctx)
 			defer cancelRun()
 
@@ -221,11 +208,11 @@ var _ = Describe("type Cache", func() {
 			<-barrier
 			By("adding a record")
 
-			rec, err := cache.Acquire(ctx, "<id>")
+			w := &UnitOfWorkStub{}
+			rec, err := cache.Acquire(ctx, w, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
 			rec.Instance = "<value>"
-			rec.KeepAlive()
-			rec.Release()
+			w.Succeed(handler.Result{})
 
 			By("waiting longer than one TTL period")
 
@@ -233,13 +220,13 @@ var _ = Describe("type Cache", func() {
 				linger.Multiply(cache.TTL, 1.25),
 			)
 
-			By("acquiring the record and calling KeepAlive()")
+			By("acquiring the record and releasing it again")
 
-			rec, err = cache.Acquire(ctx, "<id>")
+			w = &UnitOfWorkStub{}
+			rec, err = cache.Acquire(ctx, w, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
-			rec.Instance = "<value>"
-			rec.KeepAlive()
-			rec.Release()
+			Expect(rec.Instance).To(Equal("<value>"))
+			w.Succeed(handler.Result{})
 
 			By("waiting another TTL period")
 
@@ -252,17 +239,16 @@ var _ = Describe("type Cache", func() {
 
 			By("verifying that the value was retained")
 
-			rec, err = cache.Acquire(ctx, "<id>")
+			rec, err = cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
-			defer rec.Release()
-
 			Expect(rec.Instance).To(Equal("<value>"))
 		})
 
 		It("does not evict locked records", func() {
 			By("adding a record and holding the lock open")
 
-			rec, err := cache.Acquire(ctx, "<id>")
+			w := &UnitOfWorkStub{}
+			rec, err := cache.Acquire(ctx, w, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
 			rec.Instance = "<value>"
 
@@ -275,15 +261,12 @@ var _ = Describe("type Cache", func() {
 
 			By("releasing the record only after the eviction loop has stopped")
 
-			rec.KeepAlive()
-			rec.Release()
+			w.Succeed(handler.Result{})
 
 			By("verifying that the value was retained")
 
-			rec, err = cache.Acquire(ctx, "<id>")
+			rec, err = cache.Acquire(ctx, &UnitOfWorkStub{}, "<id>")
 			Expect(err).ShouldNot(HaveOccurred())
-			defer rec.Release()
-
 			Expect(rec.Instance).To(Equal("<value>"))
 		})
 	})

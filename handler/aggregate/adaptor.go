@@ -108,7 +108,7 @@ func (a *Adaptor) load(
 
 	// Acquire a lock on the cache record for this instance, and bind it to the
 	// lifetime of w.
-	rec, err := a.Cache.AcquireForUnitOfWork(ctx, w, id)
+	rec, err := a.Cache.Acquire(ctx, w, id)
 	if err != nil {
 		return nil, err
 	}
