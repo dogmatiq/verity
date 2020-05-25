@@ -123,12 +123,13 @@ func (c *Cache) acquire(ctx context.Context, id string) (*Record, error) {
 			return rec, nil
 
 		case removed:
-			// We finally got the lock, but this specific record has been removed
-			// from the cache, so we try again, creating a new record if necessary.
+			// We finally got the lock, but this specific record has been
+			// removed from the cache, so we try again, creating a new record if
+			// necessary.
 			//
-			// We still need to unlock the mutex in case there are even more blocked
-			// acquirers for this record waiting to find out that they too failed
-			// miserably.
+			// We still need to unlock the mutex in case there are even more
+			// blocked acquirers for this record waiting to find out that they
+			// too failed miserably.
 			rec.m.Unlock()
 		}
 	}
