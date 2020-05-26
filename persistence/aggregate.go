@@ -53,5 +53,5 @@ func (op SaveAggregateMetaData) AcceptVisitor(ctx context.Context, v OperationVi
 }
 
 func (op SaveAggregateMetaData) entityKey() entityKey {
-	return entityKey{"aggregate", op.MetaData.HandlerKey, op.MetaData.InstanceID}
+	return entityKey{"handler", op.MetaData.HandlerKey, op.MetaData.InstanceID}
 }
