@@ -66,6 +66,8 @@ func (a *Adaptor) HandleMessage(
 		return err
 	}
 
+	inst := rec.Instance.(*Instance)
+
 	sc := &scope{
 		work:     w,
 		cause:    p,
@@ -73,7 +75,7 @@ func (a *Adaptor) HandleMessage(
 		handler:  a.Handler,
 		packer:   a.Packer,
 		logger:   a.Logger,
-		instance: rec.Instance.(*Instance),
+		instance: inst,
 	}
 
 	a.Handler.HandleCommand(sc, p.Message)
@@ -86,11 +88,11 @@ func (a *Adaptor) HandleMessage(
 	}
 
 	w.Do(persistence.SaveAggregateMetaData{
-		MetaData: sc.instance.MetaData,
+		MetaData: inst.AggregateMetaData,
 	})
 
-	if sc.instance.MetaData.InstanceExists {
-		sc.instance.MetaData.Revision++
+	if inst.InstanceExists {
+		inst.Revision++
 	} else {
 		a.Cache.Discard(rec)
 	}

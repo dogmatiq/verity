@@ -73,7 +73,7 @@ var _ = Describe("type Loader", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
-						MetaData: persistence.AggregateMetaData{
+						AggregateMetaData: persistence.AggregateMetaData{
 							HandlerKey: "<handler-key>",
 							InstanceID: "<instance>",
 						},
@@ -125,7 +125,7 @@ var _ = Describe("type Loader", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
-						MetaData: persistence.AggregateMetaData{
+						AggregateMetaData: persistence.AggregateMetaData{
 							HandlerKey:     "<handler-key>",
 							InstanceID:     "<instance>",
 							Revision:       1,

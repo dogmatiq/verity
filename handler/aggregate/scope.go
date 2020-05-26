@@ -28,16 +28,16 @@ type scope struct {
 
 // InstanceID returns the ID of the targeted aggregate instance.
 func (s *scope) InstanceID() string {
-	return s.instance.MetaData.InstanceID
+	return s.instance.InstanceID
 }
 
 // Create creates the targeted instance.
 func (s *scope) Create() bool {
-	if s.instance.MetaData.InstanceExists {
+	if s.instance.InstanceExists {
 		return false
 	}
 
-	s.instance.MetaData.InstanceExists = true
+	s.instance.InstanceExists = true
 	s.created = true
 
 	return true
@@ -45,20 +45,19 @@ func (s *scope) Create() bool {
 
 // Destroy destroys the targeted instance.
 func (s *scope) Destroy() {
-	if !s.instance.MetaData.InstanceExists {
+	if !s.instance.InstanceExists {
 		panic("can not destroy an aggregate instance that has not been created")
 	}
 
 	s.instance.Root = mustNew(s.handler)
-	s.instance.MetaData.InstanceExists = false
-	s.instance.MetaData.LastDestroyedBy = s.lastEventID
-
+	s.instance.InstanceExists = false
+	s.instance.LastDestroyedBy = s.lastEventID
 	s.destroyed = true
 }
 
 // Root returns the root of the targeted aggregate instance.
 func (s *scope) Root() dogma.AggregateRoot {
-	if !s.instance.MetaData.InstanceExists {
+	if !s.instance.InstanceExists {
 		panic("can not access the root of an aggregate instance that has not been created")
 	}
 
@@ -68,7 +67,7 @@ func (s *scope) Root() dogma.AggregateRoot {
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
-	if !s.instance.MetaData.InstanceExists {
+	if !s.instance.InstanceExists {
 		panic("can not record an event against an aggregate instance that has not been created")
 	}
 
@@ -76,7 +75,7 @@ func (s *scope) RecordEvent(m dogma.Message) {
 		s.cause,
 		m,
 		s.identity,
-		s.instance.MetaData.InstanceID,
+		s.instance.InstanceID,
 	)
 
 	s.instance.Root.ApplyEvent(m)
@@ -107,7 +106,7 @@ func (s *scope) validate() {
 		panic(fmt.Sprintf(
 			"%T.HandleEvent() created the '%s' instance without recording an event while handling a %T command",
 			s.handler,
-			s.instance.MetaData.InstanceID,
+			s.instance.InstanceID,
 			s.cause.Message,
 		))
 	}
@@ -116,7 +115,7 @@ func (s *scope) validate() {
 		panic(fmt.Sprintf(
 			"%T.HandleEvent() destroyed the '%s' instance without recording an event while handling a %T command",
 			s.handler,
-			s.instance.MetaData.InstanceID,
+			s.instance.InstanceID,
 			s.cause.Message,
 		))
 	}

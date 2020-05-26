@@ -12,8 +12,8 @@ import (
 // Instance is an in-memory representation of the aggregate instance, as stored
 // in the cache.
 type Instance struct {
-	MetaData persistence.AggregateMetaData
-	Root     dogma.AggregateRoot
+	persistence.AggregateMetaData
+	Root dogma.AggregateRoot
 }
 
 // Loader loads aggregate instances from their historical events.
