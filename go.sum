@@ -28,6 +28,8 @@ github.com/dogmatiq/example v0.0.0-20200401013300-d9451ee452b6/go.mod h1:bSHywH/
 github.com/dogmatiq/graphkit v0.4.0/go.mod h1:ZTMym1P/z6anjOPWlZm6t5WxkGOig3CiX3gn8s1g5yM=
 github.com/dogmatiq/iago v0.4.0 h1:57nZqVT34IZxtCZEW/RFif7DNUEjMXgevfr/Mmd0N8I=
 github.com/dogmatiq/iago v0.4.0/go.mod h1:fishMWBtzYcjgis6d873VTv9kFm/wHYLOzOyO9ECBDc=
+github.com/dogmatiq/kyu v0.1.0 h1:cJaNqOtA4/u7M4+e4icm8pBukvdUyceo2Tvrtv4gaDU=
+github.com/dogmatiq/kyu v0.1.0/go.mod h1:g3oZX1sgN717QwJg5376fv4FlBukSxAEHjYjvPXA7SU=
 github.com/dogmatiq/linger v0.2.1 h1:ecVwiFlTcQuQ7ygQXH5bUPkWNve8n5BmVnCYMGMQ3zc=
 github.com/dogmatiq/linger v0.2.1/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
 github.com/dogmatiq/marshalkit v0.2.2 h1:FpF0bRTwq10fOt9Ab1qTr5KUR+OuYxj3YhvX1Aswi1k=
