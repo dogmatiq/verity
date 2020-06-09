@@ -9,8 +9,8 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/internal/x/containerx/pqueue"
 	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/kyu"
 )
 
 // DefaultBufferSize is the default number of recent events to buffer in memory.
@@ -60,7 +60,7 @@ type Stream struct {
 
 	m          sync.Mutex
 	head, tail unsafe.Pointer // atomic (*node), guarded by m for writes only in order to keep 'size' accurate
-	reorder    pqueue.Queue   // priority queue of events that arrive out of order
+	reorder    kyu.PQueue     // priority queue of events that arrive out of order
 	size       int            // total number of buffered events, including those in the reorder queue
 }
 
@@ -188,7 +188,7 @@ func (s *Stream) grow(ev eventstream.Event) {
 	if ev.Offset > tail.offset {
 		// This events has arrived out of order, we keep it in the reorder queue
 		// until we are given the event that immediately preceeds it.
-		s.reorder.Push((elem)(ev))
+		s.reorder.Push(ev)
 		return
 	}
 
@@ -205,7 +205,7 @@ func (s *Stream) grow(ev eventstream.Event) {
 			return
 		}
 
-		ev = (eventstream.Event)(e.(elem))
+		ev = e.Value.(eventstream.Event)
 		if ev.Offset != tail.offset {
 			return
 		}
@@ -251,6 +251,10 @@ func (s *Stream) init() *node {
 	n := s.loadHead()
 
 	if n == nil {
+		s.reorder.Less = func(a, b interface{}) bool {
+			return a.(eventstream.Event).Offset < b.(eventstream.Event).Offset
+		}
+
 		n = &node{offset: s.FirstOffset}
 		s.storeHead(n)
 		s.storeTail(n)
@@ -277,12 +281,4 @@ func (s *Stream) loadTail() *node {
 // storeTail atomically updates s.tail to point to *n.
 func (s *Stream) storeTail(n *node) {
 	atomic.StorePointer(&s.tail, unsafe.Pointer(n))
-}
-
-// elem is a version of eventstream.Event that implements pqueue.Elem.
-// It allows events to be placed in the "reorder" queue.
-type elem eventstream.Event
-
-func (e elem) Less(v pqueue.Elem) bool {
-	return e.Offset < v.(elem).Offset
 }
