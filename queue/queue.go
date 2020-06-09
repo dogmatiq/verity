@@ -35,18 +35,44 @@ type Queue struct {
 	// It should be larger than the number of concurrent consumers.
 	BufferSize int
 
-	// A "tracked" message is a message that is being managed by this Queue. All
-	// tracked messages are already persisted in the data-store.
+	// tracked is the set of all message IDs that are currently "managed" by
+	// this Queue instance. All tracked messages are already persisted.
 	//
-	// The tracked messages are always those with the highest-priority, that is,
-	// those that are scheduled to be handled the soonest.
+	// There may be more messages on the persisted message queue than are loaded
+	// into memory, as determined by BufferSize.
 	//
-	// Every tracked message has either been obtained via Pop(), or it's still
-	// in the "pending" queue.
-	tracked    map[string]struct{}                   // key == message ID
-	pending    kyu.PDeque                            // priority queue of messages that haven't been popped
-	timeouts   map[processID]map[string]*kyu.Element // index of queued timeout messages by process instance ID
-	exhaustive bool                                  // true if all queued messages are in memory
+	// The messages in memory are always those with the highest-priority, that
+	// is, those that are scheduled to be handled the soonest.
+	tracked map[string]struct{}
+
+	// pending is a double-ended priority queue containg all messages that are
+	// waiting to be handled.
+	//
+	// It is use to determine which message should be handled next (those at the
+	// front of the queue), and which messages should be purged when the number
+	// of tracked messages exceeds BufferSize (those at the back of the queue).
+	//
+	// All pending messages are tracked but not all tracked messages are
+	// necessarily pending, instead they may have already been obtained by a
+	// consumer via Pop() and be in the process of being handled.
+	pending kyu.PDeque
+
+	// timeouts is an index of tracked timeout messages, keyed by the process
+	// handler and instance ID that produced them.
+	//
+	// This index is maintained to allow efficient removal of all timeout
+	// messages for a specific instance in the RemoveTimeoutsByProcessID()
+	// message.
+	timeouts map[processID]map[string]*kyu.Element
+
+	// exhaustive is a flag that indicates that all persisted messages are known
+	// to be loaded into memory.
+	//
+	// Once an attempt to load messages is made that does not entirely fill the
+	// buffer size the in-memory queue is said be exhaustive. It will not
+	// attempt to load any more messages from the data-store in the future
+	// unless the buffer size is exceeded by an influx of new messages.
+	exhaustive bool
 
 	once      sync.Once
 	done      chan struct{}    // closed when Run() exits
