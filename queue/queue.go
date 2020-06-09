@@ -17,8 +17,10 @@ var DefaultBufferSize = runtime.GOMAXPROCS(0) * 10
 
 // A Queue is an prioritized collection of messages.
 //
-// It exposes an application's message queue to multiple consumers, ensuring
-// each consumer receives a different message.
+// It is an in-memory representation of the head of the persisted message queue.
+//
+// It dispatches to multiple consumers, ensuring each consumer receives a
+// different message.
 type Queue struct {
 	// Repository is used to load messages from the queue whenever the in-memory
 	// buffer is exhausted.
@@ -45,20 +47,18 @@ type Queue struct {
 	pending    kyu.PDeque          // priority queue of messages that haven't been popped
 	exhaustive bool                // true if all queued messages are in memory
 
-	once    sync.Once
-	done    chan struct{}  // closed when Run() exits
-	add     chan []Message // messages to start tracking
-	requeue chan Message   // popped messages that need to return to the queue
-	remove  chan Message   // popped messages that were removed from the queue
-	pop     chan Message   // delivers messages to consumers
+	once      sync.Once
+	done      chan struct{}    // closed when Run() exits
+	pop       chan Message     // delivers messages to consumers
+	mutations chan func() bool // sends "mutation" function to Run()
 }
 
 // Pop returns the message at the front of the queue.
 //
 // It blocks until a message is ready to be handled or ctx is canceled.
 //
-// Once the message has been handled it must either be returned to the pending
-// queue, or removed entirely by calling q.Requeue() or q.Remove(),
+// Once the message has been handled it must either be removed from the queue
+// entirely, or returned to the pending queue, by calling q.Ack() or q.Nack(),
 // respectively.
 func (q *Queue) Pop(ctx context.Context) (Message, error) {
 	q.init()
@@ -74,29 +74,42 @@ func (q *Queue) Pop(ctx context.Context) (Message, error) {
 // Add begins tracking messages that have already been persisted.
 func (q *Queue) Add(messages []Message) {
 	q.init()
-
-	select {
-	case q.add <- messages:
-		return // keep to see coverage
-	case <-q.done:
-		return // keep to see coverage
-	}
+	q.mutate(func() bool {
+		return q.track(messages)
+	})
 }
 
-// Requeue returns a popped message to the queue.
-func (q *Queue) Requeue(m Message) {
-	select {
-	case q.requeue <- m:
-		return // keep to see coverage
-	case <-q.done:
-		return // keep to see coverage
-	}
+// Ack stops tracking a message that was obtained via Pop() and has been handled
+// successfully.
+func (q *Queue) Ack(m Message) {
+	q.mutate(func() bool {
+		delete(q.tracked, m.ID())
+		return !q.exhaustive && len(q.tracked) == 0
+	})
 }
 
-// Remove stops tracking a popped message.
-func (q *Queue) Remove(m Message) {
+// Nack re-queues a message that was obtained via Pop() but was not handled
+// successfully.
+//
+// The message is placed in the queue according to the current value of
+// m.NextAttemptAt under the assumption it has been updated after the failure.
+func (q *Queue) Nack(m Message) {
+	q.mutate(func() bool {
+		e := q.pending.Push(m)
+		return q.pending.IsFront(e)
+	})
+}
+
+// mutate performs some modification to the queue in the context of Run().
+//
+// If fn() returns true, Run() starts a new call to tick(), re-evaluating the
+// message at the head of the queue.
+//
+// It returns once the mutation has been received by Run()'s goroutine, but does
+// NOT block until fn() has returned.
+func (q *Queue) mutate(fn func() bool) {
 	select {
-	case q.remove <- m:
+	case q.mutations <- fn:
 		return // keep to see coverage
 	case <-q.done:
 		return // keep to see coverage
@@ -181,31 +194,10 @@ func (q *Queue) tick(ctx context.Context) error {
 			q.pending.Pop()
 			return nil
 
-		case messages := <-q.add:
-			// New messages have been added to the queue.
-			if q.track(messages) {
-				// And one of them has become the new head, return to allow a
-				// new call to peek().
-				return nil
-			}
-
-		case m := <-q.requeue:
-			// A popped message has been returned to the queue.
-			e := q.pending.Push(m)
-
-			if q.pending.IsFront(e) {
-				// And it's become the head of the queue, return to allow a new
-				// call to peek().
-				return nil
-			}
-
-		case m := <-q.remove:
-			// A popped message has been removed from the queue.
-			delete(q.tracked, m.ID())
-
-			if !q.exhaustive && len(q.tracked) == 0 {
-				// We have nothing left in memory, and we suspect there is more
-				// to load, return to allow a new call to peek().
+		case fn := <-q.mutations:
+			if fn() {
+				// The action signalled that the head of the queue should be
+				// re-evaluated, so we return to start a new loop.
 				return nil
 			}
 		}
@@ -324,9 +316,7 @@ func (q *Queue) init() {
 		}
 
 		q.done = make(chan struct{})
-		q.add = make(chan []Message)
-		q.requeue = make(chan Message)
-		q.remove = make(chan Message)
 		q.pop = make(chan Message)
+		q.mutations = make(chan func() bool)
 	})
 }
