@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/infix/internal/x/containerx/pdeque"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/kyu"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -42,7 +42,7 @@ type Queue struct {
 	// Every tracked message has either been obtained via Pop(), or it's still
 	// in the "pending" queue.
 	tracked    map[string]struct{} // key == message ID
-	pending    pdeque.Deque        // priority queue of messages that haven't been popped
+	pending    kyu.PDeque          // priority queue of messages that haven't been popped
 	exhaustive bool                // true if all queued messages are in memory
 
 	once    sync.Once
@@ -51,19 +51,6 @@ type Queue struct {
 	requeue chan Message   // popped messages that need to return to the queue
 	remove  chan Message   // popped messages that were removed from the queue
 	pop     chan Message   // delivers messages to consumers
-}
-
-// elem is a message on the pending queue.
-//
-// It implements the pdeque.Elem interface.
-type elem struct {
-	Message
-}
-
-func (e elem) Less(v pdeque.Elem) bool {
-	return e.NextAttemptAt.Before(
-		v.(elem).NextAttemptAt,
-	)
 }
 
 // Pop returns the message at the front of the queue.
@@ -131,19 +118,19 @@ func (q *Queue) Run(ctx context.Context) error {
 	}
 }
 
-// peek returns the element at the front of the queue, loading messages from the
+// peek returns the message at the front of the queue, loading messages from the
 // store if none are currently tracked.
 func (q *Queue) peek(ctx context.Context) (Message, bool, error) {
-	if x, ok := q.pending.PeekFront(); ok {
-		return x.(elem).Message, true, nil
+	if e, ok := q.pending.Peek(); ok {
+		return e.Value.(Message), true, nil
 	}
 
 	if err := q.load(ctx); err != nil {
 		return Message{}, false, err
 	}
 
-	if x, ok := q.pending.PeekFront(); ok {
-		return x.(elem).Message, true, nil
+	if e, ok := q.pending.Peek(); ok {
+		return e.Value.(Message), true, nil
 	}
 
 	return Message{}, false, nil
@@ -191,7 +178,7 @@ func (q *Queue) tick(ctx context.Context) error {
 
 		case pop <- m:
 			// The message was delivered to a consumer.
-			q.pending.PopFront()
+			q.pending.Pop()
 			return nil
 
 		case messages := <-q.add:
@@ -204,7 +191,9 @@ func (q *Queue) tick(ctx context.Context) error {
 
 		case m := <-q.requeue:
 			// A popped message has been returned to the queue.
-			if q.pending.Push(elem{m}) {
+			e := q.pending.Push(m)
+
+			if q.pending.IsFront(e) {
 				// And it's become the head of the queue, return to allow a new
 				// call to peek().
 				return nil
@@ -286,7 +275,9 @@ func (q *Queue) track(messages []Message) bool {
 			continue
 		}
 
-		if q.pending.Push(elem{m}) {
+		e := q.pending.Push(m)
+
+		if q.pending.IsFront(e) {
 			// This message became the new head of the queue.
 			head = true
 		}
@@ -306,8 +297,8 @@ func (q *Queue) track(messages []Message) bool {
 		q.exhaustive = false
 
 		for size > limit {
-			e, _ := q.pending.PopBack()
-			delete(q.tracked, e.(elem).ID())
+			m, _ := q.pending.PopBack()
+			delete(q.tracked, m.(Message).ID())
 			size--
 		}
 	}
@@ -323,8 +314,14 @@ func (q *Queue) init() {
 			limit = DefaultBufferSize
 		}
 
-		// Allocate capcity for our limit +1 element used to detect overflow.
+		// Allocate capcity for our limit +1 message used to detect overflow.
 		q.tracked = make(map[string]struct{}, limit+1)
+
+		q.pending.Less = func(a, b interface{}) bool {
+			return a.(Message).NextAttemptAt.Before(
+				b.(Message).NextAttemptAt,
+			)
+		}
 
 		q.done = make(chan struct{})
 		q.add = make(chan []Message)
