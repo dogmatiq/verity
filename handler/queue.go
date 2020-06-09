@@ -52,7 +52,7 @@ func (c *QueueConsumer) Run(ctx context.Context) error {
 			}
 
 			if err := c.Semaphore.Acquire(ctx, 1); err != nil {
-				c.Queue.Requeue(m)
+				c.Queue.Nack(m)
 				return err
 			}
 
@@ -117,7 +117,7 @@ func (a *queueAcknowledger) Ack(ctx context.Context, b persistence.Batch) (persi
 		return persistence.Result{}, err
 	}
 
-	a.queue.Remove(a.message)
+	a.queue.Ack(a.message)
 	return res, nil
 }
 
@@ -150,7 +150,7 @@ func (a *queueAcknowledger) Nack(ctx context.Context, cause error) error {
 	}
 
 	a.message.Revision++
-	a.queue.Requeue(a.message)
+	a.queue.Nack(a.message)
 
 	return nil
 }

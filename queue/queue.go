@@ -17,8 +17,10 @@ var DefaultBufferSize = runtime.GOMAXPROCS(0) * 10
 
 // A Queue is an prioritized collection of messages.
 //
-// It exposes an application's message queue to multiple consumers, ensuring
-// each consumer receives a different message.
+// It is an in-memory representation of the head of the persisted message queue.
+//
+// It dispatches to multiple consumers, ensuring each consumer receives a
+// different message.
 type Queue struct {
 	// Repository is used to load messages from the queue whenever the in-memory
 	// buffer is exhausted.
@@ -55,8 +57,8 @@ type Queue struct {
 //
 // It blocks until a message is ready to be handled or ctx is canceled.
 //
-// Once the message has been handled it must either be returned to the pending
-// queue, or removed entirely by calling q.Requeue() or q.Remove(),
+// Once the message has been handled it must either be removed from the queue
+// entirely, or returned to the pending queue, by calling q.Ack() or q.Nack(),
 // respectively.
 func (q *Queue) Pop(ctx context.Context) (Message, error) {
 	q.init()
@@ -77,19 +79,24 @@ func (q *Queue) Add(messages []Message) {
 	})
 }
 
-// Requeue returns a popped message to the queue.
-func (q *Queue) Requeue(m Message) {
-	q.mutate(func() bool {
-		e := q.pending.Push(m)
-		return q.pending.IsFront(e)
-	})
-}
-
-// Remove stops tracking a popped message.
-func (q *Queue) Remove(m Message) {
+// Ack stops tracking a message that was obtained via Pop() and has been handled
+// successfully.
+func (q *Queue) Ack(m Message) {
 	q.mutate(func() bool {
 		delete(q.tracked, m.ID())
 		return !q.exhaustive && len(q.tracked) == 0
+	})
+}
+
+// Nack re-queues a message that was obtained via Pop() but was not handled
+// successfully.
+//
+// The message is placed in the queue according to the current value of
+// m.NextAttemptAt under the assumption it has been updated after the failure.
+func (q *Queue) Nack(m Message) {
+	q.mutate(func() bool {
+		e := q.pending.Push(m)
+		return q.pending.IsFront(e)
 	})
 }
 

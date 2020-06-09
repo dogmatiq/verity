@@ -168,7 +168,7 @@ var _ = Describe("type Queue", func() {
 						Expect(m.Parcel).To(EqualX(parcel1))
 					})
 
-					It("unblocks if a requeued message jumps the queue", func() {
+					It("unblocks if a nack'd message jumps the queue", func() {
 						push(parcel1)
 
 						m, err := queue.Pop(ctx)
@@ -178,7 +178,7 @@ var _ = Describe("type Queue", func() {
 						go func() {
 							defer GinkgoRecover()
 							time.Sleep(5 * time.Millisecond)
-							queue.Requeue(m)
+							queue.Nack(m)
 						}()
 
 						m, err = queue.Pop(ctx)
@@ -278,24 +278,7 @@ var _ = Describe("type Queue", func() {
 			})
 		})
 
-		Describe("func Requeue()", func() {
-			JustBeforeEach(func() {
-				push(parcel0)
-			})
-
-			It("allows the message to be popped again", func() {
-				m1, err := queue.Pop(ctx)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				queue.Requeue(m1)
-
-				m2, err := queue.Pop(ctx)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(m2).To(EqualX(m1))
-			})
-		})
-
-		Describe("func Remove()", func() {
+		Describe("func Ack()", func() {
 			JustBeforeEach(func() {
 				push(parcel0)
 			})
@@ -304,7 +287,7 @@ var _ = Describe("type Queue", func() {
 				m, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				queue.Remove(m)
+				queue.Ack(m)
 
 				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
 				defer cancel()
@@ -319,7 +302,7 @@ var _ = Describe("type Queue", func() {
 				m, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				queue.Remove(m)
+				queue.Ack(m)
 
 				push(parcel1, time.Now().Add(1*time.Millisecond))
 
@@ -327,6 +310,23 @@ var _ = Describe("type Queue", func() {
 				// only buffer slot.
 				_, err = queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
+			})
+		})
+
+		Describe("func Nack()", func() {
+			JustBeforeEach(func() {
+				push(parcel0)
+			})
+
+			It("allows the message to be popped again", func() {
+				m1, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				queue.Nack(m1)
+
+				m2, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(m2).To(EqualX(m1))
 			})
 		})
 
@@ -393,7 +393,7 @@ var _ = Describe("type Queue", func() {
 								},
 							)
 							Expect(err).ShouldNot(HaveOccurred())
-							queue.Remove(m)
+							queue.Ack(m)
 						}
 
 						// Setup the repository to fail if it is used again.
@@ -433,7 +433,7 @@ var _ = Describe("type Queue", func() {
 							},
 						)
 						Expect(err).ShouldNot(HaveOccurred())
-						queue.Remove(m)
+						queue.Ack(m)
 
 						m, err = queue.Pop(ctx)
 						Expect(err).ShouldNot(HaveOccurred())
@@ -503,9 +503,9 @@ var _ = Describe("type Queue", func() {
 			})
 		})
 
-		Describe("func Requeue()", func() {
+		Describe("func Ack()", func() {
 			It("does not block", func() {
-				queue.Requeue(
+				queue.Ack(
 					Message{
 						QueueMessage: persistence.QueueMessage{
 							Revision: 1,
@@ -517,9 +517,9 @@ var _ = Describe("type Queue", func() {
 			})
 		})
 
-		Describe("func Remove()", func() {
+		Describe("func Nack()", func() {
 			It("does not block", func() {
-				queue.Remove(
+				queue.Nack(
 					Message{
 						QueueMessage: persistence.QueueMessage{
 							Revision: 1,
