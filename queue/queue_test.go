@@ -30,9 +30,9 @@ var _ = Describe("type Queue", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
-		parcel0 = NewParcel("<message-0>", MessageA1)
-		parcel1 = NewParcel("<message-1>", MessageA2)
-		parcel2 = NewParcel("<message-2>", MessageA3)
+		parcel0 = NewParcel("<message-0>", MessageA1)                         // command
+		parcel1 = NewParcel("<message-1>", MessageA2, time.Now(), time.Now()) // timeout
+		parcel2 = NewParcel("<message-2>", MessageA3, time.Now(), time.Now()) // timeout
 
 		dataStore = NewDataStoreStub()
 
@@ -87,7 +87,8 @@ var _ = Describe("type Queue", func() {
 		JustBeforeEach(func() {
 			go func() {
 				defer GinkgoRecover()
-				queue.Run(ctx)
+				err := queue.Run(ctx)
+				Expect(err).To(Equal(context.Canceled))
 			}()
 		})
 
@@ -327,6 +328,62 @@ var _ = Describe("type Queue", func() {
 				m2, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(m2).To(EqualX(m1))
+			})
+		})
+
+		Describe("func RemoveTimeoutsByProcessID()", func() {
+			It("removes timeout messages created by the given source instance", func() {
+				By("pushing some timeout messages onto the queue")
+				push(parcel1)
+				push(parcel2)
+
+				By("waiting until the timeout messages can be popped")
+
+				m, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				queue.Nack(m)
+
+				By("removing the messages from the in-memory queue")
+
+				queue.RemoveTimeoutsByProcessID("<handler-key>", "<instance>")
+
+				By("ensuring the next Pop() times-out")
+
+				ctx, cancel := context.WithTimeout(ctx, 5*time.Millisecond)
+				defer cancel()
+
+				m, err = queue.Pop(ctx)
+				Expect(err).To(Equal(context.DeadlineExceeded))
+			})
+
+			It("does not remove command messages", func() {
+				push(parcel0)
+
+				queue.RemoveTimeoutsByProcessID("<handler-key>", "<instance>")
+
+				m, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(m.Parcel).To(EqualX(parcel0))
+			})
+
+			It("does not remove timeout messages created by other handlers", func() {
+				push(parcel1)
+
+				queue.RemoveTimeoutsByProcessID("<other-handler-key>", "<instance>")
+
+				m, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(m.Parcel).To(EqualX(parcel1))
+			})
+
+			It("does not remove timeout messages created by other instances of the same handler", func() {
+				push(parcel1)
+
+				queue.RemoveTimeoutsByProcessID("<handler-key>", "<other-instance>")
+
+				m, err := queue.Pop(ctx)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(m.Parcel).To(EqualX(parcel1))
 			})
 		})
 

@@ -35,22 +35,59 @@ type Queue struct {
 	// It should be larger than the number of concurrent consumers.
 	BufferSize int
 
-	// A "tracked" message is a message that is being managed by this Queue. All
-	// tracked messages are already persisted in the data-store.
+	// tracked is the set of all message IDs that are currently "managed" by
+	// this Queue instance. All tracked messages are already persisted.
 	//
-	// The tracked messages are always those with the highest-priority, that is,
-	// those that are scheduled to be handled the soonest.
+	// There may be more messages on the persisted message queue than are loaded
+	// into memory, as determined by BufferSize.
 	//
-	// Every tracked message has either been obtained via Pop(), or it's still
-	// in the "pending" queue.
-	tracked    map[string]struct{} // key == message ID
-	pending    kyu.PDeque          // priority queue of messages that haven't been popped
-	exhaustive bool                // true if all queued messages are in memory
+	// The messages in memory are always those with the highest-priority, that
+	// is, those that are scheduled to be handled the soonest.
+	tracked map[string]struct{}
+
+	// pending is a double-ended priority queue containg all messages that are
+	// waiting to be handled.
+	//
+	// It is use to determine which message should be handled next (those at the
+	// front of the queue), and which messages should be purged when the number
+	// of tracked messages exceeds BufferSize (those at the back of the queue).
+	//
+	// All pending messages are tracked but not all tracked messages are
+	// necessarily pending, instead they may have already been obtained by a
+	// consumer via Pop() and be in the process of being handled.
+	pending kyu.PDeque
+
+	// timeouts is an index of tracked timeout messages, keyed by the process
+	// handler and instance ID that produced them.
+	//
+	// This index is maintained to allow efficient removal of all timeout
+	// messages for a specific instance in the RemoveTimeoutsByProcessID()
+	// message.
+	timeouts map[processID]map[string]*kyu.Element
+
+	// exhaustive is a flag that indicates that all persisted messages are known
+	// to be loaded into memory.
+	//
+	// Once an attempt to load messages is made that does not entirely fill the
+	// buffer size the in-memory queue is said be exhaustive. It will not
+	// attempt to load any more messages from the data-store in the future
+	// unless the buffer size is exceeded by an influx of new messages.
+	exhaustive bool
 
 	once      sync.Once
 	done      chan struct{}    // closed when Run() exits
 	pop       chan Message     // delivers messages to consumers
 	mutations chan func() bool // sends "mutation" function to Run()
+}
+
+// processID encapsulates a process handler key and instance ID as a single
+// value.
+//
+// It is used as the key for the timeout index used to allow somewhat efficient
+// implementation of Queue.RemoveTimeoutsByProcessID().
+type processID struct {
+	HandleKey  string
+	InstanceID string
 }
 
 // Pop returns the message at the front of the queue.
@@ -84,6 +121,11 @@ func (q *Queue) Add(messages []Message) {
 func (q *Queue) Ack(m Message) {
 	q.mutate(func() bool {
 		delete(q.tracked, m.ID())
+
+		if !m.Parcel.ScheduledFor.IsZero() {
+			q.unindexTimeout(m)
+		}
+
 		return !q.exhaustive && len(q.tracked) == 0
 	})
 }
@@ -96,7 +138,37 @@ func (q *Queue) Ack(m Message) {
 func (q *Queue) Nack(m Message) {
 	q.mutate(func() bool {
 		e := q.pending.Push(m)
+
+		if !m.Parcel.ScheduledFor.IsZero() {
+			q.indexTimeout(m, e)
+		}
+
 		return q.pending.IsFront(e)
+	})
+}
+
+// RemoveTimeoutsByProcessID removes any timeout messages that originated from a
+// specific process instance ID.
+//
+// hk is the process's handler key, id is the instance ID.
+func (q *Queue) RemoveTimeoutsByProcessID(hk, id string) {
+	q.mutate(func() bool {
+		pid := processID{hk, id}
+
+		timeouts := q.timeouts[pid]
+		delete(q.timeouts, pid)
+
+		head := false
+		for id, e := range timeouts {
+			if q.pending.IsFront(e) {
+				head = true
+			}
+
+			q.pending.Remove(e)
+			delete(q.tracked, id)
+		}
+
+		return head
 	})
 }
 
@@ -213,6 +285,12 @@ func (q *Queue) load(ctx context.Context) error {
 		return nil
 	}
 
+	if q.exhaustive {
+		// There's no point in loading anything if we already know there's
+		// nothing to load.
+		return nil
+	}
+
 	limit := q.BufferSize
 	if limit <= 0 {
 		limit = DefaultBufferSize
@@ -250,13 +328,10 @@ func (q *Queue) load(ctx context.Context) error {
 // It returns true if any of the given messages becomes the head of the queue.
 func (q *Queue) track(messages []Message) bool {
 	head := false
-	size := len(q.tracked)
 
 	// Start tracking the messages.
 	for _, m := range messages {
-		q.tracked[m.ID()] = struct{}{}
-
-		if size == len(q.tracked) {
+		if _, ok := q.tracked[m.ID()]; ok {
 			// The message was already in the tracked list, which could occur if
 			// it was persisted around the same time that we loaded from the
 			// store, such that the order of operations was:
@@ -268,34 +343,74 @@ func (q *Queue) track(messages []Message) bool {
 		}
 
 		e := q.pending.Push(m)
+		q.tracked[m.ID()] = struct{}{}
+
+		if !m.Parcel.ScheduledFor.IsZero() {
+			q.indexTimeout(m, e)
+		}
 
 		if q.pending.IsFront(e) {
 			// This message became the new head of the queue.
 			head = true
 		}
-
-		size++
 	}
 
+	q.purge()
+
+	return head
+}
+
+// purge drops the lowest-priority messages until the number of tracked messages
+// falls below the buffer size limit.
+func (q *Queue) purge() {
 	limit := q.BufferSize
 	if limit <= 0 {
 		limit = DefaultBufferSize
 	}
 
-	if size > limit {
-		// The number of tracked messages exceeds the limit. We need to start
-		// dropping tracked messages until the count falls below the limit
-		// again.
-		q.exhaustive = false
+	for len(q.tracked) > limit {
+		x, _ := q.pending.PopBack()
+		m := x.(Message)
+		delete(q.tracked, m.ID())
 
-		for size > limit {
-			m, _ := q.pending.PopBack()
-			delete(q.tracked, m.(Message).ID())
-			size--
+		if !m.Parcel.ScheduledFor.IsZero() {
+			q.unindexTimeout(m)
 		}
+
+		q.exhaustive = false
+	}
+}
+
+// indexTimeout adds m to the index of timeout messages.
+func (q *Queue) indexTimeout(m Message, e *kyu.Element) {
+	pid := processID{
+		m.Envelope.SourceHandler.Key,
+		m.Envelope.SourceInstanceId,
 	}
 
-	return head
+	timeouts := q.timeouts[pid]
+	if timeouts == nil {
+		timeouts = map[string]*kyu.Element{}
+		q.timeouts[pid] = timeouts
+	}
+
+	timeouts[m.ID()] = e
+}
+
+// unindexTimeout removes m from the index of timeout messages.
+func (q *Queue) unindexTimeout(m Message) {
+	pid := processID{
+		m.Envelope.SourceHandler.Key,
+		m.Envelope.SourceInstanceId,
+	}
+
+	timeouts := q.timeouts[pid]
+
+	delete(timeouts, m.ID())
+
+	if len(timeouts) == 0 {
+		delete(q.timeouts, pid)
+	}
 }
 
 // init initializes the queue's internal state.
@@ -308,6 +423,7 @@ func (q *Queue) init() {
 
 		// Allocate capcity for our limit +1 message used to detect overflow.
 		q.tracked = make(map[string]struct{}, limit+1)
+		q.timeouts = make(map[processID]map[string]*kyu.Element)
 
 		q.pending.Less = func(a, b interface{}) bool {
 			return a.(Message).NextAttemptAt.Before(
