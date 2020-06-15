@@ -285,6 +285,12 @@ func (q *Queue) load(ctx context.Context) error {
 		return nil
 	}
 
+	if q.exhaustive {
+		// There's no point in loading anything if we already know there's
+		// nothing to load.
+		return nil
+	}
+
 	limit := q.BufferSize
 	if limit <= 0 {
 		limit = DefaultBufferSize
