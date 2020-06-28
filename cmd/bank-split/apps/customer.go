@@ -16,14 +16,11 @@ type CustomerApp struct {
 
 // Configure configures the Dogma engine for this application.
 func (a *CustomerApp) Configure(c dogma.ApplicationConfigurer) {
-	p, err := pksql.New(
+	p := pksql.MustNew(
 		a.ProjectionDB,
 		&projections.CustomerProjectionHandler{},
 		nil,
 	)
-	if err != nil {
-		panic(err)
-	}
 
 	c.Identity("customer", "db385bd2-59e6-400b-a573-cd9f5ac3381b")
 
