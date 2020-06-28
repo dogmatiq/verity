@@ -12,7 +12,7 @@ require (
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v0.2.1
 	github.com/dogmatiq/marshalkit v0.2.2
-	github.com/dogmatiq/projectionkit v0.3.2
+	github.com/dogmatiq/projectionkit v0.4.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.0
