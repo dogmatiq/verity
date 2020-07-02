@@ -55,9 +55,9 @@ func (c *Cache) Acquire(
 		return nil, err
 	}
 
-	// Add an observer that releases the lock on the cache record only after the
-	// unit-of-work is complete.
-	w.Observe(func(_ handler.Result, err error) {
+	// Defer a function that releases the lock on the cache record only after
+	// the unit-of-work is complete.
+	w.Defer(func(_ handler.Result, err error) {
 		if err != nil {
 			// The unit-of-work was failed, so we forcibly discard the record.
 			// The assumption is that the contents of the record was modified in

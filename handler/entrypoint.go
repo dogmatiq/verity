@@ -17,8 +17,10 @@ type EntryPoint struct {
 	// Handler is the handler implmentation that populates the unit-of-work.
 	Handler Handler
 
-	// Observers is a set of observers that is added to every unit-of-work.
-	Observers []Observer
+	// OnSuccess is called for each unit-of-work that is persisted successfully.
+	//
+	// It is invoked before the unit-of-work's deferred functions are executed.
+	OnSuccess func(Result)
 }
 
 // Acknowledger is an interface for acknowledging handled messages.
@@ -42,31 +44,28 @@ func (ep *EntryPoint) HandleMessage(
 	a Acknowledger,
 	p parcel.Parcel,
 ) error {
-	// Setup a new unit-of-work. We copy the observers so that we don't mess
-	// with the underlying array of ep.Observers as we append new elements while
-	// handling the message.
 	w := &unitOfWork{
 		queueEvents: ep.QueueEvents,
-		observers:   append([]Observer(nil), ep.Observers...),
 	}
 
 	// Dispatch the the handler.
 	if err := ep.Handler.HandleMessage(ctx, w, p); err != nil {
-		w.notifyObservers(err)
+		w.invokeDeferred(err)
 		return a.Nack(ctx, err)
 	}
 
 	// Perform the combined operations of the unit-of-work and b.
 	pr, err := a.Ack(ctx, w.batch)
 	if err != nil {
-		w.notifyObservers(err)
+		w.invokeDeferred(err)
 		return a.Nack(ctx, err)
 	}
 
 	// Update the unit-of-work's result to include the offsets from the
 	// persistence result.
 	w.populateEventOffsets(pr)
-	w.notifyObservers(nil)
+	ep.OnSuccess(w.result)
+	w.invokeDeferred(nil)
 
 	return nil
 }

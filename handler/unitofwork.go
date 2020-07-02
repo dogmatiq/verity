@@ -25,8 +25,11 @@ type UnitOfWork interface {
 	// Do updates the unit-of-work to include op in the persistence batch.
 	Do(op persistence.Operation)
 
-	// Observe adds an observer to be notified when the unit-of-work is complete.
-	Observe(obs Observer)
+	// Defer registers fn to be called when the unit-of-work is complete.
+	//
+	// Like Go's defer keyword, deferred functions guaranteed to be invoked in
+	// the reverse order to which they are registered.
+	Defer(fn DeferFunc)
 }
 
 // Result is the result of a successful unit-of-work.
@@ -39,15 +42,15 @@ type Result struct {
 	Events []eventstream.Event
 }
 
-// Observer is a function that is notified of the result of a unit-of-work.
-type Observer func(Result, error)
+// DeferFunc is a function can be deferred until a unit-of-work is completed.
+type DeferFunc func(Result, error)
 
 // unitOfWork is the implementation of UnitOfWork used by an EntryPoint.
 type unitOfWork struct {
 	queueEvents message.TypeCollection
 	batch       persistence.Batch
 	result      Result
-	observers   []Observer
+	deferred    []DeferFunc
 }
 
 // ExecuteCommand updates the unit-of-work to execute the command in p.
@@ -74,9 +77,12 @@ func (w *unitOfWork) Do(op persistence.Operation) {
 	w.batch = append(w.batch, op)
 }
 
-// Observe adds an observer to be notified when the unit-of-work is complete.
-func (w *unitOfWork) Observe(obs Observer) {
-	w.observers = append(w.observers, obs)
+// Defer registers fn to be called when the unit-of-work is complete.
+//
+// Like Go's defer keyword, deferred functions guaranteed to be invoked in
+// the reverse order to which they are registered.
+func (w *unitOfWork) Defer(fn DeferFunc) {
+	w.deferred = append(w.deferred, fn)
 }
 
 // saveQueueMessage adds a SaveQueueMessage operation to the batch for p.
@@ -130,9 +136,9 @@ func (w *unitOfWork) populateEventOffsets(pr persistence.Result) {
 	}
 }
 
-// notifyObservers calls each observer in the unit-of-work.
-func (w *unitOfWork) notifyObservers(err error) {
-	for _, obs := range w.observers {
-		obs(w.result, err)
+// invokeDeferred calls each deferred function in the unit-of-work.
+func (w *unitOfWork) invokeDeferred(err error) {
+	for i := len(w.deferred) - 1; i >= 0; i-- {
+		w.deferred[i](w.result, err)
 	}
 }

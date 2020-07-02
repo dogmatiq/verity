@@ -49,7 +49,8 @@ var _ = Describe("type QueueConsumer", func() {
 		consumer = &QueueConsumer{
 			Queue: mqueue,
 			EntryPoint: &EntryPoint{
-				Handler: handler,
+				Handler:   handler,
+				OnSuccess: func(Result) {},
 			},
 			Persister:       dataStore,
 			BackoffStrategy: backoff.Constant(1 * time.Millisecond), // use a small but non-zero backoff to make the tests predictable

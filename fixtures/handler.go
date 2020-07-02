@@ -34,7 +34,7 @@ type UnitOfWorkStub struct {
 	Events     []parcel.Parcel
 	Timeouts   []parcel.Parcel
 	Operations []persistence.Operation
-	Observers  []handler.Observer
+	Deferred   []handler.DeferFunc
 }
 
 // ExecuteCommand updates the unit-of-work to execute the command in p.
@@ -57,22 +57,24 @@ func (w *UnitOfWorkStub) Do(op persistence.Operation) {
 	w.Operations = append(w.Operations, op)
 }
 
-// Observe adds an observer to be notified when the unit-of-work is complete.
-func (w *UnitOfWorkStub) Observe(obs handler.Observer) {
-	w.Observers = append(w.Observers, obs)
+// Defer registers fn to be called when the unit-of-work is complete.
+func (w *UnitOfWorkStub) Defer(fn handler.DeferFunc) {
+	w.Deferred = append(w.Deferred, fn)
 }
 
-// Succeed notifies the unit-of-work's observers of successful completion.
+// Succeed invokes the unit-of-work's deferred functions with the given result.
 func (w *UnitOfWorkStub) Succeed(res handler.Result) {
-	for _, obs := range w.Observers {
-		obs(res, nil)
-	}
+	w.invokeDeferred(res, nil)
 }
 
-// Fail notifies the unit-of-work's observers of an error.
+// Fail invokes the unit-of-work's deferred functions with the given error.
 func (w *UnitOfWorkStub) Fail(err error) {
-	for _, obs := range w.Observers {
-		obs(handler.Result{}, err)
+	w.invokeDeferred(handler.Result{}, err)
+}
+
+func (w *UnitOfWorkStub) invokeDeferred(res handler.Result, err error) {
+	for i := len(w.Deferred) - 1; i >= 0; i-- {
+		w.Deferred[i](res, err)
 	}
 }
 
