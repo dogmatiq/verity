@@ -199,13 +199,9 @@ func (e *Engine) newEntryPoint(
 	return &handler.EntryPoint{
 		QueueEvents: nil,
 		Handler:     hf.handler,
-		Observers: []handler.Observer{
-			func(r handler.Result, err error) {
-				if err == nil {
-					c.Add(r.Events)
-					q.Add(r.Queued)
-				}
-			},
+		OnSuccess: func(r handler.Result) {
+			c.Add(r.Events)
+			q.Add(r.Queued)
 		},
 	}
 }

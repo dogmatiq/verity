@@ -36,6 +36,7 @@ var _ = Describe("type EntryPoint", func() {
 		entryPoint = &EntryPoint{
 			QueueEvents: message.TypesOf(MessageQ{}),
 			Handler:     handler,
+			OnSuccess:   func(Result) {},
 		}
 	})
 
@@ -199,23 +200,19 @@ var _ = Describe("type EntryPoint", func() {
 				Expect(called).To(BeTrue())
 			})
 
-			It("notifies the entry point's observers", func() {
+			It("invokes the on-success function", func() {
 				called := false
-				entryPoint.Observers = append(
-					entryPoint.Observers,
-					func(res Result, err error) {
-						called = true
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(res).To(EqualX(expectedResult))
-					},
-				)
+				entryPoint.OnSuccess = func(res Result) {
+					called = true
+					Expect(res).To(EqualX(expectedResult))
+				}
 
 				err := entryPoint.HandleMessage(context.Background(), ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(called).To(BeTrue())
 			})
 
-			It("notifies the unit-of-work's observers", func() {
+			It("invokes the unit-of-work's deferred functions", func() {
 				called := false
 				next := handler.HandleMessageFunc
 				handler.HandleMessageFunc = func(
@@ -223,7 +220,7 @@ var _ = Describe("type EntryPoint", func() {
 					w UnitOfWork,
 					p parcel.Parcel,
 				) error {
-					w.Observe(func(res Result, err error) {
+					w.Defer(func(res Result, err error) {
 						called = true
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(res).To(EqualX(expectedResult))
@@ -248,29 +245,23 @@ var _ = Describe("type EntryPoint", func() {
 				}
 			})
 
-			It("notifies the entry point's observers", func() {
-				called := false
-				entryPoint.Observers = append(
-					entryPoint.Observers,
-					func(_ Result, err error) {
-						called = true
-						Expect(err).To(MatchError("<error>"))
-					},
-				)
+			It("does not invoke the on-success function", func() {
+				entryPoint.OnSuccess = func(Result) {
+					Fail("unexpected call")
+				}
 
 				err := entryPoint.HandleMessage(context.Background(), ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(called).To(BeTrue())
 			})
 
-			It("notifies the unit-of-work's observers", func() {
+			It("invokes the unit-of-work's deferred functions", func() {
 				called := false
 				handler.HandleMessageFunc = func(
 					_ context.Context,
 					w UnitOfWork,
 					_ parcel.Parcel,
 				) error {
-					w.Observe(func(_ Result, err error) {
+					w.Defer(func(_ Result, err error) {
 						called = true
 						Expect(err).To(MatchError("<error>"))
 					})
@@ -335,29 +326,23 @@ var _ = Describe("type EntryPoint", func() {
 				}
 			})
 
-			It("notifies the entry point's observers", func() {
-				called := false
-				entryPoint.Observers = append(
-					entryPoint.Observers,
-					func(_ Result, err error) {
-						called = true
-						Expect(err).To(MatchError("<error>"))
-					},
-				)
+			It("does not invoke the on-success function", func() {
+				entryPoint.OnSuccess = func(Result) {
+					Fail("unexpected call")
+				}
 
 				err := entryPoint.HandleMessage(context.Background(), ack, cause)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(called).To(BeTrue())
 			})
 
-			It("notifies the unit-of-work's observers", func() {
+			It("invokes the unit-of-work's deferred functions", func() {
 				called := false
 				handler.HandleMessageFunc = func(
 					_ context.Context,
 					w UnitOfWork,
 					_ parcel.Parcel,
 				) error {
-					w.Observe(func(_ Result, err error) {
+					w.Defer(func(_ Result, err error) {
 						called = true
 						Expect(err).To(MatchError("<error>"))
 					})
