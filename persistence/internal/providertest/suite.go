@@ -57,6 +57,7 @@ func Declare(
 		declareOffsetOperationTests(&tc)
 		declareOffsetRepositoryTests(&tc)
 
+		declareProcessOperationTests(&tc)
 		declareProcessRepositoryTests(&tc)
 
 		declareProviderTests(&tc)

@@ -9,10 +9,10 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// declareAggregateOperationTests declares a functional test-suite for
-// persistence operations related to aggregates.
-func declareAggregateOperationTests(tc *TestContext) {
-	ginkgo.Context("aggregate operations", func() {
+// declareProcessOperationTests declares a functional test-suite for
+// persistence operations related to processes.
+func declareProcessOperationTests(tc *TestContext) {
+	ginkgo.Context("process operations", func() {
 		var (
 			dataStore persistence.DataStore
 			tearDown  func()
@@ -26,27 +26,27 @@ func declareAggregateOperationTests(tc *TestContext) {
 			tearDown()
 		})
 
-		ginkgo.Describe("type persistence.SaveAggregateMetaData", func() {
+		ginkgo.Describe("type persistence.SaveProcessInstance", func() {
 			ginkgo.When("the instance does not exist", func() {
-				ginkgo.It("saves the meta-data with a revision of 1", func() {
+				ginkgo.It("saves the instance with a revision of 1", func() {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveAggregateMetaData{
-							MetaData: persistence.AggregateMetaData{
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 							},
 						},
 					)
 
-					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
-					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(1))
+					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					gomega.Expect(inst.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
-				ginkgo.It("does not save the meta-data when an OCC conflict occurs", func() {
-					op := persistence.SaveAggregateMetaData{
-						MetaData: persistence.AggregateMetaData{
+				ginkgo.It("does not save the instance when an OCC conflict occurs", func() {
+					op := persistence.SaveProcessInstance{
+						Instance: persistence.ProcessInstance{
 							HandlerKey: "<handler-key>",
 							InstanceID: "<instance>",
 							Revision:   123,
@@ -63,9 +63,9 @@ func declareAggregateOperationTests(tc *TestContext) {
 						},
 					))
 
-					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
-					gomega.Expect(md).To(gomega.Equal(
-						persistence.AggregateMetaData{
+					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					gomega.Expect(inst).To(gomega.Equal(
+						persistence.ProcessInstance{
 							HandlerKey: "<handler-key>",
 							InstanceID: "<instance>",
 							Revision:   0,
@@ -79,8 +79,8 @@ func declareAggregateOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveAggregateMetaData{
-							MetaData: persistence.AggregateMetaData{
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 							},
@@ -92,8 +92,8 @@ func declareAggregateOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.SaveAggregateMetaData{
-							MetaData: persistence.AggregateMetaData{
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 								Revision:   1,
@@ -101,12 +101,12 @@ func declareAggregateOperationTests(tc *TestContext) {
 						},
 					)
 
-					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
-					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
+					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					gomega.Expect(inst.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
 				table.DescribeTable(
-					"it does not save the meta-data when an OCC conflict occurs",
+					"it does not save the instance when an OCC conflict occurs",
 					func(conflictingRevision int) {
 						// Increment the revision once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
@@ -114,8 +114,8 @@ func declareAggregateOperationTests(tc *TestContext) {
 						persist(
 							tc.Context,
 							dataStore,
-							persistence.SaveAggregateMetaData{
-								MetaData: persistence.AggregateMetaData{
+							persistence.SaveProcessInstance{
+								Instance: persistence.ProcessInstance{
 									HandlerKey: "<handler-key>",
 									InstanceID: "<instance>",
 									Revision:   1,
@@ -123,8 +123,8 @@ func declareAggregateOperationTests(tc *TestContext) {
 							},
 						)
 
-						op := persistence.SaveAggregateMetaData{
-							MetaData: persistence.AggregateMetaData{
+						op := persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 								Revision:   uint64(conflictingRevision),
@@ -141,9 +141,9 @@ func declareAggregateOperationTests(tc *TestContext) {
 							},
 						))
 
-						md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
-						gomega.Expect(md).To(gomega.Equal(
-							persistence.AggregateMetaData{
+						inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+						gomega.Expect(inst).To(gomega.Equal(
+							persistence.ProcessInstance{
 								HandlerKey: "<handler-key>",
 								InstanceID: "<instance>",
 								Revision:   2,
@@ -167,8 +167,8 @@ func declareAggregateOperationTests(tc *TestContext) {
 						persist(
 							tc.Context,
 							dataStore,
-							persistence.SaveAggregateMetaData{
-								MetaData: persistence.AggregateMetaData{
+							persistence.SaveProcessInstance{
+								Instance: persistence.ProcessInstance{
 									HandlerKey: hk,
 									InstanceID: id,
 									Revision:   i,
@@ -185,27 +185,27 @@ func declareAggregateOperationTests(tc *TestContext) {
 				go fn("<handler-key-2>", "<instance-a>", 3)
 				g.Wait()
 
-				md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key-1>", "<instance-a>")
-				gomega.Expect(md).To(gomega.Equal(
-					persistence.AggregateMetaData{
+				inst := loadProcessInstance(tc.Context, dataStore, "<handler-key-1>", "<instance-a>")
+				gomega.Expect(inst).To(gomega.Equal(
+					persistence.ProcessInstance{
 						HandlerKey: "<handler-key-1>",
 						InstanceID: "<instance-a>",
 						Revision:   1,
 					},
 				))
 
-				md = loadAggregateMetaData(tc.Context, dataStore, "<handler-key-1>", "<instance-b>")
-				gomega.Expect(md).To(gomega.Equal(
-					persistence.AggregateMetaData{
+				inst = loadProcessInstance(tc.Context, dataStore, "<handler-key-1>", "<instance-b>")
+				gomega.Expect(inst).To(gomega.Equal(
+					persistence.ProcessInstance{
 						HandlerKey: "<handler-key-1>",
 						InstanceID: "<instance-b>",
 						Revision:   2,
 					},
 				))
 
-				md = loadAggregateMetaData(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
-				gomega.Expect(md).To(gomega.Equal(
-					persistence.AggregateMetaData{
+				inst = loadProcessInstance(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
+				gomega.Expect(inst).To(gomega.Equal(
+					persistence.ProcessInstance{
 						HandlerKey: "<handler-key-2>",
 						InstanceID: "<instance-a>",
 						Revision:   3,
