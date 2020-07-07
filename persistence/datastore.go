@@ -18,6 +18,7 @@ type DataStore interface {
 	AggregateRepository
 	EventRepository
 	OffsetRepository
+	ProcessRepository
 	QueueRepository
 
 	Persister
