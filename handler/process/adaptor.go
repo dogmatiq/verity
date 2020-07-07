@@ -177,6 +177,7 @@ func (a *Adaptor) load(
 			ctx,
 			a.Identity.Key,
 			id,
+			mustNew(a.Handler),
 		)
 		if err != nil {
 			return nil, err

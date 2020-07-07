@@ -29,6 +29,7 @@ type Loader struct {
 func (l *Loader) Load(
 	ctx context.Context,
 	hk, id string,
+	base dogma.ProcessRoot,
 ) (*Instance, error) {
 	persisted, err := l.Repository.LoadProcessInstance(ctx, hk, id)
 	if err != nil {
@@ -39,7 +40,9 @@ func (l *Loader) Load(
 		ProcessInstance: persisted,
 	}
 
-	if len(persisted.Packet.Data) == 0 {
+	if inst.Revision == 0 {
+		inst.Root = base
+	} else if len(persisted.Packet.Data) == 0 {
 		inst.Root = dogma.StatelessAggregateRoot
 		return inst, nil
 	}
