@@ -14,6 +14,7 @@ import (
 	"github.com/dogmatiq/infix/internal/mlog"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/infix/queue"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -34,6 +35,9 @@ type Adaptor struct {
 
 	// Cache is an in-memory cache of process instances.
 	Cache cache.Cache
+
+	// Queue is the message queue that stores pending timeout messages.
+	Queue *queue.Queue
 
 	// Packer is used to create new parcels for messages produced by the
 	// handler.
@@ -106,6 +110,12 @@ func (a *Adaptor) HandleMessage(
 	if exists {
 		w.Do(persistence.RemoveProcessInstance{
 			Instance: inst.ProcessInstance,
+		})
+
+		w.Defer(func(_ handler.Result, err error) {
+			if err == nil {
+				a.Queue.RemoveTimeoutsByProcessID(a.Identity.GetKey(), id)
+			}
 		})
 
 		a.Cache.Discard(rec)
