@@ -458,7 +458,7 @@ func declareQueueOperationTests(tc *TestContext) {
 			})
 		})
 
-		ginkgo.It("serializes operations from competing transactions", func() {
+		ginkgo.It("serializes operations from concurrent persist calls", func() {
 			m0 := persistence.QueueMessage{
 				NextAttemptAt: now,
 				Envelope:      env0,

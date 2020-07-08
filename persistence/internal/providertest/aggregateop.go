@@ -108,7 +108,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 				table.DescribeTable(
 					"it does not save the meta-data when an OCC conflict occurs",
 					func(conflictingRevision int) {
-						// Increment the revision once more so that it's up to
+						// Increment the meta-data once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
 						persist(

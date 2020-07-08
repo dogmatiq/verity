@@ -2,8 +2,13 @@ package providertest
 
 import (
 	"sync"
+	"time"
 
+	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/marshalkit"
+	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -108,7 +113,7 @@ func declareProcessOperationTests(tc *TestContext) {
 				table.DescribeTable(
 					"it does not save the instance when an OCC conflict occurs",
 					func(conflictingRevision int) {
-						// Increment the revision once more so that it's up to
+						// Increment the instance once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
 						persist(
@@ -155,63 +160,306 @@ func declareProcessOperationTests(tc *TestContext) {
 					table.Entry("too high", 100),
 				)
 			})
+		})
 
-			ginkgo.It("serializes operations from concurrent persist calls", func() {
-				var g sync.WaitGroup
+		ginkgo.Describe("type persistence.RemoveProcessInstance", func() {
+			ginkgo.When("the instance exists", func() {
+				ginkgo.BeforeEach(func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Packet: marshalkit.Packet{
+									MediaType: "<media-type>",
+									Data:      []byte("<data>"),
+								},
+							},
+						},
+					)
+				})
 
-				fn := func(hk, id string, count uint64) {
-					defer ginkgo.GinkgoRecover()
-					defer g.Done()
+				ginkgo.It("removes the instance", func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.RemoveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   1,
+							},
+						},
+					)
 
-					for i := uint64(0); i < count; i++ {
+					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					gomega.Expect(inst).To(gomega.Equal(
+						persistence.ProcessInstance{
+							HandlerKey: "<handler-key>",
+							InstanceID: "<instance>",
+						},
+					))
+				})
+
+				ginkgo.It("removes the timeout messages for the removed instance only", func() {
+					now := time.Now()
+
+					m0 := persistence.QueueMessage{
+						NextAttemptAt: now,
+						Envelope:      infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageT1, time.Now(), time.Now()),
+					}
+
+					m1 := persistence.QueueMessage{
+						NextAttemptAt: now.Add(1 * time.Hour),
+						Envelope:      infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageT1, time.Now(), time.Now()),
+					}
+					m1.Envelope.SourceInstanceId = "<other-instance>"
+
+					m2 := persistence.QueueMessage{
+						NextAttemptAt: now.Add(2 * time.Hour),
+						Envelope:      infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageT1, time.Now(), time.Now()),
+					}
+
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveQueueMessage{
+							Message: m0,
+						},
+						persistence.SaveQueueMessage{
+							Message: m1,
+						},
+						persistence.SaveQueueMessage{
+							Message: m2,
+						},
+					)
+
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.RemoveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   1,
+							},
+						},
+					)
+
+					messages := loadQueueMessages(tc.Context, dataStore, 3)
+					gomega.Expect(messages).To(gomegax.EqualX(
+						[]persistence.QueueMessage{
+							m0,
+							m2,
+						},
+					))
+				})
+
+				table.DescribeTable(
+					"it does not remove the instance when an OCC conflict occurs",
+					func(conflictingRevision int) {
+						// Update the instance once more so that it's up to
+						// revision 2. Otherwise we can't test for 1 as a
+						// too-low value.
 						persist(
 							tc.Context,
 							dataStore,
 							persistence.SaveProcessInstance{
 								Instance: persistence.ProcessInstance{
-									HandlerKey: hk,
-									InstanceID: id,
-									Revision:   i,
+									HandlerKey: "<handler-key>",
+									InstanceID: "<instance>",
+									Revision:   1,
 								},
 							},
 						)
-					}
-				}
 
-				// Note the overlap of handler keys and instance IDs.
-				g.Add(3)
-				go fn("<handler-key-1>", "<instance-a>", 1)
-				go fn("<handler-key-1>", "<instance-b>", 2)
-				go fn("<handler-key-2>", "<instance-a>", 3)
-				g.Wait()
+						op := persistence.RemoveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   uint64(conflictingRevision),
+							},
+						}
 
-				inst := loadProcessInstance(tc.Context, dataStore, "<handler-key-1>", "<instance-a>")
-				gomega.Expect(inst).To(gomega.Equal(
-					persistence.ProcessInstance{
-						HandlerKey: "<handler-key-1>",
-						InstanceID: "<instance-a>",
-						Revision:   1,
+						_, err := dataStore.Persist(
+							tc.Context,
+							persistence.Batch{op},
+						)
+						gomega.Expect(err).To(gomega.Equal(
+							persistence.ConflictError{
+								Cause: op,
+							},
+						))
+
+						inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+						gomega.Expect(inst).To(gomega.Equal(
+							persistence.ProcessInstance{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   2,
+							},
+						))
 					},
-				))
-
-				inst = loadProcessInstance(tc.Context, dataStore, "<handler-key-1>", "<instance-b>")
-				gomega.Expect(inst).To(gomega.Equal(
-					persistence.ProcessInstance{
-						HandlerKey: "<handler-key-1>",
-						InstanceID: "<instance-b>",
-						Revision:   2,
-					},
-				))
-
-				inst = loadProcessInstance(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
-				gomega.Expect(inst).To(gomega.Equal(
-					persistence.ProcessInstance{
-						HandlerKey: "<handler-key-2>",
-						InstanceID: "<instance-a>",
-						Revision:   3,
-					},
-				))
+					table.Entry("zero", 0),
+					table.Entry("too low", 1),
+					table.Entry("too high", 100),
+				)
 			})
+
+			ginkgo.When("the instance does not exist", func() {
+				table.DescribeTable(
+					"returns an OCC conflict error",
+					func(conflictingRevision int) {
+						op := persistence.RemoveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Revision:   uint64(conflictingRevision),
+							},
+						}
+
+						_, err := dataStore.Persist(
+							tc.Context,
+							persistence.Batch{op},
+						)
+						gomega.Expect(err).To(gomega.Equal(
+							persistence.ConflictError{
+								Cause: op,
+							},
+						))
+
+						inst := loadProcessInstance(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
+						gomega.Expect(inst.Revision).To(
+							gomega.BeEquivalentTo(0),
+							"removal of non-existent process instance caused it to exist",
+						)
+					},
+					table.Entry("zero", 0),
+					table.Entry("non-zero", 100),
+				)
+			})
+		})
+
+		ginkgo.It("serializes operations from concurrent persist calls", func() {
+			// Note the overlap of handler keys and instance IDs.
+
+			i0 := persistence.ProcessInstance{
+				HandlerKey: "<handler-key-1>",
+				InstanceID: "<instance-a>",
+			}
+
+			i1 := persistence.ProcessInstance{
+				HandlerKey: "<handler-key-1>",
+				InstanceID: "<instance-b>",
+			}
+
+			i2 := persistence.ProcessInstance{
+				HandlerKey: "<handler-key-2>",
+				InstanceID: "<instance-a>",
+			}
+
+			persist(
+				tc.Context,
+				dataStore,
+				persistence.SaveProcessInstance{
+					Instance: i0,
+				},
+				persistence.SaveProcessInstance{
+					Instance: i1,
+				},
+			)
+
+			i0.Revision++
+			i1.Revision++
+
+			var g sync.WaitGroup
+			g.Add(3)
+
+			// create
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				defer g.Done()
+
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.SaveProcessInstance{
+						Instance: i2,
+					},
+				)
+
+				i2.Revision++
+			}()
+
+			// update
+			i1.Packet = marshalkit.Packet{
+				MediaType: "<media-type>",
+				Data:      []byte("<data>"),
+			}
+
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				defer g.Done()
+
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.SaveProcessInstance{
+						Instance: i1,
+					},
+				)
+
+				i1.Revision++
+			}()
+
+			// remove
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				defer g.Done()
+
+				persist(
+					tc.Context,
+					dataStore,
+					persistence.RemoveProcessInstance{
+						Instance: i0,
+					},
+				)
+			}()
+
+			g.Wait()
+
+			inst := loadProcessInstance(tc.Context, dataStore, "<handler-key-1>", "<instance-a>")
+			gomega.Expect(inst).To(gomega.Equal(
+				persistence.ProcessInstance{
+					HandlerKey: "<handler-key-1>",
+					InstanceID: "<instance-a>",
+					Revision:   0,
+				},
+			))
+
+			inst = loadProcessInstance(tc.Context, dataStore, "<handler-key-1>", "<instance-b>")
+			gomega.Expect(inst).To(gomega.Equal(
+				persistence.ProcessInstance{
+					HandlerKey: "<handler-key-1>",
+					InstanceID: "<instance-b>",
+					Revision:   2,
+					Packet: marshalkit.Packet{
+						MediaType: "<media-type>",
+						Data:      []byte("<data>"),
+					},
+				},
+			))
+
+			inst = loadProcessInstance(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
+			gomega.Expect(inst).To(gomega.Equal(
+				persistence.ProcessInstance{
+					HandlerKey: "<handler-key-2>",
+					InstanceID: "<instance-a>",
+					Revision:   1,
+				},
+			))
 		})
 	})
 }
