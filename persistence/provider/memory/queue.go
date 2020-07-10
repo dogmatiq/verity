@@ -159,7 +159,7 @@ func (c *committer) VisitRemoveQueueMessage(
 
 	// Use a binary search to find the index of the first message with the same
 	// next-attempt time as the message we're trying to remove.
-	start := sort.Search(
+	i := sort.Search(
 		len(c.db.queue.order),
 		func(i int) bool {
 			return !c.db.queue.order[i].NextAttemptAt.Before(
@@ -171,8 +171,8 @@ func (c *committer) VisitRemoveQueueMessage(
 	// Then scan through the slice from that index to find the specific message.
 	// It's probably the message at the start index, but more than one message
 	// may have the same next-attempt time.
-	for i, m := range c.db.queue.order[start:] {
-		if m.ID() == op.Message.ID() {
+	for ; i < len(c.db.queue.order); i++ {
+		if c.db.queue.order[i].ID() == op.Message.ID() {
 			c.db.queue.order = append(
 				c.db.queue.order[:i],
 				c.db.queue.order[i+1:]...,
