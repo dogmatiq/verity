@@ -16,7 +16,8 @@ func (ds *dataStore) LoadAggregateMetaData(
 	ds.db.mutex.RLock()
 	defer ds.db.mutex.RUnlock()
 
-	if md, ok := ds.db.aggregate.metadata[hk][id]; ok {
+	key := instanceKey{hk, id}
+	if md, ok := ds.db.aggregate.metadata[key]; ok {
 		return md, nil
 	}
 
@@ -28,7 +29,7 @@ func (ds *dataStore) LoadAggregateMetaData(
 
 // aggregateDatabase contains aggregate related data.
 type aggregateDatabase struct {
-	metadata map[string]map[string]persistence.AggregateMetaData
+	metadata map[instanceKey]persistence.AggregateMetaData
 }
 
 // VisitSaveAggregateMetaData returns an error if a "SaveAggregateMetaData"
@@ -38,7 +39,8 @@ func (v *validator) VisitSaveAggregateMetaData(
 	op persistence.SaveAggregateMetaData,
 ) error {
 	new := op.MetaData
-	old := v.db.aggregate.metadata[new.HandlerKey][new.InstanceID]
+	key := instanceKey{new.HandlerKey, new.InstanceID}
+	old := v.db.aggregate.metadata[key]
 
 	if new.Revision == old.Revision {
 		return nil
@@ -56,20 +58,14 @@ func (c *committer) VisitSaveAggregateMetaData(
 	op persistence.SaveAggregateMetaData,
 ) error {
 	md := op.MetaData
-	instances := c.db.aggregate.metadata[md.HandlerKey]
+	key := instanceKey{md.HandlerKey, md.InstanceID}
 
-	if instances == nil {
-		instances = map[string]persistence.AggregateMetaData{}
-
-		if c.db.aggregate.metadata == nil {
-			c.db.aggregate.metadata = map[string]map[string]persistence.AggregateMetaData{}
-		}
-
-		c.db.aggregate.metadata[md.HandlerKey] = instances
+	if c.db.aggregate.metadata == nil {
+		c.db.aggregate.metadata = map[instanceKey]persistence.AggregateMetaData{}
 	}
 
 	md.Revision++
-	instances[md.InstanceID] = md
+	c.db.aggregate.metadata[key] = md
 
 	return nil
 }
