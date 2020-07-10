@@ -27,11 +27,6 @@ func (ds *dataStore) LoadAggregateMetaData(
 	}, nil
 }
 
-// aggregateDatabase contains aggregate related data.
-type aggregateDatabase struct {
-	metadata map[instanceKey]persistence.AggregateMetaData
-}
-
 // VisitSaveAggregateMetaData returns an error if a "SaveAggregateMetaData"
 // operation can not be applied to the database.
 func (v *validator) VisitSaveAggregateMetaData(
@@ -57,15 +52,23 @@ func (c *committer) VisitSaveAggregateMetaData(
 	_ context.Context,
 	op persistence.SaveAggregateMetaData,
 ) error {
-	md := op.MetaData
+	c.db.aggregate.save(op.MetaData)
+	return nil
+}
+
+// aggregateDatabase contains aggregate related data.
+type aggregateDatabase struct {
+	metadata map[instanceKey]persistence.AggregateMetaData
+}
+
+// save stores md in the database.
+func (db *aggregateDatabase) save(md persistence.AggregateMetaData) {
 	key := instanceKey{md.HandlerKey, md.InstanceID}
 
-	if c.db.aggregate.metadata == nil {
-		c.db.aggregate.metadata = map[instanceKey]persistence.AggregateMetaData{}
+	if db.metadata == nil {
+		db.metadata = map[instanceKey]persistence.AggregateMetaData{}
 	}
 
 	md.Revision++
-	c.db.aggregate.metadata[key] = md
-
-	return nil
+	db.metadata[key] = md
 }
