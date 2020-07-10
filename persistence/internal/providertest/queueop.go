@@ -334,6 +334,45 @@ func declareQueueOperationTests(tc *TestContext) {
 					)
 				})
 
+				ginkgo.It("maintains the correct queue order when removing a message that is not at the head of the queue", func() {
+					ginkgo.By("placing env1 and env2 after env0 in the queue")
+
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
+								NextAttemptAt: now.Add(1 * time.Hour),
+								Envelope:      env1,
+							},
+						},
+						persistence.SaveQueueMessage{
+							Message: persistence.QueueMessage{
+								NextAttemptAt: now.Add(2 * time.Hour),
+								Envelope:      env2,
+							},
+						},
+					)
+
+					ginkgo.By("removing env1 from the queue")
+
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.RemoveQueueMessage{
+							Message: persistence.QueueMessage{
+								Revision: 1,
+								Envelope: env1,
+							},
+						},
+					)
+
+					messages := loadQueueMessages(tc.Context, dataStore, 3)
+					gomega.Expect(messages).To(gomega.HaveLen(2))
+					gomega.Expect(messages[0].Envelope).To(gomegax.EqualX(env0))
+					gomega.Expect(messages[1].Envelope).To(gomegax.EqualX(env2))
+				})
+
 				table.DescribeTable(
 					"it does not remove the message when an OCC conflict occurs",
 					func(conflictingRevision int) {
