@@ -235,6 +235,9 @@ func declareProcessOperationTests(tc *TestContext) {
 							Message: m2,
 						},
 					)
+					m0.Revision++
+					m1.Revision++
+					m2.Revision++
 
 					persist(
 						tc.Context,
@@ -251,8 +254,7 @@ func declareProcessOperationTests(tc *TestContext) {
 					messages := loadQueueMessages(tc.Context, dataStore, 3)
 					gomega.Expect(messages).To(gomegax.EqualX(
 						[]persistence.QueueMessage{
-							m0,
-							m2,
+							m1,
 						},
 					))
 				})
