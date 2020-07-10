@@ -16,6 +16,7 @@ type database struct {
 	aggregate aggregateDatabase
 	event     eventDatabase
 	offset    offsetDatabase
+	process   processDatabase
 	queue     queueDatabase
 }
 
