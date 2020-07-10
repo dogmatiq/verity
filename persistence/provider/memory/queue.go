@@ -34,12 +34,6 @@ func (ds *dataStore) LoadQueueMessages(
 	return messages, nil
 }
 
-// queueDatabase contains message queue data.
-type queueDatabase struct {
-	order    []*persistence.QueueMessage
-	messages map[string]*persistence.QueueMessage
-}
-
 // VisitSaveQueueMessage returns an error if a "SaveQueueMessage" operation can
 // not be applied to the database.
 func (v *validator) VisitSaveQueueMessage(
@@ -83,69 +77,11 @@ func (c *committer) VisitSaveQueueMessage(
 	op persistence.SaveQueueMessage,
 ) error {
 	if op.Message.Revision == 0 {
-		c.insertQueueMessage(op)
+		c.db.queue.insert(&op.Message)
 	} else {
-		c.updateQueueMessage(op)
+		c.db.queue.update(&op.Message)
 	}
 	return nil
-}
-
-// insertQueueMessage inserts a new message into the queue.
-func (c *committer) insertQueueMessage(op persistence.SaveQueueMessage) {
-	m := op.Message
-	m.Envelope = cloneEnvelope(m.Envelope)
-	m.Revision++
-
-	// Add the new message to the queue.
-	if c.db.queue.messages == nil {
-		c.db.queue.messages = map[string]*persistence.QueueMessage{}
-	}
-	c.db.queue.messages[m.ID()] = &m
-
-	// Find the index in the ordered queue where the message belongs. It's the
-	// index of the first message that has a NextAttemptedAt greater than
-	// that of the new message.
-	index := sort.Search(
-		len(c.db.queue.order),
-		func(i int) bool {
-			return op.Message.NextAttemptAt.Before(
-				c.db.queue.order[i].NextAttemptAt,
-			)
-		},
-	)
-
-	// Expand the size of the queue.
-	c.db.queue.order = append(c.db.queue.order, nil)
-
-	// Shift lower-priority messages further back to make space for the new one.
-	copy(c.db.queue.order[index+1:], c.db.queue.order[index:])
-
-	// Insert the new message at it's sorted index.
-	c.db.queue.order[index] = &m
-}
-
-// updateQueueMessage updates an existing message.
-func (c *committer) updateQueueMessage(op persistence.SaveQueueMessage) {
-	existing := c.db.queue.messages[op.Message.ID()]
-
-	// Apply the changes to the database, ensuring that the envelope is never
-	// changed.
-	env := existing.Envelope
-	*existing = op.Message
-	existing.Envelope = env
-	existing.Revision++
-
-	// Queue messages are typically updated after an error, when their
-	// next-attempt time is updated as per the backoff strategy, so in practice
-	// we always need to sort.
-	sort.Slice(
-		c.db.queue.order,
-		func(i, j int) bool {
-			return c.db.queue.order[i].NextAttemptAt.Before(
-				c.db.queue.order[j].NextAttemptAt,
-			)
-		},
-	)
 }
 
 // VisitRemoveQueueMessage applies the changes in a "RemoveQueueMessage"
@@ -154,16 +90,109 @@ func (c *committer) VisitRemoveQueueMessage(
 	ctx context.Context,
 	op persistence.RemoveQueueMessage,
 ) error {
-	existing := c.db.queue.messages[op.Message.ID()]
-	delete(c.db.queue.messages, op.Message.ID())
+	c.db.queue.remove(op.Message.ID())
+	return nil
+}
 
+// queueDatabase contains message queue data.
+type queueDatabase struct {
+	order    []*persistence.QueueMessage
+	messages map[string]*persistence.QueueMessage
+	timeouts map[instanceKey]map[string]*persistence.QueueMessage
+}
+
+// insert inserts a new message into the queue.
+func (db *queueDatabase) insert(m *persistence.QueueMessage) {
+	m.Envelope = cloneEnvelope(m.Envelope)
+	m.Revision++
+
+	// Add the new message to the queue.
+	if db.messages == nil {
+		db.messages = map[string]*persistence.QueueMessage{}
+	}
+	db.messages[m.ID()] = m
+
+	db.addToOrderIndex(m)
+	db.addToTimeoutIndex(m)
+}
+
+// update updates an existing message.
+func (db *queueDatabase) update(m *persistence.QueueMessage) {
+	existing := db.messages[m.ID()]
+
+	// Apply the changes to the database, ensuring that the envelope is never
+	// changed.
+	env := existing.Envelope
+	*existing = *m
+	existing.Envelope = env
+	existing.Revision++
+
+	// Queue messages are typically updated after an error, when their
+	// next-attempt time is updated as per the backoff strategy, so in practice
+	// we always need to sort.
+	sort.Slice(
+		db.order,
+		func(i, j int) bool {
+			return db.order[i].NextAttemptAt.Before(
+				db.order[j].NextAttemptAt,
+			)
+		},
+	)
+}
+
+// remove removes the message with the given id from the queue.
+func (db *queueDatabase) remove(id string) {
+	m := db.messages[id]
+	delete(db.messages, id)
+
+	db.removeFromOrderIndex(m)
+	db.removeFromTimeoutIndex(m)
+}
+
+// remove removes all timeout messages produced by a specific process instance.
+func (db *queueDatabase) removeTimeoutsByProcessInstance(key instanceKey) {
+	timeouts := db.timeouts[key]
+	delete(db.timeouts, key)
+
+	for id, m := range timeouts {
+		delete(db.messages, id)
+		db.removeFromOrderIndex(m)
+	}
+}
+
+// addToOrderIndex adds m to the db.order index.
+func (db *queueDatabase) addToOrderIndex(m *persistence.QueueMessage) {
+	// Find the index in the ordered queue where the message belongs. It's the
+	// index of the first message that has a NextAttemptedAt greater than
+	// that of the new message.
+	index := sort.Search(
+		len(db.order),
+		func(i int) bool {
+			return m.NextAttemptAt.Before(
+				db.order[i].NextAttemptAt,
+			)
+		},
+	)
+
+	// Expand the size of the queue.
+	db.order = append(db.order, nil)
+
+	// Shift lower-priority messages further back to make space for the new one.
+	copy(db.order[index+1:], db.order[index:])
+
+	// Insert the new message at it's sorted index.
+	db.order[index] = m
+}
+
+// removeFromOrderIndex removes m from the db.order index.
+func (db *queueDatabase) removeFromOrderIndex(m *persistence.QueueMessage) {
 	// Use a binary search to find the index of the first message with the same
 	// next-attempt time as the message we're trying to remove.
 	i := sort.Search(
-		len(c.db.queue.order),
+		len(db.order),
 		func(i int) bool {
-			return !c.db.queue.order[i].NextAttemptAt.Before(
-				existing.NextAttemptAt,
+			return !db.order[i].NextAttemptAt.Before(
+				m.NextAttemptAt,
 			)
 		},
 	)
@@ -171,15 +200,58 @@ func (c *committer) VisitRemoveQueueMessage(
 	// Then scan through the slice from that index to find the specific message.
 	// It's probably the message at the start index, but more than one message
 	// may have the same next-attempt time.
-	for ; i < len(c.db.queue.order); i++ {
-		if c.db.queue.order[i].ID() == op.Message.ID() {
-			c.db.queue.order = append(
-				c.db.queue.order[:i],
-				c.db.queue.order[i+1:]...,
+	for ; i < len(db.order); i++ {
+		if db.order[i].ID() == m.ID() {
+			db.order = append(
+				db.order[:i],
+				db.order[i+1:]...,
 			)
 			break
 		}
 	}
+}
 
-	return nil
+// addToTimeoutIndex adds m to the db.timeouts index, if it is a timeout
+// message.
+func (db *queueDatabase) addToTimeoutIndex(m *persistence.QueueMessage) {
+	if m.Envelope.GetScheduledFor() == "" {
+		return
+	}
+
+	key := instanceKey{
+		m.Envelope.GetSourceHandler().GetKey(),
+		m.Envelope.GetSourceInstanceId(),
+	}
+
+	if db.timeouts == nil {
+		db.timeouts = map[instanceKey]map[string]*persistence.QueueMessage{}
+	}
+
+	timeouts := db.timeouts[key]
+
+	if timeouts == nil {
+		timeouts = map[string]*persistence.QueueMessage{}
+		db.timeouts[key] = timeouts
+	}
+
+	timeouts[m.ID()] = m
+}
+
+// removeFromTimeoutIndex removes m from the db.timeouts index.
+func (db *queueDatabase) removeFromTimeoutIndex(m *persistence.QueueMessage) {
+	if m.Envelope.GetScheduledFor() == "" {
+		return
+	}
+
+	key := instanceKey{
+		m.Envelope.GetSourceHandler().GetKey(),
+		m.Envelope.GetSourceInstanceId(),
+	}
+
+	timeouts := db.timeouts[key]
+	delete(timeouts, m.ID())
+
+	if len(timeouts) == 0 {
+		delete(db.timeouts, key)
+	}
 }

@@ -27,11 +27,6 @@ func (ds *dataStore) LoadProcessInstance(
 	}, nil
 }
 
-// processDatabase contains process related data.
-type processDatabase struct {
-	instances map[instanceKey]persistence.ProcessInstance
-}
-
 // VisitSaveProcessInstance returns an error if a "SaveProcessInstance"
 // operation can not be applied to the database.
 func (v *validator) VisitSaveProcessInstance(
@@ -77,16 +72,7 @@ func (c *committer) VisitSaveProcessInstance(
 	ctx context.Context,
 	op persistence.SaveProcessInstance,
 ) error {
-	inst := op.Instance
-	key := instanceKey{inst.HandlerKey, inst.InstanceID}
-
-	if c.db.process.instances == nil {
-		c.db.process.instances = map[instanceKey]persistence.ProcessInstance{}
-	}
-
-	inst.Revision++
-	c.db.process.instances[key] = inst
-
+	c.db.process.save(op.Instance)
 	return nil
 }
 
@@ -99,7 +85,29 @@ func (c *committer) VisitRemoveProcessInstance(
 	inst := op.Instance
 	key := instanceKey{inst.HandlerKey, inst.InstanceID}
 
-	delete(c.db.process.instances, key)
-
+	c.db.process.remove(key)
+	c.db.queue.removeTimeoutsByProcessInstance(key)
 	return nil
+}
+
+// processDatabase contains process related data.
+type processDatabase struct {
+	instances map[instanceKey]persistence.ProcessInstance
+}
+
+// save stores inst in the database.
+func (db *processDatabase) save(inst persistence.ProcessInstance) {
+	key := instanceKey{inst.HandlerKey, inst.InstanceID}
+
+	if db.instances == nil {
+		db.instances = map[instanceKey]persistence.ProcessInstance{}
+	}
+
+	inst.Revision++
+	db.instances[key] = inst
+}
+
+// remove removes the process instance with the given key.
+func (db *processDatabase) remove(key instanceKey) {
+	delete(db.instances, key)
 }
