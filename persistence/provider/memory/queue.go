@@ -149,7 +149,8 @@ func (db *queueDatabase) remove(id string) {
 	db.removeFromTimeoutIndex(m)
 }
 
-// remove removes all timeout messages produced by a specific process instance.
+// removeTimeoutsByProcessInstance removes all timeout messages produced by a
+// specific process instance.
 func (db *queueDatabase) removeTimeoutsByProcessInstance(key instanceKey) {
 	timeouts := db.timeouts[key]
 	delete(db.timeouts, key)

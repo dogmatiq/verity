@@ -33,6 +33,16 @@ var (
 	// message ID, and the values are always nil. This allows representation of
 	// multiple messages with the same next-attempt time.
 	queueOrderBucketKey = []byte("order")
+
+	// queueTimeoutsBucketKey is the key for a child bucket that is used to
+	// index queued timeout messages by the process instance that produced them.
+	//
+	// The keys are application-defined handler identity keys. The values are
+	// are buckets indicating which timeout messages are pending.
+	//
+	// Within this further sub-bucket, the keys are the application-defined
+	// message ID, and the values are always nil.
+	queueTimeoutsBucketKey = []byte("timeouts")
 )
 
 // LoadQueueMessages loads the next n messages from the queue.
@@ -123,6 +133,8 @@ func (c *committer) VisitSaveQueueMessage(
 		saveQueueOrder(c.root, new)
 	}
 
+	addToTimeoutIndex(c.root, op.Message)
+
 	return nil
 }
 
@@ -147,8 +159,38 @@ func (c *committer) VisitRemoveQueueMessage(
 		[]byte(op.Message.ID()),
 	)
 	removeQueueOrder(c.root, old)
+	removeFromTimeoutIndex(c.root, op.Message)
 
 	return nil
+}
+
+// removeTimeoutsByProcessInstance removes all timeout messages produced by a
+// specific process instance.
+func (c *committer) removeTimeoutsByProcessInstance(hk, id string) {
+	messageIDs, ok := bboltx.TryBucket(
+		c.root,
+		queueBucketKey,
+		queueTimeoutsBucketKey,
+		[]byte(hk),
+		[]byte(id),
+	)
+	if !ok {
+		return
+	}
+
+	cur := messageIDs.Cursor()
+	for k, _ := cur.First(); k != nil; k, _ = cur.Next() {
+		old := loadQueueMessage(c.root, string(k))
+
+		bboltx.DeletePath(
+			c.root,
+			queueBucketKey,
+			queueMessagesBucketKey,
+			k,
+		)
+
+		removeQueueOrder(c.root, old)
+	}
 }
 
 // unmarshalQueueMessage unmarshals a persistence.QueueMessage from its binary
@@ -231,4 +273,33 @@ func removeQueueOrder(root *bbolt.Bucket, m *pb.QueueMessage) {
 		[]byte(m.GetNextAttemptAt()),
 		[]byte(m.GetEnvelope().GetMessageId()),
 	)
+}
+
+// addToTimeoutIndex adds a recored for m to the timeout index.
+func addToTimeoutIndex(root *bbolt.Bucket, m persistence.QueueMessage) {
+	if m.Envelope.GetScheduledFor() != "" {
+		bboltx.PutPath(
+			root,
+			nil,
+			queueBucketKey,
+			queueTimeoutsBucketKey,
+			[]byte(m.Envelope.GetSourceHandler().GetKey()),
+			[]byte(m.Envelope.GetSourceInstanceId()),
+			[]byte(m.ID()),
+		)
+	}
+}
+
+// addToTimeoutIndex removes the record for m to the timeout index.
+func removeFromTimeoutIndex(root *bbolt.Bucket, m persistence.QueueMessage) {
+	if m.Envelope.GetScheduledFor() != "" {
+		bboltx.DeletePath(
+			root,
+			queueBucketKey,
+			queueTimeoutsBucketKey,
+			[]byte(m.Envelope.GetSourceHandler().GetKey()),
+			[]byte(m.Envelope.GetSourceInstanceId()),
+			[]byte(m.ID()),
+		)
+	}
 }

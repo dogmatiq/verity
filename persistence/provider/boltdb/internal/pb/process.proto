@@ -1,0 +1,12 @@
+syntax = "proto3";
+package infix.persistence.boltdb.v1;
+
+option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb";
+
+// ProcessInstance is a protocol buffers representation of
+// persistence.ProcessInstance.
+message ProcessInstance{
+  uint64 revision = 1;
+  string media_type = 2;
+  bytes data = 3;
+}
