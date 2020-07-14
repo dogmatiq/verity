@@ -57,15 +57,12 @@ func (ds *dataStore) LoadQueueMessages(
 				return
 			}
 
-			order, ok := bboltx.TryBucket(
+			order := bboltx.Bucket(
 				tx,
 				ds.appKey,
 				queueBucketKey,
 				queueOrderBucketKey,
 			)
-			if !ok {
-				return
-			}
 
 			orderCursor := order.Cursor()
 			k, _ := orderCursor.First()
