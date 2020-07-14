@@ -8,9 +8,9 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 )
 
-// queueDriver is the subset of the Driver interface that is concerned with the
+// QueueDriver is the subset of the Driver interface that is concerned with the
 // message queue subsystem.
-type queueDriver interface {
+type QueueDriver interface {
 	// InsertQueueMessage inserts a message in the queue.
 	//
 	// It returns false if the row already exists.

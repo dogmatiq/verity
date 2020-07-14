@@ -15,7 +15,7 @@ type Driver interface {
 	AggregateDriver
 	EventDriver
 	OffsetDriver
-	queueDriver
+	QueueDriver
 
 	// Begin starts a transaction for use in a peristence.Transaction.
 	Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error)
