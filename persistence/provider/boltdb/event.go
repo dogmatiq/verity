@@ -42,15 +42,14 @@ func (ds *dataStore) NextEventOffset(
 	bboltx.View(
 		ds.db,
 		func(tx *bbolt.Tx) {
-			if events, ok := bboltx.TryBucket(
-				tx,
-				ds.appKey,
-				eventBucketKey,
-			); ok {
-				next = unmarshalUint64(
-					events.Get(eventNextOffsetKey),
-				)
-			}
+			next = unmarshalUint64(
+				bboltx.GetPath(
+					tx,
+					ds.appKey,
+					eventBucketKey,
+					eventNextOffsetKey,
+				),
+			)
 		},
 	)
 
@@ -121,16 +120,15 @@ func (ds *dataStore) offsetOf(id string) (uint64, error) {
 
 	err := ds.db.View(
 		func(tx *bbolt.Tx) error {
-			if offsets, ok := bboltx.TryBucket(
+			if data := bboltx.GetPath(
 				tx,
 				ds.appKey,
 				eventBucketKey,
 				eventOffsetsBucketKey,
-			); ok {
-				if v := offsets.Get([]byte(id)); v != nil {
-					offset = unmarshalUint64(v)
-					return nil
-				}
+				[]byte(id),
+			); data != nil {
+				offset = unmarshalUint64(data)
+				return nil
 			}
 
 			return persistence.UnknownMessageError{
@@ -163,15 +161,10 @@ func (r *eventResult) Next(
 	bboltx.View(
 		r.db,
 		func(tx *bbolt.Tx) {
-			envelopes, ok := bboltx.TryBucket(
-				tx,
-				r.appKey,
-				eventBucketKey,
-				eventEnvelopesBucketKey,
-			)
+			root, ok := bboltx.TryBucket(tx, r.appKey)
 
 			if !ok {
-				// The envelopes bucket doesn't exist at all, so there can't be
+				// The root bucket doesn't exist at all, so there can't be
 				// any events.
 				return
 			}
@@ -181,7 +174,7 @@ func (r *eventResult) Next(
 				// number of events.
 				bboltx.Must(ctx.Err())
 
-				env, ok := loadEventEnvelope(envelopes, r.offset)
+				env, ok := loadEventEnvelope(root, r.offset)
 				if !ok {
 					// There is no event at this offset, we've seen everything.
 					return
@@ -214,59 +207,62 @@ func (c *committer) VisitSaveEvent(
 	_ context.Context,
 	op persistence.SaveEvent,
 ) error {
-	events := bboltx.CreateBucketIfNotExists(
-		c.root,
-		eventBucketKey,
-	)
-
-	envelopes := bboltx.CreateBucketIfNotExists(
-		events,
-		eventEnvelopesBucketKey,
-	)
-
-	offsets := bboltx.CreateBucketIfNotExists(
-		events,
-		eventOffsetsBucketKey,
-	)
-
 	id := op.Envelope.GetMessageId()
 
-	// Load the next free offset.
-	offset := unmarshalUint64(
-		events.Get(eventNextOffsetKey),
-	)
+	// Fetch the event's offset.
+	offset := incrementEventOffset(c.root)
 
 	// Save the envelope.
-	saveEventEnvelope(envelopes, offset, op.Envelope)
+	saveEventEnvelope(c.root, offset, op.Envelope)
 
 	// Save the message ID -> offset index.
-	bboltx.Put(
-		offsets,
-		[]byte(id),
+	bboltx.PutPath(
+		c.root,
 		marshalUint64(offset),
-	)
-
-	// Update the next free offset.
-	bboltx.Put(
-		events,
-		eventNextOffsetKey,
-		marshalUint64(offset+1),
+		eventBucketKey,
+		eventOffsetsBucketKey,
+		[]byte(id),
 	)
 
 	// Add the offset to the result.
 	if c.result.EventOffsets == nil {
 		c.result.EventOffsets = map[string]uint64{}
 	}
-
 	c.result.EventOffsets[id] = offset
 
 	return nil
 }
 
+// incrementEventOffset increments the next free event offset.
+// It returns the previous value, to be used for the next event.
+func incrementEventOffset(root *bbolt.Bucket) uint64 {
+	data := bboltx.GetPath(
+		root,
+		eventBucketKey,
+		eventNextOffsetKey,
+	)
+
+	offset := unmarshalUint64(data)
+
+	bboltx.PutPath(
+		root,
+		marshalUint64(offset+1),
+		eventBucketKey,
+		eventNextOffsetKey,
+	)
+
+	return offset
+}
+
 // loadEventEnvelope loads the tiem at the given offset from b.
-func loadEventEnvelope(b *bbolt.Bucket, offset uint64) (*envelopespec.Envelope, bool) {
+func loadEventEnvelope(root *bbolt.Bucket, offset uint64) (*envelopespec.Envelope, bool) {
 	k := marshalUint64(offset)
-	v := b.Get(k)
+	v := bboltx.GetPath(
+		root,
+		eventBucketKey,
+		eventEnvelopesBucketKey,
+		k,
+	)
 
 	if v == nil {
 		return nil, false
@@ -279,10 +275,16 @@ func loadEventEnvelope(b *bbolt.Bucket, offset uint64) (*envelopespec.Envelope, 
 }
 
 // saveEventEnvelope saves an envelope to b at the given offset.
-func saveEventEnvelope(b *bbolt.Bucket, offset uint64, env *envelopespec.Envelope) {
+func saveEventEnvelope(root *bbolt.Bucket, offset uint64, env *envelopespec.Envelope) {
 	k := marshalUint64(offset)
 	v, err := proto.Marshal(env)
-
 	bboltx.Must(err)
-	bboltx.Put(b, k, v)
+
+	bboltx.PutPath(
+		root,
+		v,
+		eventBucketKey,
+		eventEnvelopesBucketKey,
+		k,
+	)
 }
