@@ -11,4 +11,5 @@ var (
 type BucketParent interface {
 	CreateBucketIfNotExists([]byte) (*bbolt.Bucket, error)
 	Bucket([]byte) *bbolt.Bucket
+	DeleteBucket([]byte) error
 }

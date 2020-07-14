@@ -42,14 +42,8 @@ func (ds *dataStore) LoadAggregateMetaData(
 	bboltx.View(
 		ds.db,
 		func(tx *bbolt.Tx) {
-			if metadata, ok := bboltx.TryBucket(
-				tx,
-				ds.appKey,
-				aggregateBucketKey,
-				[]byte(hk),
-				aggregateMetaDataBucketKey,
-			); ok {
-				pb := loadAggregateMetaData(metadata, id)
+			if root, ok := bboltx.TryBucket(tx, ds.appKey); ok {
+				pb := loadAggregateMetaData(root, hk, id)
 				md.Revision = pb.GetRevision()
 				md.InstanceExists = pb.GetInstanceExists()
 				md.LastDestroyedBy = pb.GetLastDestroyedBy()
@@ -66,14 +60,11 @@ func (c *committer) VisitSaveAggregateMetaData(
 	_ context.Context,
 	op persistence.SaveAggregateMetaData,
 ) error {
-	metadata := bboltx.CreateBucketIfNotExists(
+	existing := loadAggregateMetaData(
 		c.root,
-		aggregateBucketKey,
-		[]byte(op.MetaData.HandlerKey),
-		aggregateMetaDataBucketKey,
+		op.MetaData.HandlerKey,
+		op.MetaData.InstanceID,
 	)
-
-	existing := loadAggregateMetaData(metadata, op.MetaData.InstanceID)
 
 	if op.MetaData.Revision != existing.GetRevision() {
 		return persistence.ConflictError{
@@ -81,14 +72,14 @@ func (c *committer) VisitSaveAggregateMetaData(
 		}
 	}
 
-	saveAggregateMetaData(metadata, op.MetaData)
+	saveAggregateMetaData(c.root, op.MetaData)
 
 	return nil
 }
 
 // saveAggregateMetaData saves aggregate meta-data to b. md.Revision is
 // incremented before saving.
-func saveAggregateMetaData(b *bbolt.Bucket, md persistence.AggregateMetaData) {
+func saveAggregateMetaData(root *bbolt.Bucket, md persistence.AggregateMetaData) {
 	data, err := proto.Marshal(
 		&pb.AggregateMetaData{
 			Revision:        md.Revision + 1,
@@ -97,12 +88,26 @@ func saveAggregateMetaData(b *bbolt.Bucket, md persistence.AggregateMetaData) {
 		},
 	)
 	bboltx.Must(err)
-	bboltx.Put(b, []byte(md.InstanceID), data)
+
+	bboltx.PutPath(
+		root,
+		data,
+		aggregateBucketKey,
+		[]byte(md.HandlerKey),
+		aggregateMetaDataBucketKey,
+		[]byte(md.InstanceID),
+	)
 }
 
-// loadAggregateMetaData returns aggregate meta-data loaded from b.
-func loadAggregateMetaData(b *bbolt.Bucket, id string) *pb.AggregateMetaData {
-	data := b.Get([]byte(id))
+// loadAggregateMetaData returns aggregate meta-data for a specific instance.
+func loadAggregateMetaData(root *bbolt.Bucket, hk, id string) *pb.AggregateMetaData {
+	data := bboltx.GetPath(
+		root,
+		aggregateBucketKey,
+		[]byte(hk),
+		aggregateMetaDataBucketKey,
+		[]byte(id),
+	)
 	if data == nil {
 		return nil
 	}

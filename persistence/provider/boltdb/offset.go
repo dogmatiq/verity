@@ -27,15 +27,14 @@ func (ds *dataStore) LoadOffset(
 	bboltx.View(
 		ds.db,
 		func(tx *bbolt.Tx) {
-			if offsets, ok := bboltx.TryBucket(
-				tx,
-				ds.appKey,
-				offsetBucketKey,
-			); ok {
-				offset = unmarshalUint64(
-					offsets.Get([]byte(ak)),
-				)
-			}
+			offset = unmarshalUint64(
+				bboltx.GetPath(
+					tx,
+					ds.appKey,
+					offsetBucketKey,
+					[]byte(ak),
+				),
+			)
 		},
 	)
 
@@ -48,13 +47,12 @@ func (c *committer) VisitSaveOffset(
 	_ context.Context,
 	op persistence.SaveOffset,
 ) error {
-	offsets := bboltx.CreateBucketIfNotExists(
-		c.root,
-		offsetBucketKey,
-	)
-
 	current := unmarshalUint64(
-		offsets.Get([]byte(op.ApplicationKey)),
+		bboltx.GetPath(
+			c.root,
+			offsetBucketKey,
+			[]byte(op.ApplicationKey),
+		),
 	)
 
 	if op.CurrentOffset != current {
@@ -63,10 +61,11 @@ func (c *committer) VisitSaveOffset(
 		}
 	}
 
-	bboltx.Put(
-		offsets,
-		[]byte(op.ApplicationKey),
+	bboltx.PutPath(
+		c.root,
 		marshalUint64(op.NextOffset),
+		offsetBucketKey,
+		[]byte(op.ApplicationKey),
 	)
 
 	return nil

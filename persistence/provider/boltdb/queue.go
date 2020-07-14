@@ -47,24 +47,25 @@ func (ds *dataStore) LoadQueueMessages(
 	bboltx.View(
 		ds.db,
 		func(tx *bbolt.Tx) {
-			queue, ok := bboltx.TryBucket(
+			messages, ok := bboltx.TryBucket(
 				tx,
 				ds.appKey,
 				queueBucketKey,
+				queueMessagesBucketKey,
 			)
 			if !ok {
 				return
 			}
 
-			messages := bboltx.Bucket(
-				queue,
-				queueMessagesBucketKey,
-			)
-
-			order := bboltx.Bucket(
-				queue,
+			order, ok := bboltx.TryBucket(
+				tx,
+				ds.appKey,
+				queueBucketKey,
 				queueOrderBucketKey,
 			)
+			if !ok {
+				return
+			}
 
 			orderCursor := order.Cursor()
 			k, _ := orderCursor.First()
@@ -102,22 +103,7 @@ func (c *committer) VisitSaveQueueMessage(
 	ctx context.Context,
 	op persistence.SaveQueueMessage,
 ) error {
-	queue := bboltx.CreateBucketIfNotExists(
-		c.root,
-		queueBucketKey,
-	)
-
-	messages := bboltx.CreateBucketIfNotExists(
-		queue,
-		queueMessagesBucketKey,
-	)
-
-	order := bboltx.CreateBucketIfNotExists(
-		queue,
-		queueOrderBucketKey,
-	)
-
-	old := loadQueueMessage(messages, op.Message.ID())
+	old := loadQueueMessage(c.root, op.Message.ID())
 
 	if op.Message.Revision != old.GetRevision() {
 		return persistence.ConflictError{
@@ -130,14 +116,14 @@ func (c *committer) VisitSaveQueueMessage(
 		op.Message.Envelope = old.GetEnvelope()
 	}
 
-	new := saveQueueMessage(messages, op.Message)
+	new := saveQueueMessage(c.root, op.Message)
 
 	if new.GetNextAttemptAt() != old.GetNextAttemptAt() {
 		if old != nil {
-			removeQueueOrder(order, old)
+			removeQueueOrder(c.root, old)
 		}
 
-		saveQueueOrder(order, new)
+		saveQueueOrder(c.root, new)
 	}
 
 	return nil
@@ -149,36 +135,21 @@ func (c *committer) VisitRemoveQueueMessage(
 	ctx context.Context,
 	op persistence.RemoveQueueMessage,
 ) error {
-	queue, ok := bboltx.TryBucket(
+	old := loadQueueMessage(c.root, op.Message.ID())
+
+	if old == nil || op.Message.Revision != old.GetRevision() {
+		return persistence.ConflictError{
+			Cause: op,
+		}
+	}
+
+	bboltx.DeletePath(
 		c.root,
 		queueBucketKey,
-	)
-	if !ok {
-		return persistence.ConflictError{
-			Cause: op,
-		}
-	}
-
-	messages := bboltx.Bucket(
-		queue,
 		queueMessagesBucketKey,
+		[]byte(op.Message.ID()),
 	)
-
-	old := loadQueueMessage(messages, op.Message.ID())
-
-	if op.Message.Revision != old.GetRevision() {
-		return persistence.ConflictError{
-			Cause: op,
-		}
-	}
-
-	order := bboltx.Bucket(
-		queue,
-		queueOrderBucketKey,
-	)
-
-	bboltx.Delete(messages, []byte(op.Message.ID()))
-	removeQueueOrder(order, old)
+	removeQueueOrder(c.root, old)
 
 	return nil
 }
@@ -201,7 +172,7 @@ func unmarshalQueueMessage(data []byte) persistence.QueueMessage {
 }
 
 // saveQueueMessage saves a persistence.QueueMessage to b.
-func saveQueueMessage(b *bbolt.Bucket, m persistence.QueueMessage) *pb.QueueMessage {
+func saveQueueMessage(root *bbolt.Bucket, m persistence.QueueMessage) *pb.QueueMessage {
 	v := &pb.QueueMessage{
 		Revision:      m.Revision + 1,
 		FailureCount:  uint64(m.FailureCount),
@@ -211,14 +182,26 @@ func saveQueueMessage(b *bbolt.Bucket, m persistence.QueueMessage) *pb.QueueMess
 
 	data, err := proto.Marshal(v)
 	bboltx.Must(err)
-	bboltx.Put(b, []byte(m.ID()), data)
+
+	bboltx.PutPath(
+		root,
+		data,
+		queueBucketKey,
+		queueMessagesBucketKey,
+		[]byte(m.ID()),
+	)
 
 	return v
 }
 
 // loadQueueMessage loads a queue message with a specific message ID from b.
-func loadQueueMessage(b *bbolt.Bucket, id string) *pb.QueueMessage {
-	data := b.Get([]byte(id))
+func loadQueueMessage(root *bbolt.Bucket, id string) *pb.QueueMessage {
+	data := bboltx.GetPath(
+		root,
+		queueBucketKey,
+		queueMessagesBucketKey,
+		[]byte(id),
+	)
 	if data == nil {
 		return nil
 	}
@@ -231,28 +214,24 @@ func loadQueueMessage(b *bbolt.Bucket, id string) *pb.QueueMessage {
 }
 
 // saveQueueOrder adds a record for m to the order bucket.
-func saveQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
-	id := m.GetEnvelope().GetMessageId()
-
-	bboltx.Put(
-		bboltx.CreateBucketIfNotExists(
-			order,
-			[]byte(m.NextAttemptAt),
-		),
-		[]byte(id),
+func saveQueueOrder(root *bbolt.Bucket, m *pb.QueueMessage) {
+	bboltx.PutPath(
+		root,
 		nil,
+		queueBucketKey,
+		queueOrderBucketKey,
+		[]byte(m.GetNextAttemptAt()),
+		[]byte(m.GetEnvelope().GetMessageId()),
 	)
 }
 
 // removeQueueOrder removes the record for m from the order bucket.
-func removeQueueOrder(order *bbolt.Bucket, m *pb.QueueMessage) {
-	id := m.GetEnvelope().GetMessageId()
-
-	bboltx.Delete(
-		bboltx.Bucket(
-			order,
-			[]byte(m.NextAttemptAt),
-		),
-		[]byte(id),
+func removeQueueOrder(root *bbolt.Bucket, m *pb.QueueMessage) {
+	bboltx.DeletePath(
+		root,
+		queueBucketKey,
+		queueOrderBucketKey,
+		[]byte(m.GetNextAttemptAt()),
+		[]byte(m.GetEnvelope().GetMessageId()),
 	)
 }
