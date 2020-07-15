@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
-	. "github.com/dogmatiq/infix/persistence/provider/sql/mysql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,16 +22,20 @@ var _ = Describe("type driver", func() {
 		func(ctx context.Context, in providertest.In) providertest.Out {
 			db, _, closeDB = sqltest.Open("mysql")
 
-			err := DropSchema(ctx, db)
+			d, err := infixsql.NewDriver(db)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = CreateSchema(ctx, db)
+			err = d.DropSchema(ctx, db)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = d.CreateSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return providertest.Out{
 				NewProvider: func() (persistence.Provider, func()) {
 					return &infixsql.Provider{
-						DB: db,
+						DB:     db,
+						Driver: d,
 					}, nil
 				},
 				IsShared: true,

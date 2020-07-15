@@ -80,3 +80,27 @@ func releaseLock(conn *sql.Conn, name string) error {
 	)
 	return err
 }
+
+// CreateSchema creates any SQL schema elements required by the driver.
+func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
+	defer sqlx.Recover(&err)
+
+	createAggregateSchema(ctx, db)
+	createEventSchema(ctx, db)
+	createOffsetSchema(ctx, db)
+	createQueueSchema(ctx, db)
+
+	return nil
+}
+
+// DropSchema removes any SQL schema elements created by CreateSchema().
+func (driver) DropSchema(ctx context.Context, db *sql.DB) (err error) {
+	defer sqlx.Recover(&err)
+
+	dropAggregateSchema(ctx, db)
+	dropEventSchema(ctx, db)
+	dropOffsetSchema(ctx, db)
+	dropQueueSchema(ctx, db)
+
+	return nil
+}

@@ -28,6 +28,12 @@ type Driver interface {
 		db *sql.DB,
 		ak string,
 	) (r func() error, err error)
+
+	// CreateSchema creates any SQL schema elements required by the driver.
+	CreateSchema(ctx context.Context, db *sql.DB) error
+
+	// DropSchema removes any SQL schema elements created by CreateSchema().
+	DropSchema(ctx context.Context, db *sql.DB) error
 }
 
 // NewDriver returns the appropriate driver to use with the given database.

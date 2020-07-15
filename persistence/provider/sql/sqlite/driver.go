@@ -186,3 +186,41 @@ func (d driver) deleteLock(
 	)
 	return err
 }
+
+// CreateSchema creates the schema elements required by the SQLite driver.
+func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
+	defer sqlx.Recover(&err)
+
+	tx := sqlx.Begin(ctx, db)
+	defer tx.Rollback()
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE app_lock (
+			app_key TEXT NOT NULL UNIQUE,
+			expires INTEGER NOT NULL
+		)`,
+	)
+
+	createAggregateSchema(ctx, db)
+	createEventSchema(ctx, db)
+	createOffsetSchema(ctx, db)
+	createQueueSchema(ctx, db)
+
+	return tx.Commit()
+}
+
+// DropSchema drops the schema elements required by the SQLite driver.
+func (driver) DropSchema(ctx context.Context, db *sql.DB) (err error) {
+	defer sqlx.Recover(&err)
+
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS app_lock`)
+
+	dropAggregateSchema(ctx, db)
+	dropEventSchema(ctx, db)
+	dropOffsetSchema(ctx, db)
+	dropQueueSchema(ctx, db)
+
+	return nil
+}

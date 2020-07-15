@@ -19,7 +19,6 @@ import (
 	"github.com/dogmatiq/infix"
 	"github.com/dogmatiq/infix/cmd/bank-split/apps"
 	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
-	infixsqlite "github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
 	"github.com/dogmatiq/projectionkit/sql/sqlite"
 	"google.golang.org/grpc"
 )
@@ -67,8 +66,13 @@ func run(ctx context.Context) error {
 	}
 	defer db.Close()
 
+	driver, err := infixsql.NewDriver(db)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
 	// Create the schema for dogmatiq/infix.
-	if err := infixsqlite.CreateSchema(ctx, db); err != nil {
+	if err := driver.CreateSchema(ctx, db); err != nil {
 		fmt.Println(err.Error())
 	}
 
@@ -105,7 +109,8 @@ func run(ctx context.Context) error {
 		app,
 		infix.WithPersistence(
 			&infixsql.Provider{
-				DB: db,
+				DB:     db,
+				Driver: driver,
 			},
 		),
 		infix.WithNetworking(

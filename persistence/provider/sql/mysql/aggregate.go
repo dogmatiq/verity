@@ -102,3 +102,26 @@ func (driver) SelectAggregateMetaData(
 
 	return md, err
 }
+
+// createAggregateSchema creates schema elements for aggregates.
+func createAggregateSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE aggregate_metadata (
+			app_key           VARBINARY(255) NOT NULL,
+			handler_key       VARBINARY(255) NOT NULL,
+			instance_id       VARBINARY(255) NOT NULL,
+			revision          BIGINT NOT NULL DEFAULT 1,
+			instance_exists   TINYINT NOT NULL,
+			last_destroyed_by VARBINARY(255),
+
+			PRIMARY KEY (app_key, handler_key, instance_id)
+		) ENGINE=InnoDB`,
+	)
+}
+
+// dropAggregateSchema drops  schema elements for aggregates.
+func dropAggregateSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_metadata`)
+}
