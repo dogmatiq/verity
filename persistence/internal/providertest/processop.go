@@ -8,7 +8,6 @@ import (
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
-	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
@@ -208,18 +207,18 @@ func declareProcessOperationTests(tc *TestContext) {
 
 					m0 := persistence.QueueMessage{
 						NextAttemptAt: now,
-						Envelope:      infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageT1, time.Now(), time.Now()),
+						Envelope:      infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageT1, now, now),
 					}
 
 					m1 := persistence.QueueMessage{
 						NextAttemptAt: now.Add(1 * time.Hour),
-						Envelope:      infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageT1, time.Now(), time.Now()),
+						Envelope:      infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageT1, now, now),
 					}
 					m1.Envelope.SourceInstanceId = "<other-instance>"
 
 					m2 := persistence.QueueMessage{
 						NextAttemptAt: now.Add(2 * time.Hour),
-						Envelope:      infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageT1, time.Now(), time.Now()),
+						Envelope:      infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageT1, now, now),
 					}
 
 					persist(
@@ -252,11 +251,8 @@ func declareProcessOperationTests(tc *TestContext) {
 					)
 
 					messages := loadQueueMessages(tc.Context, dataStore, 3)
-					gomega.Expect(messages).To(gomegax.EqualX(
-						[]persistence.QueueMessage{
-							m1,
-						},
-					))
+					gomega.Expect(messages).To(gomega.HaveLen(1))
+					gomega.Expect(messages[0].ID()).To(gomega.Equal("<message-1>"))
 				})
 
 				table.DescribeTable(
