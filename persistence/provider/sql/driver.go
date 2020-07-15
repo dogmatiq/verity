@@ -15,6 +15,7 @@ type Driver interface {
 	AggregateDriver
 	EventDriver
 	OffsetDriver
+	ProcessDriver
 	QueueDriver
 
 	// Begin starts a transaction for use in a peristence.Transaction.
