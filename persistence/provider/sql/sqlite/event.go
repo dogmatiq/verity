@@ -345,3 +345,87 @@ func (driver) ScanEvent(
 		&ev.Envelope.Data,
 	)
 }
+
+// createEventSchema creates the schema elements for events.
+func createEventSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event_offset (
+			source_app_key TEXT NOT NULL PRIMARY KEY,
+			next_offset    INTEGER NOT NULL DEFAULT 1
+		) WITHOUT ROWID`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event (
+			offset              INTEGER NOT NULL,
+			message_id          TEXT NOT NULL UNIQUE,
+			causation_id        TEXT NOT NULL,
+			correlation_id      TEXT NOT NULL,
+			source_app_name     TEXT NOT NULL,
+			source_app_key      TEXT NOT NULL,
+			source_handler_name TEXT NOT NULL,
+			source_handler_key  TEXT NOT NULL,
+			source_instance_id  TEXT NOT NULL,
+			created_at          TEXT NOT NULL,
+			description         TEXT NOT NULL,
+			portable_name       TEXT NOT NULL,
+			media_type          TEXT NOT NULL,
+			data                BLOB NOT NULL,
+
+			PRIMARY KEY (source_app_key, offset)
+		) WITHOUT ROWID`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE INDEX by_type ON event (
+			source_app_key,
+			portable_name,
+			offset
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE INDEX by_source ON event (
+			source_app_key,
+			source_handler_key,
+			source_instance_id,
+			offset
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event_filter (
+			id      INTEGER PRIMARY KEY,
+			app_key TEXT NOT NULL
+		)`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE event_filter_name (
+			filter_id     INTEGER NOT NULL,
+			portable_name TEXT NOT NULL,
+
+			PRIMARY KEY (filter_id, portable_name)
+		) WITHOUT ROWID`,
+	)
+}
+
+// dropEventSchema drops schema elements for events.
+func dropEventSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
+}

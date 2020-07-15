@@ -65,3 +65,35 @@ func (driver) LockApplication(
 
 	return nil, persistence.ErrDataStoreLocked
 }
+
+// CreateSchema creates any SQL schema elements required by the driver.
+func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
+	defer sqlx.Recover(&err)
+
+	tx := sqlx.Begin(ctx, db)
+	defer tx.Rollback()
+
+	sqlx.Exec(ctx, db, `CREATE SCHEMA infix`)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.app_lock_id (
+			app_key TEXT NOT NULL PRIMARY KEY,
+			lock_id SERIAL NOT NULL UNIQUE
+		)`,
+	)
+
+	createAggregateSchema(ctx, db)
+	createEventSchema(ctx, db)
+	createOffsetSchema(ctx, db)
+	createQueueSchema(ctx, db)
+
+	return tx.Commit()
+}
+
+// DropSchema removes any SQL schema elements created by CreateSchema().
+func (driver) DropSchema(ctx context.Context, db *sql.DB) error {
+	_, err := db.ExecContext(ctx, `DROP SCHEMA IF EXISTS infix CASCADE`)
+	return err
+}

@@ -95,3 +95,18 @@ func (driver) UpdateOffset(
 		c,
 	), nil
 }
+
+// createOffsetSchema creates the schema elements for stream offsets.
+func createOffsetSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE infix.stream_offset (
+			app_key        TEXT NOT NULL,
+			source_app_key TEXT NOT NULL,
+			next_offset    BIGINT NOT NULL,
+
+			PRIMARY KEY (app_key, source_app_key)
+		)`,
+	)
+}

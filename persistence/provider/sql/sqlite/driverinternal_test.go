@@ -20,15 +20,15 @@ var _ = Describe("type driver", func() {
 		db, _, close := sqltest.Open("sqlite3")
 		defer close()
 
-		err := DropSchema(ctx, db)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		err = CreateSchema(ctx, db)
-		Expect(err).ShouldNot(HaveOccurred())
-
 		d := driver{
 			lockUpdateInterval: 10 * time.Millisecond,
 		}
+
+		err := d.DropSchema(ctx, db)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = d.CreateSchema(ctx, db)
+		Expect(err).ShouldNot(HaveOccurred())
 
 		release, err := d.LockApplication(
 			ctx,

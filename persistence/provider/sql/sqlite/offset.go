@@ -95,3 +95,23 @@ func (driver) UpdateOffset(
 		c,
 	), nil
 }
+
+// createOffsetSchema creates the schema elements for stream offsets.
+func createOffsetSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE stream_offset (
+			app_key        TEXT NOT NULL,
+			source_app_key TEXT NOT NULL,
+			next_offset    INTEGER NOT NULL,
+
+			PRIMARY KEY (app_key, source_app_key)
+		)`,
+	)
+}
+
+// dropOffsetSchema drops the schema elements for stream offsets.
+func dropOffsetSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS stream_offset`)
+}

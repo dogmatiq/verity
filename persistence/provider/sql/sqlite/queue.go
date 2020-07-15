@@ -182,3 +182,47 @@ func (driver) ScanQueueMessage(
 		&m.Envelope.Data,
 	)
 }
+
+// createQueueSchema creates the schema elements for the message queue.
+func createQueueSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE queue (
+			app_key             TEXT NOT NULL,
+			revision            INTEGER NOT NULL DEFAULT 1,
+			failure_count       INTEGER NOT NULL DEFAULT 0,
+			next_attempt_at     DATETIME NOT NULL,
+			message_id          TEXT NOT NULL,
+			causation_id        TEXT NOT NULL,
+			correlation_id      TEXT NOT NULL,
+			source_app_name     TEXT NOT NULL,
+			source_app_key      TEXT NOT NULL,
+			source_handler_name TEXT NOT NULL,
+			source_handler_key  TEXT NOT NULL,
+			source_instance_id  TEXT NOT NULL,
+			created_at          TEXT NOT NULL,
+			scheduled_for       TEXT NOT NULL,
+			description         TEXT NOT NULL,
+			portable_name       TEXT NOT NULL,
+			media_type          TEXT NOT NULL,
+			data                BLOB NOT NULL,
+
+			PRIMARY KEY (app_key, message_id)
+		) WITHOUT ROWID`,
+	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE INDEX repository_load ON queue (
+			app_key,
+			next_attempt_at
+		)`,
+	)
+}
+
+// dropQueueSchema drops the schema elements for the message queue.
+func dropQueueSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS queue`)
+}

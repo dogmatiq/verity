@@ -10,7 +10,6 @@ import (
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/infix/persistence/internal/providertest"
 	. "github.com/dogmatiq/infix/persistence/provider/sql"
-	"github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -25,16 +24,20 @@ var _ = Describe("type Provider", func() {
 		func(ctx context.Context, in providertest.In) providertest.Out {
 			db, _, closeDB = sqltest.Open("sqlite3")
 
-			err := sqlite.DropSchema(ctx, db)
+			d, err := NewDriver(db)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = sqlite.CreateSchema(ctx, db)
+			err = d.DropSchema(ctx, db)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = d.CreateSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return providertest.Out{
 				NewProvider: func() (persistence.Provider, func()) {
 					return &Provider{
-						DB: db,
+						DB:     db,
+						Driver: d,
 					}, nil
 				},
 				IsShared: true,
@@ -65,10 +68,13 @@ var _ = Describe("type DSNProvider", func() {
 			db, err = sql.Open("sqlite3", dsn)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = sqlite.DropSchema(ctx, db)
+			d, err := NewDriver(db)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = sqlite.CreateSchema(ctx, db)
+			err = d.DropSchema(ctx, db)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = d.CreateSchema(ctx, db)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			return providertest.Out{
@@ -76,6 +82,7 @@ var _ = Describe("type DSNProvider", func() {
 					return &DSNProvider{
 						DriverName: "sqlite3",
 						DSN:        dsn,
+						Driver:     d,
 					}, nil
 				},
 				IsShared: true,

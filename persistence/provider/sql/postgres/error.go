@@ -66,6 +66,16 @@ func (d errorConverter) LockApplication(
 	return r, convertContextErrors(ctx, err)
 }
 
+func (d errorConverter) CreateSchema(ctx context.Context, db *sql.DB) error {
+	err := d.d.CreateSchema(ctx, db)
+	return convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) DropSchema(ctx context.Context, db *sql.DB) error {
+	err := d.d.DropSchema(ctx, db)
+	return convertContextErrors(ctx, err)
+}
+
 //
 // aggregate
 //
