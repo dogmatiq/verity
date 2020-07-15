@@ -234,7 +234,16 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 			data                LONGBLOB NOT NULL,
 
 			PRIMARY KEY (app_key, message_id),
-			INDEX repository_load (app_key, next_attempt_at)
+			INDEX by_next_attempt (
+				app_key,
+				next_attempt_at
+			),
+			INDEX by_source (
+				app_key,
+				source_handler_key,
+				source_instance_id,
+				scheduled_for
+			)
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
 }

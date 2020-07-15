@@ -342,7 +342,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX by_type ON infix.event (
+		`CREATE INDEX event_by_type ON infix.event (
 			source_app_key,
 			portable_name,
 			"offset"
@@ -352,7 +352,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX by_source ON infix.event (
+		`CREATE INDEX event_by_source ON infix.event (
 			source_app_key,
 			source_handler_key,
 			source_instance_id,
