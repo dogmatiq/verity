@@ -84,6 +84,18 @@ var _ = Describe("type Batch", func() {
 						Envelope: NewEnvelope("<id-2>", MessageA1),
 					},
 				},
+				SaveProcessInstance{
+					Instance: ProcessInstance{
+						HandlerKey: "<process-key>",
+						InstanceID: "<instance-a>",
+					},
+				},
+				RemoveProcessInstance{
+					Instance: ProcessInstance{
+						HandlerKey: "<process-key>",
+						InstanceID: "<instance-b>",
+					},
+				},
 				SaveOffset{
 					ApplicationKey: "<app-key>",
 				},
