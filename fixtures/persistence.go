@@ -39,6 +39,7 @@ type DataStoreStub struct {
 	LoadEventsByTypeFunc      func(context.Context, map[string]struct{}, uint64) (persistence.EventResult, error)
 	LoadEventsBySourceFunc    func(context.Context, string, string, string) (persistence.EventResult, error)
 	LoadOffsetFunc            func(context.Context, string) (uint64, error)
+	LoadProcessInstanceFunc   func(context.Context, string, string) (persistence.ProcessInstance, error)
 	LoadQueueMessagesFunc     func(context.Context, int) ([]persistence.QueueMessage, error)
 	PersistFunc               func(context.Context, persistence.Batch) (persistence.Result, error)
 	CloseFunc                 func() error
@@ -122,6 +123,22 @@ func (ds *DataStoreStub) LoadOffset(
 	}
 
 	return 0, nil
+}
+
+// LoadProcessInstance loads a process instance.
+func (ds *DataStoreStub) LoadProcessInstance(
+	ctx context.Context,
+	hk, id string,
+) (persistence.ProcessInstance, error) {
+	if ds.LoadProcessInstanceFunc != nil {
+		return ds.LoadProcessInstanceFunc(ctx, hk, id)
+	}
+
+	if ds.DataStore != nil {
+		return ds.DataStore.LoadProcessInstance(ctx, hk, id)
+	}
+
+	return persistence.ProcessInstance{}, nil
 }
 
 // LoadQueueMessages loads the next n messages from the queue.
