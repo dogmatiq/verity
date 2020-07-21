@@ -2,7 +2,6 @@ package process
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/infix/persistence"
@@ -42,27 +41,15 @@ func (l *Loader) Load(
 
 	if inst.Revision == 0 {
 		inst.Root = base
-	} else if len(persisted.Packet.Data) == 0 {
-		inst.Root = dogma.StatelessAggregateRoot
 		return inst, nil
 	}
 
-	v, err := l.Marshaler.Unmarshal(persisted.Packet)
-	if err != nil {
-		return nil, err
+	if len(persisted.Packet.Data) == 0 {
+		inst.Root = dogma.StatelessProcessRoot
+		return inst, nil
 	}
 
-	root, ok := v.(dogma.ProcessRoot)
-	if !ok {
-		return nil, fmt.Errorf(
-			"the process root for handler '%s' with ID '%s' has type %T, which does not implement dogma.ProcessRoot",
-			hk,
-			id,
-			v,
-		)
-	}
+	inst.Root, err = l.Marshaler.Unmarshal(persisted.Packet)
 
-	inst.Root = root
-
-	return inst, nil
+	return inst, err
 }
