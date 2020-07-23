@@ -146,7 +146,7 @@ func (a *Adaptor) route(ctx context.Context, p parcel.Parcel) (string, bool, err
 
 	if ok && id == "" {
 		panic(fmt.Sprintf(
-			"%T.RouteEventToInstance() returned an empty instance ID while routing a %T command",
+			"%T.RouteEventToInstance() returned an empty instance ID while routing a %T event",
 			a.Handler,
 			p.Message,
 		))

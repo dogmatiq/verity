@@ -51,6 +51,7 @@ func (s *scope) End() {
 	}
 
 	s.instance.Root = mustNew(s.handler)
+	s.exists = false
 	s.ended = true
 }
 
