@@ -148,6 +148,20 @@ var _ = Describe("type Adaptor", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("makes the recorded-at time available via the scope", func() {
+			upstream.HandleEventFunc = func(
+				_ context.Context,
+				s dogma.ProcessEventScope,
+				_ dogma.Message,
+			) error {
+				Expect(s.RecordedAt()).To(BeTemporally("==", cause.CreatedAt))
+				return nil
+			}
+
+			err := adaptor.HandleMessage(ctx, work, cause)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
 		It("returns an error if the instance can not be loaded", func() {
 			dataStore.LoadProcessInstanceFunc = func(
 				context.Context,
@@ -689,6 +703,20 @@ var _ = Describe("type Adaptor", func() {
 						_ dogma.Message,
 					) error {
 						Expect(s.InstanceID()).To(Equal("<instance>"))
+						return nil
+					}
+
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				It("makes the scheduled-for time available via the scope", func() {
+					upstream.HandleTimeoutFunc = func(
+						_ context.Context,
+						s dogma.ProcessTimeoutScope,
+						_ dogma.Message,
+					) error {
+						Expect(s.ScheduledFor()).To(BeTemporally("==", cause.ScheduledFor))
 						return nil
 					}
 
