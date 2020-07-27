@@ -17,6 +17,7 @@ import (
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
@@ -264,6 +265,22 @@ var _ = Describe("type Adaptor", func() {
 					},
 				},
 			))
+		})
+
+		It("returns an error if the process instance can not be marshaled", func() {
+			adaptor.Marshaler = &codec.Marshaler{} // an empty marshaler cannot marshal anything
+
+			upstream.HandleEventFunc = func(
+				_ context.Context,
+				s dogma.ProcessEventScope,
+				_ dogma.Message,
+			) error {
+				s.Begin()
+				return nil
+			}
+
+			err := adaptor.HandleMessage(ctx, work, cause)
+			Expect(err).To(MatchError("no codecs support the '*fixtures.ProcessRoot' type"))
 		})
 
 		When("a command is executed", func() {
