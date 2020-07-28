@@ -546,6 +546,22 @@ var _ = Describe("type Adaptor", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				}).To(PanicWith("can not end a process instance that has not begun"))
 			})
+
+			It("does not action timeout messages", func() {
+				cause = NewParcel("<consume>", MessageT1, time.Now(), time.Now())
+
+				upstream.HandleTimeoutFunc = func(
+					_ context.Context,
+					_ dogma.ProcessTimeoutScope,
+					m dogma.Message,
+				) error {
+					Fail("unexpected call")
+					return nil
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
 		})
 
 		When("the instance already exists", func() {
