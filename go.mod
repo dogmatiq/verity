@@ -25,6 +25,6 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/multierr v1.5.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.31.0
 	google.golang.org/protobuf v1.25.0
 )
