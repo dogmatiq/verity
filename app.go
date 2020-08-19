@@ -16,6 +16,7 @@ import (
 	"github.com/dogmatiq/infix/handler/aggregate"
 	"github.com/dogmatiq/infix/handler/cache"
 	"github.com/dogmatiq/infix/handler/integration"
+	"github.com/dogmatiq/infix/handler/process"
 	"github.com/dogmatiq/infix/internal/x/loggingx"
 	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/infix/persistence"
@@ -182,14 +183,19 @@ func (e *Engine) newEntryPoint(
 	l logging.Logger,
 ) *handler.EntryPoint {
 	hf := &handlerFactory{
-		opts:         e.opts,
-		appLogger:    l,
-		engineLogger: e.logger,
-		loader: &aggregate.Loader{
+		opts:  e.opts,
+		queue: q,
+		aggregateLoader: &aggregate.Loader{
 			AggregateRepository: ds,
 			EventRepository:     ds,
 			Marshaler:           e.opts.Marshaler,
 		},
+		processLoader: &process.Loader{
+			Repository: ds,
+			Marshaler:  e.opts.Marshaler,
+		},
+		appLogger:    l,
+		engineLogger: e.logger,
 	}
 
 	if err := cfg.AcceptRichVisitor(context.Background(), hf); err != nil {
@@ -209,18 +215,20 @@ func (e *Engine) newEntryPoint(
 // handlerFactory is a configkit.RichVisitor that constructs the handler used by
 // the entry point.
 type handlerFactory struct {
-	opts         *engineOptions
-	loader       *aggregate.Loader
-	engineLogger logging.Logger
-	appLogger    logging.Logger
+	opts            *engineOptions
+	queue           *queue.Queue
+	aggregateLoader *aggregate.Loader
+	processLoader   *process.Loader
+	engineLogger    logging.Logger
+	appLogger       logging.Logger
 
 	app     *envelopespec.Identity
-	handler handler.MessageTypeRouter
+	handler handler.Router
 }
 
 func (f *handlerFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
 	f.app = envelopespec.MarshalIdentity(cfg.Identity())
-	f.handler = handler.MessageTypeRouter{}
+	f.handler = handler.Router{}
 	return cfg.RichHandlers().AcceptRichVisitor(ctx, f)
 }
 
@@ -228,7 +236,7 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 	a := &aggregate.Adaptor{
 		Identity: envelopespec.MarshalIdentity(cfg.Identity()),
 		Handler:  cfg.Handler(),
-		Loader:   f.loader,
+		Loader:   f.aggregateLoader,
 		Cache: cache.Cache{
 			// TODO: https://github.com/dogmatiq/infix/issues/193
 			// Make TTL configurable.
@@ -250,13 +258,43 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 	}
 
 	for mt := range cfg.MessageTypes().Consumed {
-		f.handler[mt] = a
+		f.handler[mt] = append(f.handler[mt], a)
 	}
 
 	return nil
 }
 
 func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichProcess) error {
+	a := &process.Adaptor{
+		Identity:  envelopespec.MarshalIdentity(cfg.Identity()),
+		Handler:   cfg.Handler(),
+		Loader:    f.processLoader,
+		Marshaler: f.opts.Marshaler,
+		Cache: cache.Cache{
+			// TODO: https://github.com/dogmatiq/infix/issues/193
+			// Make TTL configurable.
+			Logger: loggingx.WithPrefix(
+				f.engineLogger,
+				"[cache %s@%s] ",
+				f.app.Name,
+				cfg.Identity().Name,
+			),
+		},
+		Queue: f.queue,
+		Packer: &parcel.Packer{
+			Application: f.app,
+			Marshaler:   f.opts.Marshaler,
+			Produced:    cfg.MessageTypes().Produced,
+			Consumed:    cfg.MessageTypes().Consumed,
+		},
+		LoadTimeout: f.opts.MessageTimeout,
+		Logger:      f.appLogger,
+	}
+
+	for mt := range cfg.MessageTypes().Consumed {
+		f.handler[mt] = append(f.handler[mt], a)
+	}
+
 	return nil
 }
 
@@ -275,7 +313,7 @@ func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.R
 	}
 
 	for mt := range cfg.MessageTypes().Consumed {
-		f.handler[mt] = a
+		f.handler[mt] = append(f.handler[mt], a)
 	}
 
 	return nil
