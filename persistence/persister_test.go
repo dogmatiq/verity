@@ -23,6 +23,8 @@ var _ = Describe("type Operation (interface)", func() {
 			},
 			Entry("type SaveAggregateMetaData", SaveAggregateMetaData{}, "SaveAggregateMetaData"),
 			Entry("type SaveEvent", SaveEvent{}, "SaveEvent"),
+			Entry("type SaveProcessInstance", SaveProcessInstance{}, "SaveProcessInstance"),
+			Entry("type RemoveProcessInstance", RemoveProcessInstance{}, "RemoveProcessInstance"),
 			Entry("type SaveQueueMessage", SaveQueueMessage{}, "SaveQueueMessage"),
 			Entry("type RemoveQueueMessage", RemoveQueueMessage{}, "RemoveQueueMessage"),
 			Entry("type SaveOffset", SaveOffset{}, "SaveOffset"),
@@ -59,12 +61,18 @@ var _ = Describe("type Batch", func() {
 			batch := Batch{
 				SaveAggregateMetaData{
 					MetaData: AggregateMetaData{
-						HandlerKey: "<handler-key>",
+						HandlerKey: "<aggregate-key>",
 						InstanceID: "<instance>",
 					},
 				},
 				SaveEvent{
 					Envelope: NewEnvelope("<id-1>", MessageA1),
+				},
+				SaveProcessInstance{
+					Instance: ProcessInstance{
+						HandlerKey: "<process-key>",
+						InstanceID: "<instance>", // note: same instance ID as aggregate, this is allowed
+					},
 				},
 				SaveQueueMessage{
 					Message: QueueMessage{
@@ -74,6 +82,18 @@ var _ = Describe("type Batch", func() {
 				RemoveQueueMessage{
 					Message: QueueMessage{
 						Envelope: NewEnvelope("<id-2>", MessageA1),
+					},
+				},
+				SaveProcessInstance{
+					Instance: ProcessInstance{
+						HandlerKey: "<process-key>",
+						InstanceID: "<instance-a>",
+					},
+				},
+				RemoveProcessInstance{
+					Instance: ProcessInstance{
+						HandlerKey: "<process-key>",
+						InstanceID: "<instance-b>",
 					},
 				},
 				SaveOffset{
@@ -98,6 +118,12 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveEvent{
 					Envelope: NewEnvelope("<id-1>", MessageA1),
+				},
+				SaveProcessInstance{
+					Instance: ProcessInstance{
+						HandlerKey: "<process-key>",
+						InstanceID: "<instance>", // note: same instance ID as aggregate, this is allowed
+					},
 				},
 				SaveQueueMessage{
 					Message: QueueMessage{
@@ -151,6 +177,16 @@ func (v *visitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {
 	return nil
 }
 
+func (v *visitor) VisitSaveProcessInstance(_ context.Context, op SaveProcessInstance) error {
+	v.operations = append(v.operations, op)
+	return nil
+}
+
+func (v *visitor) VisitRemoveProcessInstance(_ context.Context, op RemoveProcessInstance) error {
+	v.operations = append(v.operations, op)
+	return nil
+}
+
 func (v *visitor) VisitSaveQueueMessage(_ context.Context, op SaveQueueMessage) error {
 	v.operations = append(v.operations, op)
 	return nil
@@ -174,6 +210,14 @@ func (errorVisitor) VisitSaveAggregateMetaData(_ context.Context, op SaveAggrega
 
 func (errorVisitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {
 	return errors.New("SaveEvent")
+}
+
+func (errorVisitor) VisitSaveProcessInstance(_ context.Context, op SaveProcessInstance) error {
+	return errors.New("SaveProcessInstance")
+}
+
+func (errorVisitor) VisitRemoveProcessInstance(_ context.Context, op RemoveProcessInstance) error {
+	return errors.New("RemoveProcessInstance")
 }
 
 func (errorVisitor) VisitSaveQueueMessage(_ context.Context, op SaveQueueMessage) error {

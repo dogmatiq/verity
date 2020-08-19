@@ -206,6 +206,7 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	createAggregateSchema(ctx, db)
 	createEventSchema(ctx, db)
 	createOffsetSchema(ctx, db)
+	createProcessSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
 	return tx.Commit()
@@ -220,6 +221,7 @@ func (driver) DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	dropAggregateSchema(ctx, db)
 	dropEventSchema(ctx, db)
 	dropOffsetSchema(ctx, db)
+	dropProcessSchema(ctx, db)
 	dropQueueSchema(ctx, db)
 
 	return nil

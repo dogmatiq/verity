@@ -1,0 +1,165 @@
+package sqlite
+
+import (
+	"context"
+	"database/sql"
+
+	"github.com/dogmatiq/infix/internal/x/sqlx"
+	"github.com/dogmatiq/infix/persistence"
+)
+
+// InsertProcessInstance inserts a process instance.
+//
+// It returns false if the row already exists.
+func (driver) InsertProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	res := sqlx.Exec(
+		ctx,
+		tx,
+		`INSERT INTO process_instance (
+			app_key,
+			handler_key,
+			instance_id,
+			media_type,
+			data
+		) VALUES (
+			$1, $2, $3, $4, $5
+		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
+		ak,
+		inst.HandlerKey,
+		inst.InstanceID,
+		inst.Packet.MediaType,
+		inst.Packet.Data,
+	)
+
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+// UpdateProcessInstance updates a process instance.
+//
+// It returns false if the row does not exist or inst.Revision is not current.
+func (driver) UpdateProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
+		ctx,
+		tx,
+		`UPDATE process_instance SET
+			revision = revision + 1,
+			media_type = $1,
+			data = $2
+		WHERE app_key = $3
+		AND handler_key = $4
+		AND instance_id = $5
+		AND revision = $6`,
+		inst.Packet.MediaType,
+		inst.Packet.Data,
+		ak,
+		inst.HandlerKey,
+		inst.InstanceID,
+		inst.Revision,
+	), nil
+}
+
+// DeleteProcessInstance deletes a process instance.
+//
+// It returns false if the row does not exist or inst.Revision is not current.
+func (driver) DeleteProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
+		ctx,
+		tx,
+		`DELETE FROM process_instance
+		WHERE app_key = $1
+		AND handler_key = $2
+		AND instance_id = $3
+		AND revision = $4`,
+		ak,
+		inst.HandlerKey,
+		inst.InstanceID,
+		inst.Revision,
+	), nil
+}
+
+// SelectProcessInstance selects a process instance's data.
+func (driver) SelectProcessInstance(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+) (persistence.ProcessInstance, error) {
+	row := db.QueryRowContext(
+		ctx,
+		`SELECT
+			revision,
+			media_type,
+			data
+		FROM process_instance
+		WHERE app_key = $1
+		AND handler_key = $2
+		AND instance_id = $3`,
+		ak,
+		hk,
+		id,
+	)
+
+	inst := persistence.ProcessInstance{
+		HandlerKey: hk,
+		InstanceID: id,
+	}
+
+	err := row.Scan(
+		&inst.Revision,
+		&inst.Packet.MediaType,
+		&inst.Packet.Data,
+	)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+
+	// if len(inst.Packet.Data) == 0 {
+	// 	inst.Packet.Data = nil
+	// }
+
+	return inst, err
+}
+
+// createOffsetSchema creates the schema elements for processes.
+func createProcessSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE process_instance (
+			app_key     TEXT NOT NULL,
+			handler_key TEXT NOT NULL,
+			instance_id TEXT NOT NULL,
+			revision    INTEGER NOT NULL DEFAULT 1,
+			media_type  TEXT NOT NULL,
+			data        BLOB,
+
+			PRIMARY KEY (app_key, handler_key, instance_id)
+		)`,
+	)
+}
+
+// dropOffsetSchema drops the schema elements for processes.
+func dropProcessSchema(ctx context.Context, db *sql.DB) {
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS process_instance`)
+}

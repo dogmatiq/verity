@@ -87,6 +87,7 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	createAggregateSchema(ctx, db)
 	createEventSchema(ctx, db)
 	createOffsetSchema(ctx, db)
+	createProcessSchema(ctx, db)
 	createQueueSchema(ctx, db)
 
 	return tx.Commit()

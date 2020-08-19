@@ -88,23 +88,6 @@ func declareAggregateOperationTests(tc *TestContext) {
 					)
 				})
 
-				ginkgo.It("increments the revision", func() {
-					persist(
-						tc.Context,
-						dataStore,
-						persistence.SaveAggregateMetaData{
-							MetaData: persistence.AggregateMetaData{
-								HandlerKey: "<handler-key>",
-								InstanceID: "<instance>",
-								Revision:   1,
-							},
-						},
-					)
-
-					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
-					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
-				})
-
 				ginkgo.It("increments the revision even if no meta-data has changed", func() {
 					persist(
 						tc.Context,
@@ -125,7 +108,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 				table.DescribeTable(
 					"it does not save the meta-data when an OCC conflict occurs",
 					func(conflictingRevision int) {
-						// Increment the revision once more so that it's up to
+						// Increment the meta-data once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
 						persist(

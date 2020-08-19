@@ -16,7 +16,8 @@ func (ds *dataStore) LoadAggregateMetaData(
 	ds.db.mutex.RLock()
 	defer ds.db.mutex.RUnlock()
 
-	if md, ok := ds.db.aggregate.metadata[hk][id]; ok {
+	key := instanceKey{hk, id}
+	if md, ok := ds.db.aggregate.metadata[key]; ok {
 		return md, nil
 	}
 
@@ -26,11 +27,6 @@ func (ds *dataStore) LoadAggregateMetaData(
 	}, nil
 }
 
-// aggregateDatabase contains aggregate related data.
-type aggregateDatabase struct {
-	metadata map[string]map[string]persistence.AggregateMetaData
-}
-
 // VisitSaveAggregateMetaData returns an error if a "SaveAggregateMetaData"
 // operation can not be applied to the database.
 func (v *validator) VisitSaveAggregateMetaData(
@@ -38,7 +34,8 @@ func (v *validator) VisitSaveAggregateMetaData(
 	op persistence.SaveAggregateMetaData,
 ) error {
 	new := op.MetaData
-	old := v.db.aggregate.metadata[new.HandlerKey][new.InstanceID]
+	key := instanceKey{new.HandlerKey, new.InstanceID}
+	old := v.db.aggregate.metadata[key]
 
 	if new.Revision == old.Revision {
 		return nil
@@ -55,21 +52,23 @@ func (c *committer) VisitSaveAggregateMetaData(
 	_ context.Context,
 	op persistence.SaveAggregateMetaData,
 ) error {
-	md := op.MetaData
-	instances := c.db.aggregate.metadata[md.HandlerKey]
+	c.db.aggregate.save(op.MetaData)
+	return nil
+}
 
-	if instances == nil {
-		instances = map[string]persistence.AggregateMetaData{}
+// aggregateDatabase contains aggregate related data.
+type aggregateDatabase struct {
+	metadata map[instanceKey]persistence.AggregateMetaData
+}
 
-		if c.db.aggregate.metadata == nil {
-			c.db.aggregate.metadata = map[string]map[string]persistence.AggregateMetaData{}
-		}
+// save stores md in the database.
+func (db *aggregateDatabase) save(md persistence.AggregateMetaData) {
+	key := instanceKey{md.HandlerKey, md.InstanceID}
 
-		c.db.aggregate.metadata[md.HandlerKey] = instances
+	if db.metadata == nil {
+		db.metadata = map[instanceKey]persistence.AggregateMetaData{}
 	}
 
 	md.Revision++
-	instances[md.InstanceID] = md
-
-	return nil
+	db.metadata[key] = md
 }

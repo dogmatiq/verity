@@ -129,12 +129,6 @@ func (r *eventResult) Close() error {
 	return nil
 }
 
-// eventDatabase contains event related data.
-type eventDatabase struct {
-	events  []persistence.Event
-	offsets map[string]uint64
-}
-
 // VisitSaveEvent returns an error if a "SaveEvent" operation can not be applied
 // to the database.
 func (v *validator) VisitSaveEvent(
@@ -150,26 +144,39 @@ func (c *committer) VisitSaveEvent(
 	_ context.Context,
 	op persistence.SaveEvent,
 ) error {
-	offset := uint64(len(c.db.event.events))
-
-	ev := persistence.Event{
-		Offset:   offset,
-		Envelope: cloneEnvelope(op.Envelope),
-	}
-
-	c.db.event.events = append(c.db.event.events, ev)
-
-	if c.db.event.offsets == nil {
-		c.db.event.offsets = map[string]uint64{}
-	}
-
-	c.db.event.offsets[ev.ID()] = offset
+	offset := c.db.event.save(op.Envelope)
 
 	if c.result.EventOffsets == nil {
 		c.result.EventOffsets = map[string]uint64{}
 	}
 
-	c.result.EventOffsets[ev.ID()] = offset
+	c.result.EventOffsets[op.Envelope.GetMessageId()] = offset
 
 	return nil
+}
+
+// eventDatabase contains event related data.
+type eventDatabase struct {
+	events  []persistence.Event
+	offsets map[string]uint64
+}
+
+// save appends the event in env to the database.
+func (db *eventDatabase) save(env *envelopespec.Envelope) uint64 {
+	offset := uint64(len(db.events))
+
+	ev := persistence.Event{
+		Offset:   offset,
+		Envelope: cloneEnvelope(env),
+	}
+
+	db.events = append(db.events, ev)
+
+	if db.offsets == nil {
+		db.offsets = map[string]uint64{}
+	}
+
+	db.offsets[ev.ID()] = offset
+
+	return offset
 }

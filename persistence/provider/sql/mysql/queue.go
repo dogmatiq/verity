@@ -113,6 +113,29 @@ func (driver) DeleteQueueMessage(
 	), nil
 }
 
+// DeleteQueueTimeoutMessagesByProcessInstance deletes timeout messages that
+// were produced by a specific process instance.
+func (driver) DeleteQueueTimeoutMessagesByProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) error {
+	_, err := tx.ExecContext(
+		ctx,
+		`DELETE FROM queue
+		WHERE app_key = ?
+		AND source_handler_key = ?
+		AND source_instance_id = ?
+		AND scheduled_for != ""`,
+		ak,
+		inst.HandlerKey,
+		inst.InstanceID,
+	)
+
+	return err
+}
+
 // SelectQueueMessages selects up to n messages from the queue.
 func (driver) SelectQueueMessages(
 	ctx context.Context,
@@ -211,7 +234,16 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 			data                LONGBLOB NOT NULL,
 
 			PRIMARY KEY (app_key, message_id),
-			INDEX repository_load (app_key, next_attempt_at)
+			INDEX by_next_attempt (
+				app_key,
+				next_attempt_at
+			),
+			INDEX by_source (
+				app_key,
+				source_handler_key,
+				source_instance_id,
+				scheduled_for
+			)
 		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
 	)
 }

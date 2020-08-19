@@ -16,6 +16,7 @@ type database struct {
 	aggregate aggregateDatabase
 	event     eventDatabase
 	offset    offsetDatabase
+	process   processDatabase
 	queue     queueDatabase
 }
 
@@ -60,4 +61,10 @@ type validator struct {
 type committer struct {
 	db     *database
 	result persistence.Result
+}
+
+// instanceKey is a struct used when a map is keyed by instance ID.
+type instanceKey struct {
+	handlerKey string
+	instanceID string
 }

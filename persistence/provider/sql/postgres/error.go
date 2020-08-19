@@ -240,6 +240,49 @@ func (d errorConverter) UpdateOffset(
 }
 
 //
+// process
+//
+
+func (d errorConverter) InsertProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) (bool, error) {
+	ok, err := d.d.InsertProcessInstance(ctx, tx, ak, inst)
+	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) UpdateProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) (bool, error) {
+	ok, err := d.d.UpdateProcessInstance(ctx, tx, ak, inst)
+	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) DeleteProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) (bool, error) {
+	ok, err := d.d.DeleteProcessInstance(ctx, tx, ak, inst)
+	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) SelectProcessInstance(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+) (persistence.ProcessInstance, error) {
+	inst, err := d.d.SelectProcessInstance(ctx, db, ak, hk, id)
+	return inst, convertContextErrors(ctx, err)
+}
+
+//
 // queue
 //
 
@@ -271,6 +314,16 @@ func (d errorConverter) DeleteQueueMessage(
 ) (bool, error) {
 	ok, err := d.d.DeleteQueueMessage(ctx, tx, ak, m)
 	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) DeleteQueueTimeoutMessagesByProcessInstance(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.ProcessInstance,
+) error {
+	err := d.d.DeleteQueueTimeoutMessagesByProcessInstance(ctx, tx, ak, inst)
+	return convertContextErrors(ctx, err)
 }
 
 func (d errorConverter) SelectQueueMessages(

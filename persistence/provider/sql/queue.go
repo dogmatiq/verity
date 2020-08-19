@@ -42,6 +42,15 @@ type QueueDriver interface {
 		m persistence.QueueMessage,
 	) (bool, error)
 
+	// DeleteQueueTimeoutMessagesByProcessInstance deletes timeout messages that
+	// were produced by a specific process instance.
+	DeleteQueueTimeoutMessagesByProcessInstance(
+		ctx context.Context,
+		tx *sql.Tx,
+		ak string,
+		inst persistence.ProcessInstance,
+	) error
+
 	// SelectQueueMessages selects up to n messages from the queue.
 	SelectQueueMessages(
 		ctx context.Context,

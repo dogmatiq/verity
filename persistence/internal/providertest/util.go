@@ -20,6 +20,18 @@ func loadAggregateMetaData(
 	return md
 }
 
+// loadProcessInstance loads a process instance.
+func loadProcessInstance(
+	ctx context.Context,
+	r persistence.ProcessRepository,
+	hk, id string,
+) persistence.ProcessInstance {
+	inst, err := r.LoadProcessInstance(ctx, hk, id)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	return inst
+}
+
 // loadEventsByType loads events of a specifc type.
 func loadEventsByType(
 	ctx context.Context,

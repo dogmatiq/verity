@@ -100,8 +100,8 @@ func (s *scope) Log(f string, v ...interface{}) {
 	)
 }
 
-// validate panics if the handler left the instance in an invalid state.
-func (s *scope) validate() {
+// finalize panics if the handler left the instance in an invalid state.
+func (s *scope) finalize() {
 	if s.lastEventID != "" {
 		return
 	}

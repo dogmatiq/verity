@@ -30,9 +30,9 @@ func declareQueueOperationTests(tc *TestContext) {
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 
-			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
-			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2)
-			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3)
+			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1, now, now)
+			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2, now)
+			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3, now)
 
 			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
 		})
@@ -228,6 +228,7 @@ func declareQueueOperationTests(tc *TestContext) {
 				ginkgo.It("saves messages that were not created by a handler", func() {
 					env0.SourceHandler = &envelopespec.Identity{}
 					env0.SourceInstanceId = ""
+					env0.ScheduledFor = ""
 
 					persist(
 						tc.Context,
@@ -458,7 +459,7 @@ func declareQueueOperationTests(tc *TestContext) {
 			})
 		})
 
-		ginkgo.It("serializes operations from competing transactions", func() {
+		ginkgo.It("serializes operations from concurrent persist calls", func() {
 			m0 := persistence.QueueMessage{
 				NextAttemptAt: now,
 				Envelope:      env0,

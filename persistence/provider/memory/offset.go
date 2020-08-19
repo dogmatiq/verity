@@ -17,11 +17,6 @@ func (ds *dataStore) LoadOffset(
 	return ds.db.offset.offsets[ak], nil
 }
 
-// offsetDatabase contains event stream offset related data.
-type offsetDatabase struct {
-	offsets map[string]uint64
-}
-
 // VisitSaveOffset returns an error if a "SaveOffset" operation can not be
 // applied to the database.
 func (v *validator) VisitSaveOffset(
@@ -43,11 +38,20 @@ func (c *committer) VisitSaveOffset(
 	_ context.Context,
 	op persistence.SaveOffset,
 ) error {
-	if c.db.offset.offsets == nil {
-		c.db.offset.offsets = map[string]uint64{}
+	c.db.offset.save(op.ApplicationKey, op.NextOffset)
+	return nil
+}
+
+// offsetDatabase contains event stream offset related data.
+type offsetDatabase struct {
+	offsets map[string]uint64
+}
+
+// save associates an offset with an application key.
+func (db *offsetDatabase) save(ak string, offset uint64) {
+	if db.offsets == nil {
+		db.offsets = map[string]uint64{}
 	}
 
-	c.db.offset.offsets[op.ApplicationKey] = op.NextOffset
-
-	return nil
+	db.offsets[ak] = offset
 }
