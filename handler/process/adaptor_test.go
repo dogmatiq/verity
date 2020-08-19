@@ -619,7 +619,7 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			When("the instance is ended", func() {
-				It("resets the root state within the same scope", func() {
+				It("causes Begin() to panic", func() {
 					upstream.HandleEventFunc = func(
 						_ context.Context,
 						s dogma.ProcessEventScope,
@@ -627,27 +627,9 @@ var _ = Describe("type Adaptor", func() {
 					) error {
 						s.End()
 
-						s.Begin()
-						r := s.Root().(*ProcessRoot)
-						Expect(r.Value).To(BeNil())
-
-						return nil
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("causes Begin() to return true again", func() {
-					upstream.HandleEventFunc = func(
-						_ context.Context,
-						s dogma.ProcessEventScope,
-						_ dogma.Message,
-					) error {
-						s.End()
-
-						ok := s.Begin()
-						Expect(ok).To(BeTrue())
+						Expect(func() {
+							s.Begin()
+						}).To(PanicWith("can not begin an instance that was ended by the same message"))
 
 						return nil
 					}
@@ -756,54 +738,6 @@ var _ = Describe("type Adaptor", func() {
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
-			})
-		})
-
-		When("when the instance has ended", func() {
-			BeforeEach(func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					s.Begin()
-
-					r := s.Root().(*ProcessRoot)
-					r.Value = "<value>"
-
-					s.End()
-
-					return nil
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				work.Succeed(handler.Result{})
-				work = &UnitOfWorkStub{}
-
-				upstream.HandleEventFunc = nil
-			})
-
-			It("resets the root state", func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					// Begin() should now return true once again.
-					Expect(s.Begin()).To(BeTrue())
-
-					// The root itself should also have been reset to
-					// as-new.
-					r := s.Root().(*ProcessRoot)
-					Expect(r.Value).To(BeNil())
-
-					return nil
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})
 	})

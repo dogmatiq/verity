@@ -23,7 +23,6 @@ type scope struct {
 	cause    parcel.Parcel
 	instance *Instance
 	exists   bool // true if the instance currently exists
-	begun    bool // true if Begin() has been called successfully at least once
 	ended    bool // true if End() has been called successfully at least once
 }
 
@@ -38,8 +37,11 @@ func (s *scope) Begin() bool {
 		return false
 	}
 
+	if s.ended {
+		panic("can not begin an instance that was ended by the same message")
+	}
+
 	s.exists = true
-	s.begun = true
 
 	return true
 }
@@ -50,7 +52,6 @@ func (s *scope) End() {
 		panic("can not end a process instance that has not begun")
 	}
 
-	s.instance.Root = mustNew(s.handler)
 	s.exists = false
 	s.ended = true
 }
