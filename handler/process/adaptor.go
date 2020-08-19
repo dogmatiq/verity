@@ -103,6 +103,8 @@ func (a *Adaptor) HandleMessage(
 		return err
 	}
 
+	sc.finalize()
+
 	if sc.exists {
 		return a.save(w, id, inst)
 	}

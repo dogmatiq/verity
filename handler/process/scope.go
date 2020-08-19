@@ -22,6 +22,7 @@ type scope struct {
 	work     handler.UnitOfWork
 	cause    parcel.Parcel
 	instance *Instance
+	timeouts []parcel.Parcel
 	exists   bool // true if the instance currently exists
 	ended    bool // true if End() has been called successfully at least once
 }
@@ -99,7 +100,7 @@ func (s *scope) ScheduleTimeout(m dogma.Message, t time.Time) {
 		s.instance.InstanceID,
 	)
 
-	s.work.ScheduleTimeout(p)
+	s.timeouts = append(s.timeouts, p)
 
 	mlog.LogProduce(s.logger, p.Envelope)
 }
@@ -124,4 +125,14 @@ func (s *scope) Log(f string, v ...interface{}) {
 		f,
 		v,
 	)
+}
+
+// finalize adds any scheduled timeouts to the unit-of-work if the instance
+// still exists.
+func (s *scope) finalize() {
+	if s.exists {
+		for _, p := range s.timeouts {
+			s.work.ScheduleTimeout(p)
+		}
+	}
 }

@@ -79,7 +79,7 @@ func (a *Adaptor) HandleMessage(
 	}
 
 	a.Handler.HandleCommand(sc, p.Message)
-	sc.validate()
+	sc.finalize()
 
 	if sc.lastEventID == "" {
 		// No events were recorded at all, so there's no reason to update the
