@@ -13,47 +13,91 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type MessageTypeRouter", func() {
+var _ = Describe("type Router", func() {
 	var (
-		work     *UnitOfWorkStub
-		upstream *HandlerStub
-		router   MessageTypeRouter
+		work                 *UnitOfWorkStub
+		upstream1, upstream2 *HandlerStub
+		router               Router
 	)
 
 	BeforeEach(func() {
 		work = &UnitOfWorkStub{}
 
-		upstream = &HandlerStub{}
+		upstream1 = &HandlerStub{}
+		upstream2 = &HandlerStub{}
 
-		router = MessageTypeRouter{
-			MessageAType: upstream,
+		router = Router{
+			MessageAType: []Handler{
+				upstream1,
+				upstream2,
+			},
 		}
 	})
 
-	It("dispatches to handler based on the message type", func() {
+	It("dispatches to handlers based on the message type", func() {
 		pcl := NewParcel("<id>", MessageA1)
 
-		upstream.HandleMessageFunc = func(
+		var called1, called2 bool
+
+		upstream1.HandleMessageFunc = func(
 			_ context.Context,
 			w UnitOfWork,
 			p parcel.Parcel,
 		) error {
 			Expect(w).To(BeIdenticalTo(work))
 			Expect(p).To(BeIdenticalTo(pcl))
+			called1 = true
+			return nil
+		}
+
+		upstream2.HandleMessageFunc = func(
+			_ context.Context,
+			w UnitOfWork,
+			p parcel.Parcel,
+		) error {
+			Expect(w).To(BeIdenticalTo(work))
+			Expect(p).To(BeIdenticalTo(pcl))
+			called2 = true
+			return nil
+		}
+
+		err := router.HandleMessage(context.Background(), work, pcl)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(called1).To(BeTrue())
+		Expect(called2).To(BeTrue())
+	})
+
+	It("stops dispatching if one of the handlers fails", func() {
+		pcl := NewParcel("<id>", MessageA1)
+
+		upstream1.HandleMessageFunc = func(
+			_ context.Context,
+			w UnitOfWork,
+			p parcel.Parcel,
+		) error {
 			return errors.New("<error>")
+		}
+
+		upstream2.HandleMessageFunc = func(
+			context.Context,
+			UnitOfWork,
+			parcel.Parcel,
+		) error {
+			Fail("unexpected call")
+			return nil
 		}
 
 		err := router.HandleMessage(context.Background(), work, pcl)
 		Expect(err).To(MatchError("<error>"))
 	})
 
-	It("returns an error if there is no upstream handler for the type", func() {
+	It("returns an error if there is no upstream handler for the message type", func() {
 		pcl := NewParcel("<id>", MessageB1)
 
-		upstream.HandleMessageFunc = func(
-			_ context.Context,
-			w UnitOfWork,
-			p parcel.Parcel,
+		upstream1.HandleMessageFunc = func(
+			context.Context,
+			UnitOfWork,
+			parcel.Parcel,
 		) error {
 			Fail("unexpected call")
 			return nil
