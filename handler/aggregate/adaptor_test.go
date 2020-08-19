@@ -439,7 +439,7 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			When("the instance is destroyed", func() {
-				It("resets the root state within the same scope", func() {
+				It("causes Create() to panic", func() {
 					upstream.HandleCommandFunc = func(
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
@@ -447,27 +447,9 @@ var _ = Describe("type Adaptor", func() {
 						s.RecordEvent(MessageE3)
 						s.Destroy()
 
-						s.Create()
-						r := s.Root().(*AggregateRoot)
-						Expect(r.Value).To(Equal(
-							&[]dogma.Message{},
-						))
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("causes create to return true again", func() {
-					upstream.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.RecordEvent(MessageE3)
-						s.Destroy()
-
-						ok := s.Create()
-						Expect(ok).To(BeTrue())
+						Expect(func() {
+							s.Create()
+						}).To(PanicWith("can not create an instance that was destroyed by the same message"))
 					}
 
 					err := adaptor.HandleMessage(ctx, work, cause)
