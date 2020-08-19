@@ -37,6 +37,10 @@ func (s *scope) Create() bool {
 		return false
 	}
 
+	if s.destroyed {
+		panic("can not create an instance that was destroyed by the same message")
+	}
+
 	s.instance.InstanceExists = true
 	s.created = true
 
