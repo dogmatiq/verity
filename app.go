@@ -245,8 +245,8 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 			Logger: loggingx.WithPrefix(
 				f.engineLogger,
 				"[cache %s@%s] ",
-				f.app.Name,
 				cfg.Identity().Name,
+				f.app.Name,
 			),
 		},
 		Packer: &parcel.Packer{
@@ -274,8 +274,8 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 			Logger: loggingx.WithPrefix(
 				f.engineLogger,
 				"[cache %s@%s] ",
-				f.app.Name,
 				cfg.Identity().Name,
+				f.app.Name,
 			),
 		},
 		Queue: f.queue,
