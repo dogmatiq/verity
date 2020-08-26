@@ -183,8 +183,9 @@ func (e *Engine) newEntryPoint(
 	l logging.Logger,
 ) *handler.EntryPoint {
 	hf := &handlerFactory{
-		opts:  e.opts,
-		queue: q,
+		opts:        e.opts,
+		queue:       q,
+		queueEvents: message.TypeSet{},
 		aggregateLoader: &aggregate.Loader{
 			AggregateRepository: ds,
 			EventRepository:     ds,
@@ -203,7 +204,7 @@ func (e *Engine) newEntryPoint(
 	}
 
 	return &handler.EntryPoint{
-		QueueEvents: nil,
+		QueueEvents: hf.queueEvents,
 		Handler:     hf.handler,
 		OnSuccess: func(r handler.Result) {
 			c.Add(r.Events)
@@ -217,6 +218,7 @@ func (e *Engine) newEntryPoint(
 type handlerFactory struct {
 	opts            *engineOptions
 	queue           *queue.Queue
+	queueEvents     message.TypeSet
 	aggregateLoader *aggregate.Loader
 	processLoader   *process.Loader
 	engineLogger    logging.Logger
@@ -314,6 +316,10 @@ func (f *handlerFactory) VisitRichProjection(_ context.Context, cfg configkit.Ri
 func (f *handlerFactory) addRoutes(cfg configkit.RichHandler, h handler.Handler) {
 	for mt, r := range cfg.MessageTypes().Consumed {
 		f.handler[mt] = append(f.handler[mt], h)
+
+		if r == message.EventRole {
+			f.queueEvents.Add(mt)
+		}
 
 		logging.Debug(
 			f.engineLogger,
