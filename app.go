@@ -233,7 +233,7 @@ func (f *handlerFactory) VisitRichApplication(ctx context.Context, cfg configkit
 }
 
 func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
-	a := &aggregate.Adaptor{
+	f.addRoutes(cfg, &aggregate.Adaptor{
 		Identity: envelopespec.MarshalIdentity(cfg.Identity()),
 		Handler:  cfg.Handler(),
 		Loader:   f.aggregateLoader,
@@ -255,18 +255,13 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 		},
 		LoadTimeout: f.opts.MessageTimeout,
 		Logger:      f.appLogger,
-	}
-
-	for mt := range cfg.MessageTypes().Consumed {
-		f.handler[mt] = append(f.handler[mt], a)
-		f.engineLogger.Debug("routing %s messages to %s", mt, cfg.Identity())
-	}
+	})
 
 	return nil
 }
 
 func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichProcess) error {
-	a := &process.Adaptor{
+	f.addRoutes(cfg, &process.Adaptor{
 		Identity:  envelopespec.MarshalIdentity(cfg.Identity()),
 		Handler:   cfg.Handler(),
 		Loader:    f.processLoader,
@@ -290,18 +285,13 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 		},
 		LoadTimeout: f.opts.MessageTimeout,
 		Logger:      f.appLogger,
-	}
-
-	for mt := range cfg.MessageTypes().Consumed {
-		f.handler[mt] = append(f.handler[mt], a)
-		f.engineLogger.Debug("routing %s messages to %s", mt, cfg.Identity())
-	}
+	})
 
 	return nil
 }
 
 func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
-	a := &integration.Adaptor{
+	f.addRoutes(cfg, &integration.Adaptor{
 		Identity:       envelopespec.MarshalIdentity(cfg.Identity()),
 		Handler:        cfg.Handler(),
 		DefaultTimeout: f.opts.MessageTimeout,
@@ -312,16 +302,27 @@ func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.R
 			Consumed:    cfg.MessageTypes().Consumed,
 		},
 		Logger: f.appLogger,
-	}
-
-	for mt := range cfg.MessageTypes().Consumed {
-		f.handler[mt] = append(f.handler[mt], a)
-		f.engineLogger.Debug("routing %s messages to %s", mt, cfg.Identity())
-	}
+	})
 
 	return nil
 }
 
 func (f *handlerFactory) VisitRichProjection(_ context.Context, cfg configkit.RichProjection) error {
 	return nil
+}
+
+func (f *handlerFactory) addRoutes(cfg configkit.RichHandler, h handler.Handler) {
+	for mt, r := range cfg.MessageTypes().Consumed {
+		f.handler[mt] = append(f.handler[mt], h)
+
+		logging.Debug(
+			f.engineLogger,
+			"[queue@%s -> %s@%s] consuming '%s' %ss",
+			f.app.Name,
+			cfg.Identity().Name,
+			f.app.Name,
+			mt,
+			r,
+		)
+	}
 }
