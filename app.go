@@ -259,6 +259,7 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 
 	for mt := range cfg.MessageTypes().Consumed {
 		f.handler[mt] = append(f.handler[mt], a)
+		f.engineLogger.Debug("routing %s messages to %s", mt, cfg.Identity())
 	}
 
 	return nil
@@ -293,6 +294,7 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 
 	for mt := range cfg.MessageTypes().Consumed {
 		f.handler[mt] = append(f.handler[mt], a)
+		f.engineLogger.Debug("routing %s messages to %s", mt, cfg.Identity())
 	}
 
 	return nil
@@ -314,6 +316,7 @@ func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.R
 
 	for mt := range cfg.MessageTypes().Consumed {
 		f.handler[mt] = append(f.handler[mt], a)
+		f.engineLogger.Debug("routing %s messages to %s", mt, cfg.Identity())
 	}
 
 	return nil
