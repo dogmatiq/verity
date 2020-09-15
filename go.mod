@@ -21,7 +21,7 @@ require (
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	go.etcd.io/bbolt v1.3.5
-	go.uber.org/multierr v1.5.0
+	go.uber.org/multierr v1.6.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	google.golang.org/grpc v1.32.0
 	google.golang.org/protobuf v1.25.0
