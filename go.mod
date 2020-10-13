@@ -19,7 +19,7 @@ require (
 	github.com/lib/pq v1.8.0
 	github.com/mattn/go-sqlite3 v1.14.4
 	github.com/onsi/ginkgo v1.14.1
-	github.com/onsi/gomega v1.10.2
+	github.com/onsi/gomega v1.10.3
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/multierr v1.6.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
