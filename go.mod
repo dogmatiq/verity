@@ -1,6 +1,6 @@
 module github.com/dogmatiq/infix
 
-go 1.13
+go 1.15
 
 require (
 	github.com/dogmatiq/configkit v0.7.3
