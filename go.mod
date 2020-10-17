@@ -12,7 +12,7 @@ require (
 	github.com/dogmatiq/linger v0.2.1
 	github.com/dogmatiq/marshalkit v0.2.2
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.2
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
