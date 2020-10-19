@@ -32,6 +32,11 @@ func (s *scope) InstanceID() string {
 	return s.instance.InstanceID
 }
 
+// HasBegun returns true if the process has begun.
+func (s *scope) HasBegun() bool {
+	return s.exists
+}
+
 // Begin starts the targeted process instance.
 func (s *scope) Begin() bool {
 	if s.exists {

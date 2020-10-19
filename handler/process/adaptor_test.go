@@ -498,6 +498,24 @@ var _ = Describe("type Adaptor", func() {
 
 		When("the instance does not exist", func() {
 			When("the instance is created", func() {
+				It("causes HasBegun() to return true", func() {
+					upstream.HandleEventFunc = func(
+						_ context.Context,
+						s dogma.ProcessEventScope,
+						_ dogma.Message,
+					) error {
+						s.Begin()
+
+						ok := s.HasBegun()
+						Expect(ok).To(BeTrue())
+
+						return nil
+					}
+
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
 				It("causes Begin() to return true", func() {
 					upstream.HandleEventFunc = func(
 						_ context.Context,
@@ -513,6 +531,22 @@ var _ = Describe("type Adaptor", func() {
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
+			})
+
+			It("causes HasBegun() to return false", func() {
+				upstream.HandleEventFunc = func(
+					_ context.Context,
+					s dogma.ProcessEventScope,
+					_ dogma.Message,
+				) error {
+					ok := s.HasBegun()
+					Expect(ok).To(BeFalse())
+
+					return nil
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
 			})
 
 			It("panics if the root is accessed", func() {
@@ -588,6 +622,22 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleEventFunc = nil
 			})
 
+			It("causes HasBegun() to return true", func() {
+				upstream.HandleEventFunc = func(
+					_ context.Context,
+					s dogma.ProcessEventScope,
+					_ dogma.Message,
+				) error {
+					ok := s.HasBegun()
+					Expect(ok).To(BeTrue())
+
+					return nil
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
 			It("causes Begin() to return false", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
@@ -630,6 +680,24 @@ var _ = Describe("type Adaptor", func() {
 						Expect(func() {
 							s.Begin()
 						}).To(PanicWith("can not begin an instance that was ended by the same message"))
+
+						return nil
+					}
+
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				It("causes HasBegun() to return false", func() {
+					upstream.HandleEventFunc = func(
+						_ context.Context,
+						s dogma.ProcessEventScope,
+						_ dogma.Message,
+					) error {
+						s.End()
+
+						ok := s.HasBegun()
+						Expect(ok).To(BeFalse())
 
 						return nil
 					}
