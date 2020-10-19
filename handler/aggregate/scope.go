@@ -31,6 +31,11 @@ func (s *scope) InstanceID() string {
 	return s.instance.InstanceID
 }
 
+// Exists returns true if the aggregate instance exists.
+func (s *scope) Exists() bool {
+	return s.instance.InstanceExists
+}
+
 // Create creates the targeted instance.
 func (s *scope) Create() bool {
 	if s.instance.InstanceExists {

@@ -328,6 +328,22 @@ var _ = Describe("type Adaptor", func() {
 
 		When("the instance does not exist", func() {
 			When("the instance is created", func() {
+				It("causes Exists() to return true", func() {
+					upstream.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						s.Create()
+						s.RecordEvent(MessageE1)
+
+						ok := s.Exists()
+						Expect(ok).To(BeTrue())
+					}
+
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
 				It("causes Create() to return true", func() {
 					upstream.HandleCommandFunc = func(
 						s dogma.AggregateCommandScope,
@@ -356,6 +372,19 @@ var _ = Describe("type Adaptor", func() {
 						Expect(err).ShouldNot(HaveOccurred())
 					}).To(PanicWith("*fixtures.AggregateMessageHandler.HandleEvent() created the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
 				})
+			})
+
+			It("causes Exists() to return false", func() {
+				upstream.HandleCommandFunc = func(
+					s dogma.AggregateCommandScope,
+					_ dogma.Message,
+				) {
+					ok := s.Exists()
+					Expect(ok).To(BeFalse())
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
 			})
 
 			It("panics if the root is accessed", func() {
@@ -407,6 +436,19 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = nil
 			})
 
+			It("causes Exists() to return true", func() {
+				upstream.HandleCommandFunc = func(
+					s dogma.AggregateCommandScope,
+					_ dogma.Message,
+				) {
+					ok := s.Exists()
+					Expect(ok).To(BeTrue())
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
 			It("causes Create() to return false", func() {
 				upstream.HandleCommandFunc = func(
 					s dogma.AggregateCommandScope,
@@ -439,6 +481,22 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			When("the instance is destroyed", func() {
+				It("causes Exists() to return false", func() {
+					upstream.HandleCommandFunc = func(
+						s dogma.AggregateCommandScope,
+						_ dogma.Message,
+					) {
+						s.RecordEvent(MessageE3)
+						s.Destroy()
+
+						ok := s.Exists()
+						Expect(ok).To(BeFalse())
+					}
+
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
 				It("causes Create() to panic", func() {
 					upstream.HandleCommandFunc = func(
 						s dogma.AggregateCommandScope,
