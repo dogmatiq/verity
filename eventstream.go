@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/handler/projection"
 	"github.com/dogmatiq/infix/internal/x/loggingx"

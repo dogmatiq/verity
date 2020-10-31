@@ -7,6 +7,7 @@ require (
 	github.com/dogmatiq/cosyne v0.1.0
 	github.com/dogmatiq/dodeca v0.2.2
 	github.com/dogmatiq/dogma v1.0.0-rc.0
+	github.com/dogmatiq/envelopespec v0.1.0
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v0.2.1

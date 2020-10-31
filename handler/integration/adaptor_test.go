@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/handler/integration"
 	"github.com/dogmatiq/infix/parcel"

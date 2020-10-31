@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/google/uuid"
 )

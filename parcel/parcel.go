@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 )
 
