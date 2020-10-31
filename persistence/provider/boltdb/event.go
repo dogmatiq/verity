@@ -3,7 +3,7 @@ package boltdb
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/bboltx"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/golang/protobuf/proto"

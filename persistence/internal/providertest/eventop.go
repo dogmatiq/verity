@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	infixfixtures "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/persistence"
 	"github.com/jmalloc/gomegax"

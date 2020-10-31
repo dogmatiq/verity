@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	. "github.com/dogmatiq/infix/fixtures"
 	. "github.com/dogmatiq/infix/internal/mlog"
 	. "github.com/onsi/ginkgo"

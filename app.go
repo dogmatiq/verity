@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/eventstream/memorystream"
 	"github.com/dogmatiq/infix/eventstream/persistedstream"

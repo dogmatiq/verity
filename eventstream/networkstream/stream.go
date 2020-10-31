@@ -5,9 +5,9 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/transportspec"
 )
 
 // Stream is an implementation of eventstream.Stream that consumes messages via
@@ -17,7 +17,7 @@ type Stream struct {
 	App configkit.Identity
 
 	// Client is the gRPC client used to querying the event stream server.
-	Client messagingspec.EventStreamClient
+	Client transportspec.EventStreamClient
 
 	// Marshaler is used to marshal and unmarshal messages and message types.
 	Marshaler marshalkit.Marshaler
@@ -33,7 +33,7 @@ func (s *Stream) Application() configkit.Identity {
 
 // EventTypes returns the set of event types that may appear on the stream.
 func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
-	req := &messagingspec.MessageTypesRequest{
+	req := &transportspec.MessageTypesRequest{
 		ApplicationKey: s.App.Key,
 	}
 
@@ -96,7 +96,7 @@ func (s *Stream) Open(
 		}
 	}()
 
-	req := &messagingspec.ConsumeRequest{
+	req := &transportspec.ConsumeRequest{
 		ApplicationKey: s.App.Key,
 		Offset:         o,
 		Types:          marshalMessageTypes(s.Marshaler, f),

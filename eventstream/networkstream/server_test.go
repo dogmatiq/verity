@@ -7,12 +7,12 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/eventstream/networkstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/transportspec"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +28,7 @@ var _ = Describe("type server", func() {
 		stream   *memorystream.Stream
 		listener net.Listener
 		server   *grpc.Server
-		client   messagingspec.EventStreamClient
+		client   transportspec.EventStreamClient
 
 		parcel0, parcel1, parcel2, parcel3 parcel.Parcel
 	)
@@ -75,7 +75,7 @@ var _ = Describe("type server", func() {
 		)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		client = messagingspec.NewEventStreamClient(conn)
+		client = transportspec.NewEventStreamClient(conn)
 	})
 
 	AfterEach(func() {
@@ -101,7 +101,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("exposes messages from the data-store", func() {
-			req := &messagingspec.ConsumeRequest{
+			req := &transportspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"MessageA", "MessageB"},
 			}
@@ -112,7 +112,7 @@ var _ = Describe("type server", func() {
 			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res).To(EqualX(
-				&messagingspec.ConsumeResponse{
+				&transportspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: parcel0.Envelope,
 				},
@@ -121,7 +121,7 @@ var _ = Describe("type server", func() {
 			res, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res).To(EqualX(
-				&messagingspec.ConsumeResponse{
+				&transportspec.ConsumeResponse{
 					Offset:   1,
 					Envelope: parcel1.Envelope,
 				},
@@ -129,7 +129,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("honours the initial offset", func() {
-			req := &messagingspec.ConsumeRequest{
+			req := &transportspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Offset:         2,
 				Types:          []string{"MessageA", "MessageB"},
@@ -141,7 +141,7 @@ var _ = Describe("type server", func() {
 			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res).To(EqualX(
-				&messagingspec.ConsumeResponse{
+				&transportspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: parcel2.Envelope,
 				},
@@ -149,7 +149,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("limits results to the supplied message types", func() {
-			req := &messagingspec.ConsumeRequest{
+			req := &transportspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"MessageA"},
 			}
@@ -160,7 +160,7 @@ var _ = Describe("type server", func() {
 			res, err := stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res).To(EqualX(
-				&messagingspec.ConsumeResponse{
+				&transportspec.ConsumeResponse{
 					Offset:   0,
 					Envelope: parcel0.Envelope,
 				},
@@ -169,7 +169,7 @@ var _ = Describe("type server", func() {
 			res, err = stream.Recv()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res).To(EqualX(
-				&messagingspec.ConsumeResponse{
+				&transportspec.ConsumeResponse{
 					Offset:   2,
 					Envelope: parcel2.Envelope,
 				},
@@ -177,7 +177,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
-			req := &messagingspec.ConsumeRequest{}
+			req := &transportspec.ConsumeRequest{}
 
 			stream, err := client.Consume(ctx, req)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -190,7 +190,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("returns a NOT_FOUND error if the application is not recognized", func() {
-			req := &messagingspec.ConsumeRequest{
+			req := &transportspec.ConsumeRequest{
 				ApplicationKey: "<unknown>",
 			}
 
@@ -204,7 +204,7 @@ var _ = Describe("type server", func() {
 			Expect(s.Code()).To(Equal(codes.NotFound))
 			Expect(s.Details()).To(ContainElement(
 				EqualX(
-					&messagingspec.UnrecognizedApplication{
+					&transportspec.UnrecognizedApplication{
 						ApplicationKey: "<unknown>",
 					},
 				),
@@ -212,7 +212,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("returns an INVALID_ARGUMENT error if the message type collection is empty", func() {
-			req := &messagingspec.ConsumeRequest{
+			req := &transportspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 			}
 
@@ -227,7 +227,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("returns an INVALID_ARGUMENT error if the message type collection contains unrecognized messages", func() {
-			req := &messagingspec.ConsumeRequest{
+			req := &transportspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				Types:          []string{"<unknown-1>", "<unknown-2>"},
 			}
@@ -242,12 +242,12 @@ var _ = Describe("type server", func() {
 			Expect(s.Code()).To(Equal(codes.InvalidArgument))
 			Expect(s.Details()).To(ContainElements(
 				EqualX(
-					&messagingspec.UnrecognizedMessage{
+					&transportspec.UnrecognizedMessage{
 						Name: "<unknown-1>",
 					},
 				),
 				EqualX(
-					&messagingspec.UnrecognizedMessage{
+					&transportspec.UnrecognizedMessage{
 						Name: "<unknown-2>",
 					},
 				),
@@ -257,7 +257,7 @@ var _ = Describe("type server", func() {
 
 	Describe("func EventTypes()", func() {
 		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
-			req := &messagingspec.MessageTypesRequest{}
+			req := &transportspec.MessageTypesRequest{}
 
 			_, err := client.EventTypes(ctx, req)
 
@@ -268,7 +268,7 @@ var _ = Describe("type server", func() {
 		})
 
 		It("returns a NOT_FOUND error if the application is not recognized", func() {
-			req := &messagingspec.MessageTypesRequest{
+			req := &transportspec.MessageTypesRequest{
 				ApplicationKey: "<unknown>",
 			}
 
@@ -280,7 +280,7 @@ var _ = Describe("type server", func() {
 			Expect(s.Code()).To(Equal(codes.NotFound))
 			Expect(s.Details()).To(ContainElement(
 				EqualX(
-					&messagingspec.UnrecognizedApplication{
+					&transportspec.UnrecognizedApplication{
 						ApplicationKey: "<unknown>",
 					},
 				),

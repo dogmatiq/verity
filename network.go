@@ -10,10 +10,10 @@ import (
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream/networkstream"
 	"github.com/dogmatiq/infix/eventstream/persistedstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
+	"github.com/dogmatiq/transportspec"
 	"google.golang.org/grpc"
 )
 
@@ -178,7 +178,7 @@ func (e *Engine) runDiscoveredApp(ctx context.Context, a *discovery.Application)
 		ctx,
 		&networkstream.Stream{
 			App:       a.Identity(),
-			Client:    messagingspec.NewEventStreamClient(a.Client.Connection),
+			Client:    transportspec.NewEventStreamClient(a.Client.Connection),
 			Marshaler: e.opts.Marshaler,
 			// TODO: https://github.com/dogmatiq/infix/issues/76
 			// Make pre-fetch buffer size configurable.

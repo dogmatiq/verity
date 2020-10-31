@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 )
 
 // QueueMessage is a message persisted in the message queue.

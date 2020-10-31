@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/infix/persistence"
 	"google.golang.org/protobuf/proto"
 )

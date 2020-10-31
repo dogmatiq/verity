@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/draftspecs/envelopespec"
+	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/infix/internal/x/sqlx"
 	"github.com/dogmatiq/infix/persistence"
 )
