@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream"
 	"github.com/dogmatiq/infix/internal/x/grpcx"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/transportspec"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,14 +37,14 @@ func RegisterServer(
 	options ...ServerOption,
 ) {
 	d := &dispatcher{
-		apps: map[string]messagingspec.EventStreamServer{},
+		apps: map[string]transportspec.EventStreamServer{},
 	}
 
 	for _, opt := range options {
 		svr := &server{
 			stream: opt.stream,
 			types:  map[string]message.Type{},
-			resp:   &messagingspec.MessageTypesResponse{},
+			resp:   &transportspec.MessageTypesResponse{},
 		}
 
 		d.apps[opt.key] = svr
@@ -55,7 +55,7 @@ func RegisterServer(
 			svr.types[n] = mt
 			svr.resp.MessageTypes = append(
 				svr.resp.MessageTypes,
-				&messagingspec.MessageType{
+				&transportspec.MessageType{
 					PortableName: n,
 					ConfigName:   mt.Name().String(),
 					// TODO: https://github.com/dogmatiq/infix/issues/49
@@ -68,16 +68,16 @@ func RegisterServer(
 		})
 	}
 
-	messagingspec.RegisterEventStreamServer(s, d)
+	transportspec.RegisterEventStreamServer(s, d)
 }
 
 // dispatcher is an implementation of the dogma.messaging.v1 EventStream service
 // that dispatches to other implementations based on the application key.
 type dispatcher struct {
-	apps map[string]messagingspec.EventStreamServer
+	apps map[string]transportspec.EventStreamServer
 }
 
-func (d *dispatcher) get(k string) (messagingspec.EventStreamServer, error) {
+func (d *dispatcher) get(k string) (transportspec.EventStreamServer, error) {
 	if k == "" {
 		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
@@ -93,7 +93,7 @@ func (d *dispatcher) get(k string) (messagingspec.EventStreamServer, error) {
 	return nil, grpcx.Errorf(
 		codes.NotFound,
 		[]proto.Message{
-			&messagingspec.UnrecognizedApplication{ApplicationKey: k},
+			&transportspec.UnrecognizedApplication{ApplicationKey: k},
 		},
 		"unrecognized application: %s",
 		k,
@@ -101,8 +101,8 @@ func (d *dispatcher) get(k string) (messagingspec.EventStreamServer, error) {
 }
 
 func (d *dispatcher) Consume(
-	req *messagingspec.ConsumeRequest,
-	consumer messagingspec.EventStream_ConsumeServer,
+	req *transportspec.ConsumeRequest,
+	consumer transportspec.EventStream_ConsumeServer,
 ) error {
 	s, err := d.get(req.GetApplicationKey())
 	if err != nil {
@@ -114,8 +114,8 @@ func (d *dispatcher) Consume(
 
 func (d *dispatcher) EventTypes(
 	ctx context.Context,
-	req *messagingspec.MessageTypesRequest,
-) (*messagingspec.MessageTypesResponse, error) {
+	req *transportspec.MessageTypesRequest,
+) (*transportspec.MessageTypesResponse, error) {
 	s, err := d.get(req.GetApplicationKey())
 	if err != nil {
 		return nil, err
@@ -129,12 +129,12 @@ func (d *dispatcher) EventTypes(
 type server struct {
 	stream eventstream.Stream
 	types  map[string]message.Type
-	resp   *messagingspec.MessageTypesResponse
+	resp   *transportspec.MessageTypesResponse
 }
 
 func (s *server) Consume(
-	req *messagingspec.ConsumeRequest,
-	consumer messagingspec.EventStream_ConsumeServer,
+	req *transportspec.ConsumeRequest,
+	consumer transportspec.EventStream_ConsumeServer,
 ) error {
 	ctx := consumer.Context()
 
@@ -155,7 +155,7 @@ func (s *server) Consume(
 			return err
 		}
 
-		res := &messagingspec.ConsumeResponse{
+		res := &transportspec.ConsumeResponse{
 			Offset:   ev.Offset,
 			Envelope: ev.Parcel.Envelope,
 		}
@@ -171,12 +171,12 @@ func (s *server) Consume(
 
 func (s *server) EventTypes(
 	context.Context,
-	*messagingspec.MessageTypesRequest,
-) (*messagingspec.MessageTypesResponse, error) {
+	*transportspec.MessageTypesRequest,
+) (*transportspec.MessageTypesResponse, error) {
 	return s.resp, nil
 }
 
-func (s *server) unmarshalTypes(req *messagingspec.ConsumeRequest) (message.TypeCollection, error) {
+func (s *server) unmarshalTypes(req *transportspec.ConsumeRequest) (message.TypeCollection, error) {
 	var (
 		types  = message.TypeSet{}
 		failed []proto.Message
@@ -188,7 +188,7 @@ func (s *server) unmarshalTypes(req *messagingspec.ConsumeRequest) (message.Type
 		} else {
 			failed = append(
 				failed,
-				&messagingspec.UnrecognizedMessage{Name: n},
+				&transportspec.UnrecognizedMessage{Name: n},
 			)
 		}
 	}

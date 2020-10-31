@@ -27,6 +27,10 @@ github.com/dogmatiq/linger v0.2.1 h1:ecVwiFlTcQuQ7ygQXH5bUPkWNve8n5BmVnCYMGMQ3zc
 github.com/dogmatiq/linger v0.2.1/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
 github.com/dogmatiq/marshalkit v0.2.2 h1:FpF0bRTwq10fOt9Ab1qTr5KUR+OuYxj3YhvX1Aswi1k=
 github.com/dogmatiq/marshalkit v0.2.2/go.mod h1:zFdNKBNkPjYZ0pFoPBuZ/s/fOpkeFlUl/c3mBYlUQZ0=
+github.com/dogmatiq/transportspec v0.0.0-20201031223931-b7080b0e6443 h1:oZ66rJk6fAJDHDZZRtADCZAi7Ni2Z1q8VDAMbVe2kTk=
+github.com/dogmatiq/transportspec v0.0.0-20201031223931-b7080b0e6443/go.mod h1:ur4CxMmx4bCTQ+nAbrB8AotDJtwM05qpakdGdVFSpH4=
+github.com/dogmatiq/transportspec v0.1.0 h1:EN13VqCbOG6oTqOdYm63kG5ZUD13HxWyZchBbWVDPPE=
+github.com/dogmatiq/transportspec v0.1.0/go.mod h1:ur4CxMmx4bCTQ+nAbrB8AotDJtwM05qpakdGdVFSpH4=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=

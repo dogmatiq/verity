@@ -9,13 +9,13 @@ import (
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/draftspecs/messagingspec"
 	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
 	"github.com/dogmatiq/infix/eventstream/memorystream"
 	. "github.com/dogmatiq/infix/eventstream/networkstream"
 	. "github.com/dogmatiq/infix/fixtures"
 	"github.com/dogmatiq/infix/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/transportspec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
@@ -60,7 +60,7 @@ var _ = Describe("type Stream", func() {
 			return streamtest.Out{
 				Stream: &Stream{
 					App:       in.Application.Identity(),
-					Client:    messagingspec.NewEventStreamClient(conn),
+					Client:    transportspec.NewEventStreamClient(conn),
 					Marshaler: in.Marshaler,
 				},
 				Append: func(ctx context.Context, parcels ...parcel.Parcel) {
@@ -127,7 +127,7 @@ var _ = Describe("type Stream", func() {
 
 		stream = &Stream{
 			App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			Client:    messagingspec.NewEventStreamClient(conn),
+			Client:    transportspec.NewEventStreamClient(conn),
 			Marshaler: Marshaler,
 		}
 	})
