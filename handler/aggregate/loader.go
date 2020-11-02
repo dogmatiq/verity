@@ -44,10 +44,6 @@ func (l *Loader) Load(
 
 	inst := &Instance{md, base}
 
-	if base == dogma.StatelessAggregateRoot {
-		return inst, nil
-	}
-
 	if !md.InstanceExists {
 		return inst, nil
 	}

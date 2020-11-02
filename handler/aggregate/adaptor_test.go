@@ -175,7 +175,6 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					s.Create()
 					s.RecordEvent(MessageE1)
 				}
 
@@ -222,7 +221,6 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					s.Create()
 					s.RecordEvent(MessageE1)
 
 					r := s.Root().(*AggregateRoot)
@@ -237,26 +235,11 @@ var _ = Describe("type Adaptor", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			It("panics if the instance does not exist", func() {
-				upstream.HandleCommandFunc = func(
-					s dogma.AggregateCommandScope,
-					_ dogma.Message,
-				) {
-					s.RecordEvent(MessageE1)
-				}
-
-				Expect(func() {
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not record an event against an aggregate instance that has not been created"))
-			})
-
 			It("logs about the event", func() {
 				upstream.HandleCommandFunc = func(
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					s.Create()
 					s.RecordEvent(MessageE1)
 				}
 
@@ -327,81 +310,22 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		When("the instance does not exist", func() {
-			When("the instance is created", func() {
-				It("causes Exists() to return true", func() {
-					upstream.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.Create()
-						s.RecordEvent(MessageE1)
-
-						ok := s.Exists()
-						Expect(ok).To(BeTrue())
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("causes Create() to return true", func() {
-					upstream.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						ok := s.Create()
-						Expect(ok).To(BeTrue())
-
-						s.RecordEvent(MessageE1)
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("panics if no event is recorded", func() {
-					upstream.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.Create()
-					}
-
-					Expect(func() {
-						err := adaptor.HandleMessage(ctx, work, cause)
-						Expect(err).ShouldNot(HaveOccurred())
-					}).To(PanicWith("*fixtures.AggregateMessageHandler.HandleEvent() created the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
-				})
-			})
-
-			It("causes Exists() to return false", func() {
+			It("allows access to an empty root", func() {
 				upstream.HandleCommandFunc = func(
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					ok := s.Exists()
-					Expect(ok).To(BeFalse())
+					r := s.Root().(*AggregateRoot)
+					Expect(r.Value).To(Equal(
+						&[]dogma.Message{},
+					))
 				}
 
 				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			It("panics if the root is accessed", func() {
-				upstream.HandleCommandFunc = func(
-					s dogma.AggregateCommandScope,
-					_ dogma.Message,
-				) {
-					s.Root()
-				}
-
-				Expect(func() {
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not access the root of an aggregate instance that has not been created"))
-			})
-
-			It("panics if the instance is destroyed", func() {
+			It("does not panic if the instance is destroyed", func() {
 				upstream.HandleCommandFunc = func(
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
@@ -412,7 +336,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(func() {
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not destroy an aggregate instance that has not been created"))
+				}).NotTo(Panic())
 			})
 		})
 
@@ -422,7 +346,6 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					s.Create()
 					s.RecordEvent(MessageE1)
 					s.RecordEvent(MessageE2)
 				}
@@ -434,32 +357,6 @@ var _ = Describe("type Adaptor", func() {
 				work = &UnitOfWorkStub{}
 
 				upstream.HandleCommandFunc = nil
-			})
-
-			It("causes Exists() to return true", func() {
-				upstream.HandleCommandFunc = func(
-					s dogma.AggregateCommandScope,
-					_ dogma.Message,
-				) {
-					ok := s.Exists()
-					Expect(ok).To(BeTrue())
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-
-			It("causes Create() to return false", func() {
-				upstream.HandleCommandFunc = func(
-					s dogma.AggregateCommandScope,
-					_ dogma.Message,
-				) {
-					ok := s.Create()
-					Expect(ok).To(BeFalse())
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
 			})
 
 			It("provides a root with the correct state", func() {
@@ -481,23 +378,7 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			When("the instance is destroyed", func() {
-				It("causes Exists() to return false", func() {
-					upstream.HandleCommandFunc = func(
-						s dogma.AggregateCommandScope,
-						_ dogma.Message,
-					) {
-						s.RecordEvent(MessageE3)
-						s.Destroy()
-
-						ok := s.Exists()
-						Expect(ok).To(BeFalse())
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("causes Create() to panic", func() {
+				It("causes RecordEvent() to panic", func() {
 					upstream.HandleCommandFunc = func(
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
@@ -506,8 +387,8 @@ var _ = Describe("type Adaptor", func() {
 						s.Destroy()
 
 						Expect(func() {
-							s.Create()
-						}).To(PanicWith("can not create an instance that was destroyed by the same message"))
+							s.RecordEvent(MessageE3)
+						}).To(PanicWith("can not record an event against an instance that was destroyed by the same message"))
 					}
 
 					err := adaptor.HandleMessage(ctx, work, cause)
@@ -562,7 +443,6 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					s.Create()
 					s.RecordEvent(MessageE1)
 					s.Destroy()
 				}
@@ -581,22 +461,10 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					// Create() should now return true once again.
-					Expect(s.Create()).To(BeTrue())
-
-					// The root itself should also have been reset to
-					// as-new. For our test root that means the internal
-					// slice of historical messages should be empty.
 					r := s.Root().(*AggregateRoot)
 					Expect(r.Value).To(Equal(
 						&[]dogma.Message{},
 					))
-
-					// As per the Dogma API specification, we must record an
-					// event whenever we call Create(). This is done after
-					// the assertion that the root is empty otherwise we
-					// would see this event in the state.
-					s.RecordEvent(MessageE{Value: "<recreated>"})
 				}
 
 				err := adaptor.HandleMessage(ctx, work, cause)

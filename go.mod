@@ -6,7 +6,7 @@ require (
 	github.com/dogmatiq/configkit v0.7.4
 	github.com/dogmatiq/cosyne v0.1.0
 	github.com/dogmatiq/dodeca v0.2.2
-	github.com/dogmatiq/dogma v1.0.0-rc.0
+	github.com/dogmatiq/dogma v1.0.0-rc.0.0.20201102060324-119b0515d02b
 	github.com/dogmatiq/envelopespec v0.1.0
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/kyu v0.2.0
