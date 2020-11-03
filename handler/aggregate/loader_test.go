@@ -167,20 +167,6 @@ var _ = Describe("type Loader", func() {
 				Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
 			})
 
-			It("does not attempt to load events for a stateless aggregate", func() {
-				dataStore.LoadEventsBySourceFunc = func(
-					context.Context,
-					string,
-					string,
-					string,
-				) (persistence.EventResult, error) {
-					return nil, errors.New("<error>")
-				}
-
-				_, err := loader.Load(ctx, "<handler-key>", "<instance>", dogma.StatelessAggregateRoot)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-
 			When("the instance has been destroyed", func() {
 				BeforeEach(func() {
 					_, err := dataStore.Persist(
