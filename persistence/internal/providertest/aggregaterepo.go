@@ -41,7 +41,8 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 					HandlerKey:     "<handler-key>",
 					InstanceID:     "<instance>",
 					InstanceExists: true,
-					BarrierEventID: "<message-id>",
+					LastEventID:    "<last-event-id>",
+					BarrierEventID: "<barrier-event-id>",
 				}
 				persist(
 					tc.Context,
@@ -65,7 +66,8 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 					HandlerKey:     "<handler-key>",
 					InstanceID:     "<instance>",
 					InstanceExists: true,
-					BarrierEventID: "<message-id>",
+					LastEventID:    "<last-event-id>",
+					BarrierEventID: "<barrier-event-id>",
 				}
 				persist(
 					tc.Context,

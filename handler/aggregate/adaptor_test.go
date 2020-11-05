@@ -210,6 +210,7 @@ var _ = Describe("type Adaptor", func() {
 								HandlerKey:     "<aggregate-key>",
 								InstanceID:     "<instance>",
 								InstanceExists: true,
+								LastEventID:    "0", // deterministic ID from the packer
 							},
 						},
 					},
@@ -395,7 +396,7 @@ var _ = Describe("type Adaptor", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
-				It("updates the aggregate meta-data with the last-deleted-by message", func() {
+				It("updates the barrier event on the aggregate meta-data", func() {
 					upstream.HandleCommandFunc = func(
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
@@ -414,6 +415,7 @@ var _ = Describe("type Adaptor", func() {
 									InstanceID:     "<instance>",
 									Revision:       1,
 									InstanceExists: false,
+									LastEventID:    "2", // deterministic ID from the packer
 									BarrierEventID: "2", // deterministic ID from the packer
 								},
 							},

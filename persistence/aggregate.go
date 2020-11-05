@@ -20,6 +20,10 @@ type AggregateMetaData struct {
 	// this flag is set to false.
 	InstanceExists bool
 
+	// LastEventID is the ID of the most recent event message recorded against
+	// the instance.
+	LastEventID string
+
 	// BarrierEventID is the ID of the event message to use as the "barrier
 	// message" when loading the instance's historical events.
 	//
