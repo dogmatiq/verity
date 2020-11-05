@@ -1,8 +1,6 @@
 package aggregate
 
 import (
-	"fmt"
-
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/envelopespec"
@@ -14,15 +12,15 @@ import (
 // scope is an implementation of dogma.AggregateCommandScope. It is the
 // application-developer-facing interface to a UnitOfWork.
 type scope struct {
-	identity    *envelopespec.Identity
-	handler     dogma.AggregateMessageHandler
-	packer      *parcel.Packer
-	logger      logging.Logger
-	work        handler.UnitOfWork
-	cause       parcel.Parcel
-	instance    *Instance // the aggregate instance, this is always within a cache record
-	destroyed   bool      // true if Destroy() has been called successfully at least once
-	lastEventID string    // ID of the most-recently recorded event
+	identity  *envelopespec.Identity
+	handler   dogma.AggregateMessageHandler
+	packer    *parcel.Packer
+	logger    logging.Logger
+	work      handler.UnitOfWork
+	cause     parcel.Parcel
+	instance  *Instance // the aggregate instance, this is always within a cache record
+	changed   bool      // true if RecordEvent() has been called, or Destroy() succeeded
+	destroyed bool      // true if Destroy() has been called without subsequent call to RecordEvent()
 }
 
 // InstanceID returns the ID of the targeted aggregate instance.
@@ -36,9 +34,8 @@ func (s *scope) Destroy() {
 		return
 	}
 
-	s.instance.Root = mustNew(s.handler)
 	s.instance.InstanceExists = false
-	s.instance.BarrierEventID = s.lastEventID
+	s.changed = true
 	s.destroyed = true
 }
 
@@ -50,10 +47,6 @@ func (s *scope) Root() dogma.AggregateRoot {
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
-	if s.destroyed {
-		panic("can not record an event against an instance that was destroyed by the same message")
-	}
-
 	p := s.packer.PackChildEvent(
 		s.cause,
 		m,
@@ -63,8 +56,10 @@ func (s *scope) RecordEvent(m dogma.Message) {
 
 	s.instance.Root.ApplyEvent(m)
 	s.work.RecordEvent(p)
-	s.lastEventID = p.ID()
 	s.instance.InstanceExists = true
+	s.instance.LastEventID = p.ID()
+	s.changed = true
+	s.destroyed = false
 
 	mlog.LogProduce(s.logger, p.Envelope)
 }
@@ -78,20 +73,4 @@ func (s *scope) Log(f string, v ...interface{}) {
 		f,
 		v,
 	)
-}
-
-// finalize panics if the handler left the instance in an invalid state.
-func (s *scope) finalize() {
-	if s.lastEventID != "" {
-		return
-	}
-
-	if s.destroyed {
-		panic(fmt.Sprintf(
-			"%T.HandleEvent() destroyed the '%s' instance without recording an event while handling a %T command",
-			s.handler,
-			s.instance.InstanceID,
-			s.cause.Message,
-		))
-	}
 }
