@@ -87,6 +87,8 @@ func (a *Adaptor) HandleMessage(
 		return nil
 	}
 
+	inst.LastEventID = sc.lastEventID
+
 	w.Do(persistence.SaveAggregateMetaData{
 		MetaData: inst.AggregateMetaData,
 	})

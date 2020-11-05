@@ -8,5 +8,6 @@ option go_package = "github.com/dogmatiq/infix/persistence/provider/boltdb/inter
 message AggregateMetaData{
   uint64 revision = 1;
   bool instance_exists = 2;
-  string barrier_event_id = 3;
+  string last_event_id = 3;
+  string barrier_event_id = 4;
 }

@@ -46,6 +46,7 @@ func (ds *dataStore) LoadAggregateMetaData(
 				pb := loadAggregateMetaData(root, hk, id)
 				md.Revision = pb.GetRevision()
 				md.InstanceExists = pb.GetInstanceExists()
+				md.LastEventID = pb.GetLastEventId()
 				md.BarrierEventID = pb.GetBarrierEventId()
 			}
 		},
@@ -84,6 +85,7 @@ func saveAggregateMetaData(root *bbolt.Bucket, md persistence.AggregateMetaData)
 		&pb.AggregateMetaData{
 			Revision:       md.Revision + 1,
 			InstanceExists: md.InstanceExists,
+			LastEventId:    md.LastEventID,
 			BarrierEventId: md.BarrierEventID,
 		},
 	)
