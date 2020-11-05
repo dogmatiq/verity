@@ -30,13 +30,7 @@ var _ = Describe("type Loader", func() {
 
 		dataStore = NewDataStoreStub()
 
-		base = &AggregateRoot{
-			Value: &[]dogma.Message{},
-			ApplyEventFunc: func(m dogma.Message, v interface{}) {
-				p := v.(*[]dogma.Message)
-				*p = append(*p, m)
-			},
-		}
+		base = &AggregateRoot{}
 
 		loader = &Loader{
 			AggregateRepository: dataStore,
@@ -139,8 +133,8 @@ var _ = Describe("type Loader", func() {
 			It("applies historical events to the base root", func() {
 				_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(base.Value).To(Equal(
-					&[]dogma.Message{
+				Expect(base.AppliedEvents).To(Equal(
+					[]dogma.Message{
 						MessageE1,
 						MessageE2,
 					},
@@ -227,8 +221,8 @@ var _ = Describe("type Loader", func() {
 					It("only applies events that were recorded after the destruction", func() {
 						_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
 						Expect(err).ShouldNot(HaveOccurred())
-						Expect(base.Value).To(Equal(
-							&[]dogma.Message{
+						Expect(base.AppliedEvents).To(Equal(
+							[]dogma.Message{
 								MessageE3,
 							},
 						))

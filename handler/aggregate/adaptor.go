@@ -78,7 +78,7 @@ func (a *Adaptor) HandleMessage(
 		instance: inst,
 	}
 
-	a.Handler.HandleCommand(sc, p.Message)
+	a.Handler.HandleCommand(inst.Root, sc, p.Message)
 
 	if !sc.changed {
 		// No events were recorded at all, and the instance was not destroyed,

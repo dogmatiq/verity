@@ -70,16 +70,6 @@ var _ = Describe("type Adaptor", func() {
 
 		logger = &logging.BufferedLogger{}
 
-		upstream.NewFunc = func() dogma.AggregateRoot {
-			return &AggregateRoot{
-				Value: &[]dogma.Message{},
-				ApplyEventFunc: func(m dogma.Message, v interface{}) {
-					p := v.(*[]dogma.Message)
-					*p = append(*p, m)
-				},
-			}
-		}
-
 		work = &UnitOfWorkStub{}
 
 		cause = NewParcel("<consume>", MessageC1)
@@ -110,6 +100,7 @@ var _ = Describe("type Adaptor", func() {
 		It("forwards the message to the handler", func() {
 			called := false
 			upstream.HandleCommandFunc = func(
+				_ dogma.AggregateRoot,
 				_ dogma.AggregateCommandScope,
 				m dogma.Message,
 			) {
@@ -124,6 +115,7 @@ var _ = Describe("type Adaptor", func() {
 
 		It("makes the instance ID available via the scope ", func() {
 			upstream.HandleCommandFunc = func(
+				_ dogma.AggregateRoot,
 				s dogma.AggregateCommandScope,
 				_ dogma.Message,
 			) {
@@ -172,6 +164,7 @@ var _ = Describe("type Adaptor", func() {
 		When("an event is recorded", func() {
 			It("saves the event and updates the aggregate meta-data", func() {
 				upstream.HandleCommandFunc = func(
+					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
@@ -219,14 +212,15 @@ var _ = Describe("type Adaptor", func() {
 
 			It("applies the event to the aggregate root", func() {
 				upstream.HandleCommandFunc = func(
+					x dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
 					s.RecordEvent(MessageE1)
 
-					r := s.Root().(*AggregateRoot)
-					Expect(r.Value).To(Equal(
-						&[]dogma.Message{
+					r := x.(*AggregateRoot)
+					Expect(r.AppliedEvents).To(Equal(
+						[]dogma.Message{
 							MessageE1,
 						},
 					))
@@ -238,6 +232,7 @@ var _ = Describe("type Adaptor", func() {
 
 			It("logs about the event", func() {
 				upstream.HandleCommandFunc = func(
+					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
@@ -258,6 +253,7 @@ var _ = Describe("type Adaptor", func() {
 		When("a message is logged via the scope", func() {
 			BeforeEach(func() {
 				upstream.HandleCommandFunc = func(
+					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
@@ -313,13 +309,12 @@ var _ = Describe("type Adaptor", func() {
 		When("the instance does not exist", func() {
 			It("allows access to an empty root", func() {
 				upstream.HandleCommandFunc = func(
+					x dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					r := s.Root().(*AggregateRoot)
-					Expect(r.Value).To(Equal(
-						&[]dogma.Message{},
-					))
+					r := x.(*AggregateRoot)
+					Expect(r.AppliedEvents).To(BeEmpty())
 				}
 
 				err := adaptor.HandleMessage(ctx, work, cause)
@@ -328,6 +323,7 @@ var _ = Describe("type Adaptor", func() {
 
 			It("does not panic if the instance is destroyed", func() {
 				upstream.HandleCommandFunc = func(
+					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
@@ -344,6 +340,7 @@ var _ = Describe("type Adaptor", func() {
 		When("the instance already exists", func() {
 			BeforeEach(func() {
 				upstream.HandleCommandFunc = func(
+					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
@@ -362,12 +359,13 @@ var _ = Describe("type Adaptor", func() {
 
 			It("provides a root with the correct state", func() {
 				upstream.HandleCommandFunc = func(
+					x dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
 					_ dogma.Message,
 				) {
-					r := s.Root().(*AggregateRoot)
-					Expect(r.Value).To(Equal(
-						&[]dogma.Message{
+					r := x.(*AggregateRoot)
+					Expect(r.AppliedEvents).To(Equal(
+						[]dogma.Message{
 							MessageE1,
 							MessageE2,
 						},
@@ -381,6 +379,7 @@ var _ = Describe("type Adaptor", func() {
 			When("the instance is destroyed", func() {
 				It("causes RecordEvent() to negate the destroy", func() {
 					upstream.HandleCommandFunc = func(
+						_ dogma.AggregateRoot,
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
 					) {
@@ -408,6 +407,7 @@ var _ = Describe("type Adaptor", func() {
 
 				It("updates the barrier event on the aggregate meta-data", func() {
 					upstream.HandleCommandFunc = func(
+						_ dogma.AggregateRoot,
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
 					) {
@@ -435,6 +435,7 @@ var _ = Describe("type Adaptor", func() {
 
 				It("does not require an event to be recorded", func() {
 					upstream.HandleCommandFunc = func(
+						_ dogma.AggregateRoot,
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
 					) {
@@ -463,15 +464,16 @@ var _ = Describe("type Adaptor", func() {
 
 		It("does not reset the root state when destroyed", func() {
 			upstream.HandleCommandFunc = func(
+				x dogma.AggregateRoot,
 				s dogma.AggregateCommandScope,
 				_ dogma.Message,
 			) {
 				s.RecordEvent(MessageE1)
 				s.Destroy()
 
-				r := s.Root().(*AggregateRoot)
-				Expect(r.Value).To(Equal(
-					&[]dogma.Message{
+				r := x.(*AggregateRoot)
+				Expect(r.AppliedEvents).To(Equal(
+					[]dogma.Message{
 						MessageE1,
 					},
 				))
