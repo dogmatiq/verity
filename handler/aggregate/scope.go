@@ -39,11 +39,6 @@ func (s *scope) Destroy() {
 	s.destroyed = true
 }
 
-// Root returns the root of the targeted aggregate instance.
-func (s *scope) Root() dogma.AggregateRoot {
-	return s.instance.Root
-}
-
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
 func (s *scope) RecordEvent(m dogma.Message) {
