@@ -38,7 +38,7 @@ func (s *scope) Destroy() {
 
 	s.instance.Root = mustNew(s.handler)
 	s.instance.InstanceExists = false
-	s.instance.LastDestroyedBy = s.lastEventID
+	s.instance.BarrierEventID = s.lastEventID
 	s.destroyed = true
 }
 

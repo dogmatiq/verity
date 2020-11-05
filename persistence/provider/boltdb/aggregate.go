@@ -46,7 +46,7 @@ func (ds *dataStore) LoadAggregateMetaData(
 				pb := loadAggregateMetaData(root, hk, id)
 				md.Revision = pb.GetRevision()
 				md.InstanceExists = pb.GetInstanceExists()
-				md.LastDestroyedBy = pb.GetLastDestroyedBy()
+				md.BarrierEventID = pb.GetBarrierEventId()
 			}
 		},
 	)
@@ -82,9 +82,9 @@ func (c *committer) VisitSaveAggregateMetaData(
 func saveAggregateMetaData(root *bbolt.Bucket, md persistence.AggregateMetaData) {
 	data, err := proto.Marshal(
 		&pb.AggregateMetaData{
-			Revision:        md.Revision + 1,
-			InstanceExists:  md.InstanceExists,
-			LastDestroyedBy: md.LastDestroyedBy,
+			Revision:       md.Revision + 1,
+			InstanceExists: md.InstanceExists,
+			BarrierEventId: md.BarrierEventID,
 		},
 	)
 	bboltx.Must(err)

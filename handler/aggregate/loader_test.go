@@ -174,11 +174,11 @@ var _ = Describe("type Loader", func() {
 						persistence.Batch{
 							persistence.SaveAggregateMetaData{
 								MetaData: persistence.AggregateMetaData{
-									HandlerKey:      "<handler-key>",
-									InstanceID:      "<instance>",
-									Revision:        1,
-									InstanceExists:  false,
-									LastDestroyedBy: "<event-1>",
+									HandlerKey:     "<handler-key>",
+									InstanceID:     "<instance>",
+									Revision:       1,
+									InstanceExists: false,
+									BarrierEventID: "<event-1>",
 								},
 							},
 						},
@@ -210,11 +210,11 @@ var _ = Describe("type Loader", func() {
 								},
 								persistence.SaveAggregateMetaData{
 									MetaData: persistence.AggregateMetaData{
-										HandlerKey:      "<handler-key>",
-										InstanceID:      "<instance>",
-										Revision:        2,
-										InstanceExists:  true,
-										LastDestroyedBy: "<event-1>",
+										HandlerKey:     "<handler-key>",
+										InstanceID:     "<instance>",
+										Revision:       2,
+										InstanceExists: true,
+										BarrierEventID: "<event-1>",
 									},
 								},
 							},
