@@ -27,7 +27,7 @@ func (driver) InsertAggregateMetaData(
 			handler_key,
 			instance_id,
 			instance_exists,
-			last_destroyed_by
+			barrier_event_id
 		) VALUES (
 			$1, $2, $3, $4, $5
 		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
@@ -35,7 +35,7 @@ func (driver) InsertAggregateMetaData(
 		md.HandlerKey,
 		md.InstanceID,
 		md.InstanceExists,
-		md.LastDestroyedBy,
+		md.BarrierEventID,
 	)
 
 	n, err := res.RowsAffected()
@@ -59,13 +59,13 @@ func (driver) UpdateAggregateMetaData(
 		`UPDATE infix.aggregate_metadata SET
 			revision = revision + 1,
 			instance_exists = $1,
-			last_destroyed_by = $2
+			barrier_event_id = $2
 		WHERE app_key = $3
 		AND handler_key = $4
 		AND instance_id = $5
 		AND revision = $6`,
 		md.InstanceExists,
-		md.LastDestroyedBy,
+		md.BarrierEventID,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
@@ -84,7 +84,7 @@ func (driver) SelectAggregateMetaData(
 		`SELECT
 			revision,
 			instance_exists,
-			last_destroyed_by
+			barrier_event_id
 		FROM infix.aggregate_metadata
 		WHERE app_key = $1
 		AND handler_key = $2
@@ -102,7 +102,7 @@ func (driver) SelectAggregateMetaData(
 	err := row.Scan(
 		&md.Revision,
 		&md.InstanceExists,
-		&md.LastDestroyedBy,
+		&md.BarrierEventID,
 	)
 	if err == sql.ErrNoRows {
 		err = nil
@@ -117,12 +117,12 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE infix.aggregate_metadata (
-			app_key           TEXT NOT NULL,
-			handler_key       TEXT NOT NULL,
-			instance_id       TEXT NOT NULL,
-			revision          BIGINT NOT NULL DEFAULT 1,
-			instance_exists   BOOLEAN NOT NULL,
-			last_destroyed_by TEXT NOT NULL,
+			app_key          TEXT NOT NULL,
+			handler_key      TEXT NOT NULL,
+			instance_id      TEXT NOT NULL,
+			revision         BIGINT NOT NULL DEFAULT 1,
+			instance_exists  BOOLEAN NOT NULL,
+			barrier_event_id TEXT NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		)`,

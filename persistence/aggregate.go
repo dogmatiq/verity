@@ -20,9 +20,12 @@ type AggregateMetaData struct {
 	// this flag is set to false.
 	InstanceExists bool
 
-	// LastDestroyedBy is the ID of the last event message recorded in when the
-	// instance was most recently destroyed.
-	LastDestroyedBy string
+	// BarrierEventID is the ID of the event message to use as the "barrier
+	// message" when loading the instance's historical events.
+	//
+	// It is updated when the instance is destroyed to avoid loading any events
+	// prior to that point.
+	BarrierEventID string
 }
 
 // AggregateRepository is an interface for reading aggregate state.

@@ -38,10 +38,10 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 
 			ginkgo.It("returns the current persisted meta-data", func() {
 				expect := persistence.AggregateMetaData{
-					HandlerKey:      "<handler-key>",
-					InstanceID:      "<instance>",
-					InstanceExists:  true,
-					LastDestroyedBy: "<message-id>",
+					HandlerKey:     "<handler-key>",
+					InstanceID:     "<instance>",
+					InstanceExists: true,
+					BarrierEventID: "<message-id>",
 				}
 				persist(
 					tc.Context,
@@ -62,10 +62,10 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				// the correct result.
 
 				expect := persistence.AggregateMetaData{
-					HandlerKey:      "<handler-key>",
-					InstanceID:      "<instance>",
-					InstanceExists:  true,
-					LastDestroyedBy: "<message-id>",
+					HandlerKey:     "<handler-key>",
+					InstanceID:     "<instance>",
+					InstanceExists: true,
+					BarrierEventID: "<message-id>",
 				}
 				persist(
 					tc.Context,

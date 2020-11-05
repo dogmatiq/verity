@@ -64,7 +64,7 @@ func (l *Loader) applyEvents(
 		ctx,
 		md.HandlerKey,
 		md.InstanceID,
-		md.LastDestroyedBy,
+		md.BarrierEventID,
 	)
 	if err != nil {
 		return err

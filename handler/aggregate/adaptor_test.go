@@ -410,11 +410,11 @@ var _ = Describe("type Adaptor", func() {
 						[]persistence.Operation{
 							persistence.SaveAggregateMetaData{
 								MetaData: persistence.AggregateMetaData{
-									HandlerKey:      "<aggregate-key>",
-									InstanceID:      "<instance>",
-									Revision:        1,
-									InstanceExists:  false,
-									LastDestroyedBy: "2", // deterministic ID from the packer
+									HandlerKey:     "<aggregate-key>",
+									InstanceID:     "<instance>",
+									Revision:       1,
+									InstanceExists: false,
+									BarrierEventID: "2", // deterministic ID from the packer
 								},
 							},
 						},
