@@ -379,21 +379,31 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			When("the instance is destroyed", func() {
-				It("causes RecordEvent() to panic", func() {
+				It("causes RecordEvent() to negate the destroy", func() {
 					upstream.HandleCommandFunc = func(
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
 					) {
-						s.RecordEvent(MessageE3)
 						s.Destroy()
-
-						Expect(func() {
-							s.RecordEvent(MessageE3)
-						}).To(PanicWith("can not record an event against an instance that was destroyed by the same message"))
+						s.RecordEvent(MessageE3)
 					}
 
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
+					Expect(work.Operations).To(EqualX(
+						[]persistence.Operation{
+							persistence.SaveAggregateMetaData{
+								MetaData: persistence.AggregateMetaData{
+									HandlerKey:     "<aggregate-key>",
+									InstanceID:     "<instance>",
+									Revision:       1,
+									InstanceExists: true,
+									LastEventID:    "2", // deterministic ID from the packer
+									BarrierEventID: "",  // must not be set
+								},
+							},
+						},
+					))
 				})
 
 				It("updates the barrier event on the aggregate meta-data", func() {
@@ -423,7 +433,7 @@ var _ = Describe("type Adaptor", func() {
 					))
 				})
 
-				It("panics if no event is recorded", func() {
+				It("does not require an event to be recorded", func() {
 					upstream.HandleCommandFunc = func(
 						s dogma.AggregateCommandScope,
 						_ dogma.Message,
@@ -431,47 +441,44 @@ var _ = Describe("type Adaptor", func() {
 						s.Destroy()
 					}
 
-					Expect(func() {
-						err := adaptor.HandleMessage(ctx, work, cause)
-						Expect(err).ShouldNot(HaveOccurred())
-					}).To(PanicWith("*fixtures.AggregateMessageHandler.HandleEvent() destroyed the '<instance>' instance without recording an event while handling a fixtures.MessageC command"))
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(work.Operations).To(EqualX(
+						[]persistence.Operation{
+							persistence.SaveAggregateMetaData{
+								MetaData: persistence.AggregateMetaData{
+									HandlerKey:     "<aggregate-key>",
+									InstanceID:     "<instance>",
+									Revision:       1,
+									InstanceExists: false,
+									LastEventID:    "1", // deterministic ID from the packer
+									BarrierEventID: "1", // deterministic ID from the packer
+								},
+							},
+						},
+					))
 				})
 			})
 		})
 
-		When("when the instance has been destroyed", func() {
-			BeforeEach(func() {
-				upstream.HandleCommandFunc = func(
-					s dogma.AggregateCommandScope,
-					_ dogma.Message,
-				) {
-					s.RecordEvent(MessageE1)
-					s.Destroy()
-				}
+		It("does not reset the root state when destroyed", func() {
+			upstream.HandleCommandFunc = func(
+				s dogma.AggregateCommandScope,
+				_ dogma.Message,
+			) {
+				s.RecordEvent(MessageE1)
+				s.Destroy()
 
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
+				r := s.Root().(*AggregateRoot)
+				Expect(r.Value).To(Equal(
+					&[]dogma.Message{
+						MessageE1,
+					},
+				))
+			}
 
-				work.Succeed(handler.Result{})
-				work = &UnitOfWorkStub{}
-
-				upstream.HandleCommandFunc = nil
-			})
-
-			It("resets the root state", func() {
-				upstream.HandleCommandFunc = func(
-					s dogma.AggregateCommandScope,
-					_ dogma.Message,
-				) {
-					r := s.Root().(*AggregateRoot)
-					Expect(r.Value).To(Equal(
-						&[]dogma.Message{},
-					))
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
+			err := adaptor.HandleMessage(ctx, work, cause)
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 })
