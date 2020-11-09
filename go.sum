@@ -17,8 +17,6 @@ github.com/dogmatiq/dodeca v0.2.2 h1:mxlHJSnaWc++JBp19o9invtEDG1sZy6q38697nnm5S8
 github.com/dogmatiq/dodeca v0.2.2/go.mod h1:nrNDPFJiRLeBL3Ycyh6ZLs1ZgktpWS18Tze9qjXzTfg=
 github.com/dogmatiq/dogma v0.8.0 h1:ijrlmCZGY6GcQ8Atfil6bXGIHEh/hRQoEnUoqfuZzts=
 github.com/dogmatiq/dogma v0.8.0/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
-github.com/dogmatiq/dogma v0.8.1-0.20201105202549-a49f65c14d4c h1:Sfw/MGlX22WLwgV7NFOMkZkeDzRiaw9l5DydIbvj3wo=
-github.com/dogmatiq/dogma v0.8.1-0.20201105202549-a49f65c14d4c/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/dogma v0.9.0 h1:PGRUqBPVI76HhkxulEEvzxe+693pq9cfQxJWBCpV730=
 github.com/dogmatiq/dogma v0.9.0/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/envelopespec v0.2.0 h1:HWcc/N7uvPpeP0DNGGE+T6OoxHKFW72/JRq6+kNhhj0=
@@ -171,6 +169,8 @@ google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQ
 google.golang.org/grpc v1.27.0/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
 google.golang.org/grpc v1.33.1 h1:DGeFlSan2f+WEtCERJ4J9GJWk15TxUi8QGagfI87Xyc=
 google.golang.org/grpc v1.33.1/go.mod h1:fr5YgcSWrqhRRxogOsw7RzIpsmvOZ6IcH4kBYTpR3n0=
+google.golang.org/grpc v1.33.2 h1:EQyQC3sa8M+p6Ulc8yy9SWSS2GVwyRc83gAbG8lrl4o=
+google.golang.org/grpc v1.33.2/go.mod h1:JMHMWHQWaTccqQQlmk3MJZS+GWXOdAesneDmEnv2fbc=
 google.golang.org/protobuf v0.0.0-20200109180630-ec00e32a8dfd/go.mod h1:DFci5gLYBciE7Vtevhsrf46CRTquxDuWsQurQQe4oz8=
 google.golang.org/protobuf v0.0.0-20200221191635-4d8936d0db64/go.mod h1:kwYJMbMJ01Woi6D6+Kah6886xMZcty6N08ah7+eCXa0=
 google.golang.org/protobuf v0.0.0-20200228230310-ab0ca4ff8a60/go.mod h1:cfTl7dwQJ+fmap5saPgwCLgHXTUD7jkjRqWcaiX5VyM=
