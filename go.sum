@@ -29,6 +29,8 @@ github.com/dogmatiq/linger v0.2.1 h1:ecVwiFlTcQuQ7ygQXH5bUPkWNve8n5BmVnCYMGMQ3zc
 github.com/dogmatiq/linger v0.2.1/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
 github.com/dogmatiq/marshalkit v0.3.0 h1:BeNUPDK+Ekkx/CjlLwbFqpNCrQmrIVB8qJ8ImGKVYOE=
 github.com/dogmatiq/marshalkit v0.3.0/go.mod h1:ffplOc+rbJljNWOWQAX+pe1P3S5S8oSDou2iuJ2QDSE=
+github.com/dogmatiq/marshalkit v0.4.0 h1:1VCfIJRPvdAvm8zFXAoEOQnwVHiX0awo1lhP8BsFC2o=
+github.com/dogmatiq/marshalkit v0.4.0/go.mod h1:XqI46dGMKi6VYx384VZRhFTRSWKq1MtITxQF+qQO7nE=
 github.com/dogmatiq/transportspec v0.2.0 h1:Vb4DfodyjY4xN9D/hYTdMAIzR1J0IhrHIegB7t/AxYU=
 github.com/dogmatiq/transportspec v0.2.0/go.mod h1:74O/xKE20Bx7mkV84OizqU9dRPolOXOAqzlAihbhMsE=
 github.com/emicklei/dot v0.15.0/go.mod h1:DeV7GvQtIw4h2u73RKBkkFdvVAz0D9fzeJrgPW6gy/s=

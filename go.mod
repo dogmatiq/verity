@@ -11,7 +11,7 @@ require (
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v0.2.1
-	github.com/dogmatiq/marshalkit v0.3.0
+	github.com/dogmatiq/marshalkit v0.4.0
 	github.com/dogmatiq/transportspec v0.2.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.3
