@@ -1,4 +1,4 @@
-module github.com/dogmatiq/infix
+module github.com/dogmatiq/verity
 
 go 1.15
 

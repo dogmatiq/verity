@@ -5,8 +5,8 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // UpdateNextOffset increments the next offset by one and returns the new value.
@@ -20,7 +20,7 @@ func (driver) UpdateNextOffset(
 	o := sqlx.QueryInt64(
 		ctx,
 		tx,
-		`INSERT INTO infix.event_offset AS o (
+		`INSERT INTO verity.event_offset AS o (
 			source_app_key
 		) VALUES (
 			$1
@@ -42,7 +42,7 @@ func (driver) InsertEvent(
 ) error {
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO infix.event (
+		`INSERT INTO verity.event (
 				"offset",
 				message_id,
 				causation_id,
@@ -97,7 +97,7 @@ func (driver) InsertEventFilter(
 	id := sqlx.QueryInt64(
 		ctx,
 		tx,
-		`INSERT INTO infix.event_filter (
+		`INSERT INTO verity.event_filter (
 			app_key
 		) VALUES (
 			$1
@@ -109,7 +109,7 @@ func (driver) InsertEventFilter(
 		sqlx.Exec(
 			ctx,
 			tx,
-			`INSERT INTO infix.event_filter_name (
+			`INSERT INTO verity.event_filter_name (
 				filter_id,
 				portable_name
 			) VALUES (
@@ -133,7 +133,7 @@ func (driver) DeleteEventFilter(
 ) error {
 	_, err := db.ExecContext(
 		ctx,
-		`DELETE FROM infix.event_filter
+		`DELETE FROM verity.event_filter
 		WHERE id = $1`,
 		f,
 	)
@@ -148,7 +148,7 @@ func (driver) PurgeEventFilters(
 ) error {
 	_, err := db.ExecContext(
 		ctx,
-		`DELETE FROM infix.event_filter
+		`DELETE FROM verity.event_filter
 		WHERE app_key = $1`,
 		ak,
 	)
@@ -165,7 +165,7 @@ func (driver) SelectNextEventOffset(
 		ctx,
 		`SELECT
 			next_offset
-		FROM infix.event_offset`,
+		FROM verity.event_offset`,
 	)
 
 	var next uint64
@@ -206,8 +206,8 @@ func (driver) SelectEventsByType(
 			e.portable_name,
 			e.media_type,
 			e.data
-		FROM infix.event AS e
-		INNER JOIN infix.event_filter_name AS ft
+		FROM verity.event AS e
+		INNER JOIN verity.event_filter_name AS ft
 		ON ft.portable_name = e.portable_name
 		WHERE e.source_app_key = $1
 		AND e.offset >= $2
@@ -243,7 +243,7 @@ func (driver) SelectEventsBySource(
 			e.portable_name,
 			e.media_type,
 			e.data
-		FROM infix.event AS e
+		FROM verity.event AS e
 		WHERE e.source_app_key = $1
 		AND e.source_handler_key = $2
 		AND e.source_instance_id = $3
@@ -268,7 +268,7 @@ func (driver) SelectOffsetByMessageID(
 		ctx,
 		`SELECT
 			e.offset
-		FROM infix.event AS e
+		FROM verity.event AS e
 		WHERE e.message_id = $1`,
 		id,
 	)
@@ -310,7 +310,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.event_offset (
+		`CREATE TABLE verity.event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
 			next_offset    BIGINT NOT NULL DEFAULT 1
 		)`,
@@ -319,7 +319,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.event (
+		`CREATE TABLE verity.event (
 			"offset"            BIGINT NOT NULL,
 			message_id          TEXT NOT NULL UNIQUE,
 			causation_id        TEXT NOT NULL,
@@ -342,7 +342,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX event_by_type ON infix.event (
+		`CREATE INDEX event_by_type ON verity.event (
 			source_app_key,
 			portable_name,
 			"offset"
@@ -352,7 +352,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX event_by_source ON infix.event (
+		`CREATE INDEX event_by_source ON verity.event (
 			source_app_key,
 			source_handler_key,
 			source_instance_id,
@@ -363,7 +363,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.event_filter (
+		`CREATE TABLE verity.event_filter (
 			id        SERIAL NOT NULL PRIMARY KEY,
 			app_key   TEXT NOT NULL
 		)`,
@@ -372,8 +372,8 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.event_filter_name (
-			filter_id     BIGINT NOT NULL REFERENCES infix.event_filter (id) ON DELETE CASCADE,
+		`CREATE TABLE verity.event_filter_name (
+			filter_id     BIGINT NOT NULL REFERENCES verity.event_filter (id) ON DELETE CASCADE,
 			portable_name TEXT NOT NULL,
 
 			PRIMARY KEY (filter_id, portable_name)

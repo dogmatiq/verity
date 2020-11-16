@@ -3,13 +3,13 @@ package persistedstream_test
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/eventstream/internal/streamtest"
-	"github.com/dogmatiq/infix/eventstream/memorystream"
-	. "github.com/dogmatiq/infix/eventstream/persistedstream"
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
+	"github.com/dogmatiq/verity/eventstream/memorystream"
+	. "github.com/dogmatiq/verity/eventstream/persistedstream"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

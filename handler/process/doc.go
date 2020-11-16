@@ -1,3 +1,3 @@
 // Package process provides an adaptor that exposes Dogma process message
-// handlers as Infix handlers.
+// handlers as Verity handlers.
 package process

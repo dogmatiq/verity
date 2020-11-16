@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/internal/mlog"
-	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/verity/internal/mlog"
+	"github.com/dogmatiq/verity/parcel"
 )
 
 // scope is an implementation of dogma.ProjectionEventScope.

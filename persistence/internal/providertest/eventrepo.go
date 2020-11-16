@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	infixfixtures "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
+	verityfixtures "github.com/dogmatiq/verity/fixtures"
+	"github.com/dogmatiq/verity/persistence"
 	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
@@ -30,32 +30,32 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			ev0 = persistence.Event{
 				Offset:   0,
-				Envelope: infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
+				Envelope: verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
 			}
 
 			ev1 = persistence.Event{
 				Offset:   1,
-				Envelope: infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
+				Envelope: verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
 			}
 
 			ev2 = persistence.Event{
 				Offset:   2,
-				Envelope: infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1),
+				Envelope: verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1),
 			}
 
 			ev3 = persistence.Event{
 				Offset:   3,
-				Envelope: infixfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageA2),
+				Envelope: verityfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageA2),
 			}
 
 			ev4 = persistence.Event{
 				Offset:   4,
-				Envelope: infixfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageB2),
+				Envelope: verityfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageB2),
 			}
 
 			ev5 = persistence.Event{
 				Offset:   5,
-				Envelope: infixfixtures.NewEnvelope("<message-5>", dogmafixtures.MessageC2),
+				Envelope: verityfixtures.NewEnvelope("<message-5>", dogmafixtures.MessageC2),
 			}
 
 			// Setup some different source handler values to test the aggregate

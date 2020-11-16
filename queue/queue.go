@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/kyu"
 	"github.com/dogmatiq/marshalkit"
 )

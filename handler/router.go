@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/verity/parcel"
 )
 
 // Router is a handler that dispatches to other handlers based on

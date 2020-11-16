@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
 )
 
 // LoadOffset loads the last offset associated with the given source

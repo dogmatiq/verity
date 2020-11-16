@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 	"go.uber.org/multierr"
 )
 
@@ -40,7 +40,7 @@ func (driver) LockApplication(
 		}
 	}()
 
-	name := fmt.Sprintf("infix(%s)", ak)
+	name := fmt.Sprintf("verity(%s)", ak)
 
 	if !acquireLock(conn, name) {
 		return nil, persistence.ErrDataStoreLocked

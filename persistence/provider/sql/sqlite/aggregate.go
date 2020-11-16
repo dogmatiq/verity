@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // InsertAggregateMetaData inserts meta-data for an aggregate instance.

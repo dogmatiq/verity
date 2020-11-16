@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/transportspec"
 )

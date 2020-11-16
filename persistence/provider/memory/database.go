@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 	"google.golang.org/protobuf/proto"
 )
 

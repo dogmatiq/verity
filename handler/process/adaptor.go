@@ -9,12 +9,12 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/handler"
-	"github.com/dogmatiq/infix/handler/cache"
-	"github.com/dogmatiq/infix/internal/mlog"
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/queue"
+	"github.com/dogmatiq/verity/handler"
+	"github.com/dogmatiq/verity/handler/cache"
+	"github.com/dogmatiq/verity/internal/mlog"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/queue"
 	"github.com/dogmatiq/marshalkit"
 )
 

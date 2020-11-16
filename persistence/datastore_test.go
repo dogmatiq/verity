@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	. "github.com/dogmatiq/infix/fixtures"
-	. "github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
+	. "github.com/dogmatiq/verity/fixtures"
+	. "github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

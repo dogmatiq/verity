@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
 
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.

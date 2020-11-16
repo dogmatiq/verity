@@ -3,8 +3,8 @@ package fixtures
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/persistence/provider/memory"
 )
 
 // ProviderStub is a test implementation of the persistence.Provider interface.

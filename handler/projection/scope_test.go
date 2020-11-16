@@ -3,7 +3,7 @@ package projection
 import (
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/fixtures"
+	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

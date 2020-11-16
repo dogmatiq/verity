@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 	"go.uber.org/multierr"
 )
 

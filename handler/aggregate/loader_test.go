@@ -7,9 +7,9 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/fixtures"
-	. "github.com/dogmatiq/infix/handler/aggregate"
-	"github.com/dogmatiq/infix/persistence"
+	. "github.com/dogmatiq/verity/fixtures"
+	. "github.com/dogmatiq/verity/handler/aggregate"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"

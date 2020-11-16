@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/internal/x/grpcx"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/transportspec"
 	"github.com/golang/protobuf/proto"
@@ -58,7 +58,7 @@ func RegisterServer(
 				&transportspec.MessageType{
 					PortableName: n,
 					ConfigName:   mt.Name().String(),
-					// TODO: https://github.com/dogmatiq/infix/issues/49
+					// TODO: https://github.com/dogmatiq/verity/issues/49
 					// Populate supported MIME media-types.
 					MediaTypes: nil,
 				},

@@ -5,8 +5,8 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // UpdateNextOffset increments the next offset by one and returns the new value.

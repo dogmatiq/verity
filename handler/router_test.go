@@ -6,9 +6,9 @@ import (
 
 	. "github.com/dogmatiq/configkit/fixtures"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix/fixtures"
-	. "github.com/dogmatiq/infix/handler"
-	"github.com/dogmatiq/infix/parcel"
+	. "github.com/dogmatiq/verity/fixtures"
+	. "github.com/dogmatiq/verity/handler"
+	"github.com/dogmatiq/verity/parcel"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

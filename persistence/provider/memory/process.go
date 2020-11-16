@@ -3,7 +3,7 @@ package memory
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // LoadProcessInstance loads a process instance.

@@ -1,8 +1,8 @@
 package queue
 
 import (
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // Message is a message on the queue.

@@ -11,12 +11,12 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/eventstream"
-	infixfixtures "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/parcel"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/verity/eventstream"
+	verityfixtures "github.com/dogmatiq/verity/fixtures"
+	"github.com/dogmatiq/verity/parcel"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -81,27 +81,27 @@ func Declare(
 	ginkgo.BeforeEach(func() {
 		event0 = eventstream.Event{
 			Offset: 0,
-			Parcel: infixfixtures.NewParcel("<message-0>", dogmafixtures.MessageA1),
+			Parcel: verityfixtures.NewParcel("<message-0>", dogmafixtures.MessageA1),
 		}
 
 		event1 = eventstream.Event{
 			Offset: 1,
-			Parcel: infixfixtures.NewParcel("<message-1>", dogmafixtures.MessageB1),
+			Parcel: verityfixtures.NewParcel("<message-1>", dogmafixtures.MessageB1),
 		}
 
 		event2 = eventstream.Event{
 			Offset: 2,
-			Parcel: infixfixtures.NewParcel("<message-2>", dogmafixtures.MessageA2),
+			Parcel: verityfixtures.NewParcel("<message-2>", dogmafixtures.MessageA2),
 		}
 
 		event3 = eventstream.Event{
 			Offset: 3,
-			Parcel: infixfixtures.NewParcel("<message-3>", dogmafixtures.MessageB2),
+			Parcel: verityfixtures.NewParcel("<message-3>", dogmafixtures.MessageB2),
 		}
 
 		event4 = eventstream.Event{
 			Offset: 4,
-			Parcel: infixfixtures.NewParcel("<message-4>", dogmafixtures.MessageC1),
+			Parcel: verityfixtures.NewParcel("<message-4>", dogmafixtures.MessageC1),
 		}
 	})
 
@@ -344,7 +344,7 @@ func Declare(
 						ginkgo.When("consuming starts with messages already on the stream", func() {
 							ginkgo.It("does not 'duplicate' the last event", func() {
 								// This is a regression test for
-								// https://github.com/dogmatiq/infix/issues/194.
+								// https://github.com/dogmatiq/verity/issues/194.
 
 								ginkgo.By("opening a cursor at the last event on the stream")
 
@@ -372,7 +372,7 @@ func Declare(
 
 							ginkgo.It("does not 'duplicate' the last event when a prior event is filtered", func() {
 								// This is a regression test for
-								// https://github.com/dogmatiq/infix/issues/194.
+								// https://github.com/dogmatiq/verity/issues/194.
 
 								types := message.NewTypeSet(
 									configkitfixtures.MessageBType,

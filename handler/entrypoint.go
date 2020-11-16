@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // EntryPoint sets up a unit-of-work for each message to be handled, dispatches

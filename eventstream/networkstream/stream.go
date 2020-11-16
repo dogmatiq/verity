@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/transportspec"
 )

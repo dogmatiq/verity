@@ -1,6 +1,6 @@
 package eventstream
 
-import "github.com/dogmatiq/infix/parcel"
+import "github.com/dogmatiq/verity/parcel"
 
 // Event is a container for an envelope and event stream specific meta-data.
 type Event struct {

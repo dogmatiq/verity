@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 	"go.uber.org/multierr"
 )
 
@@ -34,7 +34,7 @@ func (driver) LockApplication(
 	id := sqlx.QueryInt64(
 		ctx,
 		db,
-		`INSERT INTO infix.app_lock_id (
+		`INSERT INTO verity.app_lock_id (
 			app_key
 		) VALUES (
 			$1
@@ -73,12 +73,12 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	tx := sqlx.Begin(ctx, db)
 	defer tx.Rollback()
 
-	sqlx.Exec(ctx, db, `CREATE SCHEMA infix`)
+	sqlx.Exec(ctx, db, `CREATE SCHEMA verity`)
 
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.app_lock_id (
+		`CREATE TABLE verity.app_lock_id (
 			app_key TEXT NOT NULL PRIMARY KEY,
 			lock_id SERIAL NOT NULL UNIQUE
 		)`,
@@ -95,6 +95,6 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 
 // DropSchema removes any SQL schema elements created by CreateSchema().
 func (driver) DropSchema(ctx context.Context, db *sql.DB) error {
-	_, err := db.ExecContext(ctx, `DROP SCHEMA IF EXISTS infix CASCADE`)
+	_, err := db.ExecContext(ctx, `DROP SCHEMA IF EXISTS verity CASCADE`)
 	return err
 }

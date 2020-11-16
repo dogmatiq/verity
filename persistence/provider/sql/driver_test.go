@@ -3,11 +3,11 @@ package sql_test
 import (
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	. "github.com/dogmatiq/infix/persistence/provider/sql"
-	"github.com/dogmatiq/infix/persistence/provider/sql/mysql"
-	"github.com/dogmatiq/infix/persistence/provider/sql/postgres"
-	"github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
+	"github.com/dogmatiq/verity/internal/testing/sqltest"
+	. "github.com/dogmatiq/verity/persistence/provider/sql"
+	"github.com/dogmatiq/verity/persistence/provider/sql/mysql"
+	"github.com/dogmatiq/verity/persistence/provider/sql/postgres"
+	"github.com/dogmatiq/verity/persistence/provider/sql/sqlite"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"

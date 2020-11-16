@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/verity/eventstream"
 )
 
 // cursor is a Cursor that reads events from an in-memory stream.

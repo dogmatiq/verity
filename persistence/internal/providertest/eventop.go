@@ -6,8 +6,8 @@ import (
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/envelopespec"
-	infixfixtures "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
+	verityfixtures "github.com/dogmatiq/verity/fixtures"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -28,9 +28,9 @@ func declareEventOperationTests(tc *TestContext) {
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 
-			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
-			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
-			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1)
+			env0 = verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
+			env1 = verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
+			env2 = verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1)
 
 			filter = map[string]struct{}{
 				env0.PortableName: {},

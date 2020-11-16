@@ -1,4 +1,4 @@
-package infix
+package verity
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/internal/x/loggingx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/loggingx"
+	"github.com/dogmatiq/verity/persistence"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )

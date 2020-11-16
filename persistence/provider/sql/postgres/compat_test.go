@@ -3,8 +3,8 @@ package postgres_test
 import (
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	. "github.com/dogmatiq/infix/persistence/provider/sql/postgres"
+	"github.com/dogmatiq/verity/internal/testing/sqltest"
+	. "github.com/dogmatiq/verity/persistence/provider/sql/postgres"
 	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

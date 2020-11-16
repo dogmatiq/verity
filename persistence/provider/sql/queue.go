@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // QueueDriver is the subset of the Driver interface that is concerned with the

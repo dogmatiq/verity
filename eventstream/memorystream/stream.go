@@ -8,8 +8,8 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/kyu"
 )
 

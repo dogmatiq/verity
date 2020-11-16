@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest"
-	infixsql "github.com/dogmatiq/infix/persistence/provider/sql"
+	"github.com/dogmatiq/verity/internal/testing/sqltest"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/persistence/internal/providertest"
+	veritysql "github.com/dogmatiq/verity/persistence/provider/sql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -22,7 +22,7 @@ var _ = Describe("type driver", func() {
 		func(ctx context.Context, in providertest.In) providertest.Out {
 			db, _, closeDB = sqltest.Open("postgres")
 
-			d, err := infixsql.NewDriver(db)
+			d, err := veritysql.NewDriver(db)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = d.DropSchema(ctx, db)
@@ -33,7 +33,7 @@ var _ = Describe("type driver", func() {
 
 			return providertest.Out{
 				NewProvider: func() (persistence.Provider, func()) {
-					return &infixsql.Provider{
+					return &veritysql.Provider{
 						DB:     db,
 						Driver: d,
 					}, nil

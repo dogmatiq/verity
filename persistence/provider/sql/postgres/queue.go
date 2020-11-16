@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // InsertQueueMessage inserts a message in the queue.
@@ -22,7 +22,7 @@ func (driver) InsertQueueMessage(
 	res := sqlx.Exec(
 		ctx,
 		tx,
-		`INSERT INTO infix.queue (
+		`INSERT INTO verity.queue (
 				app_key,
 				failure_count,
 				next_attempt_at,
@@ -81,7 +81,7 @@ func (driver) UpdateQueueMessage(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE infix.queue SET
+		`UPDATE verity.queue SET
 			revision = revision + 1,
 			failure_count = $1,
 			next_attempt_at = $2
@@ -110,7 +110,7 @@ func (driver) DeleteQueueMessage(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`DELETE FROM infix.queue
+		`DELETE FROM verity.queue
 		WHERE app_key = $1
 		AND message_id = $2
 		AND revision = $3`,
@@ -130,7 +130,7 @@ func (driver) DeleteQueueTimeoutMessagesByProcessInstance(
 ) error {
 	_, err := tx.ExecContext(
 		ctx,
-		`DELETE FROM infix.queue
+		`DELETE FROM verity.queue
 		WHERE app_key = $1
 		AND source_handler_key = $2
 		AND source_instance_id = $3
@@ -170,7 +170,7 @@ func (driver) SelectQueueMessages(
 			q.portable_name,
 			q.media_type,
 			q.data
-		FROM infix.queue AS q
+		FROM verity.queue AS q
 		WHERE q.app_key = $1
 		ORDER BY q.next_attempt_at
 		LIMIT $2`,
@@ -211,7 +211,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.queue (
+		`CREATE TABLE verity.queue (
 			app_key             TEXT NOT NULL,
 			revision            BIGINT NOT NULL DEFAULT 1,
 			failure_count       BIGINT NOT NULL DEFAULT 0,
@@ -238,7 +238,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX queue_by_next_attempt ON infix.queue (
+		`CREATE INDEX queue_by_next_attempt ON verity.queue (
 			app_key,
 			next_attempt_at
 		)`,
@@ -247,7 +247,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX queue_by_source ON infix.queue (
+		`CREATE INDEX queue_by_source ON verity.queue (
 			app_key,
 			source_handler_key,
 			source_instance_id,

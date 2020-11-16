@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // InsertAggregateMetaData inserts meta-data for an aggregate instance.
@@ -22,7 +22,7 @@ func (driver) InsertAggregateMetaData(
 	res := sqlx.Exec(
 		ctx,
 		tx,
-		`INSERT INTO infix.aggregate_metadata (
+		`INSERT INTO verity.aggregate_metadata (
 			app_key,
 			handler_key,
 			instance_id,
@@ -58,7 +58,7 @@ func (driver) UpdateAggregateMetaData(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE infix.aggregate_metadata SET
+		`UPDATE verity.aggregate_metadata SET
 			revision = revision + 1,
 			instance_exists = $1,
 			last_event_id = $2,
@@ -90,7 +90,7 @@ func (driver) SelectAggregateMetaData(
 			instance_exists,
 			last_event_id,
 			barrier_event_id
-		FROM infix.aggregate_metadata
+		FROM verity.aggregate_metadata
 		WHERE app_key = $1
 		AND handler_key = $2
 		AND instance_id = $3`,
@@ -122,7 +122,7 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.aggregate_metadata (
+		`CREATE TABLE verity.aggregate_metadata (
 			app_key          TEXT NOT NULL,
 			handler_key      TEXT NOT NULL,
 			instance_id      TEXT NOT NULL,

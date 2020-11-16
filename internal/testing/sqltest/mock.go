@@ -30,7 +30,7 @@ var once sync.Once
 
 // MockDriverName returns the mock driver name for use with sql.Open().
 func MockDriverName() string {
-	n := "infix-mock"
+	n := "verity-mock"
 
 	once.Do(func() {
 		sql.Register(n, &MockDriver{})

@@ -3,9 +3,9 @@ package fixtures
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/handler"
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/handler"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // HandlerStub is a test implementation of the handler.Provider interface.

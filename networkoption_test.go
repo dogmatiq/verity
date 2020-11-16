@@ -1,4 +1,4 @@
-package infix
+package verity
 
 import (
 	"context"
@@ -139,6 +139,6 @@ var _ = Describe("func WithDiscoverer()", func() {
 
 		err := opts.Discoverer(context.Background(), nil)
 		// TODO: https://github.com/dogmatiq/configkit/issues/58
-		Expect(err).To(MatchError("no API discovery configured, see infix.WithDiscoverer()"))
+		Expect(err).To(MatchError("no API discovery configured, see verity.WithDiscoverer()"))
 	})
 })

@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/dogmatiq/infix/internal/x/bboltx"
+	"github.com/dogmatiq/verity/internal/x/bboltx"
 )
 
 // marshalUint64 marshals a uint64 to its binary representation.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // Provider is an implementation of persistence.Provider that stores application

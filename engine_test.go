@@ -1,4 +1,4 @@
-package infix_test
+package verity_test
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/infix"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
+	. "github.com/dogmatiq/verity"
+	"github.com/dogmatiq/verity/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -125,7 +125,7 @@ var _ = Describe("type Engine", func() {
 				WithNetworking(),
 			)
 			// TODO: https://github.com/dogmatiq/configkit/issues/58
-			Expect(err).To(MatchError("discoverer stopped: no API discovery configured, see infix.WithDiscoverer()"))
+			Expect(err).To(MatchError("discoverer stopped: no API discovery configured, see verity.WithDiscoverer()"))
 		})
 	})
 })

@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/cosyne"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/handler"
+	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/linger"
 )
 

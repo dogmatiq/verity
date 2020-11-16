@@ -6,14 +6,14 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/lib/pq"
 )
 
 // convertContextErrors converts PostgreSQL "query_canceled" errors into a
 // context.Canceled or DeadlineExceeeded error.
 //
-// See https://github.com/dogmatiq/infix/issues/35.
+// See https://github.com/dogmatiq/verity/issues/35.
 func convertContextErrors(ctx context.Context, err error) error {
 	if e, ok := unwrapError(err); ok {
 		if e.Code.Name() == "query_canceled" {

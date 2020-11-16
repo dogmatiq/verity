@@ -1,4 +1,4 @@
-package infix
+package verity
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/infix/persistence/provider/memory"
+	"github.com/dogmatiq/verity/persistence/provider/memory"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/onsi/ginkgo"

@@ -1,10 +1,10 @@
-package infix
+package verity
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/infix/handler"
+	"github.com/dogmatiq/verity/handler"
 )
 
 // runQueueForApp processes messages from the queue.

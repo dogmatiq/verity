@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/verity/eventstream"
 )
 
 // EventStreamStub is a test implementation of the eventstream.Stream interface.

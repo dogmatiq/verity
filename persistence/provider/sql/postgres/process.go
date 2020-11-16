@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // InsertProcessInstance inserts a process instance.
@@ -22,7 +22,7 @@ func (driver) InsertProcessInstance(
 	res := sqlx.Exec(
 		ctx,
 		tx,
-		`INSERT INTO infix.process_instance (
+		`INSERT INTO verity.process_instance (
 			app_key,
 			handler_key,
 			instance_id,
@@ -56,7 +56,7 @@ func (driver) UpdateProcessInstance(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`UPDATE infix.process_instance SET
+		`UPDATE verity.process_instance SET
 			revision = revision + 1,
 			media_type = $1,
 			data = $2
@@ -87,7 +87,7 @@ func (driver) DeleteProcessInstance(
 	return sqlx.TryExecRow(
 		ctx,
 		tx,
-		`DELETE FROM infix.process_instance
+		`DELETE FROM verity.process_instance
 		WHERE app_key = $1
 		AND handler_key = $2
 		AND instance_id = $3
@@ -111,7 +111,7 @@ func (driver) SelectProcessInstance(
 			revision,
 			media_type,
 			data
-		FROM infix.process_instance
+		FROM verity.process_instance
 		WHERE app_key = $1
 		AND handler_key = $2
 		AND instance_id = $3`,
@@ -146,7 +146,7 @@ func createProcessSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE infix.process_instance (
+		`CREATE TABLE verity.process_instance (
 			app_key     TEXT NOT NULL,
 			handler_key TEXT NOT NULL,
 			instance_id TEXT NOT NULL,

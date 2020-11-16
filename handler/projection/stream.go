@@ -9,9 +9,9 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/handler/projection/resource"
-	"github.com/dogmatiq/infix/internal/mlog"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/handler/projection/resource"
+	"github.com/dogmatiq/verity/internal/mlog"
 	"github.com/dogmatiq/linger"
 )
 

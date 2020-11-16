@@ -1,4 +1,4 @@
-package infix_test
+package verity_test
 
 import (
 	"reflect"

@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/internal/testing/boltdbtest"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/internal/providertest"
-	. "github.com/dogmatiq/infix/persistence/provider/boltdb"
+	"github.com/dogmatiq/verity/internal/testing/boltdbtest"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/persistence/internal/providertest"
+	. "github.com/dogmatiq/verity/persistence/provider/boltdb"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

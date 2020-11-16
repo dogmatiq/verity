@@ -4,7 +4,7 @@ import (
 	"context"
 	"sort"
 
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // LoadQueueMessages loads the next n messages from the queue.

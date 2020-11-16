@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/internal/x/bboltx"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/boltdb/internal/pb"
+	"github.com/dogmatiq/verity/internal/x/bboltx"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/persistence/provider/boltdb/internal/pb"
 	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
 )

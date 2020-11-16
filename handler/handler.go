@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 
-	"github.com/dogmatiq/infix/parcel"
+	"github.com/dogmatiq/verity/parcel"
 )
 
 // Handler is an interface for handling messages.

@@ -1,4 +1,4 @@
-package infix
+package verity
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/infix/eventstream/networkstream"
-	"github.com/dogmatiq/infix/eventstream/persistedstream"
-	"github.com/dogmatiq/infix/internal/x/grpcx"
+	"github.com/dogmatiq/verity/eventstream/networkstream"
+	"github.com/dogmatiq/verity/eventstream/persistedstream"
+	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"github.com/dogmatiq/transportspec"
 	"google.golang.org/grpc"
 )
@@ -75,7 +75,7 @@ func (e *Engine) registerEventStreamServer(ctx context.Context, s *grpc.Server) 
 						Marshaler: e.opts.Marshaler,
 					},
 					Cache: a.EventCache,
-					// TODO: https://github.com/dogmatiq/infix/issues/76
+					// TODO: https://github.com/dogmatiq/verity/issues/76
 					// Make pre-fetch buffer size configurable.
 					PreFetch: 10,
 					Types: a.Config.
@@ -180,7 +180,7 @@ func (e *Engine) runDiscoveredApp(ctx context.Context, a *discovery.Application)
 			App:       a.Identity(),
 			Client:    transportspec.NewEventStreamClient(a.Client.Connection),
 			Marshaler: e.opts.Marshaler,
-			// TODO: https://github.com/dogmatiq/infix/issues/76
+			// TODO: https://github.com/dogmatiq/verity/issues/76
 			// Make pre-fetch buffer size configurable.
 			PreFetch: 10,
 		},

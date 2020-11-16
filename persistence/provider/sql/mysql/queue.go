@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/dogmatiq/infix/internal/x/sqlx"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // InsertQueueMessage inserts a message in the queue.

@@ -3,7 +3,7 @@ package mlog_test
 import (
 	"strings"
 
-	. "github.com/dogmatiq/infix/internal/mlog"
+	. "github.com/dogmatiq/verity/internal/mlog"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )

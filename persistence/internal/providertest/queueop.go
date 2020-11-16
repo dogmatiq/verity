@@ -6,8 +6,8 @@ import (
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/envelopespec"
-	infixfixtures "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
+	verityfixtures "github.com/dogmatiq/verity/fixtures"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -30,9 +30,9 @@ func declareQueueOperationTests(tc *TestContext) {
 		ginkgo.BeforeEach(func() {
 			dataStore, tearDown = tc.SetupDataStore()
 
-			env0 = infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1, now, now)
-			env1 = infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2, now)
-			env2 = infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3, now)
+			env0 = verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1, now, now)
+			env1 = verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2, now)
+			env2 = verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3, now)
 
 			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
 		})

@@ -1,4 +1,4 @@
-package infix
+package verity
 
 import (
 	"context"
@@ -9,18 +9,18 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/eventstream/memorystream"
-	"github.com/dogmatiq/infix/eventstream/persistedstream"
-	"github.com/dogmatiq/infix/handler"
-	"github.com/dogmatiq/infix/handler/aggregate"
-	"github.com/dogmatiq/infix/handler/cache"
-	"github.com/dogmatiq/infix/handler/integration"
-	"github.com/dogmatiq/infix/handler/process"
-	"github.com/dogmatiq/infix/internal/x/loggingx"
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/queue"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/eventstream/memorystream"
+	"github.com/dogmatiq/verity/eventstream/persistedstream"
+	"github.com/dogmatiq/verity/handler"
+	"github.com/dogmatiq/verity/handler/aggregate"
+	"github.com/dogmatiq/verity/handler/cache"
+	"github.com/dogmatiq/verity/handler/integration"
+	"github.com/dogmatiq/verity/handler/process"
+	"github.com/dogmatiq/verity/internal/x/loggingx"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/queue"
 )
 
 type app struct {
@@ -103,7 +103,7 @@ func (e *Engine) newQueue(
 	return &queue.Queue{
 		Repository: ds,
 		Marshaler:  e.opts.Marshaler,
-		// TODO: https://github.com/dogmatiq/infix/issues/102
+		// TODO: https://github.com/dogmatiq/verity/issues/102
 		// Make buffer size configurable.
 		BufferSize: 0,
 	}
@@ -123,7 +123,7 @@ func (e *Engine) newEventCache(
 	return &memorystream.Stream{
 		App:         cfg.Identity(),
 		FirstOffset: next,
-		// TODO: https://github.com/dogmatiq/infix/issues/226
+		// TODO: https://github.com/dogmatiq/verity/issues/226
 		// Make buffer size configurable.
 		BufferSize: 0,
 		Types: cfg.
@@ -144,7 +144,7 @@ func (e *Engine) newEventStream(
 		Repository: ds,
 		Marshaler:  e.opts.Marshaler,
 		Cache:      cache,
-		// TODO: https://github.com/dogmatiq/infix/issues/76
+		// TODO: https://github.com/dogmatiq/verity/issues/76
 		// Make pre-fetch buffer size configurable.
 		PreFetch: 10,
 		Types: cfg.
@@ -240,7 +240,7 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 		Handler:  cfg.Handler(),
 		Loader:   f.aggregateLoader,
 		Cache: cache.Cache{
-			// TODO: https://github.com/dogmatiq/infix/issues/193
+			// TODO: https://github.com/dogmatiq/verity/issues/193
 			// Make TTL configurable.
 			Logger: loggingx.WithPrefix(
 				f.engineLogger,
@@ -269,7 +269,7 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 		Loader:    f.processLoader,
 		Marshaler: f.opts.Marshaler,
 		Cache: cache.Cache{
-			// TODO: https://github.com/dogmatiq/infix/issues/193
+			// TODO: https://github.com/dogmatiq/verity/issues/193
 			// Make TTL configurable.
 			Logger: loggingx.WithPrefix(
 				f.engineLogger,

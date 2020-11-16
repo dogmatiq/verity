@@ -9,7 +9,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/envelopespec"
-	. "github.com/dogmatiq/infix/parcel"
+	. "github.com/dogmatiq/verity/parcel"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/google/uuid"
 	. "github.com/jmalloc/gomegax"

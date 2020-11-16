@@ -6,8 +6,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/infix/internal/testing/sqltest"
-	"github.com/dogmatiq/infix/internal/x/sqlx"
+	"github.com/dogmatiq/verity/internal/testing/sqltest"
+	"github.com/dogmatiq/verity/internal/x/sqlx"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

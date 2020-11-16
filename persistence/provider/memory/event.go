@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // NextEventOffset returns the next "unused" offset.

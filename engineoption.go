@@ -1,4 +1,4 @@
-package infix
+package verity
 
 import (
 	"fmt"
@@ -9,14 +9,14 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/infix/persistence"
-	"github.com/dogmatiq/infix/persistence/provider/boltdb"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
 	"github.com/dogmatiq/marshalkit/codec/json"
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
+	"github.com/dogmatiq/verity/persistence"
+	"github.com/dogmatiq/verity/persistence/provider/boltdb"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 	//
 	// It is overridden by the WithPersistence() option.
 	DefaultPersistenceProvider persistence.Provider = &boltdb.FileProvider{
-		Path: "/var/run/infix.boltdb",
+		Path: "/var/run/verity.boltdb",
 	}
 
 	// DefaultMessageTimeout is the default duration the engine allows for the
@@ -199,7 +199,7 @@ func resolveEngineOptions(options ...EngineOption) *engineOptions {
 	}
 
 	if len(opts.AppConfigs) == 0 {
-		panic("no applications configured, see infix.WithApplication()")
+		panic("no applications configured, see verity.WithApplication()")
 	}
 
 	if opts.PersistenceProvider == nil {

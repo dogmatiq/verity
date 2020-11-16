@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/dogmatiq/infix/eventstream"
+	"github.com/dogmatiq/verity/eventstream"
 )
 
 // node is a member of a singly-linked list used to store historical events in

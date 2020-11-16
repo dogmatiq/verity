@@ -3,7 +3,7 @@ package boltdb
 import (
 	"errors"
 
-	"github.com/dogmatiq/infix/internal/x/bboltx"
+	"github.com/dogmatiq/verity/internal/x/bboltx"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

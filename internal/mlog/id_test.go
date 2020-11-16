@@ -1,7 +1,7 @@
 package mlog_test
 
 import (
-	. "github.com/dogmatiq/infix/internal/mlog"
+	. "github.com/dogmatiq/verity/internal/mlog"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

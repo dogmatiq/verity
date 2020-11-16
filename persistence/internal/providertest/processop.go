@@ -5,8 +5,8 @@ import (
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	infixfixtures "github.com/dogmatiq/infix/fixtures"
-	"github.com/dogmatiq/infix/persistence"
+	verityfixtures "github.com/dogmatiq/verity/fixtures"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -207,18 +207,18 @@ func declareProcessOperationTests(tc *TestContext) {
 
 					m0 := persistence.QueueMessage{
 						NextAttemptAt: now,
-						Envelope:      infixfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageT1, now, now),
+						Envelope:      verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageT1, now, now),
 					}
 
 					m1 := persistence.QueueMessage{
 						NextAttemptAt: now.Add(1 * time.Hour),
-						Envelope:      infixfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageT1, now, now),
+						Envelope:      verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageT1, now, now),
 					}
 					m1.Envelope.SourceInstanceId = "<other-instance>"
 
 					m2 := persistence.QueueMessage{
 						NextAttemptAt: now.Add(2 * time.Hour),
-						Envelope:      infixfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageT1, now, now),
+						Envelope:      verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageT1, now, now),
 					}
 
 					persist(

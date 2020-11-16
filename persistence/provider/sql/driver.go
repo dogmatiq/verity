@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dogmatiq/infix/persistence/provider/sql/mysql"
-	"github.com/dogmatiq/infix/persistence/provider/sql/postgres"
-	"github.com/dogmatiq/infix/persistence/provider/sql/sqlite"
+	"github.com/dogmatiq/verity/persistence/provider/sql/mysql"
+	"github.com/dogmatiq/verity/persistence/provider/sql/postgres"
+	"github.com/dogmatiq/verity/persistence/provider/sql/sqlite"
 )
 
 // Driver is used to interface with the underlying SQL database.

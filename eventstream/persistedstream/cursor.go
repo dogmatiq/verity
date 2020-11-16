@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/parcel"
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/marshalkit"
 )
 

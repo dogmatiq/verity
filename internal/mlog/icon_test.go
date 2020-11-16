@@ -2,7 +2,7 @@ package mlog_test
 
 import (
 	"github.com/dogmatiq/configkit"
-	. "github.com/dogmatiq/infix/internal/mlog"
+	. "github.com/dogmatiq/verity/internal/mlog"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

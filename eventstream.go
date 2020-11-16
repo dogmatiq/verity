@@ -1,4 +1,4 @@
-package infix
+package verity
 
 import (
 	"context"
@@ -6,9 +6,9 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/infix/eventstream"
-	"github.com/dogmatiq/infix/handler/projection"
-	"github.com/dogmatiq/infix/internal/x/loggingx"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/handler/projection"
+	"github.com/dogmatiq/verity/internal/x/loggingx"
 	"golang.org/x/sync/errgroup"
 )
 

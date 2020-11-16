@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/infix/persistence"
+	"github.com/dogmatiq/verity/persistence"
 	"go.uber.org/multierr"
 )
 
@@ -33,7 +33,7 @@ type Provider struct {
 	// DB is the SQL database to use.
 	DB *sql.DB
 
-	// Driver is the Infix SQL driver to use with this database.
+	// Driver is the Verity SQL driver to use with this database.
 	// If it is nil, it is determined automatically for built-in drivers.
 	Driver Driver
 }
@@ -69,8 +69,8 @@ type DSNProvider struct {
 	// DSN is the data-source name to be passed to sql.Open().
 	DSN string
 
-	// Driver is the Infix SQL driver to use with this database.
-	// If it is nil, it is determined automatically for built-in drivers.
+	// Driver is the Verity SQL driver to use with this database. If it is nil,
+	// it is determined automatically for built-in drivers.
 	Driver Driver
 
 	// MaxIdleConnections is the maximum number of idle connections allowed in
