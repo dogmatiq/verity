@@ -11,6 +11,7 @@ import (
 	. "github.com/dogmatiq/verity/handler/projection"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"golang.org/x/sync/semaphore"
 )
 
 var _ = Describe("type Compactor", func() {
@@ -24,10 +25,11 @@ var _ = Describe("type Compactor", func() {
 		logger = &logging.BufferedLogger{}
 		handler = &ProjectionMessageHandler{}
 		compactor = &Compactor{
-			Handler:  handler,
-			Interval: 1 * time.Millisecond,
-			Timeout:  1 * time.Millisecond,
-			Logger:   logger,
+			Handler:   handler,
+			Interval:  1 * time.Millisecond,
+			Timeout:   1 * time.Millisecond,
+			Semaphore: semaphore.NewWeighted(1),
+			Logger:    logger,
 		}
 	})
 
@@ -66,6 +68,23 @@ var _ = Describe("type Compactor", func() {
 			}
 
 			err := compactor.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
+
+		It("returns if the context is canceled while waiting for the sempahore", func() {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			err := compactor.Semaphore.Acquire(ctx, 1)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer compactor.Semaphore.Release(1)
+
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				cancel()
+			}()
+
+			err = compactor.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		})
 

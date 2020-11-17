@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/linger"
+	"golang.org/x/sync/semaphore"
 )
 
 // Compactor periodically compacts a projection.
@@ -19,6 +20,10 @@ type Compactor struct {
 
 	// Timeout is the default timeout to use when compacting the projection.
 	Timeout time.Duration
+
+	// Semaphore is used to limit the number of projections being compacted
+	// concurrently.
+	Semaphore *semaphore.Weighted
 
 	// Logger is the target for log messages produced about compaction.
 	// If it is nil, logging.DefaultLogger is used.
@@ -42,6 +47,11 @@ func (c *Compactor) Run(ctx context.Context) error {
 // compact performs compaction. It returns an error if compaction fails for any
 // reason other than a timeout.
 func (c *Compactor) compact(ctx context.Context) error {
+	if err := c.Semaphore.Acquire(ctx, 1); err != nil {
+		return err
+	}
+	defer c.Semaphore.Release(1)
+
 	ctx, cancel := context.WithTimeout(ctx, c.Timeout)
 	defer cancel()
 

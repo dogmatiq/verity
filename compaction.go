@@ -32,9 +32,10 @@ func (e *Engine) runCompactorForProjection(
 	a *app,
 ) error {
 	c := &projection.Compactor{
-		Handler:  h.Handler(),
-		Interval: e.opts.ProjectionCompactInterval,
-		Timeout:  e.opts.ProjectionCompactTimeout,
+		Handler:   h.Handler(),
+		Interval:  e.opts.ProjectionCompactInterval,
+		Timeout:   e.opts.ProjectionCompactTimeout,
+		Semaphore: e.semaphore,
 		Logger: loggingx.WithPrefix(
 			e.logger,
 			"[compactor %s@%s] ",

@@ -44,7 +44,7 @@ var (
 	)
 
 	// DefaultConcurrencyLimit is the default number of messages to handle
-	// concurrently.
+	// (and projections to compact) concurrently.
 	//
 	// It is overridden by the WithConcurrencyLimit() option.
 	DefaultConcurrencyLimit = uint(runtime.GOMAXPROCS(0) * 2)
@@ -133,7 +133,8 @@ func WithMessageBackoff(s backoff.Strategy) EngineOption {
 }
 
 // WithConcurrencyLimit returns an engine option that limits the number of
-// messages that will be handled at the same time.
+// messages that will be handled (and projections that will be compacted) at the
+// same time.
 //
 // If this option is omitted or n non-positive DefaultConcurrencyLimit is used.
 func WithConcurrencyLimit(n uint) EngineOption {
