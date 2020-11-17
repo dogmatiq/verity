@@ -149,6 +149,58 @@ var _ = Describe("func WithConcurrencyLimit()", func() {
 	})
 })
 
+var _ = Describe("func WithProjectionCompactInterval()", func() {
+	It("sets the compaction interval", func() {
+		opts := resolveEngineOptions(
+			WithApplication(TestApplication),
+			WithProjectionCompactInterval(10*time.Minute),
+		)
+
+		Expect(opts.ProjectionCompactInterval).To(Equal(10 * time.Minute))
+	})
+
+	It("uses the default if the duration is zero", func() {
+		opts := resolveEngineOptions(
+			WithApplication(TestApplication),
+			WithProjectionCompactInterval(0),
+		)
+
+		Expect(opts.ProjectionCompactInterval).To(Equal(DefaultProjectionCompactInterval))
+	})
+
+	It("panics if the duration is less than zero", func() {
+		Expect(func() {
+			WithProjectionCompactInterval(-1)
+		}).To(Panic())
+	})
+})
+
+var _ = Describe("func WithProjectionCompactTimeout()", func() {
+	It("sets the compaction timeout", func() {
+		opts := resolveEngineOptions(
+			WithApplication(TestApplication),
+			WithProjectionCompactTimeout(10*time.Minute),
+		)
+
+		Expect(opts.ProjectionCompactTimeout).To(Equal(10 * time.Minute))
+	})
+
+	It("uses the default if the duration is zero", func() {
+		opts := resolveEngineOptions(
+			WithApplication(TestApplication),
+			WithProjectionCompactTimeout(0),
+		)
+
+		Expect(opts.ProjectionCompactTimeout).To(Equal(DefaultProjectionCompactTimeout))
+	})
+
+	It("panics if the duration is less than zero", func() {
+		Expect(func() {
+			WithProjectionCompactTimeout(-1)
+		}).To(Panic())
+	})
+})
+
 var _ = Describe("func WithMarshaler()", func() {
 	It("sets the marshaler", func() {
 		m := &codec.Marshaler{}

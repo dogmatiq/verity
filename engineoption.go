@@ -49,6 +49,18 @@ var (
 	// It is overridden by the WithConcurrencyLimit() option.
 	DefaultConcurrencyLimit = uint(runtime.GOMAXPROCS(0) * 2)
 
+	// DefaultProjectionCompactInterval is the default interval at which the
+	// engine compacts projections.
+	//
+	// It is overridden by the WithProjectionComapctInterval() option.
+	DefaultProjectionCompactInterval = 24 * time.Hour
+
+	// DefaultProjectionCompactTimeout is the default timeout to use when
+	// compacting a projection.
+	//
+	// It is overridden by the WithProjectionComapctTimeout() option.
+	DefaultProjectionCompactTimeout = 5 * time.Minute
+
 	// DefaultLogger is the default target for log messages produced by the
 	// engine.
 	//
@@ -130,6 +142,36 @@ func WithConcurrencyLimit(n uint) EngineOption {
 	}
 }
 
+// WithProjectionCompactInterval returns an engine option that set the interval
+// at which projections are compacted.
+//
+// If this option is omitted or d is zero DefaultProjectionCompactInterval is
+// used.
+func WithProjectionCompactInterval(d time.Duration) EngineOption {
+	if d < 0 {
+		panic("duration must not be negative")
+	}
+
+	return func(opts *engineOptions) {
+		opts.ProjectionCompactInterval = d
+	}
+}
+
+// WithProjectionCompactTimeout returns an engine option that set the duration
+// the engine allows for a single projectiont to be compacted.
+//
+// If this option is omitted or d is zero DefaultProjectionCompactTimeout is
+// used.
+func WithProjectionCompactTimeout(d time.Duration) EngineOption {
+	if d < 0 {
+		panic("duration must not be negative")
+	}
+
+	return func(opts *engineOptions) {
+		opts.ProjectionCompactTimeout = d
+	}
+}
+
 // NewDefaultMarshaler returns the default marshaler to use for the given
 // applications.
 //
@@ -179,14 +221,16 @@ func WithLogger(l logging.Logger) EngineOption {
 
 // engineOptions is a container for a fully-resolved set of engine options.
 type engineOptions struct {
-	AppConfigs          []configkit.RichApplication
-	PersistenceProvider persistence.Provider
-	MessageTimeout      time.Duration
-	MessageBackoff      backoff.Strategy
-	ConcurrencyLimit    uint
-	Marshaler           marshalkit.Marshaler
-	Logger              logging.Logger
-	Network             *networkOptions
+	AppConfigs                []configkit.RichApplication
+	PersistenceProvider       persistence.Provider
+	MessageTimeout            time.Duration
+	MessageBackoff            backoff.Strategy
+	ConcurrencyLimit          uint
+	Marshaler                 marshalkit.Marshaler
+	ProjectionCompactInterval time.Duration
+	ProjectionCompactTimeout  time.Duration
+	Logger                    logging.Logger
+	Network                   *networkOptions
 }
 
 // resolveEngineOptions returns a fully-populated set of engine options built from the
@@ -216,6 +260,14 @@ func resolveEngineOptions(options ...EngineOption) *engineOptions {
 
 	if opts.ConcurrencyLimit == 0 {
 		opts.ConcurrencyLimit = DefaultConcurrencyLimit
+	}
+
+	if opts.ProjectionCompactInterval == 0 {
+		opts.ProjectionCompactInterval = DefaultProjectionCompactInterval
+	}
+
+	if opts.ProjectionCompactTimeout == 0 {
+		opts.ProjectionCompactTimeout = DefaultProjectionCompactTimeout
 	}
 
 	if opts.Marshaler == nil {

@@ -24,8 +24,10 @@ var _ = Describe("type Compactor", func() {
 		logger = &logging.BufferedLogger{}
 		handler = &ProjectionMessageHandler{}
 		compactor = &Compactor{
-			Handler: handler,
-			Logger:  logger,
+			Handler:  handler,
+			Interval: 1 * time.Millisecond,
+			Timeout:  1 * time.Millisecond,
+			Logger:   logger,
 		}
 	})
 
@@ -47,8 +49,6 @@ var _ = Describe("type Compactor", func() {
 		})
 
 		It("compacts repeatedly", func() {
-			compactor.CompactionInterval = 1 * time.Millisecond
-
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
@@ -82,8 +82,6 @@ var _ = Describe("type Compactor", func() {
 		})
 
 		It("does not return an error compaction times out", func() {
-			compactor.CompactionTimeout = 1 * time.Millisecond
-
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 

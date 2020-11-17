@@ -9,29 +9,16 @@ import (
 	"github.com/dogmatiq/linger"
 )
 
-const (
-	// DefaultCompactionInterval is the default interval at which a projector
-	// will compact its projection.
-	DefaultCompactionInterval = 24 * time.Hour
-
-	// DefaultCompactionTimeout is the default timeout to use when compacting a
-	// projection.
-	DefaultCompactionTimeout = 5 * time.Minute
-)
-
 // Compactor periodically compacts a projection.
 type Compactor struct {
 	// Handler is the projection message handler to be compacted.
 	Handler dogma.ProjectionMessageHandler
 
-	// CompactionInterval is the interval at which the projection is compacted.
-	// If it is zero the global DefaultCompactionInterval constant is used.
-	CompactionInterval time.Duration
+	// Interval is the interval at which the projection is compacted.
+	Interval time.Duration
 
-	// CompactionTimeout is the default timeout to use when compacting
-	// the projection. If it is zero the global DefaultCompactionTimeout is
-	// used.
-	CompactionTimeout time.Duration
+	// Timeout is the default timeout to use when compacting the projection.
+	Timeout time.Duration
 
 	// Logger is the target for log messages produced about compaction.
 	// If it is nil, logging.DefaultLogger is used.
@@ -46,7 +33,7 @@ func (c *Compactor) Run(ctx context.Context) error {
 			return err
 		}
 
-		if err := linger.Sleep(ctx, c.CompactionInterval, DefaultCompactionInterval); err != nil {
+		if err := linger.Sleep(ctx, c.Interval); err != nil {
 			return err
 		}
 	}
@@ -55,11 +42,7 @@ func (c *Compactor) Run(ctx context.Context) error {
 // compact performs compaction. It returns an error if compaction fails for any
 // reason other than a timeout.
 func (c *Compactor) compact(ctx context.Context) error {
-	ctx, cancel := linger.ContextWithTimeout(
-		ctx,
-		c.CompactionTimeout,
-		DefaultCompactionTimeout,
-	)
+	ctx, cancel := context.WithTimeout(ctx, c.Timeout)
 	defer cancel()
 
 	if err := c.Handler.Compact(
