@@ -29,3 +29,13 @@ func (s eventScope) Log(f string, v ...interface{}) {
 		v,
 	)
 }
+
+// compactScope is an implementation of dogma.ProjectionCompactScope.
+type compactScope struct {
+	logger logging.Logger
+}
+
+// Log records an informational message within the context of compaction.
+func (s compactScope) Log(f string, v ...interface{}) {
+	logging.Log(s.logger, f, v...)
+}
