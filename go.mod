@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/lib/pq v1.8.0
-	github.com/mattn/go-sqlite3 v1.14.4
+	github.com/mattn/go-sqlite3 v1.14.5
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
 	go.etcd.io/bbolt v1.3.5
