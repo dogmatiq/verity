@@ -8,16 +8,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type scope", func() {
+var _ = Describe("type eventScope", func() {
 	var (
 		logger *logging.BufferedLogger
-		sc     *scope
+		sc     *eventScope
 	)
 
 	BeforeEach(func() {
 		logger = &logging.BufferedLogger{}
 
-		sc = &scope{
+		sc = &eventScope{
 			cause:  NewParcel("<consume>", MessageC1),
 			logger: logger,
 		}

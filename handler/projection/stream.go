@@ -90,7 +90,7 @@ func (a *StreamAdaptor) HandleEvent(
 		resource.FromApplicationKey(ak),
 		resource.MarshalOffset(o),
 		resource.MarshalOffset(ev.Offset+1),
-		scope{
+		eventScope{
 			cause:  ev.Parcel,
 			logger: a.Logger,
 		},
