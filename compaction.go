@@ -9,8 +9,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// runCompactorsForApp runs a projection compactor for a each projection with
-// a specific application.
+// runCompactorsForApp runs a compactor for a each projection within a specific
+// application.
 func (e *Engine) runCompactorsForApp(ctx context.Context, a *app) error {
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -24,8 +24,7 @@ func (e *Engine) runCompactorsForApp(ctx context.Context, a *app) error {
 	return g.Wait()
 }
 
-// runCompactorForProjection runs a projection compactor for a specific
-// projection.
+// runCompactorForProjection runs a compactor for a specific projection.
 func (e *Engine) runCompactorForProjection(
 	ctx context.Context,
 	h configkit.RichProjection,
