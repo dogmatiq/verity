@@ -7,9 +7,6 @@ CGO_ENABLED ?= 1
 .makefiles/%:
 	@curl -sfL https://makefiles.dev/v1 | bash /dev/stdin "$@"
 
-bank:
-	go run ./cmd/bank/main.go
-
 boltdb:
 	go test -count=1 ./persistence/provider/boltdb
 
