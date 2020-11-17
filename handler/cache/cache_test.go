@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/linger"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/handler/cache"
 	. "github.com/dogmatiq/verity/handler/cache"
-	"github.com/dogmatiq/linger"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

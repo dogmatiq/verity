@@ -5,9 +5,9 @@ import (
 	"time"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/marshalkit"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"

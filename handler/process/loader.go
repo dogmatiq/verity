@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // Instance is an in-memory representation of the process instance, as stored

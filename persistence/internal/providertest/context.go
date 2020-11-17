@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/gomega"
 )
 

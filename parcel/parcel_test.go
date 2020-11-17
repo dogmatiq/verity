@@ -5,9 +5,9 @@ import (
 
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/envelopespec"
+	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/parcel"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

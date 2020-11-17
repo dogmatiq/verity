@@ -7,8 +7,8 @@ import (
 
 	"github.com/dogmatiq/cosyne"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/linger"
+	"github.com/dogmatiq/verity/handler"
 )
 
 // DefaultTTL is the default *minimum* period of time to keep cache records in

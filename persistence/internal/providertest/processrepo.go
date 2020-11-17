@@ -3,8 +3,8 @@ package providertest
 import (
 	"context"
 
-	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )

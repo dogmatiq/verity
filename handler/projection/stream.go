@@ -9,10 +9,10 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/handler/projection/resource"
 	"github.com/dogmatiq/verity/internal/mlog"
-	"github.com/dogmatiq/linger"
 )
 
 // DefaultTimeout is the default timeout to use when applying an event.

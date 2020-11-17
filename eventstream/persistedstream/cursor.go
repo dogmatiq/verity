@@ -5,10 +5,10 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/marshalkit"
 )
 
 // cursor is an eventstream.Cursor that reads events from an event repository.

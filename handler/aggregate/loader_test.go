@@ -7,11 +7,11 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/marshalkit/codec"
+	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler/aggregate"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/marshalkit/codec"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

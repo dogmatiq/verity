@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/internal/x/sqlx"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/linger"
 	"go.uber.org/multierr"
 )
 

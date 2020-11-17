@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/verity/parcel"
-	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/kyu"
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/verity/persistence"
 )
 
 // DefaultBufferSize is the default size of the in-memory queue buffer.

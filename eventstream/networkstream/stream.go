@@ -5,9 +5,9 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/transportspec"
+	"github.com/dogmatiq/verity/eventstream"
 )
 
 // Stream is an implementation of eventstream.Stream that consumes messages via

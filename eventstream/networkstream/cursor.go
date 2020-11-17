@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/verity/eventstream"
-	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/transportspec"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/parcel"
 )
 
 // cursor is a Cursor that reads events from a network stream.

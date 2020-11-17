@@ -9,13 +9,13 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/handler/cache"
 	"github.com/dogmatiq/verity/internal/mlog"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/queue"
-	"github.com/dogmatiq/marshalkit"
 )
 
 // Adaptor exposes a dogma.ProcessMessageHandler as a handler.Handler.

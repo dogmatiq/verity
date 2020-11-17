@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/verity/eventstream"
-	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/transportspec"
+	"github.com/dogmatiq/verity/eventstream"
+	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

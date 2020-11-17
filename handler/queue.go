@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/verity/internal/mlog"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/queue"
-	"github.com/dogmatiq/linger/backoff"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )

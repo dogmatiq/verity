@@ -7,9 +7,9 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/verity/persistence/provider/memory"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit/codec"
+	"github.com/dogmatiq/verity/persistence/provider/memory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

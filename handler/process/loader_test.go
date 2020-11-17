@@ -7,12 +7,12 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	. "github.com/dogmatiq/verity/fixtures"
-	. "github.com/dogmatiq/verity/handler/process"
-	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
+	. "github.com/dogmatiq/verity/fixtures"
+	. "github.com/dogmatiq/verity/handler/process"
+	"github.com/dogmatiq/verity/persistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

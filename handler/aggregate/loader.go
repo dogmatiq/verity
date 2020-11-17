@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/marshalkit"
 )
 
 // Instance is an in-memory representation of the aggregate instance, as stored

@@ -10,10 +10,10 @@ import (
 	"github.com/dogmatiq/configkit/api/discovery"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/transportspec"
 	"github.com/dogmatiq/verity/eventstream/networkstream"
 	"github.com/dogmatiq/verity/eventstream/persistedstream"
 	"github.com/dogmatiq/verity/internal/x/grpcx"
-	"github.com/dogmatiq/transportspec"
 	"google.golang.org/grpc"
 )
 

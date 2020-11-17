@@ -1,8 +1,8 @@
 package networkstream_test
 
 import (
-	. "github.com/dogmatiq/verity/eventstream/networkstream"
 	"github.com/dogmatiq/marshalkit"
+	. "github.com/dogmatiq/verity/eventstream/networkstream"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

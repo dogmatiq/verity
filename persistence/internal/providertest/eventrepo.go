@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
-	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/jmalloc/gomegax"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"

@@ -8,8 +8,8 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/envelopespec"
-	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
 )
 

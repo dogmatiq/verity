@@ -8,9 +8,9 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/kyu"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
-	"github.com/dogmatiq/kyu"
 )
 
 // DefaultBufferSize is the default number of recent events to buffer in memory.
