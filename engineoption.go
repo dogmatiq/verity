@@ -52,13 +52,13 @@ var (
 	// DefaultProjectionCompactInterval is the default interval at which the
 	// engine compacts projections.
 	//
-	// It is overridden by the WithProjectionComapctInterval() option.
+	// It is overridden by the WithProjectionCompactInterval() option.
 	DefaultProjectionCompactInterval = 24 * time.Hour
 
 	// DefaultProjectionCompactTimeout is the default timeout to use when
 	// compacting a projection.
 	//
-	// It is overridden by the WithProjectionComapctTimeout() option.
+	// It is overridden by the WithProjectionCompactTimeout() option.
 	DefaultProjectionCompactTimeout = 5 * time.Minute
 
 	// DefaultLogger is the default target for log messages produced by the
