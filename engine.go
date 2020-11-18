@@ -117,6 +117,10 @@ func (e *Engine) run(ctx context.Context) error {
 		g.Go(func() error {
 			return e.runStreamConsumersForEachApp(ctx, a.EventStream)
 		})
+
+		g.Go(func() error {
+			return e.runCompactorsForApp(ctx, a)
+		})
 	}
 
 	err := g.Wait()

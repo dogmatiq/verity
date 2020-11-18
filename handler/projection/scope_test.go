@@ -8,16 +8,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("type scope", func() {
+var _ = Describe("type eventScope", func() {
 	var (
 		logger *logging.BufferedLogger
-		sc     *scope
+		sc     *eventScope
 	)
 
 	BeforeEach(func() {
 		logger = &logging.BufferedLogger{}
 
-		sc = &scope{
+		sc = &eventScope{
 			cause:  NewParcel("<consume>", MessageC1),
 			logger: logger,
 		}
@@ -38,6 +38,33 @@ var _ = Describe("type scope", func() {
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
 					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
+				},
+			))
+		})
+	})
+})
+
+var _ = Describe("type compactScope", func() {
+	var (
+		logger *logging.BufferedLogger
+		sc     *compactScope
+	)
+
+	BeforeEach(func() {
+		logger = &logging.BufferedLogger{}
+
+		sc = &compactScope{
+			logger: logger,
+		}
+	})
+
+	Describe("func Log()", func() {
+		It("logs a message", func() {
+			sc.Log("format %s", "<value>")
+
+			Expect(logger.Messages()).To(ContainElement(
+				logging.BufferedLogMessage{
+					Message: "format <value>",
 				},
 			))
 		})
