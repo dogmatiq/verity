@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// runCompactorsForApp runs a compactor for a each projection within a specific
+// runCompactorsForApp runs a compactor for each projection within a specific
 // application.
 func (e *Engine) runCompactorsForApp(ctx context.Context, a *app) error {
 	g, ctx := errgroup.WithContext(ctx)

@@ -71,7 +71,7 @@ var _ = Describe("type Compactor", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		It("returns if the context is canceled while waiting for the sempahore", func() {
+		It("returns an error if the context is canceled while waiting for the semaphore", func() {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
@@ -100,7 +100,7 @@ var _ = Describe("type Compactor", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
-		It("does not return an error compaction times out", func() {
+		It("does not return an error if compaction times out", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 

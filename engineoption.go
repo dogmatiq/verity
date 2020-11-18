@@ -143,7 +143,7 @@ func WithConcurrencyLimit(n uint) EngineOption {
 	}
 }
 
-// WithProjectionCompactInterval returns an engine option that set the interval
+// WithProjectionCompactInterval returns an engine option that sets the interval
 // at which projections are compacted.
 //
 // If this option is omitted or d is zero DefaultProjectionCompactInterval is
@@ -158,8 +158,8 @@ func WithProjectionCompactInterval(d time.Duration) EngineOption {
 	}
 }
 
-// WithProjectionCompactTimeout returns an engine option that set the duration
-// the engine allows for a single projectiont to be compacted.
+// WithProjectionCompactTimeout returns an engine option that sets the duration
+// the engine allows for a single projection to be compacted.
 //
 // If this option is omitted or d is zero DefaultProjectionCompactTimeout is
 // used.
