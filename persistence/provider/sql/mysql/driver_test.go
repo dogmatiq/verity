@@ -35,8 +35,7 @@ var _ = Describe("type driver", func() {
 			return providertest.Out{
 				NewProvider: func() (persistence.Provider, func()) {
 					return &veritysql.Provider{
-						DB:     db,
-						Driver: Driver,
+						DB: db,
 					}, nil
 				},
 				IsShared: true,
