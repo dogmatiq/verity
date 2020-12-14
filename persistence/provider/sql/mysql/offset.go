@@ -46,18 +46,22 @@ func (driver) InsertOffset(
 	tx *sql.Tx,
 	ak, sk string,
 	n uint64,
-) (bool, error) {
-	return insertIgnore(
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
 		ctx,
 		tx,
 		`INSERT INTO stream_offset SET
 			app_key = ?,
 			source_app_key = ?,
-			next_offset = ?`,
+			next_offset = ?
+		ON DUPLICATE KEY UPDATE
+			app_key = app_key`, // do nothing
 		ak,
 		sk,
 		n,
-	)
+	), nil
 }
 
 // UpdateOffset updates the offset associated with the given source

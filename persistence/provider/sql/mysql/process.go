@@ -16,8 +16,10 @@ func (driver) InsertProcessInstance(
 	tx *sql.Tx,
 	ak string,
 	inst persistence.ProcessInstance,
-) (bool, error) {
-	return insertIgnore(
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
 		ctx,
 		tx,
 		`INSERT INTO process_instance SET
@@ -25,13 +27,15 @@ func (driver) InsertProcessInstance(
 			handler_key = ?,
 			instance_id = ?,
 			media_type = ?,
-			data = ?`,
+			data = ?
+		ON DUPLICATE KEY UPDATE
+			app_key = app_key`, // do nothing
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
 		inst.Packet.MediaType,
 		inst.Packet.Data,
-	)
+	), nil
 }
 
 // UpdateProcessInstance updates a process instance.
