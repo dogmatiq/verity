@@ -14,6 +14,17 @@ var Driver errorConverter
 
 type driver struct{}
 
+// IsCompatibleWith returns nil if this driver can be used with db.
+func (driver) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
+	// Verify that we're using PostgreSQL and that $1-style placeholders are
+	// supported.
+	return db.QueryRowContext(
+		ctx,
+		`SELECT pg_backend_pid() WHERE 1 = $1`,
+		1,
+	).Err()
+}
+
 // Begin starts a transaction.
 func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 	return db.BeginTx(ctx, nil)

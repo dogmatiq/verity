@@ -16,8 +16,10 @@ func (driver) InsertAggregateMetaData(
 	tx *sql.Tx,
 	ak string,
 	md persistence.AggregateMetaData,
-) (bool, error) {
-	return insertIgnore(
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
 		ctx,
 		tx,
 		`INSERT INTO aggregate_metadata SET
@@ -26,14 +28,16 @@ func (driver) InsertAggregateMetaData(
 			instance_id = ?,
 			instance_exists = ?,
 			last_event_id = ?,
-			barrier_event_id = ?`,
+			barrier_event_id = ?
+		ON DUPLICATE KEY UPDATE
+			app_key = app_key`, // do nothing
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
 		md.InstanceExists,
 		md.LastEventID,
 		md.BarrierEventID,
-	)
+	), nil
 }
 
 // UpdateAggregateMetaData updates meta-data for an aggregate instance.

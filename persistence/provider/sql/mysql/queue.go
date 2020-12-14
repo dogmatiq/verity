@@ -17,28 +17,32 @@ func (driver) InsertQueueMessage(
 	tx *sql.Tx,
 	ak string,
 	m persistence.QueueMessage,
-) (bool, error) {
-	return insertIgnore(
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
 		ctx,
 		tx,
 		`INSERT INTO queue SET
-				app_key = ?,
-				failure_count = ?,
-				next_attempt_at = ?,
-				message_id = ?,
-				causation_id = ?,
-				correlation_id = ?,
-				source_app_name = ?,
-				source_app_key = ?,
-				source_handler_name = ?,
-				source_handler_key = ?,
-				source_instance_id = ?,
-				created_at = ?,
-				scheduled_for = ?,
-				description = ?,
-				portable_name = ?,
-				media_type = ?,
-				data = ?`,
+			app_key = ?,
+			failure_count = ?,
+			next_attempt_at = ?,
+			message_id = ?,
+			causation_id = ?,
+			correlation_id = ?,
+			source_app_name = ?,
+			source_app_key = ?,
+			source_handler_name = ?,
+			source_handler_key = ?,
+			source_instance_id = ?,
+			created_at = ?,
+			scheduled_for = ?,
+			description = ?,
+			portable_name = ?,
+			media_type = ?,
+			data = ?
+		ON DUPLICATE KEY UPDATE
+			app_key = app_key`, // do nothing
 		ak,
 		m.FailureCount,
 		m.NextAttemptAt,
@@ -56,7 +60,7 @@ func (driver) InsertQueueMessage(
 		m.Envelope.GetPortableName(),
 		m.Envelope.GetMediaType(),
 		m.Envelope.GetData(),
-	)
+	), nil
 }
 
 // UpdateQueueMessage updates meta-data about a message that is already on

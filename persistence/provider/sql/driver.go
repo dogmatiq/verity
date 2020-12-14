@@ -3,11 +3,6 @@ package sql
 import (
 	"context"
 	"database/sql"
-	"fmt"
-
-	"github.com/dogmatiq/verity/persistence/provider/sql/mysql"
-	"github.com/dogmatiq/verity/persistence/provider/sql/postgres"
-	"github.com/dogmatiq/verity/persistence/provider/sql/sqlite"
 )
 
 // Driver is used to interface with the underlying SQL database.
@@ -17,6 +12,9 @@ type Driver interface {
 	OffsetDriver
 	ProcessDriver
 	QueueDriver
+
+	// IsCompatibleWith returns nil if this driver can be used with db.
+	IsCompatibleWith(ctx context.Context, db *sql.DB) error
 
 	// Begin starts a transaction for use in a peristence.Transaction.
 	Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error)
@@ -35,24 +33,4 @@ type Driver interface {
 
 	// DropSchema removes any SQL schema elements created by CreateSchema().
 	DropSchema(ctx context.Context, db *sql.DB) error
-}
-
-// NewDriver returns the appropriate driver to use with the given database.
-func NewDriver(db *sql.DB) (Driver, error) {
-	if mysql.IsCompatibleWith(db) {
-		return mysql.Driver, nil
-	}
-
-	if postgres.IsCompatibleWith(db) {
-		return postgres.Driver, nil
-	}
-
-	if sqlite.IsCompatibleWith(db) {
-		return sqlite.Driver, nil
-	}
-
-	return nil, fmt.Errorf(
-		"can not deduce the appropriate SQL driver for %T",
-		db.Driver(),
-	)
 }

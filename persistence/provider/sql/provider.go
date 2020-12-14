@@ -33,8 +33,8 @@ type Provider struct {
 	// DB is the SQL database to use.
 	DB *sql.DB
 
-	// Driver is the Verity SQL driver to use with this database.
-	// If it is nil, it is determined automatically for built-in drivers.
+	// Driver is the Verity SQL driver to use with this database. If it is nil,
+	// it is chosen automatically from one of the built-in drivers.
 	Driver Driver
 }
 
@@ -70,7 +70,7 @@ type DSNProvider struct {
 	DSN string
 
 	// Driver is the Verity SQL driver to use with this database. If it is nil,
-	// it is determined automatically for built-in drivers.
+	// it is chosen automatically from one of the built-in drivers.
 	Driver Driver
 
 	// MaxIdleConnections is the maximum number of idle connections allowed in
@@ -165,7 +165,7 @@ func (p *provider) open(
 
 		if d == nil {
 			var err error
-			d, err = NewDriver(db)
+			d, err = selectDriver(ctx, db)
 			if err != nil {
 				close(db)
 				return nil, err

@@ -27,6 +27,17 @@ type driver struct {
 	lockExpiryOffset time.Duration
 }
 
+// IsCompatibleWith returns nil if this driver can be used with db.
+func (driver) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
+	// Verify that we're using SQLite and that $1-style placeholders are
+	// supported.
+	return db.QueryRowContext(
+		ctx,
+		`SELECT sqlite_version() WHERE 1 = $1`,
+		1,
+	).Err()
+}
+
 // Begin starts a transaction.
 func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 	return db.BeginTx(ctx, nil)
