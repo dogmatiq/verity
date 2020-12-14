@@ -373,6 +373,6 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 func dropEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_offset`)
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`) // dropped before event_filter to avoid FK failures
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter`)
-	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS event_filter_name`)
 }
