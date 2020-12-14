@@ -40,7 +40,16 @@ func (driver) LockApplication(
 		}
 	}()
 
-	name := fmt.Sprintf("verity(%s)", ak)
+	row := conn.QueryRowContext(ctx, `SELECT DATABASE()`)
+
+	var database string
+	if err := row.Scan(&database); err != nil {
+		return nil, err
+	}
+
+	// MySQL advisory locked are server-wide, we include the database name in
+	// the lock name to scope it to a single database.
+	name := fmt.Sprintf("verity(%s, %s)", database, ak)
 
 	if !acquireLock(conn, name) {
 		return nil, persistence.ErrDataStoreLocked
