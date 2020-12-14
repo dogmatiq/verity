@@ -18,6 +18,27 @@ var Driver driver
 
 type driver struct{}
 
+// IsCompatibleWith returns nil if this driver can be used with db.
+func (driver) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
+	// Verify that ?-style placeholders are supported.
+	err := db.QueryRowContext(
+		ctx,
+		`SELECT 1 WHERE 1 = ?`,
+		1,
+	).Err()
+
+	if err != nil {
+		return err
+	}
+
+	// Verify that we're using something compatible with MySQL (because the SHOW
+	// VARIABLES syntax is supported) and that InnoDB is available.
+	return db.QueryRowContext(
+		ctx,
+		`SHOW VARIABLES LIKE "innodb_page_size"`,
+	).Err()
+}
+
 // Begin starts a transaction.
 func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 	return db.BeginTx(ctx, nil)

@@ -6,7 +6,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/verity/internal/testing/sqltest"
+	"github.com/dogmatiq/sqltest"
 	"github.com/dogmatiq/verity/internal/x/sqlx"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,14 +17,18 @@ var _ = Describe("type driver", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 
-		db, _, close := sqltest.Open("sqlite3")
-		defer close()
+		database, err := sqltest.NewDatabase(ctx, sqltest.SQLite3Driver, sqltest.SQLite)
+		Expect(err).ShouldNot(HaveOccurred())
+		defer database.Close()
+
+		db, err := database.Open()
+		Expect(err).ShouldNot(HaveOccurred())
 
 		d := driver{
 			lockUpdateInterval: 10 * time.Millisecond,
 		}
 
-		err := d.DropSchema(ctx, db)
+		err = d.DropSchema(ctx, db)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = d.CreateSchema(ctx, db)

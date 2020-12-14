@@ -52,6 +52,11 @@ type errorConverter struct {
 	d driver
 }
 
+func (d errorConverter) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
+	err := d.d.IsCompatibleWith(ctx, db)
+	return convertContextErrors(ctx, err)
+}
+
 func (d errorConverter) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 	tx, err := d.d.Begin(ctx, db)
 	return tx, convertContextErrors(ctx, err)

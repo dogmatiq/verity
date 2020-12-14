@@ -12,6 +12,7 @@ require (
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v0.2.1
 	github.com/dogmatiq/marshalkit v0.4.0
+	github.com/dogmatiq/sqltest v0.3.0
 	github.com/dogmatiq/transportspec v0.2.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.3
@@ -19,7 +20,6 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/lib/pq v1.9.0
-	github.com/mattn/go-sqlite3 v1.14.5
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.4
 	go.etcd.io/bbolt v1.3.5
