@@ -1,4 +1,4 @@
-package postgres_test
+package mysql_test
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"github.com/dogmatiq/sqltest"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
-	veritysql "github.com/dogmatiq/verity/persistence/provider/sql"
-	. "github.com/dogmatiq/verity/persistence/provider/sql/postgres"
+	veritysql "github.com/dogmatiq/verity/persistence/sqlpersistence"
+	. "github.com/dogmatiq/verity/persistence/sqlpersistence/mysql"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,7 +23,7 @@ var _ = Describe("type driver", func() {
 	providertest.Declare(
 		func(ctx context.Context, in providertest.In) providertest.Out {
 			var err error
-			database, err = sqltest.NewDatabase(ctx, sqltest.PGXDriver, sqltest.PostgreSQL)
+			database, err = sqltest.NewDatabase(ctx, sqltest.MySQLDriver, sqltest.MySQL)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			db, err = database.Open()

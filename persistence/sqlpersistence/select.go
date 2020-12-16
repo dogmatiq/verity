@@ -1,13 +1,13 @@
-package sql
+package sqlpersistence
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 
-	"github.com/dogmatiq/verity/persistence/provider/sql/mysql"
-	"github.com/dogmatiq/verity/persistence/provider/sql/postgres"
-	"github.com/dogmatiq/verity/persistence/provider/sql/sqlite"
+	"github.com/dogmatiq/verity/persistence/sqlpersistence/mysql"
+	"github.com/dogmatiq/verity/persistence/sqlpersistence/postgres"
+	"github.com/dogmatiq/verity/persistence/sqlpersistence/sqlite"
 	"go.uber.org/multierr"
 )
 

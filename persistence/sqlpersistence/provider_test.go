@@ -1,4 +1,4 @@
-package sql_test
+package sqlpersistence_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/dogmatiq/sqltest/sqlstub"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
-	. "github.com/dogmatiq/verity/persistence/provider/sql"
+	. "github.com/dogmatiq/verity/persistence/sqlpersistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"go.uber.org/multierr"

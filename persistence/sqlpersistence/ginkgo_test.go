@@ -1,4 +1,4 @@
-package sql_test
+package sqlpersistence_test
 
 import (
 	"reflect"
