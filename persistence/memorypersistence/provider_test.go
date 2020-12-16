@@ -1,11 +1,11 @@
-package memory_test
+package memorypersistence_test
 
 import (
 	"context"
 
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
-	. "github.com/dogmatiq/verity/persistence/provider/memory"
+	. "github.com/dogmatiq/verity/persistence/memorypersistence"
 	. "github.com/onsi/ginkgo"
 )
 

@@ -1,4 +1,4 @@
-package memory_test
+package memorypersistence_test
 
 import (
 	"reflect"

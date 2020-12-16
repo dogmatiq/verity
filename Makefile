@@ -8,19 +8,19 @@ CGO_ENABLED ?= 1
 	@curl -sfL https://makefiles.dev/v1 | bash /dev/stdin "$@"
 
 boltdb:
-	go test -count=1 ./persistence/provider/boltdb
+	go test -count=1 ./persistence/boltpersistence
 
 memory:
-	go test -count=1 ./persistence/provider/memory
+	go test -count=1 ./persistence/memorypersistence
 
 mysql:
-	go test -count=1 ./persistence/provider/sql/mysql
+	go test -count=1 ./persistence/sqlpersistence/mysql
 
 postgres:
-	go test -count=1 ./persistence/provider/sql/postgres
+	go test -count=1 ./persistence/sqlpersistence/postgres
 
 sqlite:
-	go test -count=1 ./persistence/provider/sql/sqlite
+	go test -count=1 ./persistence/sqlpersistence/sqlite
 
 modgraph:
 	modgraph \

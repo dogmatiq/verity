@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/verity"
-	"github.com/dogmatiq/verity/persistence/provider/memory"
+	"github.com/dogmatiq/verity/persistence/memorypersistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -112,7 +112,7 @@ var _ = Describe("type Engine", func() {
 			err := Run(
 				ctx,
 				app,
-				WithPersistence(&memory.Provider{}), // avoid default BoltDB location
+				WithPersistence(&memorypersistence.Provider{}), // avoid default BoltDB location
 			)
 			Expect(err).To(MatchError(context.Canceled))
 		})
@@ -121,7 +121,7 @@ var _ = Describe("type Engine", func() {
 			err := Run(
 				ctx,
 				app,
-				WithPersistence(&memory.Provider{}), // avoid default BoltDB location
+				WithPersistence(&memorypersistence.Provider{}), // avoid default BoltDB location
 				WithNetworking(),
 			)
 			// TODO: https://github.com/dogmatiq/configkit/issues/58

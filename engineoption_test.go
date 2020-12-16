@@ -9,7 +9,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit/codec"
-	"github.com/dogmatiq/verity/persistence/provider/memory"
+	"github.com/dogmatiq/verity/persistence/memorypersistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -61,7 +61,7 @@ var _ = Describe("func WithApplication()", func() {
 
 var _ = Describe("func WithPersistence()", func() {
 	It("sets the persistence provider", func() {
-		p := &memory.Provider{}
+		p := &memorypersistence.Provider{}
 
 		opts := resolveEngineOptions(
 			WithApplication(TestApplication),

@@ -9,7 +9,7 @@ import (
 	. "github.com/dogmatiq/verity/eventstream/persistedstream"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/verity/persistence/provider/memory"
+	"github.com/dogmatiq/verity/persistence/memorypersistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -19,7 +19,7 @@ var _ = Describe("type Stream", func() {
 
 	streamtest.Declare(
 		func(ctx context.Context, in streamtest.In) streamtest.Out {
-			provider := &memory.Provider{}
+			provider := &memorypersistence.Provider{}
 
 			var err error
 			dataStore, err = provider.Open(ctx, in.Application.Identity().Key)

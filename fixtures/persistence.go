@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/verity/persistence/provider/memory"
+	"github.com/dogmatiq/verity/persistence/memorypersistence"
 )
 
 // ProviderStub is a test implementation of the persistence.Provider interface.
@@ -49,7 +49,7 @@ type DataStoreStub struct {
 // persistence provider.
 func NewDataStoreStub() *DataStoreStub {
 	p := &ProviderStub{
-		Provider: &memory.Provider{},
+		Provider: &memorypersistence.Provider{},
 	}
 
 	ds, err := p.Open(context.Background(), "<app-key>")

@@ -6,7 +6,7 @@ import (
 
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/verity/persistence/provider/memory"
+	"github.com/dogmatiq/verity/persistence/memorypersistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -20,7 +20,7 @@ var _ = Describe("type DataStoreSet", func() {
 
 	BeforeEach(func() {
 		provider = &ProviderStub{
-			Provider: &memory.Provider{},
+			Provider: &memorypersistence.Provider{},
 		}
 
 		set = &DataStoreSet{
