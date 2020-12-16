@@ -16,14 +16,14 @@ import (
 	"github.com/dogmatiq/marshalkit/codec/json"
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/dogmatiq/verity/persistence/provider/boltdb"
+	"github.com/dogmatiq/verity/persistence/boltpersistence"
 )
 
 var (
 	// DefaultPersistenceProvider is the default persistence provider.
 	//
 	// It is overridden by the WithPersistence() option.
-	DefaultPersistenceProvider persistence.Provider = &boltdb.FileProvider{
+	DefaultPersistenceProvider persistence.Provider = &boltpersistence.FileProvider{
 		Path: "/var/run/verity.boltdb",
 	}
 

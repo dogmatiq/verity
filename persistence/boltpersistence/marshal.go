@@ -1,4 +1,4 @@
-package boltdb
+package boltpersistence
 
 import (
 	"encoding/binary"

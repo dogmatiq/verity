@@ -1,4 +1,4 @@
-package boltdb_test
+package boltpersistence_test
 
 import (
 	"reflect"

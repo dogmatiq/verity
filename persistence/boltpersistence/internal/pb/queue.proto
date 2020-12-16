@@ -3,7 +3,7 @@ package verity.persistence.boltdb.v1;
 
 import "github.com/dogmatiq/envelopespec/envelope.proto";
 
-option go_package = "github.com/dogmatiq/verity/persistence/provider/boltdb/internal/pb";
+option go_package = "github.com/dogmatiq/verity/persistence/boltpersistence/internal/pb";
 
 // QueueMessage is a protocol buffers representation of a
 // persistence.QueueMessage.
