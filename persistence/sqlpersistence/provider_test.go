@@ -144,5 +144,6 @@ var _ = Describe("type provider", func() {
 
 			Expect(err).To(MatchError(expect))
 		})
+
 	})
 })
