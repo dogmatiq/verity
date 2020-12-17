@@ -33,7 +33,7 @@ func (driver) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
 	// supported.
 	return db.QueryRowContext(
 		ctx,
-		`SELECT sqlite_version() WHERE 1 = $1`,
+		`/* CHECKING FOR SQLITE COMPATIBILITY */ SELECT sqlite_version() WHERE 1 = $1`,
 		1,
 	).Err()
 }

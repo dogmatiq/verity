@@ -20,23 +20,20 @@ type driver struct{}
 
 // IsCompatibleWith returns nil if this driver can be used with db.
 func (driver) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
-	// Verify that ?-style placeholders are supported.
-	err := db.QueryRowContext(
-		ctx,
-		`SELECT 1 WHERE 1 = ?`,
-		1,
-	).Err()
-
-	if err != nil {
-		return err
-	}
-
-	// Verify that we're using something compatible with MySQL (because the SHOW
-	// VARIABLES syntax is supported) and that InnoDB is available.
-	return db.QueryRowContext(
-		ctx,
-		`SHOW VARIABLES LIKE "innodb_page_size"`,
-	).Err()
+	return multierr.Combine(
+		// Verify that ?-style placeholders are supported.
+		db.QueryRowContext(
+			ctx,
+			`/* CHECKING FOR MYSQL COMPATIBILITY */ SELECT 1 WHERE 1 = ?`,
+			1,
+		).Err(),
+		// Verify that we're using something compatible with MySQL (because the SHOW
+		// VARIABLES syntax is supported) and that InnoDB is available.
+		db.QueryRowContext(
+			ctx,
+			`/* CHECKING FOR MYSQL COMPATIBILITY */ SHOW VARIABLES LIKE "innodb_page_size"`,
+		).Err(),
+	)
 }
 
 // Begin starts a transaction.

@@ -125,7 +125,7 @@ var _ = Describe("type DSNProvider", func() {
 
 var _ = Describe("type provider", func() {
 	Describe("func open()", func() {
-		It("returns an error if a compatible driver can not be found", func() {
+		It("returns an error if the server cannot be pinged", func() {
 			provider := &Provider{
 				DB: sql.OpenDB(&sqlstub.Connector{}),
 			}
@@ -145,5 +145,24 @@ var _ = Describe("type provider", func() {
 			Expect(err).To(MatchError(expect))
 		})
 
+		It("returns an error if a compatible driver can not be found", func() {
+			provider := &Provider{
+				DB: sql.OpenDB(&sqlstub.Connector{}),
+			}
+
+			ds, err := provider.Open(context.Background(), "<app-key>")
+			if ds != nil {
+				ds.Close()
+			}
+
+			expect := "could not find a driver that is compatible with *sqlstub.Driver"
+			for _, e := range multierr.Errors(err) {
+				if e.Error() == expect {
+					return
+				}
+			}
+
+			Expect(err).To(MatchError(expect))
+		})
 	})
 })

@@ -20,7 +20,7 @@ func (driver) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
 	// supported.
 	return db.QueryRowContext(
 		ctx,
-		`SELECT pg_backend_pid() WHERE 1 = $1`,
+		`/* CHECKING FOR POSTGRESQL COMPATIBILITY */ SELECT pg_backend_pid() WHERE 1 = $1`,
 		1,
 	).Err()
 }
