@@ -1,9 +1,10 @@
+// +build cgo
+
 package sqlpersistence_test
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/dogmatiq/sqltest"
@@ -17,102 +18,76 @@ import (
 )
 
 var _ = Describe("type Provider", func() {
-	for _, pair := range sqltest.CompatiblePairs() {
-		pair := pair // capture loop variable
+	var (
+		database *sqltest.Database
+		db       *sql.DB
+	)
 
-		When(
-			fmt.Sprintf(
-				"using %s with the '%s' driver",
-				pair.Product.Name(),
-				pair.Driver.Name(),
-			),
-			func() {
-				var (
-					database *sqltest.Database
-					db       *sql.DB
-				)
+	providertest.Declare(
+		func(ctx context.Context, in providertest.In) providertest.Out {
+			var err error
+			database, err = sqltest.NewDatabase(ctx, sqltest.SQLite3Driver, sqltest.SQLite)
+			Expect(err).ShouldNot(HaveOccurred())
 
-				providertest.Declare(
-					func(ctx context.Context, in providertest.In) providertest.Out {
-						var err error
-						database, err = sqltest.NewDatabase(ctx, pair.Driver, pair.Product)
-						Expect(err).ShouldNot(HaveOccurred())
+			db, err = database.Open()
+			Expect(err).ShouldNot(HaveOccurred())
 
-						db, err = database.Open()
-						Expect(err).ShouldNot(HaveOccurred())
+			err = CreateSchema(ctx, db)
+			Expect(err).ShouldNot(HaveOccurred())
 
-						err = CreateSchema(ctx, db)
-						Expect(err).ShouldNot(HaveOccurred())
+			return providertest.Out{
+				NewProvider: func() (persistence.Provider, func()) {
+					return &Provider{
+						DB: db,
+					}, nil
+				},
+				IsShared: true,
+			}
+		},
+		func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
 
-						return providertest.Out{
-							NewProvider: func() (persistence.Provider, func()) {
-								return &Provider{
-									DB: db,
-								}, nil
-							},
-							IsShared: true,
-						}
-					},
-					func() {
-						ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-						defer cancel()
+			err := DropSchema(ctx, db)
+			Expect(err).ShouldNot(HaveOccurred())
 
-						err := DropSchema(ctx, db)
-						Expect(err).ShouldNot(HaveOccurred())
-
-						err = database.Close()
-						Expect(err).ShouldNot(HaveOccurred())
-					},
-				)
-			},
-		)
-	}
+			err = database.Close()
+			Expect(err).ShouldNot(HaveOccurred())
+		},
+	)
 })
 
 var _ = Describe("type DSNProvider", func() {
-	for _, pair := range sqltest.CompatiblePairs() {
-		pair := pair // capture loop variable
+	var database *sqltest.Database
 
-		When(
-			fmt.Sprintf(
-				"using %s with the '%s' driver",
-				pair.Product.Name(),
-				pair.Driver.Name(),
-			),
-			func() {
-				var database *sqltest.Database
+	providertest.Declare(
+		func(ctx context.Context, in providertest.In) providertest.Out {
+			var err error
+			database, err = sqltest.NewDatabase(ctx, sqltest.SQLite3Driver, sqltest.SQLite)
+			Expect(err).ShouldNot(HaveOccurred())
 
-				providertest.Declare(
-					func(ctx context.Context, in providertest.In) providertest.Out {
-						var err error
-						database, err = sqltest.NewDatabase(ctx, pair.Driver, pair.Product)
-						Expect(err).ShouldNot(HaveOccurred())
+			db, err := database.Open()
+			Expect(err).ShouldNot(HaveOccurred())
+			defer db.Close()
 
-						db, err := database.Open()
-						Expect(err).ShouldNot(HaveOccurred())
-						defer db.Close()
+			err = CreateSchema(ctx, db)
+			Expect(err).ShouldNot(HaveOccurred())
 
-						err = CreateSchema(ctx, db)
-						Expect(err).ShouldNot(HaveOccurred())
-
-						return providertest.Out{
-							NewProvider: func() (persistence.Provider, func()) {
-								return &DSNProvider{
-									DriverName: database.DataSource.DriverName(),
-									DSN:        database.DataSource.DSN(),
-								}, nil
-							},
-							IsShared: true,
-						}
-					},
-					func() {
-						err := database.Close()
-						Expect(err).ShouldNot(HaveOccurred())
-					},
-				)
-			},
-		)
-	}
+			return providertest.Out{
+				NewProvider: func() (persistence.Provider, func()) {
+					return &DSNProvider{
+						DriverName: database.DataSource.DriverName(),
+						DSN:        database.DataSource.DSN(),
+					}, nil
+				},
+				IsShared: true,
+			}
+		},
+		func() {
+			err := database.Close()
+			Expect(err).ShouldNot(HaveOccurred())
+		},
+	)
 
 	Describe("func Open()", func() {
 		It("returns an error if the DB can not be opened", func() {
