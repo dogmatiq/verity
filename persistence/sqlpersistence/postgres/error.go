@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/dogmatiq/envelopespec"
 	"github.com/dogmatiq/verity/persistence"
@@ -47,15 +48,6 @@ func (d errorConverter) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) 
 	return tx, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) LockApplication(
-	ctx context.Context,
-	db *sql.DB,
-	ak string,
-) (func() error, error) {
-	r, err := d.d.LockApplication(ctx, db, ak)
-	return r, convertContextErrors(ctx, err)
-}
-
 func (d errorConverter) CreateSchema(ctx context.Context, db *sql.DB) error {
 	err := d.d.CreateSchema(ctx, db)
 	return convertContextErrors(ctx, err)
@@ -63,6 +55,39 @@ func (d errorConverter) CreateSchema(ctx context.Context, db *sql.DB) error {
 
 func (d errorConverter) DropSchema(ctx context.Context, db *sql.DB) error {
 	err := d.d.DropSchema(ctx, db)
+	return convertContextErrors(ctx, err)
+}
+
+//
+// lock
+//
+
+func (d errorConverter) AcquireLock(
+	ctx context.Context,
+	db *sql.DB,
+	ak string,
+	ttl time.Duration,
+) (int64, bool, error) {
+	id, ok, err := d.d.AcquireLock(ctx, db, ak, ttl)
+	return id, ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) RenewLock(
+	ctx context.Context,
+	db *sql.DB,
+	id int64,
+	ttl time.Duration,
+) (bool, error) {
+	ok, err := d.d.RenewLock(ctx, db, id, ttl)
+	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) ReleaseLock(
+	ctx context.Context,
+	db *sql.DB,
+	id int64,
+) error {
+	err := d.d.ReleaseLock(ctx, db, id)
 	return convertContextErrors(ctx, err)
 }
 

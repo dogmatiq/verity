@@ -5,8 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/dogmatiq/verity/internal/x/sqlx"
-	"github.com/dogmatiq/verity/persistence"
-	"go.uber.org/multierr"
 )
 
 // Driver is an implementation of sql.Driver for PostgreSQL.
@@ -30,53 +28,6 @@ func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 	return db.BeginTx(ctx, nil)
 }
 
-// LockApplication acquires an exclusive lock on an application's data.
-//
-// r is a function that releases the lock, if acquired successfully.
-func (driver) LockApplication(
-	ctx context.Context,
-	db *sql.DB,
-	ak string,
-) (r func() error, err error) {
-	defer sqlx.Recover(&err)
-
-	// Note: DO UPDATE is used because DO NOTHING excludes the row from the
-	// RETURNING result set.
-	id := sqlx.QueryInt64(
-		ctx,
-		db,
-		`INSERT INTO verity.app_lock_id (
-			app_key
-		) VALUES (
-			$1
-		) ON CONFLICT (app_key) DO UPDATE SET
-			app_key = excluded.app_key
-		RETURNING lock_id`,
-		ak,
-	)
-
-	tx := sqlx.Begin(ctx, db)
-	defer func() {
-		if err != nil {
-			err = multierr.Append(
-				err,
-				tx.Rollback(),
-			)
-		}
-	}()
-
-	if sqlx.QueryBool(
-		context.Background(),
-		tx,
-		`SELECT pg_try_advisory_xact_lock($1)`,
-		id,
-	) {
-		return tx.Rollback, nil
-	}
-
-	return nil, persistence.ErrDataStoreLocked
-}
-
 // CreateSchema creates any SQL schema elements required by the driver.
 func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
@@ -86,15 +37,7 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 
 	sqlx.Exec(ctx, db, `CREATE SCHEMA verity`)
 
-	sqlx.Exec(
-		ctx,
-		db,
-		`CREATE TABLE verity.app_lock_id (
-			app_key TEXT NOT NULL PRIMARY KEY,
-			lock_id SERIAL NOT NULL UNIQUE
-		)`,
-	)
-
+	createLockSchema(ctx, db)
 	createAggregateSchema(ctx, db)
 	createEventSchema(ctx, db)
 	createOffsetSchema(ctx, db)
