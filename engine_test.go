@@ -116,16 +116,5 @@ var _ = Describe("type Engine", func() {
 			)
 			Expect(err).To(MatchError(context.Canceled))
 		})
-
-		It("returns an error if networking is enabled but no discovered is specified", func() {
-			err := Run(
-				ctx,
-				app,
-				WithPersistence(&memorypersistence.Provider{}), // avoid default BoltDB location
-				WithNetworking(),
-			)
-			// TODO: https://github.com/dogmatiq/configkit/issues/58
-			Expect(err).To(MatchError("discoverer stopped: no API discovery configured, see verity.WithDiscoverer()"))
-		})
 	})
 })
