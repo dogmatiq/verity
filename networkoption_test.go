@@ -137,8 +137,10 @@ var _ = Describe("func WithDiscoverer()", func() {
 			WithDiscoverer(nil),
 		)
 
-		err := opts.Discoverer(context.Background(), nil)
-		// TODO: https://github.com/dogmatiq/configkit/issues/58
-		Expect(err).To(MatchError("no API discovery configured, see verity.WithDiscoverer()"))
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		err := opts.Discoverer(ctx, nil)
+		Expect(err).To(Equal(context.Canceled))
 	})
 })
