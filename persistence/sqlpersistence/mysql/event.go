@@ -308,7 +308,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event_offset (
+		`CREATE TABLE IF NOT EXISTS event_offset (
 			source_app_key VARBINARY(255) NOT NULL PRIMARY KEY,
 			next_offset    BIGINT NOT NULL DEFAULT 1
 		) ENGINE=InnoDB`,
@@ -317,7 +317,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event (
+		`CREATE TABLE IF NOT EXISTS event (
 			offset              BIGINT UNSIGNED NOT NULL,
 			message_id          VARBINARY(255) NOT NULL UNIQUE,
 			causation_id        VARBINARY(255) NOT NULL,
@@ -351,7 +351,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event_filter (
+		`CREATE TABLE IF NOT EXISTS event_filter (
 			id      SERIAL PRIMARY KEY,
 			app_key VARBINARY(255) NOT NULL
 		) ENGINE=InnoDB`,
@@ -360,7 +360,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event_filter_name (
+		`CREATE TABLE IF NOT EXISTS event_filter_name (
 			filter_id     BIGINT UNSIGNED NOT NULL REFERENCES event_filter (id) ON DELETE CASCADE,
 			portable_name VARBINARY(255) NOT NULL,
 

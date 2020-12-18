@@ -138,7 +138,7 @@ func createProcessSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE process_instance (
+		`CREATE TABLE IF NOT EXISTS process_instance (
 			app_key     VARBINARY(255) NOT NULL,
 			handler_key VARBINARY(255) NOT NULL,
 			instance_id VARBINARY(255) NOT NULL,

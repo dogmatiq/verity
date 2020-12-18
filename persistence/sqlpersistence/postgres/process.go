@@ -146,7 +146,7 @@ func createProcessSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE verity.process_instance (
+		`CREATE TABLE IF NOT EXISTS verity.process_instance (
 			app_key     TEXT NOT NULL,
 			handler_key TEXT NOT NULL,
 			instance_id TEXT NOT NULL,

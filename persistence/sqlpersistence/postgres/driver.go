@@ -35,7 +35,7 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	tx := sqlx.Begin(ctx, db)
 	defer tx.Rollback()
 
-	sqlx.Exec(ctx, db, `CREATE SCHEMA verity`)
+	sqlx.Exec(ctx, db, `CREATE SCHEMA IF NOT EXISTS verity`)
 
 	createLockSchema(ctx, db)
 	createAggregateSchema(ctx, db)

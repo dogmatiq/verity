@@ -101,7 +101,7 @@ func createOffsetSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE stream_offset (
+		`CREATE TABLE IF NOT EXISTS stream_offset (
 			app_key        TEXT NOT NULL,
 			source_app_key TEXT NOT NULL,
 			next_offset    INTEGER NOT NULL,

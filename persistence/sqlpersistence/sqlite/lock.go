@@ -96,7 +96,7 @@ func createLockSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE app_lock (
+		`CREATE TABLE IF NOT EXISTS app_lock (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
 			app_key    TEXT NOT NULL UNIQUE,
 			expires_at INTEGER NOT NULL

@@ -351,7 +351,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event_offset (
+		`CREATE TABLE IF NOT EXISTS event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
 			next_offset    INTEGER NOT NULL DEFAULT 1
 		) WITHOUT ROWID`,
@@ -360,7 +360,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event (
+		`CREATE TABLE IF NOT EXISTS event (
 			offset              INTEGER NOT NULL,
 			message_id          TEXT NOT NULL UNIQUE,
 			causation_id        TEXT NOT NULL,
@@ -383,7 +383,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX event_by_type ON event (
+		`CREATE INDEX IF NOT EXISTS event_by_type ON event (
 			source_app_key,
 			portable_name,
 			offset
@@ -393,7 +393,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX event_by_source ON event (
+		`CREATE INDEX IF NOT EXISTS event_by_source ON event (
 			source_app_key,
 			source_handler_key,
 			source_instance_id,
@@ -404,7 +404,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event_filter (
+		`CREATE TABLE IF NOT EXISTS event_filter (
 			id      INTEGER PRIMARY KEY,
 			app_key TEXT NOT NULL
 		)`,
@@ -413,7 +413,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE event_filter_name (
+		`CREATE TABLE IF NOT EXISTS  event_filter_name (
 			filter_id     INTEGER NOT NULL,
 			portable_name TEXT NOT NULL,
 

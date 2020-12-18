@@ -211,7 +211,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE verity.queue (
+		`CREATE TABLE IF NOT EXISTS verity.queue (
 			app_key             TEXT NOT NULL,
 			revision            BIGINT NOT NULL DEFAULT 1,
 			failure_count       BIGINT NOT NULL DEFAULT 0,
@@ -238,7 +238,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX queue_by_next_attempt ON verity.queue (
+		`CREATE INDEX IF NOT EXISTS queue_by_next_attempt ON verity.queue (
 			app_key,
 			next_attempt_at
 		)`,
@@ -247,7 +247,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX queue_by_source ON verity.queue (
+		`CREATE INDEX IF NOT EXISTS queue_by_source ON verity.queue (
 			app_key,
 			source_handler_key,
 			source_instance_id,

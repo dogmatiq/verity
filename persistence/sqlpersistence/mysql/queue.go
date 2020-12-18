@@ -217,7 +217,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE queue (
+		`CREATE TABLE IF NOT EXISTS queue (
 			app_key             VARBINARY(255) NOT NULL,
 			revision            BIGINT UNSIGNED NOT NULL DEFAULT 1,
 			failure_count       BIGINT UNSIGNED NOT NULL DEFAULT 0,

@@ -310,7 +310,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE verity.event_offset (
+		`CREATE TABLE IF NOT EXISTS verity.event_offset (
 			source_app_key TEXT NOT NULL PRIMARY KEY,
 			next_offset    BIGINT NOT NULL DEFAULT 1
 		)`,
@@ -319,7 +319,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE verity.event (
+		`CREATE TABLE IF NOT EXISTS verity.event (
 			"offset"            BIGINT NOT NULL,
 			message_id          TEXT NOT NULL UNIQUE,
 			causation_id        TEXT NOT NULL,
@@ -342,7 +342,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX event_by_type ON verity.event (
+		`CREATE INDEX IF NOT EXISTS event_by_type ON verity.event (
 			source_app_key,
 			portable_name,
 			"offset"
@@ -352,7 +352,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE INDEX event_by_source ON verity.event (
+		`CREATE INDEX IF NOT EXISTS event_by_source ON verity.event (
 			source_app_key,
 			source_handler_key,
 			source_instance_id,
@@ -363,7 +363,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE verity.event_filter (
+		`CREATE TABLE IF NOT EXISTS verity.event_filter (
 			id        SERIAL NOT NULL PRIMARY KEY,
 			app_key   TEXT NOT NULL
 		)`,
@@ -372,7 +372,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE verity.event_filter_name (
+		`CREATE TABLE IF NOT EXISTS verity.event_filter_name (
 			filter_id     BIGINT NOT NULL REFERENCES verity.event_filter (id) ON DELETE CASCADE,
 			portable_name TEXT NOT NULL,
 

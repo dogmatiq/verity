@@ -122,7 +122,7 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
 		ctx,
 		db,
-		`CREATE TABLE aggregate_metadata (
+		`CREATE TABLE IF NOT EXISTS aggregate_metadata (
 			app_key          TEXT NOT NULL,
 			handler_key      TEXT NOT NULL,
 			instance_id      TEXT NOT NULL,
