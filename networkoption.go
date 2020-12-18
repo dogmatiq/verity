@@ -2,7 +2,6 @@ package verity
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -35,13 +34,13 @@ var (
 		linger.Limiter(0, 30*time.Second),
 	)
 
-	// DefaultDiscoverer is the default discoverer used to find
-	// other engine instances on the network.
+	// DefaultDiscoverer is the default discoverer used to find other engine
+	// instances on the network.
 	//
 	// It is overridden by the WithDiscoverer() option.
-	DefaultDiscoverer = func(context.Context, discovery.TargetObserver) error {
-		// TODO: https://github.com/dogmatiq/configkit/issues/58
-		return errors.New("no API discovery configured, see verity.WithDiscoverer()")
+	DefaultDiscoverer = func(ctx context.Context, _ discovery.TargetObserver) error {
+		<-ctx.Done()
+		return ctx.Err()
 	}
 )
 
