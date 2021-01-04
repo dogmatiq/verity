@@ -16,8 +16,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/dogmatiq/configkit v0.8.0/go.mod h1:tJMAdqnx+H0q8mqBwp6z8NbnxRql/ImLgUyQkkip69A=
 github.com/dogmatiq/configkit v0.9.1 h1:gx2egDrmeiel1m8/RwAOk3ZFlvZa1mmElPz9v1K0AzY=
 github.com/dogmatiq/configkit v0.9.1/go.mod h1:lchVdCxCweenWrmm9WlgRH9X7Ppb340CvilcoVdTE8c=
-github.com/dogmatiq/cosyne v0.1.0 h1:j7b5WEZz7d+jfTP3JRgKpCWTsfaf4E1Z0s65A6yW9ic=
-github.com/dogmatiq/cosyne v0.1.0/go.mod h1:/OyJ0EHpWAZFt8/793nFrn6JIr7WSG4Zf+jlowBnCtw=
+github.com/dogmatiq/cosyne v0.2.0 h1:tO957BpS4I9kqSw31ds6Ef4CXvV8zPAqWzbXKElsGWg=
+github.com/dogmatiq/cosyne v0.2.0/go.mod h1:dD8EZjbRX7FFw9t6P7l1nwoZbA7YxtOCfl9ZZAHPucU=
 github.com/dogmatiq/dodeca v0.2.2 h1:mxlHJSnaWc++JBp19o9invtEDG1sZy6q38697nnm5S8=
 github.com/dogmatiq/dodeca v0.2.2/go.mod h1:nrNDPFJiRLeBL3Ycyh6ZLs1ZgktpWS18Tze9qjXzTfg=
 github.com/dogmatiq/dogma v0.8.0/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
