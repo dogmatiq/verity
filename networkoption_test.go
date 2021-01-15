@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/discoverkit"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -74,7 +74,7 @@ var _ = Describe("func WithServerOptions()", func() {
 
 var _ = Describe("func WithDialer()", func() {
 	It("sets the dialer", func() {
-		dialer := func(ctx context.Context, t *discovery.Target) (*grpc.ClientConn, error) {
+		dialer := func(context.Context, string, ...grpc.DialOption) (*grpc.ClientConn, error) {
 			return nil, errors.New("<error>")
 		}
 
@@ -82,7 +82,7 @@ var _ = Describe("func WithDialer()", func() {
 			WithDialer(dialer),
 		)
 
-		conn, err := opts.Dialer(context.Background(), nil)
+		conn, err := opts.Dialer(context.Background(), "<name>")
 		if conn != nil {
 			conn.Close()
 		}
@@ -120,16 +120,17 @@ var _ = Describe("func WithDialerBackoff()", func() {
 
 var _ = Describe("func WithDiscoverer()", func() {
 	It("sets the discoverer", func() {
-		discoverer := func(ctx context.Context, obs discovery.TargetObserver) error {
-			return errors.New("<error>")
+		discoverer := discoverkit.StaticTargetDiscoverer{
+			{
+				Name: "<target>",
+			},
 		}
 
 		opts := resolveNetworkOptions(
 			WithDiscoverer(discoverer),
 		)
 
-		err := opts.Discoverer(context.Background(), nil)
-		Expect(err).To(MatchError("<error>"))
+		Expect(opts.Discoverer).To(Equal(discoverer))
 	})
 
 	It("uses the default if the discoverer is nil", func() {
@@ -137,10 +138,6 @@ var _ = Describe("func WithDiscoverer()", func() {
 			WithDiscoverer(nil),
 		)
 
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-
-		err := opts.Discoverer(ctx, nil)
-		Expect(err).To(Equal(context.Canceled))
+		Expect(opts.Discoverer).To(Equal(DefaultDiscoverer))
 	})
 })
