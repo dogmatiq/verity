@@ -1,12 +1,11 @@
 package verity
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"time"
 
-	"github.com/dogmatiq/configkit/api/discovery"
+	"github.com/dogmatiq/discoverkit"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"google.golang.org/grpc"
@@ -16,13 +15,13 @@ var (
 	// DefaultListenAddress is the default TCP address for the gRPC listener.
 	//
 	// It is overridden by the WithListenAddress() option.
-	DefaultListenAddress = ":50555"
+	DefaultListenAddress = net.JoinHostPort("", discoverkit.DefaultGRPCPort)
 
 	// DefaultDialer is the default dialer used to connect to other engine's
 	// gRPC servers.
 	//
 	// It is overridden by the WithDialer() option.
-	DefaultDialer = discovery.DefaultDialer
+	DefaultDialer discoverkit.Dialer = grpc.DialContext
 
 	// DefaultDialerBackoff is the default backoff strategy for gRPC dialer
 	// retries.
@@ -38,10 +37,7 @@ var (
 	// instances on the network.
 	//
 	// It is overridden by the WithDiscoverer() option.
-	DefaultDiscoverer = func(ctx context.Context, _ discovery.TargetObserver) error {
-		<-ctx.Done()
-		return ctx.Err()
-	}
+	DefaultDiscoverer discoverkit.TargetDiscoverer = discoverkit.StaticTargetDiscoverer{}
 )
 
 // NetworkOption configures the networking-related behavior of an engine.
@@ -91,7 +87,7 @@ func WithServerOptions(options ...grpc.ServerOption) NetworkOption {
 // other engine's gRPC servers.
 //
 // If this option is omitted or d is nil, DefaultDialer is used.
-func WithDialer(d discovery.Dialer) NetworkOption {
+func WithDialer(d discoverkit.Dialer) NetworkOption {
 	return func(opts *networkOptions) {
 		opts.Dialer = d
 	}
@@ -107,20 +103,14 @@ func WithDialerBackoff(s backoff.Strategy) NetworkOption {
 	}
 }
 
-// Discoverer is a function that notifies an observer when a config API target
-// becomes available or unavailable.
-//
-// It blocks until ctx is canceled or a fatal error occurs.
-type Discoverer func(ctx context.Context, o discovery.TargetObserver) error
-
 // WithDiscoverer returns a network option that sets the discoverer used to find
 // other engine instances on the network.
 //
 // Currently this option MUST be specified.
 //
-// TODO: https://github.com/dogmatiq/configkit/issues/58
+// TODO: https://github.com/dogmatiq/discoverkit/issues/2
 // Use Bonjour as the default discovery mechanism.
-func WithDiscoverer(d Discoverer) NetworkOption {
+func WithDiscoverer(d discoverkit.TargetDiscoverer) NetworkOption {
 	return func(opts *networkOptions) {
 		opts.Discoverer = d
 	}
@@ -130,9 +120,9 @@ func WithDiscoverer(d Discoverer) NetworkOption {
 type networkOptions struct {
 	ListenAddress string
 	ServerOptions []grpc.ServerOption
-	Dialer        discovery.Dialer
+	Dialer        discoverkit.Dialer
 	DialerBackoff backoff.Strategy
-	Discoverer    Discoverer
+	Discoverer    discoverkit.TargetDiscoverer
 }
 
 // resolveNetworkOptions returns a fully-populated set of network options built
