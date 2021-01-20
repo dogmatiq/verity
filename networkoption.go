@@ -15,7 +15,7 @@ var (
 	// DefaultListenAddress is the default TCP address for the gRPC listener.
 	//
 	// It is overridden by the WithListenAddress() option.
-	DefaultListenAddress = ":50555"
+	DefaultListenAddress = net.JoinHostPort("", discoverkit.DefaultGRPCPort)
 
 	// DefaultDialer is the default dialer used to connect to other engine's
 	// gRPC servers.
