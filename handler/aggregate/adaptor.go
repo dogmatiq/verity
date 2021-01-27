@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/handler/cache"
 	"github.com/dogmatiq/verity/internal/mlog"

@@ -10,7 +10,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/handler"

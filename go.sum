@@ -25,7 +25,6 @@ github.com/dogmatiq/discoverkit v0.1.1/go.mod h1:XZ5Xt/r2kLx+d+pOv3VFELasuRz5jQR
 github.com/dogmatiq/dodeca v0.2.2 h1:mxlHJSnaWc++JBp19o9invtEDG1sZy6q38697nnm5S8=
 github.com/dogmatiq/dodeca v0.2.2/go.mod h1:nrNDPFJiRLeBL3Ycyh6ZLs1ZgktpWS18Tze9qjXzTfg=
 github.com/dogmatiq/dogma v0.8.0/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
-github.com/dogmatiq/dogma v0.9.0/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/dogma v0.10.0 h1:2kLivwq72nr6yF3/jpIA5U57IOmPRxeO+I9lE06IebE=
 github.com/dogmatiq/dogma v0.10.0/go.mod h1:8TdjQ5jjV2DcCPb/jjHPgSrqU66H6092yMEIF5HGx0g=
 github.com/dogmatiq/envelopespec v0.2.0 h1:HWcc/N7uvPpeP0DNGGE+T6OoxHKFW72/JRq6+kNhhj0=
@@ -40,12 +39,10 @@ github.com/dogmatiq/kyu v0.2.0/go.mod h1:g3oZX1sgN717QwJg5376fv4FlBukSxAEHjYjvPX
 github.com/dogmatiq/linger v0.2.1 h1:ecVwiFlTcQuQ7ygQXH5bUPkWNve8n5BmVnCYMGMQ3zc=
 github.com/dogmatiq/linger v0.2.1/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
 github.com/dogmatiq/marshalkit v0.3.0/go.mod h1:ffplOc+rbJljNWOWQAX+pe1P3S5S8oSDou2iuJ2QDSE=
-github.com/dogmatiq/marshalkit v0.4.0 h1:1VCfIJRPvdAvm8zFXAoEOQnwVHiX0awo1lhP8BsFC2o=
-github.com/dogmatiq/marshalkit v0.4.0/go.mod h1:XqI46dGMKi6VYx384VZRhFTRSWKq1MtITxQF+qQO7nE=
+github.com/dogmatiq/marshalkit v0.5.0 h1:cMOEwgnj36rqWAnZRH69Wco5Z3lbgMnKv+PAueiVuqs=
+github.com/dogmatiq/marshalkit v0.5.0/go.mod h1:IMBaNe+XCvCejjk+so9sBOY+HoSsnEM8YTs5l12HsV0=
 github.com/dogmatiq/sqltest v0.3.0 h1:DCwyLWfVk/ZHsqq5Itq3H/Lqsh/CIQ6nIRwI4YLywFc=
 github.com/dogmatiq/sqltest v0.3.0/go.mod h1:a8Da8NhU4m3lq5Sybhiv+ZQowSnGHWTIJHFNInVtffg=
-github.com/dogmatiq/transportspec v0.2.0 h1:Vb4DfodyjY4xN9D/hYTdMAIzR1J0IhrHIegB7t/AxYU=
-github.com/dogmatiq/transportspec v0.2.0/go.mod h1:74O/xKE20Bx7mkV84OizqU9dRPolOXOAqzlAihbhMsE=
 github.com/emicklei/dot v0.15.0/go.mod h1:DeV7GvQtIw4h2u73RKBkkFdvVAz0D9fzeJrgPW6gy/s=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
