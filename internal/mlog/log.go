@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 )
 
 // LogConsume logs a message indicating that a Dogma message is being consumed.
