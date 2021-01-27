@@ -12,7 +12,7 @@ require (
 	github.com/dogmatiq/interopspec v0.5.0
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v0.2.1
-	github.com/dogmatiq/marshalkit v0.5.1-0.20210129012837-0023540ca5ee
+	github.com/dogmatiq/marshalkit v0.6.0
 	github.com/dogmatiq/sqltest v0.3.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4
