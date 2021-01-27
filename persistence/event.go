@@ -3,7 +3,7 @@ package persistence
 import (
 	"context"
 
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 )
 
 // Event is a persisted event message.

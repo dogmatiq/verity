@@ -1,7 +1,7 @@
 syntax = "proto3";
 package verity.persistence.boltdb.v1;
 
-import "github.com/dogmatiq/envelopespec/envelope.proto";
+import "github.com/dogmatiq/interopspec/envelopespec/envelope.proto";
 
 option go_package = "github.com/dogmatiq/verity/persistence/boltpersistence/internal/pb";
 
@@ -14,5 +14,5 @@ message QueueMessage{
 
   reserved 4 to 14;
 
-  dogma.envelope.v1.Envelope Envelope = 15;
+  dogma.interop.v1.envelope.Envelope Envelope = 15;
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/persistence"
 )
 

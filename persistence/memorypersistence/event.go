@@ -3,7 +3,7 @@ package memorypersistence
 import (
 	"context"
 
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/persistence"
 )
 
