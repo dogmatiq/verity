@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 )
 
@@ -35,21 +35,21 @@ func FromEnvelope(
 	ma marshalkit.ValueMarshaler,
 	env *envelopespec.Envelope,
 ) (Parcel, error) {
-	if err := envelopespec.CheckWellFormed(env); err != nil {
+	if err := env.Validate(); err != nil {
 		return Parcel{}, err
 	}
 
-	m, err := envelopespec.UnmarshalMessage(ma, env)
+	m, err := marshalkit.UnmarshalMessageFromEnvelope(ma, env)
 	if err != nil {
 		return Parcel{}, err
 	}
 
-	createdAt, err := envelopespec.UnmarshalTime(env.GetCreatedAt())
+	createdAt, err := marshalkit.UnmarshalEnvelopeTime(env.GetCreatedAt())
 	if err != nil {
 		return Parcel{}, err
 	}
 
-	scheduledFor, err := envelopespec.UnmarshalTime(env.GetScheduledFor())
+	scheduledFor, err := marshalkit.UnmarshalEnvelopeTime(env.GetScheduledFor())
 	if err != nil {
 		return Parcel{}, err
 	}

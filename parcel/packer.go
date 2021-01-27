@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/google/uuid"
 )
@@ -106,7 +106,7 @@ func (p *Packer) PackChildTimeout(
 		instanceID,
 	)
 
-	parcel.Envelope.ScheduledFor = envelopespec.MarshalTime(t)
+	parcel.Envelope.ScheduledFor = marshalkit.MustMarshalEnvelopeTime(t)
 	parcel.ScheduledFor = t
 
 	return parcel
@@ -123,14 +123,14 @@ func (p *Packer) new(m dogma.Message) Parcel {
 			CorrelationId:     id,
 			CausationId:       id,
 			SourceApplication: p.Application,
-			CreatedAt:         envelopespec.MarshalTime(now),
+			CreatedAt:         marshalkit.MustMarshalEnvelopeTime(now),
 			Description:       dogma.DescribeMessage(m),
 		},
 		Message:   m,
 		CreatedAt: now,
 	}
 
-	envelopespec.MarshalMessage(p.Marshaler, m, env.Envelope)
+	marshalkit.MustMarshalMessageIntoEnvelope(p.Marshaler, m, env.Envelope)
 
 	return env
 }
