@@ -39,7 +39,7 @@ func NewParcel(
 	times ...time.Time,
 ) parcel.Parcel {
 	if id == "" {
-		id = uuid.New().String()
+		id = uuid.NewString()
 	}
 
 	var createdAt, scheduledFor time.Time

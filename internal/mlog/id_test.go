@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("func FormatID()", func() {
 	It("returns the first 8 characters of a UUID", func() {
-		id := uuid.New().String()
+		id := uuid.NewString()
 		f := FormatID(id)
 
 		Expect(f).To(Equal(id[:8]))

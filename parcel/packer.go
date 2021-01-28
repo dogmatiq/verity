@@ -169,7 +169,7 @@ func (p *Packer) generateID() string {
 		return p.GenerateID()
 	}
 
-	return uuid.New().String()
+	return uuid.NewString()
 }
 
 // checkProducedRole panics if mt does not fill one of the the given roles.
