@@ -9,8 +9,8 @@ import (
 	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/interopspec/eventstreamspec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
-	"github.com/dogmatiq/transportspec"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
 	. "github.com/dogmatiq/verity/eventstream/networkstream"
@@ -60,7 +60,7 @@ var _ = Describe("type Stream", func() {
 			return streamtest.Out{
 				Stream: &Stream{
 					App:       in.Application.Identity(),
-					Client:    transportspec.NewEventStreamClient(conn),
+					Client:    eventstreamspec.NewStreamAPIClient(conn),
 					Marshaler: in.Marshaler,
 				},
 				Append: func(ctx context.Context, parcels ...parcel.Parcel) {
@@ -127,7 +127,7 @@ var _ = Describe("type Stream", func() {
 
 		stream = &Stream{
 			App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
-			Client:    transportspec.NewEventStreamClient(conn),
+			Client:    eventstreamspec.NewStreamAPIClient(conn),
 			Marshaler: Marshaler,
 		}
 	})

@@ -4,15 +4,15 @@ import (
 	"context"
 	"sync"
 
+	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/transportspec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
 )
 
 // cursor is a Cursor that reads events from a network stream.
 type cursor struct {
-	stream    transportspec.EventStream_ConsumeClient
+	stream    eventstreamspec.StreamAPI_ConsumeClient
 	marshaler marshalkit.ValueMarshaler
 	once      sync.Once
 	cancel    context.CancelFunc

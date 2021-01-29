@@ -8,7 +8,8 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
 	"github.com/dogmatiq/verity/eventstream/persistedstream"
@@ -164,7 +165,7 @@ func (e *Engine) newCommandExecutor(
 		Queue:     q,
 		Persister: p,
 		Packer: &parcel.Packer{
-			Application: envelopespec.MarshalIdentity(cfg.Identity()),
+			Application: marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
 			Marshaler:   e.opts.Marshaler,
 			Produced: cfg.
 				MessageTypes().
@@ -229,14 +230,14 @@ type handlerFactory struct {
 }
 
 func (f *handlerFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
-	f.app = envelopespec.MarshalIdentity(cfg.Identity())
+	f.app = marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity())
 	f.handler = handler.Router{}
 	return cfg.RichHandlers().AcceptRichVisitor(ctx, f)
 }
 
 func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
 	f.addRoutes(cfg, &aggregate.Adaptor{
-		Identity: envelopespec.MarshalIdentity(cfg.Identity()),
+		Identity: marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
 		Handler:  cfg.Handler(),
 		Loader:   f.aggregateLoader,
 		Cache: cache.Cache{
@@ -264,7 +265,7 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 
 func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichProcess) error {
 	f.addRoutes(cfg, &process.Adaptor{
-		Identity:  envelopespec.MarshalIdentity(cfg.Identity()),
+		Identity:  marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
 		Handler:   cfg.Handler(),
 		Loader:    f.processLoader,
 		Marshaler: f.opts.Marshaler,
@@ -294,7 +295,7 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 
 func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
 	f.addRoutes(cfg, &integration.Adaptor{
-		Identity:       envelopespec.MarshalIdentity(cfg.Identity()),
+		Identity:       marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
 		Handler:        cfg.Handler(),
 		DefaultTimeout: f.opts.MessageTimeout,
 		Packer: &parcel.Packer{

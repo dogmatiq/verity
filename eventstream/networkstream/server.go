@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/transportspec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"github.com/golang/protobuf/proto"
@@ -20,7 +20,7 @@ type ServerOption struct {
 	types  message.TypeCollection
 }
 
-// WithApplication returns a server option that configures the server to server
+// WithApplication returns a server option that configures the server to serve
 // events for a specific application.
 func WithApplication(
 	ak string,
@@ -33,34 +33,33 @@ func WithApplication(
 // RegisterServer registers an event stream server for the given streams.
 func RegisterServer(
 	s *grpc.Server,
-	m marshalkit.TypeMarshaler,
+	m marshalkit.Marshaler,
 	options ...ServerOption,
 ) {
 	d := &dispatcher{
-		apps: map[string]transportspec.EventStreamServer{},
+		apps: map[string]eventstreamspec.StreamAPIServer{},
 	}
 
 	for _, opt := range options {
 		svr := &server{
-			stream: opt.stream,
-			types:  map[string]message.Type{},
-			resp:   &transportspec.MessageTypesResponse{},
+			stream:    opt.stream,
+			marshaler: m,
+			types:     map[string]message.Type{},
+			resp:      &eventstreamspec.EventTypesResponse{},
 		}
 
 		d.apps[opt.key] = svr
 
 		opt.types.Range(func(mt message.Type) bool {
-			n := marshalkit.MustMarshalType(m, mt.ReflectType())
+			rt := mt.ReflectType()
+			n := marshalkit.MustMarshalType(m, rt)
 
 			svr.types[n] = mt
-			svr.resp.MessageTypes = append(
-				svr.resp.MessageTypes,
-				&transportspec.MessageType{
+			svr.resp.EventTypes = append(
+				svr.resp.EventTypes,
+				&eventstreamspec.EventType{
 					PortableName: n,
-					ConfigName:   mt.Name().String(),
-					// TODO: https://github.com/dogmatiq/verity/issues/49
-					// Populate supported MIME media-types.
-					MediaTypes: nil,
+					MediaTypes:   m.MediaTypesFor(rt),
 				},
 			)
 
@@ -68,16 +67,16 @@ func RegisterServer(
 		})
 	}
 
-	transportspec.RegisterEventStreamServer(s, d)
+	eventstreamspec.RegisterStreamAPIServer(s, d)
 }
 
 // dispatcher is an implementation of the dogma.messaging.v1 EventStream service
 // that dispatches to other implementations based on the application key.
 type dispatcher struct {
-	apps map[string]transportspec.EventStreamServer
+	apps map[string]eventstreamspec.StreamAPIServer
 }
 
-func (d *dispatcher) get(k string) (transportspec.EventStreamServer, error) {
+func (d *dispatcher) get(k string) (eventstreamspec.StreamAPIServer, error) {
 	if k == "" {
 		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
@@ -93,7 +92,7 @@ func (d *dispatcher) get(k string) (transportspec.EventStreamServer, error) {
 	return nil, grpcx.Errorf(
 		codes.NotFound,
 		[]proto.Message{
-			&transportspec.UnrecognizedApplication{ApplicationKey: k},
+			&eventstreamspec.UnrecognizedApplication{ApplicationKey: k},
 		},
 		"unrecognized application: %s",
 		k,
@@ -101,8 +100,8 @@ func (d *dispatcher) get(k string) (transportspec.EventStreamServer, error) {
 }
 
 func (d *dispatcher) Consume(
-	req *transportspec.ConsumeRequest,
-	consumer transportspec.EventStream_ConsumeServer,
+	req *eventstreamspec.ConsumeRequest,
+	consumer eventstreamspec.StreamAPI_ConsumeServer,
 ) error {
 	s, err := d.get(req.GetApplicationKey())
 	if err != nil {
@@ -114,8 +113,8 @@ func (d *dispatcher) Consume(
 
 func (d *dispatcher) EventTypes(
 	ctx context.Context,
-	req *transportspec.MessageTypesRequest,
-) (*transportspec.MessageTypesResponse, error) {
+	req *eventstreamspec.EventTypesRequest,
+) (*eventstreamspec.EventTypesResponse, error) {
 	s, err := d.get(req.GetApplicationKey())
 	if err != nil {
 		return nil, err
@@ -127,14 +126,15 @@ func (d *dispatcher) EventTypes(
 // server is an implementation of the dogma.messaging.v1 EventStream service for
 // a single application.
 type server struct {
-	stream eventstream.Stream
-	types  map[string]message.Type
-	resp   *transportspec.MessageTypesResponse
+	stream    eventstream.Stream
+	marshaler marshalkit.Marshaler
+	types     map[string]message.Type
+	resp      *eventstreamspec.EventTypesResponse
 }
 
 func (s *server) Consume(
-	req *transportspec.ConsumeRequest,
-	consumer transportspec.EventStream_ConsumeServer,
+	req *eventstreamspec.ConsumeRequest,
+	consumer eventstreamspec.StreamAPI_ConsumeServer,
 ) error {
 	ctx := consumer.Context()
 
@@ -155,7 +155,7 @@ func (s *server) Consume(
 			return err
 		}
 
-		res := &transportspec.ConsumeResponse{
+		res := &eventstreamspec.ConsumeResponse{
 			Offset:   ev.Offset,
 			Envelope: ev.Parcel.Envelope,
 		}
@@ -171,24 +171,26 @@ func (s *server) Consume(
 
 func (s *server) EventTypes(
 	context.Context,
-	*transportspec.MessageTypesRequest,
-) (*transportspec.MessageTypesResponse, error) {
+	*eventstreamspec.EventTypesRequest,
+) (*eventstreamspec.EventTypesResponse, error) {
 	return s.resp, nil
 }
 
-func (s *server) unmarshalTypes(req *transportspec.ConsumeRequest) (message.TypeCollection, error) {
+func (s *server) unmarshalTypes(req *eventstreamspec.ConsumeRequest) (message.TypeCollection, error) {
 	var (
 		types  = message.TypeSet{}
 		failed []proto.Message
 	)
 
-	for _, n := range req.GetTypes() {
+	for _, et := range req.GetEventTypes() {
+		n := et.GetPortableName()
+
 		if mt, ok := s.types[n]; ok {
 			types.Add(mt)
 		} else {
 			failed = append(
 				failed,
-				&transportspec.UnrecognizedMessage{Name: n},
+				&eventstreamspec.UnrecognizedEventType{PortableName: n},
 			)
 		}
 	}

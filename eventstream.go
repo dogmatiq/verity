@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/handler/projection"
 	"github.com/dogmatiq/verity/internal/x/loggingx"
@@ -60,7 +60,7 @@ func (e *Engine) runStreamConsumerForProjection(
 		Stream:     s,
 		EventTypes: h.MessageTypes().Consumed,
 		Handler: &projection.StreamAdaptor{
-			Identity:       envelopespec.MarshalIdentity(h.Identity()),
+			Identity:       marshalkit.MustMarshalEnvelopeIdentity(h.Identity()),
 			Handler:        h.Handler(),
 			DefaultTimeout: e.opts.MessageTimeout,
 			Logger:         a.Logger,
