@@ -283,6 +283,30 @@ var _ = Describe("type server", func() {
 	})
 
 	Describe("func EventTypes()", func() {
+		It("returns a list of the supported event types", func() {
+			req := &eventstreamspec.EventTypesRequest{
+				ApplicationKey: "<app-key>",
+			}
+
+			res, err := client.EventTypes(ctx, req)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Expect(res.GetEventTypes()).To(ConsistOf(
+				&eventstreamspec.EventType{
+					PortableName: "MessageA",
+					MediaTypes: []string{
+						"application/json; type=MessageA",
+					},
+				},
+				&eventstreamspec.EventType{
+					PortableName: "MessageB",
+					MediaTypes: []string{
+						"application/json; type=MessageB",
+					},
+				},
+			))
+		})
+
 		It("returns an INVALID_ARGUMENT error if the application key is empty", func() {
 			req := &eventstreamspec.EventTypesRequest{}
 
