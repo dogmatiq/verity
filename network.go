@@ -168,7 +168,7 @@ func (e *Engine) targetDiscovered(
 				return
 			}
 
-			go e.targetDiscovered(ctx, t, d)
+			go e.runDiscoveredApp(ctx, a)
 		},
 	)
 }
