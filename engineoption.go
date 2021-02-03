@@ -13,6 +13,7 @@ import (
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
+	"github.com/dogmatiq/marshalkit/codec/cbor"
 	"github.com/dogmatiq/marshalkit/codec/json"
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
 	"github.com/dogmatiq/verity/persistence"
@@ -190,6 +191,7 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 		[]codec.Codec{
 			&protobuf.NativeCodec{},
 			&json.Codec{},
+			&cbor.Codec{},
 		},
 	)
 	if err != nil {
