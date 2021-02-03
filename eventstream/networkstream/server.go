@@ -231,7 +231,7 @@ func (s *server) unmarshalTypes(
 	return messageTypes, mediaTypes, nil
 }
 
-// transcope returns an envelope containing the message in p, transcoded into a
+// transcode returns an envelope containing the message in p, transcoded into a
 // media-type supported by the client.
 func (s *server) transcode(
 	p parcel.Parcel,
