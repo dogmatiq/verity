@@ -12,7 +12,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/interopspec/configspec"
 	"github.com/dogmatiq/interopspec/discoverspec"
-	"github.com/dogmatiq/transportspec"
+	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream/networkstream"
 	"github.com/dogmatiq/verity/eventstream/persistedstream"
 	"github.com/dogmatiq/verity/internal/x/grpcx"
@@ -198,7 +198,7 @@ func (e *Engine) runDiscoveredApp(ctx context.Context, a discoverkit.Application
 		ctx,
 		&networkstream.Stream{
 			App:       a.Identity,
-			Client:    transportspec.NewEventStreamClient(a.Connection),
+			Client:    eventstreamspec.NewStreamAPIClient(a.Connection),
 			Marshaler: e.opts.Marshaler,
 			// TODO: https://github.com/dogmatiq/verity/issues/76
 			// Make pre-fetch buffer size configurable.

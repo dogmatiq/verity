@@ -5,8 +5,8 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/transportspec"
 	"github.com/dogmatiq/verity/eventstream"
 )
 
@@ -16,8 +16,8 @@ type Stream struct {
 	// App is the identity of the application that owns the stream.
 	App configkit.Identity
 
-	// Client is the gRPC client used to querying the event stream server.
-	Client transportspec.EventStreamClient
+	// Client is the gRPC client used to query the event stream server.
+	Client eventstreamspec.StreamAPIClient
 
 	// Marshaler is used to marshal and unmarshal messages and message types.
 	Marshaler marshalkit.Marshaler
@@ -33,7 +33,7 @@ func (s *Stream) Application() configkit.Identity {
 
 // EventTypes returns the set of event types that may appear on the stream.
 func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
-	req := &transportspec.MessageTypesRequest{
+	req := &eventstreamspec.EventTypesRequest{
 		ApplicationKey: s.App.Key,
 	}
 
@@ -45,7 +45,7 @@ func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error)
 	// Build a type-set containing any message types supported both by the
 	// server and the client.
 	types := message.TypeSet{}
-	for _, t := range res.GetMessageTypes() {
+	for _, t := range res.GetEventTypes() {
 		rt, err := s.Marshaler.UnmarshalType(t.GetPortableName())
 		if err == nil {
 			types.Add(message.TypeFromReflect(rt))
@@ -70,9 +70,7 @@ func (s *Stream) Open(
 	o uint64,
 	f message.TypeCollection,
 ) (eventstream.Cursor, error) {
-	if f.Len() == 0 {
-		panic("at least one event type must be specified")
-	}
+	req := s.buildConsumeRequest(o, f)
 
 	// consumeCtx lives for the lifetime of the stream returned by the gRPC
 	// Consume() operation. This is how we cancel the gRPC stream, as it has no
@@ -95,12 +93,6 @@ func (s *Stream) Open(
 		case <-done:
 		}
 	}()
-
-	req := &transportspec.ConsumeRequest{
-		ApplicationKey: s.App.Key,
-		Offset:         o,
-		Types:          marshalMessageTypes(s.Marshaler, f),
-	}
 
 	stream, err := s.Client.Consume(consumeCtx, req)
 
@@ -135,21 +127,36 @@ func (s *Stream) Open(
 	}
 }
 
-// marshalMessageTypes marshals a collection of message types to their protocol
-// buffers representation.
-func marshalMessageTypes(
-	m marshalkit.TypeMarshaler,
-	in message.TypeCollection,
-) []string {
-	var out []string
+// buildConsumeRequest returns the request used to start consuming from the
+// stream.
+func (s *Stream) buildConsumeRequest(
+	o uint64,
+	f message.TypeCollection,
+) *eventstreamspec.ConsumeRequest {
+	if f.Len() == 0 {
+		panic("at least one event type must be specified")
+	}
 
-	in.Range(func(t message.Type) bool {
-		out = append(
-			out,
-			marshalkit.MustMarshalType(m, t.ReflectType()),
+	req := &eventstreamspec.ConsumeRequest{
+		ApplicationKey: s.App.Key,
+		StartPoint: &eventstreamspec.ConsumeRequest_Offset{
+			Offset: o,
+		},
+	}
+
+	f.Range(func(mt message.Type) bool {
+		rt := mt.ReflectType()
+
+		req.EventTypes = append(
+			req.EventTypes,
+			&eventstreamspec.EventType{
+				PortableName: marshalkit.MustMarshalType(s.Marshaler, rt),
+				MediaTypes:   s.Marshaler.MediaTypesFor(rt),
+			},
 		)
+
 		return true
 	})
 
-	return out
+	return req
 }

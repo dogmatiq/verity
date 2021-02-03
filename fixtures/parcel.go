@@ -7,7 +7,8 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
@@ -73,8 +74,8 @@ func NewParcel(
 				Key:  "<handler-key>",
 			},
 			SourceInstanceId: "<instance>",
-			CreatedAt:        envelopespec.MarshalTime(createdAt),
-			ScheduledFor:     envelopespec.MarshalTime(scheduledFor),
+			CreatedAt:        marshalkit.MustMarshalEnvelopeTime(createdAt),
+			ScheduledFor:     marshalkit.MustMarshalEnvelopeTime(scheduledFor),
 			Description:      dogma.DescribeMessage(m),
 		},
 		Message:      m,
@@ -82,7 +83,7 @@ func NewParcel(
 		ScheduledFor: scheduledFor,
 	}
 
-	envelopespec.MarshalMessage(fixtures.Marshaler, m, p.Envelope)
+	marshalkit.MustMarshalMessageIntoEnvelope(fixtures.Marshaler, m, p.Envelope)
 
 	return p
 }

@@ -8,7 +8,8 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/dogma/fixtures"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
@@ -31,7 +32,7 @@ var _ = Describe("type Packer", func() {
 		seq = 0
 
 		now = time.Now()
-		nowString = envelopespec.MarshalTime(now)
+		nowString = marshalkit.MustMarshalEnvelopeTime(now)
 
 		app = &envelopespec.Identity{
 			Name: "<app-name>",
@@ -152,7 +153,7 @@ var _ = Describe("type Packer", func() {
 
 		p := packer.PackCommand(MessageC1)
 
-		createdAt, err := envelopespec.UnmarshalTime(p.Envelope.GetCreatedAt())
+		createdAt, err := marshalkit.UnmarshalEnvelopeTime(p.Envelope.GetCreatedAt())
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(createdAt).To(BeTemporally("~", time.Now()))
 	})
@@ -354,7 +355,7 @@ var _ = Describe("type Packer", func() {
 								SourceHandler:     handler,
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         nowString,
-								ScheduledFor:      envelopespec.MarshalTime(scheduledFor),
+								ScheduledFor:      marshalkit.MustMarshalEnvelopeTime(scheduledFor),
 								Description:       "{T1}",
 								PortableName:      MessageTPortableName,
 								MediaType:         MessageT1Packet.MediaType,

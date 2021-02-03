@@ -3,7 +3,7 @@ package aggregate
 import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/internal/mlog"
 	"github.com/dogmatiq/verity/parcel"

@@ -3,7 +3,7 @@ package boltpersistence
 import (
 	"context"
 
-	"github.com/dogmatiq/envelopespec"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/internal/x/bboltx"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/golang/protobuf/proto"
