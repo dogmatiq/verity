@@ -106,9 +106,11 @@ var _ = Describe("type server", func() {
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
+						MediaTypes:   []string{"application/json; type=MessageA"},
 					},
 					{
 						PortableName: "MessageB",
+						MediaTypes:   []string{"application/json; type=MessageB"},
 					},
 				},
 			}
@@ -144,9 +146,11 @@ var _ = Describe("type server", func() {
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
+						MediaTypes:   []string{"application/json; type=MessageA"},
 					},
 					{
 						PortableName: "MessageB",
+						MediaTypes:   []string{"application/json; type=MessageB"},
 					},
 				},
 			}
@@ -164,12 +168,13 @@ var _ = Describe("type server", func() {
 			))
 		})
 
-		It("limits results to the supplied message types", func() {
+		It("limits results to the supplied event types", func() {
 			req := &eventstreamspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
+						MediaTypes:   []string{"application/json; type=MessageA"},
 					},
 				},
 			}
@@ -193,6 +198,77 @@ var _ = Describe("type server", func() {
 					Offset:   2,
 					Envelope: parcel2.Envelope,
 				},
+			))
+		})
+
+		It("transcodes events into a media-type supported by the client", func() {
+			req := &eventstreamspec.ConsumeRequest{
+				ApplicationKey: "<app-key>",
+				EventTypes: []*eventstreamspec.EventType{
+					{
+						PortableName: "MessageA",
+						MediaTypes:   []string{"application/cbor; type=MessageA"},
+					},
+				},
+			}
+
+			stream, err := client.Consume(ctx, req)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			res, err := stream.Recv()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.Envelope.MediaType).To(Equal("application/cbor; type=MessageA"))
+			Expect(res.Envelope.Data).To(Equal([]byte("\xa1eValuebA1")))
+		})
+
+		It("does not transcode events if the client supports the native media-type", func() {
+			req := &eventstreamspec.ConsumeRequest{
+				ApplicationKey: "<app-key>",
+				EventTypes: []*eventstreamspec.EventType{
+					{
+						PortableName: "MessageA",
+						MediaTypes: []string{
+							"application/cbor; type=MessageA", // note that CBOR is preferred by the client
+							"application/json; type=MessageA", // but JSON is native, so will still be used
+						},
+					},
+				},
+			}
+
+			stream, err := client.Consume(ctx, req)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			res, err := stream.Recv()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.Envelope.MediaType).To(Equal("application/json; type=MessageA"))
+			Expect(string(res.Envelope.Data)).To(Equal(`{"Value":"A1"}`))
+		})
+
+		It("returns an error if the client and server have no media-types in common", func() {
+			req := &eventstreamspec.ConsumeRequest{
+				ApplicationKey: "<app-key>",
+				EventTypes: []*eventstreamspec.EventType{
+					{
+						PortableName: "MessageA",
+						MediaTypes:   []string{"application/unknown; type=MessageA"},
+					},
+				},
+			}
+
+			stream, err := client.Consume(ctx, req)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			_, err = stream.Recv()
+			s, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(s.Message()).To(Equal("none of the requested media-types for 'MessageA' events are supported"))
+			Expect(s.Code()).To(Equal(codes.InvalidArgument))
+			Expect(s.Details()).To(ContainElement(
+				EqualX(
+					&eventstreamspec.NoRecognizedMediaTypes{
+						PortableName: "MessageA",
+					},
+				),
 			))
 		})
 
@@ -231,7 +307,7 @@ var _ = Describe("type server", func() {
 			))
 		})
 
-		It("returns an INVALID_ARGUMENT error if the message type collection is empty", func() {
+		It("returns an INVALID_ARGUMENT error if no event types are requested", func() {
 			req := &eventstreamspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 			}
@@ -242,11 +318,11 @@ var _ = Describe("type server", func() {
 			_, err = stream.Recv()
 			s, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
-			Expect(s.Message()).To(Equal("message types can not be empty"))
+			Expect(s.Message()).To(Equal("at least one event type must be consumed"))
 			Expect(s.Code()).To(Equal(codes.InvalidArgument))
 		})
 
-		It("returns an INVALID_ARGUMENT error if the message type collection contains unrecognized messages", func() {
+		It("returns an INVALID_ARGUMENT error if an unrecognized event type is requested", func() {
 			req := &eventstreamspec.ConsumeRequest{
 				ApplicationKey: "<app-key>",
 				EventTypes: []*eventstreamspec.EventType{
@@ -265,7 +341,7 @@ var _ = Describe("type server", func() {
 			_, err = stream.Recv()
 			s, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
-			Expect(s.Message()).To(Equal("unrecognized message type(s)"))
+			Expect(s.Message()).To(Equal("one or more unrecognized event types or media-types"))
 			Expect(s.Code()).To(Equal(codes.InvalidArgument))
 			Expect(s.Details()).To(ContainElements(
 				EqualX(
@@ -296,12 +372,14 @@ var _ = Describe("type server", func() {
 					PortableName: "MessageA",
 					MediaTypes: []string{
 						"application/json; type=MessageA",
+						"application/cbor; type=MessageA",
 					},
 				},
 				&eventstreamspec.EventType{
 					PortableName: "MessageB",
 					MediaTypes: []string{
 						"application/json; type=MessageB",
+						"application/cbor; type=MessageB",
 					},
 				},
 			))

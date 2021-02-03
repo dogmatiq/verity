@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/internal/x/grpcx"
+	"github.com/dogmatiq/verity/parcel"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -138,12 +140,12 @@ func (s *server) Consume(
 ) error {
 	ctx := consumer.Context()
 
-	types, err := s.unmarshalTypes(req)
+	messageTypes, mediaTypes, err := s.unmarshalTypes(req)
 	if err != nil {
 		return err
 	}
 
-	cur, err := s.stream.Open(ctx, req.GetOffset(), types)
+	cur, err := s.stream.Open(ctx, req.GetOffset(), messageTypes)
 	if err != nil {
 		return err
 	}
@@ -155,9 +157,14 @@ func (s *server) Consume(
 			return err
 		}
 
+		env, err := s.transcode(ev.Parcel, mediaTypes)
+		if err != nil {
+			return err
+		}
+
 		res := &eventstreamspec.ConsumeResponse{
 			Offset:   ev.Offset,
-			Envelope: ev.Parcel.Envelope,
+			Envelope: env,
 		}
 
 		if err := consumer.Send(res); err != nil {
@@ -176,40 +183,97 @@ func (s *server) EventTypes(
 	return s.resp, nil
 }
 
-func (s *server) unmarshalTypes(req *eventstreamspec.ConsumeRequest) (message.TypeCollection, error) {
+// unmarshalTypes unmarshals the event types, and their respective media-types
+// from the given request.
+func (s *server) unmarshalTypes(
+	req *eventstreamspec.ConsumeRequest,
+) (
+	message.TypeCollection,
+	map[string][]string,
+	error,
+) {
+	if len(req.GetEventTypes()) == 0 {
+		return nil, nil, grpcx.Errorf(
+			codes.InvalidArgument,
+			nil,
+			"at least one event type must be consumed",
+		)
+	}
+
 	var (
-		types  = message.TypeSet{}
-		failed []proto.Message
+		messageTypes = message.TypeSet{}
+		mediaTypes   = map[string][]string{}
+		failures     []proto.Message
 	)
 
 	for _, et := range req.GetEventTypes() {
 		n := et.GetPortableName()
 
 		if mt, ok := s.types[n]; ok {
-			types.Add(mt)
+			messageTypes.Add(mt)
+			mediaTypes[n] = et.GetMediaTypes()
 		} else {
-			failed = append(
-				failed,
+			failures = append(
+				failures,
 				&eventstreamspec.UnrecognizedEventType{PortableName: n},
 			)
 		}
 	}
 
-	if len(failed) > 0 {
-		return nil, grpcx.Errorf(
+	if len(failures) > 0 {
+		return nil, nil, grpcx.Errorf(
 			codes.InvalidArgument,
-			failed,
-			"unrecognized message type(s)",
+			failures,
+			"one or more unrecognized event types or media-types",
 		)
 	}
 
-	if len(types) == 0 {
+	return messageTypes, mediaTypes, nil
+}
+
+// transcode returns an envelope containing the message in p, transcoded into a
+// media-type supported by the client.
+func (s *server) transcode(
+	p parcel.Parcel,
+	mediaTypes map[string][]string,
+) (*envelopespec.Envelope, error) {
+	n := p.Envelope.GetPortableName()
+	preferredMediaTypes := mediaTypes[n]
+
+	// First see if the existing format is supported by the client at all. It
+	// may not be their first preference, but if it is supported we can send the
+	// message packet without marshaling it again.
+	for _, mt := range preferredMediaTypes {
+		if p.Envelope.GetMediaType() == mt {
+			return p.Envelope, nil
+		}
+	}
+
+	// Otherwise, attempt to marshal the message using the client's requested
+	// media-types in order of preference.
+	packet, ok, err := s.marshaler.MarshalAs(p.Message, preferredMediaTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	// None of the supplied media-types are supported by the marshaler so
+	// there's no way to supply this event to the client.
+	if !ok {
 		return nil, grpcx.Errorf(
 			codes.InvalidArgument,
-			nil,
-			"message types can not be empty",
+			[]proto.Message{
+				&eventstreamspec.NoRecognizedMediaTypes{
+					PortableName: n,
+				},
+			},
+			"none of the requested media-types for '%s' events are supported",
+			n,
 		)
 	}
 
-	return types, nil
+	env := proto.Clone(p.Envelope).(*envelopespec.Envelope)
+	env.MediaType = packet.MediaType
+	env.Data = packet.Data
+
+	return env, nil
 }
