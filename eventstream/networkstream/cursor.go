@@ -96,11 +96,13 @@ func (c *cursor) recv() error {
 		return err
 	}
 
+	env := res.GetEnvelope()
+
 	ev := eventstream.Event{
 		Offset: res.Offset,
 	}
 
-	ev.Parcel, err = parcel.FromEnvelope(c.marshaler, res.GetEnvelope())
+	ev.Parcel, err = parcel.FromEnvelope(c.marshaler, env)
 	if err != nil {
 		return err
 	}
