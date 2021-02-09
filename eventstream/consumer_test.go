@@ -167,7 +167,7 @@ var _ = Describe("type Consumer", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
-		It("restarts the consumer if querying the stream's message types returns an error", func() {
+		It("restarts the consumer if querying the stream's event types returns an error", func() {
 			stream.EventTypesFunc = func(
 				context.Context,
 			) (message.TypeCollection, error) {
@@ -207,6 +207,52 @@ var _ = Describe("type Consumer", func() {
 				}
 
 				return errors.New("<error>")
+			}
+
+			err := consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
+
+		It("restarts the consumer if the event offset is earlier than the consumed offset", func() {
+			// Ensure the consumer tries to consume all event types.
+			consumer.EventTypes = message.NewTypeSet(
+				MessageAType,
+				MessageBType,
+			)
+
+			// Configure the stream to return an offset before the one we
+			// actually wanted.
+			stream.OpenFunc = func(
+				ctx context.Context,
+				offset uint64,
+				types message.TypeCollection,
+			) (Cursor, error) {
+				// Reset the stream to behave normally again on the next
+				// attempt at opening a cursor.
+				stream.OpenFunc = nil
+
+				return mstream.Open(ctx, offset-1, types)
+			}
+
+			// Configure the handler to start at offset 1, just to avoid a
+			// negative offset due to the misbehaving stream that we have
+			// configured above.
+			eshandler.NextOffsetFunc = func(
+				context.Context,
+				configkit.Identity,
+			) (uint64, error) {
+				return 1, nil
+			}
+
+			eshandler.HandleEventFunc = func(
+				_ context.Context,
+				_ uint64,
+				ev Event,
+			) error {
+				// We should only ever be passed the event at offset 1.
+				Expect(ev).To(Equal(event1))
+				cancel()
+				return nil
 			}
 
 			err := consumer.Run(ctx)
