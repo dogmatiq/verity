@@ -2,6 +2,7 @@ package eventstream
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
@@ -156,6 +157,10 @@ func (c *Consumer) consumeNext(ctx context.Context, cur Cursor) error {
 		return err
 	}
 
+	if err := c.validateEvent(ev); err != nil {
+		return err
+	}
+
 	// We've successfully obtained an event from the stream. If the last failure
 	// was caused by the stream (and not the handler), reset the failure count
 	// now, otherwise only reset it once we manage to actually handle the event.
@@ -176,6 +181,31 @@ func (c *Consumer) consumeNext(ctx context.Context, cur Cursor) error {
 
 	c.offset = ev.Offset + 1
 	c.backoff.Reset()
+
+	return nil
+}
+
+// validateEvent performs some basic sanity checks on an event that is about to
+// be handled.
+func (c *Consumer) validateEvent(ev Event) error {
+	if ev.Offset < c.offset {
+		return fmt.Errorf("expected offset to be at least %d, got %d", c.offset, ev.Offset)
+	}
+
+	if err := ev.Parcel.Envelope.Validate(); err != nil {
+		return fmt.Errorf("invalid message envelope: %w", err)
+	}
+
+	eventAppKey := ev.Parcel.Envelope.GetSourceApplication().GetKey()
+	expectedAppKey := c.Stream.Application().Key
+
+	if eventAppKey != expectedAppKey {
+		return fmt.Errorf(
+			"event has source application key of %s, expected %s",
+			eventAppKey,
+			expectedAppKey,
+		)
+	}
 
 	return nil
 }
