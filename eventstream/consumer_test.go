@@ -293,6 +293,41 @@ var _ = Describe("type Consumer", func() {
 			Expect(err).To(Equal(context.Canceled))
 		})
 
+		It("restarts the consumer if the event's source application does not match the consumer's application", func() {
+			// Make event0 use a different source application to the one that
+			// the consumer is expecting to see.
+			event0.Parcel.Envelope.SourceApplication.Key = "<different>"
+
+			// Configure the handler to start at offset 0, but then try offset 2
+			// on the next attempt.
+			isRetry := false
+			eshandler.NextOffsetFunc = func(
+				context.Context,
+				configkit.Identity,
+			) (uint64, error) {
+				if isRetry {
+					return 2, nil
+				}
+
+				isRetry = true
+				return 0, nil
+			}
+
+			eshandler.HandleEventFunc = func(
+				_ context.Context,
+				_ uint64,
+				ev Event,
+			) error {
+				// We should only ever be passed the event at offset 2.
+				Expect(ev).To(Equal(event2))
+				cancel()
+				return nil
+			}
+
+			err := consumer.Run(ctx)
+			Expect(err).To(Equal(context.Canceled))
+		})
+
 		It("returns if the context is canceled", func() {
 			cancel()
 			err := consumer.Run(ctx)
