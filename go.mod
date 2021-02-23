@@ -7,7 +7,7 @@ require (
 	github.com/dogmatiq/cosyne v0.2.0
 	github.com/dogmatiq/discoverkit v0.1.1
 	github.com/dogmatiq/dodeca v0.2.2
-	github.com/dogmatiq/dogma v0.10.0
+	github.com/dogmatiq/dogma v0.11.0
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/interopspec v0.5.0
 	github.com/dogmatiq/kyu v0.2.0
