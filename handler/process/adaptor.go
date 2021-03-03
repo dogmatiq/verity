@@ -89,23 +89,24 @@ func (a *Adaptor) HandleMessage(
 	}
 
 	sc := &scope{
-		work:     w,
-		cause:    p,
-		identity: a.Identity,
-		handler:  a.Handler,
-		packer:   a.Packer,
-		logger:   a.Logger,
-		instance: inst,
-		exists:   exists,
+		work:       w,
+		cause:      p,
+		identity:   a.Identity,
+		handler:    a.Handler,
+		packer:     a.Packer,
+		logger:     a.Logger,
+		instanceID: inst.InstanceID,
 	}
 
-	if err := a.handle(ctx, sc, p); err != nil {
+	if err := a.handle(ctx, inst.Root, sc, p); err != nil {
 		return err
 	}
 
-	sc.finalize()
+	if !sc.ended {
+		for _, p := range sc.timeouts {
+			w.ScheduleTimeout(p)
+		}
 
-	if sc.exists {
 		return a.save(w, id, inst)
 	}
 
@@ -213,12 +214,17 @@ func (a *Adaptor) save(
 }
 
 // handle dispatches the message to the Dogma handler.
-func (a *Adaptor) handle(ctx context.Context, sc *scope, p parcel.Parcel) error {
+func (a *Adaptor) handle(
+	ctx context.Context,
+	r dogma.ProcessRoot,
+	sc *scope,
+	p parcel.Parcel,
+) error {
 	if p.ScheduledFor.IsZero() {
-		return a.Handler.HandleEvent(ctx, sc, p.Message)
+		return a.Handler.HandleEvent(ctx, r, sc, p.Message)
 	}
 
-	return a.Handler.HandleTimeout(ctx, sc, p.Message)
+	return a.Handler.HandleTimeout(ctx, r, sc, p.Message)
 }
 
 // mustNew returns a new process root created by the handler, or panics if the

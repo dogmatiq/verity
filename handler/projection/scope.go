@@ -39,3 +39,8 @@ type compactScope struct {
 func (s compactScope) Log(f string, v ...interface{}) {
 	logging.Log(s.logger, f, v...)
 }
+
+// Now returns the time.
+func (s compactScope) Now() time.Time {
+	return time.Now()
+}

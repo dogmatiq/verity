@@ -1,6 +1,8 @@
 package projection
 
 import (
+	"time"
+
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -67,6 +69,14 @@ var _ = Describe("type compactScope", func() {
 					Message: "format <value>",
 				},
 			))
+		})
+	})
+
+	Describe("func Now()", func() {
+		It("returns the current time", func() {
+			t := sc.Now()
+
+			Expect(t).To(BeTemporally("~", time.Now()))
 		})
 	})
 })

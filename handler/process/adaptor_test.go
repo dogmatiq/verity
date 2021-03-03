@@ -74,10 +74,6 @@ var _ = Describe("type Adaptor", func() {
 
 		logger = &logging.BufferedLogger{}
 
-		// upstream.NewFunc = func() dogma.ProcessRoot {
-		// 	return &ProcessRoot{}
-		// }
-
 		work = &UnitOfWorkStub{}
 
 		cause = NewParcel("<consume>", MessageE1)
@@ -109,6 +105,7 @@ var _ = Describe("type Adaptor", func() {
 			called := false
 			upstream.HandleEventFunc = func(
 				_ context.Context,
+				_ dogma.ProcessRoot,
 				_ dogma.ProcessEventScope,
 				m dogma.Message,
 			) error {
@@ -125,6 +122,7 @@ var _ = Describe("type Adaptor", func() {
 		It("returns an error if the handler returns an error", func() {
 			upstream.HandleEventFunc = func(
 				_ context.Context,
+				_ dogma.ProcessRoot,
 				_ dogma.ProcessEventScope,
 				m dogma.Message,
 			) error {
@@ -138,6 +136,7 @@ var _ = Describe("type Adaptor", func() {
 		It("makes the instance ID available via the scope ", func() {
 			upstream.HandleEventFunc = func(
 				_ context.Context,
+				_ dogma.ProcessRoot,
 				s dogma.ProcessEventScope,
 				_ dogma.Message,
 			) error {
@@ -152,6 +151,7 @@ var _ = Describe("type Adaptor", func() {
 		It("makes the recorded-at time available via the scope", func() {
 			upstream.HandleEventFunc = func(
 				_ context.Context,
+				_ dogma.ProcessRoot,
 				s dogma.ProcessEventScope,
 				_ dogma.Message,
 			) error {
@@ -212,6 +212,7 @@ var _ = Describe("type Adaptor", func() {
 
 			upstream.HandleEventFunc = func(
 				context.Context,
+				dogma.ProcessRoot,
 				dogma.ProcessEventScope,
 				dogma.Message,
 			) error {
@@ -237,13 +238,11 @@ var _ = Describe("type Adaptor", func() {
 		It("saves the process instance", func() {
 			upstream.HandleEventFunc = func(
 				_ context.Context,
+				r dogma.ProcessRoot,
 				s dogma.ProcessEventScope,
 				_ dogma.Message,
 			) error {
-				s.Begin()
-
-				r := s.Root().(*ProcessRoot)
-				r.Value = "<value>"
+				r.(*ProcessRoot).Value = "<value>"
 
 				return nil
 			}
@@ -270,15 +269,6 @@ var _ = Describe("type Adaptor", func() {
 		It("returns an error if the process instance can not be marshaled", func() {
 			adaptor.Marshaler = &codec.Marshaler{} // an empty marshaler cannot marshal anything
 
-			upstream.HandleEventFunc = func(
-				_ context.Context,
-				s dogma.ProcessEventScope,
-				_ dogma.Message,
-			) error {
-				s.Begin()
-				return nil
-			}
-
 			err := adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).To(MatchError("no codecs support the '*fixtures.ProcessRoot' type"))
 		})
@@ -287,10 +277,10 @@ var _ = Describe("type Adaptor", func() {
 			It("saves the command", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
-					s.Begin()
 					s.ExecuteCommand(MessageC1)
 					return nil
 				}
@@ -321,29 +311,13 @@ var _ = Describe("type Adaptor", func() {
 				))
 			})
 
-			It("panics if the instance has not been begun", func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					s.ExecuteCommand(MessageC1)
-					return nil
-				}
-
-				Expect(func() {
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not execute a command within a process instance that has not begun"))
-			})
-
 			It("logs about the command", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
-					s.Begin()
 					s.ExecuteCommand(MessageC1)
 					return nil
 				}
@@ -357,6 +331,38 @@ var _ = Describe("type Adaptor", func() {
 					},
 				))
 			})
+
+			It("reverts a prior call to End()", func() {
+				upstream.HandleEventFunc = func(
+					_ context.Context,
+					r dogma.ProcessRoot,
+					s dogma.ProcessEventScope,
+					_ dogma.Message,
+				) error {
+					r.(*ProcessRoot).Value = "<value>"
+					s.End()
+					s.ExecuteCommand(MessageC1)
+					return nil
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(work.Operations).To(EqualX(
+					[]persistence.Operation{
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: "<process-key>",
+								InstanceID: "<instance>",
+								Packet: marshalkit.Packet{
+									MediaType: "application/json; type=ProcessRoot",
+									Data:      []byte(`{"Value":"\u003cvalue\u003e"}`),
+								},
+							},
+						},
+					},
+				))
+			})
 		})
 
 		When("a timeout is scheduled", func() {
@@ -365,10 +371,10 @@ var _ = Describe("type Adaptor", func() {
 
 				upstream.HandleEventFunc = func(
 					_ context.Context,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
-					s.Begin()
 					s.ScheduleTimeout(MessageT1, scheduledFor)
 					return nil
 				}
@@ -401,29 +407,13 @@ var _ = Describe("type Adaptor", func() {
 				))
 			})
 
-			It("panics if the instance has not been begun", func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					s.ScheduleTimeout(MessageT1, time.Now())
-					return nil
-				}
-
-				Expect(func() {
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not schedule a timeout within a process instance that has not begun"))
-			})
-
 			It("logs about the timeout", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
-					s.Begin()
 					s.ScheduleTimeout(MessageT1, time.Now())
 					return nil
 				}
@@ -437,12 +427,45 @@ var _ = Describe("type Adaptor", func() {
 					},
 				))
 			})
+
+			It("reverts a prior call to End()", func() {
+				upstream.HandleEventFunc = func(
+					_ context.Context,
+					r dogma.ProcessRoot,
+					s dogma.ProcessEventScope,
+					_ dogma.Message,
+				) error {
+					r.(*ProcessRoot).Value = "<value>"
+					s.End()
+					s.ScheduleTimeout(MessageT1, time.Now())
+					return nil
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(work.Operations).To(EqualX(
+					[]persistence.Operation{
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: "<process-key>",
+								InstanceID: "<instance>",
+								Packet: marshalkit.Packet{
+									MediaType: "application/json; type=ProcessRoot",
+									Data:      []byte(`{"Value":"\u003cvalue\u003e"}`),
+								},
+							},
+						},
+					},
+				))
+			})
 		})
 
 		When("a message is logged via the scope", func() {
 			BeforeEach(func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
@@ -496,78 +519,11 @@ var _ = Describe("type Adaptor", func() {
 			Expect(rec.Instance).To(BeNil())
 		})
 
-		When("the instance does not exist", func() {
-			When("the instance is created", func() {
-				It("causes HasBegun() to return true", func() {
-					upstream.HandleEventFunc = func(
-						_ context.Context,
-						s dogma.ProcessEventScope,
-						_ dogma.Message,
-					) error {
-						s.Begin()
-
-						ok := s.HasBegun()
-						Expect(ok).To(BeTrue())
-
-						return nil
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("causes Begin() to return true", func() {
-					upstream.HandleEventFunc = func(
-						_ context.Context,
-						s dogma.ProcessEventScope,
-						_ dogma.Message,
-					) error {
-						ok := s.Begin()
-						Expect(ok).To(BeTrue())
-
-						return nil
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-			})
-
-			It("causes HasBegun() to return false", func() {
+		When("the instance does not already exist", func() {
+			It("does not panic if the instance is ended", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					ok := s.HasBegun()
-					Expect(ok).To(BeFalse())
-
-					return nil
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-
-			It("panics if the root is accessed", func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					s.Root()
-					return nil
-				}
-
-				Expect(func() {
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not access the root of a process instance that has not begun"))
-			})
-
-			It("panics if the instance is ended", func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
@@ -578,7 +534,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(func() {
 					err := adaptor.HandleMessage(ctx, work, cause)
 					Expect(err).ShouldNot(HaveOccurred())
-				}).To(PanicWith("can not end a process instance that has not begun"))
+				}).NotTo(Panic())
 			})
 
 			It("does not action timeout messages", func() {
@@ -586,6 +542,7 @@ var _ = Describe("type Adaptor", func() {
 
 				upstream.HandleTimeoutFunc = func(
 					_ context.Context,
+					_ dogma.ProcessRoot,
 					_ dogma.ProcessTimeoutScope,
 					m dogma.Message,
 				) error {
@@ -602,13 +559,11 @@ var _ = Describe("type Adaptor", func() {
 			BeforeEach(func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
+					r dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
-					s.Begin()
-
-					r := s.Root().(*ProcessRoot)
-					r.Value = "<value>"
+					r.(*ProcessRoot).Value = "<value>"
 
 					return nil
 				}
@@ -622,45 +577,14 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleEventFunc = nil
 			})
 
-			It("causes HasBegun() to return true", func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					ok := s.HasBegun()
-					Expect(ok).To(BeTrue())
-
-					return nil
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-
-			It("causes Begin() to return false", func() {
-				upstream.HandleEventFunc = func(
-					_ context.Context,
-					s dogma.ProcessEventScope,
-					_ dogma.Message,
-				) error {
-					ok := s.Begin()
-					Expect(ok).To(BeFalse())
-					return nil
-				}
-
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-
 			It("provides a root with the correct state", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
+					r dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Message,
 				) error {
-					r := s.Root().(*ProcessRoot)
-					Expect(r.Value).To(Equal("<value>"))
+					Expect(r.(*ProcessRoot).Value).To(Equal("<value>"))
 					return nil
 				}
 
@@ -669,46 +593,10 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			When("the instance is ended", func() {
-				It("causes Begin() to panic", func() {
-					upstream.HandleEventFunc = func(
-						_ context.Context,
-						s dogma.ProcessEventScope,
-						_ dogma.Message,
-					) error {
-						s.End()
-
-						Expect(func() {
-							s.Begin()
-						}).To(PanicWith("can not begin an instance that was ended by the same message"))
-
-						return nil
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("causes HasBegun() to return false", func() {
-					upstream.HandleEventFunc = func(
-						_ context.Context,
-						s dogma.ProcessEventScope,
-						_ dogma.Message,
-					) error {
-						s.End()
-
-						ok := s.HasBegun()
-						Expect(ok).To(BeFalse())
-
-						return nil
-					}
-
-					err := adaptor.HandleMessage(ctx, work, cause)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
 				It("removes the process instance", func() {
 					upstream.HandleEventFunc = func(
 						_ context.Context,
+						_ dogma.ProcessRoot,
 						s dogma.ProcessEventScope,
 						_ dogma.Message,
 					) error {
@@ -753,6 +641,7 @@ var _ = Describe("type Adaptor", func() {
 					called := false
 					upstream.HandleTimeoutFunc = func(
 						_ context.Context,
+						_ dogma.ProcessRoot,
 						_ dogma.ProcessTimeoutScope,
 						m dogma.Message,
 					) error {
@@ -769,6 +658,7 @@ var _ = Describe("type Adaptor", func() {
 				It("returns an error if the handler returns an error", func() {
 					upstream.HandleTimeoutFunc = func(
 						_ context.Context,
+						_ dogma.ProcessRoot,
 						_ dogma.ProcessTimeoutScope,
 						m dogma.Message,
 					) error {
@@ -782,6 +672,7 @@ var _ = Describe("type Adaptor", func() {
 				It("makes the instance ID available via the scope", func() {
 					upstream.HandleTimeoutFunc = func(
 						_ context.Context,
+						_ dogma.ProcessRoot,
 						s dogma.ProcessTimeoutScope,
 						_ dogma.Message,
 					) error {
@@ -796,6 +687,7 @@ var _ = Describe("type Adaptor", func() {
 				It("makes the scheduled-for time available via the scope", func() {
 					upstream.HandleTimeoutFunc = func(
 						_ context.Context,
+						_ dogma.ProcessRoot,
 						s dogma.ProcessTimeoutScope,
 						_ dogma.Message,
 					) error {
