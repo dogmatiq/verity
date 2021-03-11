@@ -184,6 +184,14 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 		for t := range cfg.MessageTypes().All() {
 			types = append(types, t.ReflectType())
 		}
+
+		cfg.RichHandlers().RangeProcesses(
+			func(h configkit.RichProcess) bool {
+				r := h.Handler().New()
+				types = append(types, reflect.TypeOf(r))
+				return true
+			},
+		)
 	}
 
 	m, err := codec.NewMarshaler(
