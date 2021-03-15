@@ -43,7 +43,7 @@ func (a *StreamAdaptor) HandleEvent(ctx context.Context, o uint64, ev eventstrea
 			persistence.SaveOffset{
 				ApplicationKey: ev.Parcel.Envelope.GetSourceApplication().GetKey(),
 				CurrentOffset:  o,
-				NextOffset:     o + 1,
+				NextOffset:     ev.Offset + 1,
 			},
 		},
 	); err != nil {

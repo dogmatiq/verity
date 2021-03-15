@@ -85,9 +85,10 @@ var _ = Describe("type Queue", func() {
 
 	When("the queue is running", func() {
 		JustBeforeEach(func() {
+			q := queue
 			go func() {
 				defer GinkgoRecover()
-				err := queue.Run(ctx)
+				err := q.Run(ctx)
 				Expect(err).To(Equal(context.Canceled))
 			}()
 		})
