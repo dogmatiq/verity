@@ -61,9 +61,10 @@ var _ = Describe("type CommandExecutor", func() {
 	})
 
 	JustBeforeEach(func() {
+		q := queue
 		go func() {
 			defer GinkgoRecover()
-			queue.Run(ctx)
+			q.Run(ctx)
 		}()
 	})
 
