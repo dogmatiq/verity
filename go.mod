@@ -14,7 +14,7 @@ require (
 	github.com/dogmatiq/linger v0.2.1
 	github.com/dogmatiq/marshalkit v0.6.0
 	github.com/dogmatiq/sqltest v0.3.0
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.1
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
@@ -24,5 +24,5 @@ require (
 	go.uber.org/multierr v1.6.0
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	google.golang.org/grpc v1.36.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.26.0
 )
