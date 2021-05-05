@@ -95,7 +95,7 @@ func (ds *dataStore) LoadQueueMessages(
 		result = append(result, m)
 	}
 
-	return result, nil
+	return result, rows.Err()
 }
 
 // VisitSaveQueueMessage applies the changes in a "SaveQueueMessage" operation

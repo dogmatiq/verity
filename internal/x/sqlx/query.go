@@ -2,20 +2,7 @@ package sqlx
 
 import (
 	"context"
-	"database/sql"
 )
-
-// Query executes a query on the given DB.
-func Query(
-	ctx context.Context,
-	db DB,
-	query string,
-	args ...interface{},
-) *sql.Rows {
-	rows, err := db.QueryContext(ctx, query, args...)
-	Must(err)
-	return rows
-}
 
 // QueryInto executes single-column, single-row query on the given DB and scans
 // the result into a value.

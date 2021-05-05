@@ -130,7 +130,7 @@ func (ds *dataStore) LoadEventsByType(
 		return nil, err
 	}
 
-	rows, err := ds.driver.SelectEventsByType(
+	rows, err := ds.driver.SelectEventsByType( // nolint:rowserrcheck,sqlclosecheck // both handled by eventResult
 		ctx,
 		ds.db,
 		ds.appKey,
@@ -184,7 +184,7 @@ func (ds *dataStore) LoadEventsBySource(
 		offset = o + 1 // start with the message AFTER the barrier message.
 	}
 
-	rows, err := ds.driver.SelectEventsBySource(
+	rows, err := ds.driver.SelectEventsBySource( // nolint:rowserrcheck,sqlclosecheck // both handled by eventResult
 		ctx,
 		ds.db,
 		ds.appKey,
@@ -231,7 +231,7 @@ func (r *eventResult) Next(
 		return ev, true, err
 	}
 
-	return persistence.Event{}, false, nil
+	return persistence.Event{}, false, r.rows.Err()
 }
 
 // Close closes the cursor.
