@@ -45,7 +45,7 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
 	tx := sqlx.Begin(ctx, db)
-	defer tx.Rollback()
+	defer tx.Rollback() // nolint:errcheck
 
 	createLockSchema(ctx, db)
 	createAggregateSchema(ctx, db)

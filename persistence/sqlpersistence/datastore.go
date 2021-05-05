@@ -79,7 +79,7 @@ func (ds *dataStore) Persist(
 			if err != nil {
 				return err
 			}
-			defer tx.Rollback()
+			defer tx.Rollback() // nolint:errcheck
 
 			c.tx = tx
 			if err := b.AcceptVisitor(ctx, c); err != nil {

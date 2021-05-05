@@ -181,7 +181,8 @@ func (p *provider) open(
 			var err error
 			d, err = selectDriver(ctx, db)
 			if err != nil {
-				close(db)
+				// Ignore error from close() and instead report the causal error.
+				close(db) // nolint:errcheck
 				return nil, err
 			}
 		}

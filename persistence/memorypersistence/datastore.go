@@ -44,9 +44,9 @@ func (ds *dataStore) Persist(
 	}
 
 	c := &committer{db: ds.db}
-	b.AcceptVisitor(ctx, c)
+	err := b.AcceptVisitor(ctx, c)
 
-	return c.result, nil
+	return c.result, err
 }
 
 // Close closes the data store.

@@ -153,7 +153,7 @@ func (e *Engine) targetDiscovered(
 		t.Name,
 	)
 
-	d.DiscoverApplications(
+	d.DiscoverApplications( // nolint:errcheck // error is always the context error
 		ctx,
 		t,
 		func(ctx context.Context, a discoverkit.Application) {
