@@ -10,9 +10,9 @@ import (
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"github.com/dogmatiq/verity/parcel"
-	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 // ServerOption configures the behavior of a server.
