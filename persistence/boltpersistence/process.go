@@ -6,8 +6,8 @@ import (
 	"github.com/dogmatiq/verity/internal/x/bboltx"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/boltpersistence/internal/pb"
-	"github.com/golang/protobuf/proto"
 	"go.etcd.io/bbolt"
+	"google.golang.org/protobuf/proto"
 )
 
 var (

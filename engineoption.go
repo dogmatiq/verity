@@ -197,9 +197,9 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 	m, err := codec.NewMarshaler(
 		types,
 		[]codec.Codec{
-			&protobuf.NativeCodec{},
-			&json.Codec{},
-			&cbor.Codec{},
+			protobuf.DefaultNativeCodec,
+			json.DefaultCodec,
+			cbor.DefaultCodec,
 		},
 	)
 	if err != nil {
