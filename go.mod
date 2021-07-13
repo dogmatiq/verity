@@ -15,7 +15,7 @@ require (
 	github.com/dogmatiq/marshalkit v0.7.2
 	github.com/dogmatiq/sqltest v0.3.0
 	github.com/google/go-cmp v0.5.6
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
