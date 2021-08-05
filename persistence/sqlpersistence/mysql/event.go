@@ -50,7 +50,7 @@ func (driver) InsertEvent(
 	_, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO event SET
-				offset = ?,
+				event_offset = ?,
 				message_id = ?,
 				causation_id = ?,
 				correlation_id = ?,
@@ -190,7 +190,7 @@ func (driver) SelectEventsByType(
 	return db.QueryContext(
 		ctx,
 		`SELECT
-			e.offset,
+			e.event_offset,
 			e.message_id,
 			e.causation_id,
 			e.correlation_id,
@@ -208,9 +208,9 @@ func (driver) SelectEventsByType(
 		INNER JOIN event_filter_name AS ft
 		ON ft.portable_name = e.portable_name
 		WHERE e.source_app_key = ?
-		AND e.offset >= ?
+		AND e.event_offset >= ?
 		AND ft.filter_id = ?
-		ORDER BY e.offset`,
+		ORDER BY e.event_offset`,
 		ak,
 		o,
 		f,
@@ -227,7 +227,7 @@ func (driver) SelectEventsBySource(
 	return db.QueryContext(
 		ctx,
 		`SELECT
-			e.offset,
+			e.event_offset,
 			e.message_id,
 			e.causation_id,
 			e.correlation_id,
@@ -245,8 +245,8 @@ func (driver) SelectEventsBySource(
 		WHERE e.source_app_key = ?
 		AND e.source_handler_key = ?
 		AND e.source_instance_id = ?
-		AND e.offset >= ?
-		ORDER BY e.offset`,
+		AND e.event_offset >= ?
+		ORDER BY e.event_offset`,
 		ak,
 		hk,
 		id,
@@ -265,7 +265,7 @@ func (driver) SelectOffsetByMessageID(
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
-		e.offset
+		e.event_offset
 		FROM event AS e
 		WHERE e.message_id = ?`,
 		id,
@@ -318,7 +318,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE IF NOT EXISTS event (
-			offset              BIGINT UNSIGNED NOT NULL,
+			event_offset        BIGINT UNSIGNED NOT NULL,
 			message_id          VARBINARY(255) NOT NULL UNIQUE,
 			causation_id        VARBINARY(255) NOT NULL,
 			correlation_id      VARBINARY(255) NOT NULL,
@@ -333,19 +333,19 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 			media_type          VARBINARY(255) NOT NULL,
 			data                LONGBLOB NOT NULL,
 
-			PRIMARY KEY (source_app_key, offset),
+			PRIMARY KEY (source_app_key, event_offset),
 			INDEX by_type (
 				source_app_key,
 				portable_name,
-				offset
+				event_offset
 			),
 			INDEX by_source (
 				source_app_key,
 				source_handler_key,
 				source_instance_id,
-				offset
+				event_offset
 			)
-		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
+		) ENGINE=InnoDB`,
 	)
 
 	sqlx.Exec(

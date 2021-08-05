@@ -248,7 +248,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 				source_instance_id,
 				scheduled_for
 			)
-		) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4`,
+		) ENGINE=InnoDB`,
 	)
 }
 
