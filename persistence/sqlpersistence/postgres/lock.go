@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/dogmatiq/verity/internal/x/sqlx"
@@ -39,7 +40,10 @@ func (driver) AcquireLock(
 		) ON CONFLICT (app_key) DO NOTHING
 		RETURNING id`,
 		ak,
-		ttl,
+		fmt.Sprintf(
+			"%d MICROSECONDS",
+			ttl.Microseconds(),
+		),
 	)
 
 	var id int64
@@ -70,7 +74,10 @@ func (driver) RenewLock(
 			expires_at = CURRENT_TIMESTAMP + $1
 		WHERE id = $2
 		AND expires_at > CURRENT_TIMESTAMP`,
-		ttl,
+		fmt.Sprintf(
+			"%d MICROSECONDS",
+			ttl.Microseconds(),
+		),
 		id,
 	), nil
 }
