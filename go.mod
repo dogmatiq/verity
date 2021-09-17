@@ -3,7 +3,7 @@ module github.com/dogmatiq/verity
 go 1.16
 
 require (
-	github.com/dogmatiq/configkit v0.11.0
+	github.com/dogmatiq/configkit v0.11.1
 	github.com/dogmatiq/cosyne v0.2.0
 	github.com/dogmatiq/discoverkit v0.1.1
 	github.com/dogmatiq/dodeca v0.2.2
