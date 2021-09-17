@@ -18,8 +18,9 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dogmatiq/configkit v0.9.1/go.mod h1:lchVdCxCweenWrmm9WlgRH9X7Ppb340CvilcoVdTE8c=
-github.com/dogmatiq/configkit v0.11.0 h1:oMA1QWZEfCxVRVEz/nfBiEOndGXzS0DqohxwxKjp3yY=
 github.com/dogmatiq/configkit v0.11.0/go.mod h1:D6lk29dCR31uGbmJPiA9bHT10+liEyPp7WKK/80W/w4=
+github.com/dogmatiq/configkit v0.11.1 h1:fctw7yUTYMCqZchzvwTnnhvqed+oFm1zPSN3RN+YpMg=
+github.com/dogmatiq/configkit v0.11.1/go.mod h1:LEd9NPxF9TiLq5xXWgdbH4S+14Vdr/NjXaYkKjlEZus=
 github.com/dogmatiq/cosyne v0.2.0 h1:tO957BpS4I9kqSw31ds6Ef4CXvV8zPAqWzbXKElsGWg=
 github.com/dogmatiq/cosyne v0.2.0/go.mod h1:dD8EZjbRX7FFw9t6P7l1nwoZbA7YxtOCfl9ZZAHPucU=
 github.com/dogmatiq/discoverkit v0.1.1 h1:HjDzq6BiZLvX74qHQh7jq5mgD4vxnFfHW3Qn0DDHXx0=
@@ -43,6 +44,7 @@ github.com/dogmatiq/marshalkit v0.7.2/go.mod h1:ajuO/+J4xbh/BRQUitlpPNxvqoy2dNF+
 github.com/dogmatiq/sqltest v0.3.0 h1:DCwyLWfVk/ZHsqq5Itq3H/Lqsh/CIQ6nIRwI4YLywFc=
 github.com/dogmatiq/sqltest v0.3.0/go.mod h1:a8Da8NhU4m3lq5Sybhiv+ZQowSnGHWTIJHFNInVtffg=
 github.com/emicklei/dot v0.15.0/go.mod h1:DeV7GvQtIw4h2u73RKBkkFdvVAz0D9fzeJrgPW6gy/s=
+github.com/emicklei/dot v0.16.0/go.mod h1:DeV7GvQtIw4h2u73RKBkkFdvVAz0D9fzeJrgPW6gy/s=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
