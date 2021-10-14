@@ -44,7 +44,8 @@ func (l *Loader) Load(
 		return inst, nil
 	}
 
-	if len(persisted.Packet.Data) == 0 {
+	// An empty packet represents a stateless process root.
+	if persisted.Packet.MediaType == "" && len(persisted.Packet.Data) == 0 {
 		inst.Root = dogma.StatelessProcessRoot
 		return inst, nil
 	}

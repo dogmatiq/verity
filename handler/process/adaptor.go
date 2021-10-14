@@ -196,6 +196,8 @@ func (a *Adaptor) save(
 	id string,
 	inst *Instance,
 ) error {
+	// An empty packet represents a stateless process root, so we only populate
+	// the packet if the root is stafeful.
 	if inst.Root != dogma.StatelessProcessRoot {
 		var err error
 		inst.Packet, err = a.Marshaler.Marshal(inst.Root)
