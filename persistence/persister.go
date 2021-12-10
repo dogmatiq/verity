@@ -38,6 +38,8 @@ type Operation interface {
 // OperationVisitor visits persistence operations.
 type OperationVisitor interface {
 	VisitSaveAggregateMetaData(context.Context, SaveAggregateMetaData) error
+	VisitSaveAggregateSnapshot(context.Context, SaveAggregateSnapshot) error
+	VisitRemoveAggregateSnapshot(context.Context, RemoveAggregateSnapshot) error
 	VisitSaveEvent(context.Context, SaveEvent) error
 	VisitSaveProcessInstance(context.Context, SaveProcessInstance) error
 	VisitRemoveProcessInstance(context.Context, RemoveProcessInstance) error

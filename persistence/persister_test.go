@@ -3,6 +3,7 @@ package persistence_test
 import (
 	"context"
 	"errors"
+	"github.com/dogmatiq/marshalkit/fixtures"
 
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -22,6 +23,7 @@ var _ = Describe("type Operation (interface)", func() {
 				Expect(err).To(MatchError(expect))
 			},
 			Entry("type SaveAggregateMetaData", SaveAggregateMetaData{}, "SaveAggregateMetaData"),
+			Entry("type SaveAggregateSnapshot", SaveAggregateSnapshot{}, "SaveAggregateSnapshot"),
 			Entry("type SaveEvent", SaveEvent{}, "SaveEvent"),
 			Entry("type SaveProcessInstance", SaveProcessInstance{}, "SaveProcessInstance"),
 			Entry("type RemoveProcessInstance", RemoveProcessInstance{}, "RemoveProcessInstance"),
@@ -63,6 +65,20 @@ var _ = Describe("type Batch", func() {
 					MetaData: AggregateMetaData{
 						HandlerKey: "<aggregate-key>",
 						InstanceID: "<instance>",
+					},
+				},
+				SaveAggregateSnapshot{
+					Snapshot: AggregateSnapshot{
+						HandlerKey: "<snapshot-key>",
+						InstanceID: "<instance-a>",
+						Version:    "<barrier_event_id>",
+						Packet:     fixtures.MessageA1Packet,
+					},
+				},
+				RemoveAggregateSnapshot{
+					Snapshot: AggregateSnapshot{
+						HandlerKey: "<snapshot-key>",
+						InstanceID: "<instance-b>",
 					},
 				},
 				SaveEvent{
@@ -116,6 +132,14 @@ var _ = Describe("type Batch", func() {
 						InstanceID: "<instance>",
 					},
 				},
+				SaveAggregateSnapshot{
+					Snapshot: AggregateSnapshot{
+						HandlerKey: "<snapshot-key>",
+						InstanceID: "<instance-a>",
+						Version:    "<barrier_event_id>",
+						Packet:     fixtures.MessageA1Packet,
+					},
+				},
 				SaveEvent{
 					Envelope: NewEnvelope("<id-1>", MessageA1),
 				},
@@ -159,6 +183,18 @@ var _ = Describe("type Batch", func() {
 			var v errorVisitor
 			err := batch.AcceptVisitor(context.Background(), v)
 			Expect(err).To(MatchError("SaveAggregateMetaData"))
+
+			batch = Batch{
+				SaveAggregateSnapshot{
+					Snapshot: AggregateSnapshot{
+						HandlerKey: "<handler-key>",
+						InstanceID: "<instance>",
+					},
+				},
+			}
+
+			err = batch.AcceptVisitor(context.Background(), v)
+			Expect(err).To(MatchError("SaveAggregateSnapshot"))
 		})
 	})
 })
@@ -170,6 +206,15 @@ type visitor struct {
 func (v *visitor) VisitSaveAggregateMetaData(_ context.Context, op SaveAggregateMetaData) error {
 	v.operations = append(v.operations, op)
 	return nil
+}
+
+func (v *visitor) VisitSaveAggregateSnapshot(_ context.Context, op SaveAggregateSnapshot) error {
+	v.operations = append(v.operations, op)
+	return nil
+}
+
+func (v *visitor) VisitRemoveAggregateSnapshot(_ context.Context, op RemoveAggregateSnapshot) error {
+	return errors.New("RemoveAggregateSnapshot")
 }
 
 func (v *visitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {
@@ -206,6 +251,14 @@ type errorVisitor struct{}
 
 func (errorVisitor) VisitSaveAggregateMetaData(_ context.Context, op SaveAggregateMetaData) error {
 	return errors.New("SaveAggregateMetaData")
+}
+
+func (errorVisitor) VisitSaveAggregateSnapshot(_ context.Context, _ SaveAggregateSnapshot) error {
+	return errors.New("SaveAggregateSnapshot")
+}
+
+func (errorVisitor) VisitRemoveAggregateSnapshot(_ context.Context, _ RemoveAggregateSnapshot) error {
+	return errors.New("RemoveAggregateSnapshot")
 }
 
 func (errorVisitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {

@@ -11,3 +11,11 @@ message AggregateMetaData{
   string last_event_id = 3;
   string barrier_event_id = 4;
 }
+
+// AggregateSnapshot is a protocol buffers representation of
+// persistence.AggregateSnapshot.
+message AggregateSnapshot{
+  string version = 1;
+  string media_type = 2;
+  bytes data = 3;
+}

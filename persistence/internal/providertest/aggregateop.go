@@ -1,6 +1,8 @@
 package providertest
 
 import (
+	"github.com/dogmatiq/marshalkit/fixtures"
+	"strconv"
 	"sync"
 
 	"github.com/dogmatiq/verity/persistence"
@@ -209,6 +211,141 @@ func declareAggregateOperationTests(tc *TestContext) {
 						HandlerKey: "<handler-key-2>",
 						InstanceID: "<instance-a>",
 						Revision:   3,
+					},
+				))
+			})
+		})
+
+		ginkgo.Describe("type persistence.SaveAggregateSnapshot", func() {
+			ginkgo.When("the instance does not exist", func() {
+				ginkgo.It("creates the instance", func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveAggregateSnapshot{
+							Snapshot: persistence.AggregateSnapshot{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Version:    "<version>",
+								Packet:     fixtures.MessageA1Packet,
+							},
+						},
+					)
+
+					ss, ok := loadAggregateSnapshot(tc.Context, dataStore, "<handler-key>", "<instance>")
+
+					gomega.Expect(ok).To(gomega.BeTrue())
+					gomega.Expect(ss).To(gomega.BeEquivalentTo(persistence.AggregateSnapshot{
+						HandlerKey: "<handler-key>",
+						InstanceID: "<instance>",
+						Version:    "<version>",
+						Packet:     fixtures.MessageA1Packet,
+					}))
+				})
+			})
+
+			ginkgo.When("the instance exists", func() {
+				ginkgo.BeforeEach(func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveAggregateSnapshot{
+							Snapshot: persistence.AggregateSnapshot{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Version:    "<version>",
+								Packet:     fixtures.MessageA1Packet,
+							},
+						},
+					)
+				})
+
+				ginkgo.It("updates the instance", func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveAggregateSnapshot{
+							Snapshot: persistence.AggregateSnapshot{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Version:    "<version-2>",
+								Packet:     fixtures.MessageA1Packet,
+							},
+						},
+					)
+
+					ss, ok := loadAggregateSnapshot(tc.Context, dataStore, "<handler-key>", "<instance>")
+
+					gomega.Expect(ok).To(gomega.BeTrue())
+					gomega.Expect(ss).To(gomega.BeEquivalentTo(persistence.AggregateSnapshot{
+						HandlerKey: "<handler-key>",
+						InstanceID: "<instance>",
+						Version:    "<version-2>",
+						Packet:     fixtures.MessageA1Packet,
+					}))
+				})
+			})
+
+			ginkgo.It("serializes operations from concurrent persist calls", func() {
+				var g sync.WaitGroup
+
+				fn := func(hk, id string, count uint64) {
+					defer ginkgo.GinkgoRecover()
+					defer g.Done()
+
+					for i := uint64(0); i < count; i++ {
+						persist(
+							tc.Context,
+							dataStore,
+							persistence.SaveAggregateSnapshot{
+								Snapshot: persistence.AggregateSnapshot{
+									HandlerKey: hk,
+									InstanceID: id,
+									Version:    strconv.FormatUint(i, 10),
+									Packet:     fixtures.MessageA1Packet,
+								},
+							},
+						)
+					}
+				}
+
+				// Note the overlap of handler keys and instance IDs.
+				g.Add(3)
+				go fn("<handler-key-1>", "<instance-a>", 1)
+				go fn("<handler-key-1>", "<instance-b>", 2)
+				go fn("<handler-key-2>", "<instance-a>", 3)
+				g.Wait()
+
+				ss, ok := loadAggregateSnapshot(tc.Context, dataStore, "<handler-key-1>", "<instance-a>")
+				gomega.Expect(ok).To(gomega.BeTrue())
+				gomega.Expect(ss).To(gomega.Equal(
+					persistence.AggregateSnapshot{
+						HandlerKey: "<handler-key-1>",
+						InstanceID: "<instance-a>",
+						Version:    "0",
+						Packet:     fixtures.MessageA1Packet,
+					},
+				))
+
+				ss, ok = loadAggregateSnapshot(tc.Context, dataStore, "<handler-key-1>", "<instance-b>")
+				gomega.Expect(ok).To(gomega.BeTrue())
+				gomega.Expect(ss).To(gomega.Equal(
+					persistence.AggregateSnapshot{
+						HandlerKey: "<handler-key-1>",
+						InstanceID: "<instance-b>",
+						Version:    "1",
+						Packet:     fixtures.MessageA1Packet,
+					},
+				))
+
+				ss, ok = loadAggregateSnapshot(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
+				gomega.Expect(ok).To(gomega.BeTrue())
+				gomega.Expect(ss).To(gomega.Equal(
+					persistence.AggregateSnapshot{
+						HandlerKey: "<handler-key-2>",
+						InstanceID: "<instance-a>",
+						Version:    "2",
+						Packet:     fixtures.MessageA1Packet,
 					},
 				))
 			})

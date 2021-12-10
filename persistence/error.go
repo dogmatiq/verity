@@ -1,6 +1,8 @@
 package persistence
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // UnknownMessageError is the error returned when a message referenced by its ID
 // does not exist.
@@ -26,6 +28,20 @@ type ConflictError struct {
 func (e ConflictError) Error() string {
 	return fmt.Sprintf(
 		"optimistic concurrency conflict in %T operation",
+		e.Cause,
+	)
+}
+
+// NotFoundError is an error indicating one or more operations within a batch
+// caused a record not found error.
+type NotFoundError struct {
+	// Cause is the operation that caused error.
+	Cause Operation
+}
+
+func (e NotFoundError) Error() string {
+	return fmt.Sprintf(
+		"record not found in %T operation",
 		e.Cause,
 	)
 }

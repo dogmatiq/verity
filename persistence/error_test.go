@@ -31,3 +31,17 @@ var _ = Describe("type ConflictError", func() {
 		})
 	})
 })
+
+var _ = Describe("type NotFoundError", func() {
+	Describe("func Error()", func() {
+		It("includes the operation type in the error message", func() {
+			err := NotFoundError{
+				Cause: SaveAggregateSnapshot{},
+			}
+
+			Expect(err).To(
+				MatchError("record not found in persistence.SaveAggregateSnapshot operation"),
+			)
+		})
+	})
+})

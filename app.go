@@ -237,9 +237,10 @@ func (f *handlerFactory) VisitRichApplication(ctx context.Context, cfg configkit
 
 func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
 	f.addRoutes(cfg, &aggregate.Adaptor{
-		Identity: marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
-		Handler:  cfg.Handler(),
-		Loader:   f.aggregateLoader,
+		Identity:  marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
+		Handler:   cfg.Handler(),
+		Loader:    f.aggregateLoader,
+		Marshaler: f.opts.Marshaler,
 		Cache: cache.Cache{
 			// TODO: https://github.com/dogmatiq/verity/issues/193
 			// Make TTL configurable.

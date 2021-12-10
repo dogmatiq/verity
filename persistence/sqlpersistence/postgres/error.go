@@ -124,6 +124,38 @@ func (d errorConverter) SelectAggregateMetaData(
 	return md, convertContextErrors(ctx, err)
 }
 
+func (d errorConverter) InsertAggregateSnapshot(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string, md persistence.AggregateSnapshot,
+) (bool, error) {
+	ok, err := d.d.InsertAggregateSnapshot(ctx, tx, ak, md)
+	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) UpdateAggregateSnapshot(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string, md persistence.AggregateSnapshot,
+) (bool, error) {
+	ok, err := d.d.UpdateAggregateSnapshot(ctx, tx, ak, md)
+	return ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) SelectAggregateSnapshot(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+) (persistence.AggregateSnapshot, bool, error) {
+	ss, ok, err := d.d.SelectAggregateSnapshot(ctx, db, ak, hk, id)
+	return ss, ok, convertContextErrors(ctx, err)
+}
+
+func (d errorConverter) DeleteAggregateSnapshot(ctx context.Context, tx *sql.Tx, ak string, inst persistence.AggregateSnapshot) (bool, error) {
+	ok, err := d.d.DeleteAggregateSnapshot(ctx, tx, ak, inst)
+	return ok, convertContextErrors(ctx, err)
+}
+
 //
 // event
 //

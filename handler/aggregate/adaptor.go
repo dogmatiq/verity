@@ -3,6 +3,7 @@ package aggregate
 import (
 	"context"
 	"fmt"
+	"github.com/dogmatiq/marshalkit"
 	"time"
 
 	"github.com/dogmatiq/configkit"
@@ -16,6 +17,8 @@ import (
 	"github.com/dogmatiq/verity/persistence"
 )
 
+const snapshotInterval = 1000
+
 // Adaptor exposes a dogma.AggregateMessageHandler as a handler.Handler.
 type Adaptor struct {
 	// Identity is the handler's identity.
@@ -27,6 +30,9 @@ type Adaptor struct {
 
 	// Loader is used to load aggregate instances into memory.
 	Loader *Loader
+
+	// Marshaler is used to marshal aggregate instances.
+	Marshaler marshalkit.ValueMarshaler
 
 	// Cache is an in-memory cache of aggregate instances.
 	Cache cache.Cache
@@ -95,9 +101,34 @@ func (a *Adaptor) HandleMessage(
 	})
 
 	if inst.InstanceExists {
+		// If snapshot interval reached then create / update snapshot.
+		if inst.Revision != 0 && inst.Revision%snapshotInterval == 0 {
+			packet, err := a.Marshaler.Marshal(inst.Root)
+			if err != nil {
+				return err
+			}
+
+			w.Do(persistence.SaveAggregateSnapshot{
+				Snapshot: persistence.AggregateSnapshot{
+					HandlerKey: inst.HandlerKey,
+					InstanceID: inst.InstanceID,
+					Version:    inst.LastEventID,
+					Packet:     packet,
+				},
+			})
+		}
+
 		inst.Revision++
 	} else {
 		a.Cache.Discard(rec)
+
+		// If instance no longer exists then remove associated snapshot.
+		w.Do(persistence.RemoveAggregateSnapshot{
+			Snapshot: persistence.AggregateSnapshot{
+				HandlerKey: inst.HandlerKey,
+				InstanceID: inst.InstanceID,
+			},
+		})
 	}
 
 	return nil

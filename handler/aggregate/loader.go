@@ -2,7 +2,6 @@ package aggregate
 
 import (
 	"context"
-
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/parcel"
@@ -27,7 +26,7 @@ type Loader struct {
 	EventRepository persistence.EventRepository
 
 	// Marshaler is used to marshal/unmarshal aggregate snapshots and historical
-	// events,
+	// events.
 	Marshaler marshalkit.ValueMarshaler
 }
 
@@ -40,6 +39,21 @@ func (l *Loader) Load(
 	md, err := l.AggregateRepository.LoadAggregateMetaData(ctx, hk, id)
 	if err != nil {
 		return nil, err
+	}
+
+	ss, ok, err := l.AggregateRepository.LoadAggregateSnapshot(ctx, hk, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if ok {
+		s, err := l.Marshaler.Unmarshal(ss.Packet)
+		if err != nil {
+			return nil, err
+		}
+
+		base = s.(dogma.AggregateRoot)
+		md.BarrierEventID = ss.Version
 	}
 
 	inst := &Instance{md, base}

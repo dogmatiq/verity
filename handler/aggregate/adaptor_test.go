@@ -3,6 +3,8 @@ package aggregate_test
 import (
 	"context"
 	"errors"
+	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/marshalkit/codec"
 	"time"
 
 	. "github.com/dogmatiq/configkit/fixtures"
@@ -85,6 +87,7 @@ var _ = Describe("type Adaptor", func() {
 				EventRepository:     dataStore,
 				Marshaler:           Marshaler,
 			},
+			Marshaler:   Marshaler,
 			Packer:      packer,
 			LoadTimeout: 1 * time.Second,
 			Logger:      logger,
@@ -245,6 +248,96 @@ var _ = Describe("type Adaptor", func() {
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
 						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
+					},
+				))
+			})
+
+			It("returns an error if the aggregate root can not be marshaled", func() {
+				upstream.HandleCommandFunc = func(
+					x dogma.AggregateRoot,
+					s dogma.AggregateCommandScope,
+					_ dogma.Message,
+				) {
+					s.RecordEvent(MessageE1)
+
+					r := x.(*AggregateRoot)
+					Expect(r.AppliedEvents).To(Equal(
+						[]dogma.Message{
+							MessageE1,
+						},
+					))
+				}
+
+				dataStore.LoadAggregateMetaDataFunc = func(
+					_ context.Context,
+					hk, id string,
+				) (persistence.AggregateMetaData, error) {
+					return persistence.AggregateMetaData{
+						HandlerKey: hk,
+						InstanceID: id,
+						Revision:   1000,
+					}, nil
+				}
+
+				adaptor.Marshaler = &codec.Marshaler{} // an empty marshaler cannot marshal anything
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).To(MatchError("no codecs support the '*fixtures.AggregateRoot' type"))
+			})
+
+			It("updates the snapshot if interval revision", func() {
+				upstream.HandleCommandFunc = func(
+					x dogma.AggregateRoot,
+					s dogma.AggregateCommandScope,
+					_ dogma.Message,
+				) {
+					s.RecordEvent(MessageE1)
+
+					r := x.(*AggregateRoot)
+					Expect(r.AppliedEvents).To(Equal(
+						[]dogma.Message{
+							MessageE1,
+						},
+					))
+				}
+
+				dataStore.LoadAggregateMetaDataFunc = func(
+					_ context.Context,
+					hk, id string,
+				) (persistence.AggregateMetaData, error) {
+					return persistence.AggregateMetaData{
+						HandlerKey: hk,
+						InstanceID: id,
+						Revision:   1000,
+					}, nil
+				}
+
+				err := adaptor.HandleMessage(ctx, work, cause)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(work.Operations).To(EqualX(
+					[]persistence.Operation{
+						persistence.SaveAggregateMetaData{
+							MetaData: persistence.AggregateMetaData{
+								HandlerKey:     "<aggregate-key>",
+								InstanceID:     "<instance>",
+								InstanceExists: true,
+								LastEventID:    "0",
+								Revision:       1000,
+								BarrierEventID: "",
+							},
+						},
+						persistence.SaveAggregateSnapshot{
+							Snapshot: persistence.AggregateSnapshot{
+								HandlerKey: "<aggregate-key>",
+								InstanceID: "<instance>",
+								Version:    "0",
+								Packet: marshalkit.Packet{
+									MediaType: "application/json; type=AggregateRoot",
+									Data:      []byte(`{"AppliedEvents":[{"Value":"E1"}]}`),
+								},
+							},
+						},
 					},
 				))
 			})
@@ -429,6 +522,12 @@ var _ = Describe("type Adaptor", func() {
 									BarrierEventID: "2", // deterministic ID from the packer
 								},
 							},
+							persistence.RemoveAggregateSnapshot{
+								Snapshot: persistence.AggregateSnapshot{
+									HandlerKey: "<aggregate-key>",
+									InstanceID: "<instance>",
+								},
+							},
 						},
 					))
 				})
@@ -454,6 +553,12 @@ var _ = Describe("type Adaptor", func() {
 									InstanceExists: false,
 									LastEventID:    "1", // deterministic ID from the packer
 									BarrierEventID: "1", // deterministic ID from the packer
+								},
+							},
+							persistence.RemoveAggregateSnapshot{
+								Snapshot: persistence.AggregateSnapshot{
+									HandlerKey: "<aggregate-key>",
+									InstanceID: "<instance>",
 								},
 							},
 						},

@@ -3,6 +3,7 @@ package aggregate_test
 import (
 	"context"
 	"errors"
+	"github.com/dogmatiq/marshalkit"
 	"time"
 
 	"github.com/dogmatiq/dogma"
@@ -61,6 +62,19 @@ var _ = Describe("type Loader", func() {
 			Expect(err).To(MatchError("<error>"))
 		})
 
+		It("returns an error if the snapshot can not be loaded", func() {
+			dataStore.LoadAggregateSnapshotFunc = func(
+				context.Context,
+				string,
+				string,
+			) (persistence.AggregateSnapshot, bool, error) {
+				return persistence.AggregateSnapshot{}, false, errors.New("<error>")
+			}
+
+			_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+			Expect(err).To(MatchError("<error>"))
+		})
+
 		When("the instance has never existed", func() {
 			It("returns an instance with a new meta-data value and the base root", func() {
 				inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
@@ -74,6 +88,12 @@ var _ = Describe("type Loader", func() {
 						Root: base,
 					},
 				))
+			})
+
+			It("does not return a snapshot", func() {
+				inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(inst.BarrierEventID).To(BeEmpty()) // is set when snapshot is present
 			})
 
 			It("does not attempt to load events", func() {
@@ -126,6 +146,57 @@ var _ = Describe("type Loader", func() {
 							InstanceExists: true,
 						},
 						Root: base,
+					},
+				))
+			})
+
+			It("returns an instance with the snapshot base root when snapshot is present", func() {
+				ssBase := &AggregateRoot{
+					AppliedEvents: []dogma.Message{
+						MessageE1,
+						MessageE2,
+						MessageE3,
+					},
+				}
+
+				var packet marshalkit.Packet
+				var err error
+				packet, err = Marshaler.Marshal(ssBase)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				_, err = dataStore.Persist(
+					ctx,
+					persistence.Batch{
+						persistence.SaveAggregateSnapshot{
+							Snapshot: persistence.AggregateSnapshot{
+								HandlerKey: "<handler-key>",
+								InstanceID: "<instance>",
+								Version:    "<event-1>",
+								Packet:     packet,
+							},
+						},
+					},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(inst).To(Equal(
+					&Instance{
+						AggregateMetaData: persistence.AggregateMetaData{
+							HandlerKey:     "<handler-key>",
+							InstanceID:     "<instance>",
+							Revision:       1,
+							InstanceExists: true,
+							BarrierEventID: "<event-1>",
+						},
+						Root: &AggregateRoot{
+							AppliedEvents: []dogma.Message{
+								map[string]interface{}{"Value": "E1"},
+								map[string]interface{}{"Value": "E2"},
+								map[string]interface{}{"Value": "E3"},
+							},
+						},
 					},
 				))
 			})

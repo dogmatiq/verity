@@ -36,6 +36,7 @@ type DataStoreStub struct {
 	persistence.DataStore
 
 	LoadAggregateMetaDataFunc func(context.Context, string, string) (persistence.AggregateMetaData, error)
+	LoadAggregateSnapshotFunc func(context.Context, string, string) (persistence.AggregateSnapshot, bool, error)
 	LoadEventsByTypeFunc      func(context.Context, map[string]struct{}, uint64) (persistence.EventResult, error)
 	LoadEventsBySourceFunc    func(context.Context, string, string, string) (persistence.EventResult, error)
 	LoadOffsetFunc            func(context.Context, string) (uint64, error)
@@ -74,6 +75,22 @@ func (ds *DataStoreStub) LoadAggregateMetaData(
 	}
 
 	return persistence.AggregateMetaData{}, nil
+}
+
+// LoadAggregateSnapshot loads the latest snapshot for an aggregate instance.
+func (ds *DataStoreStub) LoadAggregateSnapshot(
+	ctx context.Context,
+	hk, id string,
+) (persistence.AggregateSnapshot, bool, error) {
+	if ds.LoadAggregateSnapshotFunc != nil {
+		return ds.LoadAggregateSnapshotFunc(ctx, hk, id)
+	}
+
+	if ds.DataStore != nil {
+		return ds.DataStore.LoadAggregateSnapshot(ctx, hk, id)
+	}
+
+	return persistence.AggregateSnapshot{}, false, nil
 }
 
 // LoadEventsBySource loads the events produced by a specific handler.

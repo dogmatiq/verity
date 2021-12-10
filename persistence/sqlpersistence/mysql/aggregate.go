@@ -113,6 +113,132 @@ func (driver) SelectAggregateMetaData(
 	return md, err
 }
 
+// InsertAggregateSnapshot inserts an aggregate snapshot.
+//
+// It returns false if the row already exists.
+func (driver) InsertAggregateSnapshot(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.AggregateSnapshot,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
+		ctx,
+		tx,
+		`INSERT INTO aggregate_snapshot SET
+			app_key = ?,
+			handler_key = ?,
+			instance_id = ?,
+			version = ?,
+			media_type = ?,
+			data = ?
+		ON DUPLICATE KEY UPDATE
+			app_key = app_key`, // do nothing
+		ak,
+		inst.HandlerKey,
+		inst.InstanceID,
+		inst.Version,
+		inst.Packet.MediaType,
+		inst.Packet.Data,
+	), nil
+}
+
+// UpdateAggregateSnapshot updates an aggregate snapshot.
+//
+// It returns false if the row does not exist.
+func (driver) UpdateAggregateSnapshot(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.AggregateSnapshot,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
+		ctx,
+		tx,
+		`UPDATE aggregate_snapshot SET
+			media_type = ?,
+			data = ?,
+			version = ?
+		WHERE app_key = ?
+		AND handler_key = ?
+		AND instance_id = ?`,
+		inst.Packet.MediaType,
+		inst.Packet.Data,
+		inst.Version,
+		ak,
+		inst.HandlerKey,
+		inst.InstanceID,
+	), nil
+}
+
+// DeleteAggregateSnapshot deletes a process instance.
+//
+// It returns false if the row does not exist or inst.Revision is not current.
+func (driver) DeleteAggregateSnapshot(
+	ctx context.Context,
+	tx *sql.Tx,
+	ak string,
+	inst persistence.AggregateSnapshot,
+) (_ bool, err error) {
+	defer sqlx.Recover(&err)
+
+	return sqlx.TryExecRow(
+		ctx,
+		tx,
+		`DELETE FROM aggregate_snapshot
+		WHERE app_key = ?
+		AND handler_key = ?
+		AND instance_id = ?
+		AND version = ?`,
+		ak,
+		inst.HandlerKey,
+		inst.InstanceID,
+		inst.Version,
+	), nil
+}
+
+// SelectAggregateSnapshot selects a process instance's data.
+func (driver) SelectAggregateSnapshot(
+	ctx context.Context,
+	db *sql.DB,
+	ak, hk, id string,
+) (persistence.AggregateSnapshot, bool, error) {
+	row := db.QueryRowContext(
+		ctx,
+		`SELECT
+			version,
+			media_type,
+			data
+		FROM aggregate_snapshot
+		WHERE app_key = ?
+		AND handler_key = ?
+		AND instance_id = ?`,
+		ak,
+		hk,
+		id,
+	)
+
+	inst := persistence.AggregateSnapshot{
+		HandlerKey: hk,
+		InstanceID: id,
+	}
+
+	err := row.Scan(
+		&inst.Version,
+		&inst.Packet.MediaType,
+		&inst.Packet.Data,
+	)
+	if err == sql.ErrNoRows {
+		return inst, false, nil
+	}
+
+	return inst, true, err
+}
+
 // createAggregateSchema creates schema elements for aggregates.
 func createAggregateSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(
@@ -130,9 +256,25 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		) ENGINE=InnoDB`,
 	)
+
+	sqlx.Exec(
+		ctx,
+		db,
+		`CREATE TABLE IF NOT EXISTS aggregate_snapshot (
+			app_key     VARBINARY(255) NOT NULL,
+			handler_key VARBINARY(255) NOT NULL,
+			instance_id VARBINARY(255) NOT NULL,
+			version     VARBINARY(255) NOT NULL,
+			media_type  VARBINARY(255) NOT NULL,
+			data        LONGBLOB,
+
+			PRIMARY KEY (app_key, handler_key, instance_id)
+		) ENGINE=InnoDB`,
+	)
 }
 
 // dropAggregateSchema drops  schema elements for aggregates.
 func dropAggregateSchema(ctx context.Context, db *sql.DB) {
 	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_metadata`)
+	sqlx.Exec(ctx, db, `DROP TABLE IF EXISTS aggregate_snapshot`)
 }

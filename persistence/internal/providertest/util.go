@@ -2,7 +2,6 @@ package providertest
 
 import (
 	"context"
-
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -18,6 +17,18 @@ func loadAggregateMetaData(
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 	return md
+}
+
+// loadAggregateSnapshot loads aggregate snapshot for a specific instance.
+func loadAggregateSnapshot(
+	ctx context.Context,
+	r persistence.AggregateRepository,
+	hk, id string,
+) (persistence.AggregateSnapshot, bool) {
+	ss, ok, err := r.LoadAggregateSnapshot(ctx, hk, id)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	return ss, ok
 }
 
 // loadProcessInstance loads a process instance.

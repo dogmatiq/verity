@@ -1,6 +1,9 @@
 package persistence
 
-import "context"
+import (
+	"context"
+	"github.com/dogmatiq/marshalkit"
+)
 
 // AggregateMetaData contains meta-data about an aggregate instance.
 type AggregateMetaData struct {
@@ -32,6 +35,20 @@ type AggregateMetaData struct {
 	BarrierEventID string
 }
 
+type AggregateSnapshot struct {
+	// HandlerKey is the identity key of the aggregate message handler.
+	HandlerKey string
+
+	// InstanceID is the aggregate instance ID.
+	InstanceID string
+
+	// Version is the instance's current version.
+	Version string
+
+	// Packet contains the binary representation of the aggregate snapshot.
+	Packet marshalkit.Packet
+}
+
 // AggregateRepository is an interface for reading aggregate state.
 type AggregateRepository interface {
 	// LoadAggregateMetaData loads the meta-data for an aggregate instance.
@@ -41,6 +58,14 @@ type AggregateRepository interface {
 		ctx context.Context,
 		hk, id string,
 	) (AggregateMetaData, error)
+
+	// LoadAggregateSnapshot loads the latest snapshot for an aggregate instance.
+	//
+	// hk is the aggregate handler's identity key, id is the instance ID.
+	LoadAggregateSnapshot(
+		ctx context.Context,
+		hk, id string,
+	) (AggregateSnapshot, bool, error)
 }
 
 // SaveAggregateMetaData is an Operation that creates or updates meta-data about
@@ -61,4 +86,38 @@ func (op SaveAggregateMetaData) AcceptVisitor(ctx context.Context, v OperationVi
 
 func (op SaveAggregateMetaData) entityKey() entityKey {
 	return entityKey{"handler", op.MetaData.HandlerKey, op.MetaData.InstanceID}
+}
+
+// SaveAggregateSnapshot is an Operation that creates or updates snapshots of
+// an aggregate instance.
+type SaveAggregateSnapshot struct {
+	// Snapshot is the snapshot to persist.
+	Snapshot AggregateSnapshot
+}
+
+// AcceptVisitor calls v.VisitSaveAggregateSnapshot().
+func (op SaveAggregateSnapshot) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
+	return v.VisitSaveAggregateSnapshot(ctx, op)
+}
+
+func (op SaveAggregateSnapshot) entityKey() entityKey {
+	return entityKey{"handler", op.Snapshot.HandlerKey, op.Snapshot.InstanceID}
+}
+
+// RemoveAggregateSnapshot is an Operation that removes a snapshot of an
+// aggregate instance.
+//
+// The instance's pending timeout messages are removed from the message queue.
+type RemoveAggregateSnapshot struct {
+	// Instance is the instance to remove.
+	Snapshot AggregateSnapshot
+}
+
+// AcceptVisitor calls v.VisitRemoveAggregateSnapshot().
+func (op RemoveAggregateSnapshot) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
+	return v.VisitRemoveAggregateSnapshot(ctx, op)
+}
+
+func (op RemoveAggregateSnapshot) entityKey() entityKey {
+	return entityKey{"handler", op.Snapshot.HandlerKey, op.Snapshot.InstanceID}
 }

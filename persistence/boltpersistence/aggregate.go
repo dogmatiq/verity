@@ -23,6 +23,13 @@ var (
 	// The keys are application-defined instance IDs. The values are
 	// pb.AggregateMetaData values marshaled using protocol buffers.
 	aggregateMetaDataBucketKey = []byte("metadata")
+
+	// aggregateSnapshotBucketKey is the key for a child bucket that contains
+	// snapshots for each aggregate instance of a specific handler type.
+	//
+	// The keys are application-defined instance IDs. The values are
+	// pb.AggregateSnapshot values marshaled using protocol buffers.
+	aggregateSnapshotBucketKey = []byte("snapshot")
 )
 
 // LoadAggregateMetaData loads the meta-data for an aggregate instance.
@@ -55,6 +62,35 @@ func (ds *dataStore) LoadAggregateMetaData(
 	return md, nil
 }
 
+func (ds *dataStore) LoadAggregateSnapshot(
+	_ context.Context,
+	hk, id string,
+) (_ persistence.AggregateSnapshot, _ bool, err error) {
+	defer bboltx.Recover(&err)
+
+	inst := persistence.AggregateSnapshot{
+		HandlerKey: hk,
+		InstanceID: id,
+	}
+
+	bboltx.View(
+		ds.db,
+		func(tx *bbolt.Tx) {
+			if root, ok := bboltx.TryBucket(
+				tx,
+				ds.appKey,
+			); ok {
+				ss := loadAggregateSnapshot(root, hk, id)
+				inst.Version = ss.GetVersion()
+				inst.Packet.MediaType = ss.GetMediaType()
+				inst.Packet.Data = ss.GetData()
+			}
+		},
+	)
+
+	return inst, true, nil
+}
+
 // VisitSaveAggregateMetaData applies the changes in a "SaveAggregateMetaData"
 // operation to the database.
 func (c *committer) VisitSaveAggregateMetaData(
@@ -74,6 +110,33 @@ func (c *committer) VisitSaveAggregateMetaData(
 	}
 
 	saveAggregateMetaData(c.root, op.MetaData)
+
+	return nil
+}
+
+// VisitSaveAggregateSnapshot applies the changes in a "VisitSaveAggregateSnapshot"
+// operation to the database.
+func (c *committer) VisitSaveAggregateSnapshot(
+	_ context.Context,
+	op persistence.SaveAggregateSnapshot,
+) error {
+	saveAggregateSnapshot(c.root, op.Snapshot)
+
+	return nil
+}
+
+// VisitRemoveAggregateSnapshot applies the changes in a "RemoveAggregateSnapshot"
+// operation to the database.
+func (c *committer) VisitRemoveAggregateSnapshot(
+	_ context.Context,
+	op persistence.RemoveAggregateSnapshot,
+) error {
+	bboltx.DeletePath(
+		c.root,
+		processBucketKey,
+		[]byte(op.Snapshot.HandlerKey),
+		[]byte(op.Snapshot.InstanceID),
+	)
 
 	return nil
 }
@@ -119,4 +182,43 @@ func loadAggregateMetaData(root *bbolt.Bucket, hk, id string) *pb.AggregateMetaD
 	bboltx.Must(err)
 
 	return md
+}
+
+// saveAggregateSnapshot saves an aggregate snapshot to b.
+func saveAggregateSnapshot(root *bbolt.Bucket, inst persistence.AggregateSnapshot) {
+	data, err := proto.Marshal(
+		&pb.AggregateSnapshot{
+			Version:   inst.Version,
+			MediaType: inst.Packet.MediaType,
+			Data:      inst.Packet.Data,
+		},
+	)
+	bboltx.Must(err)
+
+	bboltx.PutPath(
+		root,
+		data,
+		aggregateSnapshotBucketKey,
+		[]byte(inst.HandlerKey),
+		[]byte(inst.InstanceID),
+	)
+}
+
+// loadAggregateSnapshot returns an aggregate snapshot loaded from b.
+func loadAggregateSnapshot(root *bbolt.Bucket, hk, id string) *pb.AggregateSnapshot {
+	data := bboltx.GetPath(
+		root,
+		aggregateSnapshotBucketKey,
+		[]byte(hk),
+		[]byte(id),
+	)
+	if data == nil {
+		return nil
+	}
+
+	inst := &pb.AggregateSnapshot{}
+	err := proto.Unmarshal(data, inst)
+	bboltx.Must(err)
+
+	return inst
 }

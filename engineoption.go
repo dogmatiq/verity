@@ -192,6 +192,14 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 				return true
 			},
 		)
+
+		cfg.RichHandlers().RangeAggregates(
+			func(h configkit.RichAggregate) bool {
+				r := h.Handler().New()
+				types = append(types, reflect.TypeOf(r))
+				return true
+			},
+		)
 	}
 
 	m, err := codec.NewMarshaler(
