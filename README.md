@@ -8,3 +8,6 @@
 
 Verity is a scalable, event-sourced [Dogma](https://github.com/dogmatiq/dogma)
 [engine](https://github.com/dogmatiq/dogma#engine).
+
+This project's tests depend on the Docker stack provided by
+[`dogmatiq/sqltest`](https://github.com/dogmatiq/sqltest#readme).
