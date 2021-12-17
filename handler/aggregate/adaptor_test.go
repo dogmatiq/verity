@@ -259,13 +259,6 @@ var _ = Describe("type Adaptor", func() {
 					_ dogma.Message,
 				) {
 					s.RecordEvent(MessageE1)
-
-					r := x.(*AggregateRoot)
-					Expect(r.AppliedEvents).To(Equal(
-						[]dogma.Message{
-							MessageE1,
-						},
-					))
 				}
 
 				dataStore.LoadAggregateMetaDataFunc = func(
