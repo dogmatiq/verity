@@ -50,7 +50,7 @@ func (op SaveProcessInstance) AcceptVisitor(ctx context.Context, v OperationVisi
 }
 
 func (op SaveProcessInstance) entityKey() entityKey {
-	return entityKey{"process", op.Instance.HandlerKey, op.Instance.InstanceID}
+	return entityKey{"handler", op.Instance.HandlerKey, op.Instance.InstanceID}
 }
 
 // RemoveProcessInstance is an Operation that removes a process instance.
