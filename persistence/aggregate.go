@@ -101,7 +101,7 @@ func (op SaveAggregateSnapshot) AcceptVisitor(ctx context.Context, v OperationVi
 }
 
 func (op SaveAggregateSnapshot) entityKey() entityKey {
-	return entityKey{"handler", op.Snapshot.HandlerKey, op.Snapshot.InstanceID}
+	return entityKey{"snapshot", op.Snapshot.HandlerKey, op.Snapshot.InstanceID}
 }
 
 // RemoveAggregateSnapshot is an Operation that removes a snapshot of an
