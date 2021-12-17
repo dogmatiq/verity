@@ -17,6 +17,7 @@ import (
 	"github.com/dogmatiq/verity/persistence"
 )
 
+// snapshotInterval is the number of revisions that may occur before saving a new snapshot.
 const snapshotInterval = 1000
 
 // Adaptor exposes a dogma.AggregateMessageHandler as a handler.Handler.
