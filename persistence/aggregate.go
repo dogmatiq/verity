@@ -119,5 +119,5 @@ func (op RemoveAggregateSnapshot) AcceptVisitor(ctx context.Context, v Operation
 }
 
 func (op RemoveAggregateSnapshot) entityKey() entityKey {
-	return entityKey{"handler", op.Snapshot.HandlerKey, op.Snapshot.InstanceID}
+	return entityKey{"snapshot", op.Snapshot.HandlerKey, op.Snapshot.InstanceID}
 }
