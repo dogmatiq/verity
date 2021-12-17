@@ -159,9 +159,7 @@ var _ = Describe("type Loader", func() {
 					},
 				}
 
-				var packet marshalkit.Packet
-				var err error
-				packet, err = Marshaler.Marshal(ssBase)
+				packet, err := Marshaler.Marshal(ssBase)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				_, err = dataStore.Persist(
