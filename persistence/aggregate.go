@@ -42,8 +42,8 @@ type AggregateSnapshot struct {
 	// InstanceID is the aggregate instance ID.
 	InstanceID string
 
-	// Version is the instance's current version.
-	Version string
+	// LastEventID is the most recent event ID applied to the aggregate root at the point this snapshot was taken.
+	LastEventID string
 
 	// Packet contains the binary representation of the aggregate snapshot.
 	Packet marshalkit.Packet
