@@ -315,9 +315,9 @@ var _ = Describe("type Adaptor", func() {
 						},
 						persistence.SaveAggregateSnapshot{
 							Snapshot: persistence.AggregateSnapshot{
-								HandlerKey: "<aggregate-key>",
-								InstanceID: "<instance>",
-								Version:    "0",
+								HandlerKey:  "<aggregate-key>",
+								InstanceID:  "<instance>",
+								LastEventID: "0",
 								Packet: marshalkit.Packet{
 									MediaType: "application/json; type=AggregateRoot",
 									Data:      []byte(`{"AppliedEvents":[{"Value":"E1"}]}`),

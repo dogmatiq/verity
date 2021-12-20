@@ -3,7 +3,6 @@ package aggregate_test
 import (
 	"context"
 	"errors"
-	"github.com/dogmatiq/marshalkit"
 	"time"
 
 	"github.com/dogmatiq/dogma"
@@ -90,12 +89,6 @@ var _ = Describe("type Loader", func() {
 				))
 			})
 
-			It("does not return a snapshot", func() {
-				inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(inst.BarrierEventID).To(BeEmpty()) // is set when snapshot is present
-			})
-
 			It("does not attempt to load events", func() {
 				dataStore.LoadEventsBySourceFunc = func(
 					context.Context,
@@ -167,10 +160,10 @@ var _ = Describe("type Loader", func() {
 					persistence.Batch{
 						persistence.SaveAggregateSnapshot{
 							Snapshot: persistence.AggregateSnapshot{
-								HandlerKey: "<handler-key>",
-								InstanceID: "<instance>",
-								Version:    "<event-1>",
-								Packet:     packet,
+								HandlerKey:  "<handler-key>",
+								InstanceID:  "<instance>",
+								LastEventID: "<event-1>",
+								Packet:      packet,
 							},
 						},
 					},
@@ -186,7 +179,6 @@ var _ = Describe("type Loader", func() {
 							InstanceID:     "<instance>",
 							Revision:       1,
 							InstanceExists: true,
-							BarrierEventID: "<event-1>",
 						},
 						Root: &AggregateRoot{
 							AppliedEvents: []dogma.Message{

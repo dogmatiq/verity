@@ -41,6 +41,8 @@ func (l *Loader) Load(
 		return nil, err
 	}
 
+	barrierEventID := md.BarrierEventID
+
 	ss, ok, err := l.AggregateRepository.LoadAggregateSnapshot(ctx, hk, id)
 	if err != nil {
 		return nil, err
@@ -53,7 +55,7 @@ func (l *Loader) Load(
 		}
 
 		base = s.(dogma.AggregateRoot)
-		md.BarrierEventID = ss.Version
+		barrierEventID = ss.LastEventID
 	}
 
 	inst := &Instance{md, base}
@@ -62,7 +64,7 @@ func (l *Loader) Load(
 		return inst, nil
 	}
 
-	if err := l.applyEvents(ctx, md, base); err != nil {
+	if err := l.applyEvents(ctx, md, base, barrierEventID); err != nil {
 		return nil, err
 	}
 
@@ -73,12 +75,13 @@ func (l *Loader) applyEvents(
 	ctx context.Context,
 	md persistence.AggregateMetaData,
 	base dogma.AggregateRoot,
+	barrierEventID string,
 ) error {
 	res, err := l.EventRepository.LoadEventsBySource(
 		ctx,
 		md.HandlerKey,
 		md.InstanceID,
-		md.BarrierEventID,
+		barrierEventID,
 	)
 	if err != nil {
 		return err

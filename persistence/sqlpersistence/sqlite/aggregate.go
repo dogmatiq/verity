@@ -135,7 +135,7 @@ func (driver) InsertAggregateSnapshot(
 			app_key,
 			handler_key,
 			instance_id,
-			version,
+			last_event_id,
 			media_type,
 			data
 		) VALUES (
@@ -144,7 +144,7 @@ func (driver) InsertAggregateSnapshot(
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
-		inst.Version,
+		inst.LastEventID,
 		inst.Packet.MediaType,
 		inst.Packet.Data,
 	)
@@ -168,13 +168,13 @@ func (driver) UpdateAggregateSnapshot(
 		ctx,
 		tx,
 		`UPDATE aggregate_snapshot SET
-			version = $1,
+			last_event_id = $1,
 			media_type = $2,
 			data = $3
 		WHERE app_key = $4
 		AND handler_key = $5
 		AND instance_id = $6`,
-		inst.Version,
+		inst.LastEventID,
 		inst.Packet.MediaType,
 		inst.Packet.Data,
 		ak,
@@ -201,11 +201,11 @@ func (driver) DeleteAggregateSnapshot(
 		WHERE app_key = $1
 		AND handler_key = $2
 		AND instance_id = $3
-		AND version = $4`,
+		AND last_event_id = $4`,
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
-		inst.Version,
+		inst.LastEventID,
 	), nil
 }
 
@@ -218,7 +218,7 @@ func (driver) SelectAggregateSnapshot(
 	row := db.QueryRowContext(
 		ctx,
 		`SELECT
-			version,
+			last_event_id,
 			media_type,
 			data
 		FROM aggregate_snapshot
@@ -236,7 +236,7 @@ func (driver) SelectAggregateSnapshot(
 	}
 
 	err := row.Scan(
-		&inst.Version,
+		&inst.LastEventID,
 		&inst.Packet.MediaType,
 		&inst.Packet.Data,
 	)
@@ -272,7 +272,7 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 			app_key     TEXT NOT NULL,
 			handler_key TEXT NOT NULL,
 			instance_id TEXT NOT NULL,
-			version     TEXT NOT NULL,
+			last_event_id     TEXT NOT NULL,
 			media_type  TEXT NOT NULL,
 			data        BLOB,
 

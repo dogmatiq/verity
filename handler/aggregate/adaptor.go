@@ -111,10 +111,10 @@ func (a *Adaptor) HandleMessage(
 
 			w.Do(persistence.SaveAggregateSnapshot{
 				Snapshot: persistence.AggregateSnapshot{
-					HandlerKey: inst.HandlerKey,
-					InstanceID: inst.InstanceID,
-					Version:    inst.LastEventID,
-					Packet:     packet,
+					HandlerKey:  inst.HandlerKey,
+					InstanceID:  inst.InstanceID,
+					LastEventID: inst.LastEventID,
+					Packet:      packet,
 				},
 			})
 		}

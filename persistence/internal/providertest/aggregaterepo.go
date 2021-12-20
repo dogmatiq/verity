@@ -95,10 +95,10 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 
 			ginkgo.It("returns the current persisted snapshot", func() {
 				expect := persistence.AggregateSnapshot{
-					HandlerKey: "<handler-key>",
-					InstanceID: "<instance>",
-					Version:    "<barrier-event-id>",
-					Packet:     marshalfixtures.MessageP2Packet,
+					HandlerKey:  "<handler-key>",
+					InstanceID:  "<instance>",
+					LastEventID: "<last-event-id>",
+					Packet:      marshalfixtures.MessageP2Packet,
 				}
 				persist(
 					tc.Context,
@@ -119,9 +119,9 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				// the correct result.
 
 				expect := persistence.AggregateSnapshot{
-					HandlerKey: "<handler-key>",
-					InstanceID: "<instance>",
-					Version:    "<barrier-event-id>",
+					HandlerKey:  "<handler-key>",
+					InstanceID:  "<instance>",
+					LastEventID: "<last-event-id>",
 				}
 				persist(
 					tc.Context,

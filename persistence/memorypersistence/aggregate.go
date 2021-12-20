@@ -91,7 +91,7 @@ func (v *validator) VisitRemoveAggregateSnapshot(
 	key := instanceKey{inst.HandlerKey, inst.InstanceID}
 
 	if x, ok := v.db.aggregate.snapshot[key]; ok {
-		if inst.Version == x.Version {
+		if inst.LastEventID == x.LastEventID {
 			return nil
 		}
 	}

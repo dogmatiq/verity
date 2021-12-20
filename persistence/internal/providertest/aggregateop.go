@@ -224,10 +224,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveAggregateSnapshot{
 							Snapshot: persistence.AggregateSnapshot{
-								HandlerKey: "<handler-key>",
-								InstanceID: "<instance>",
-								Version:    "<version>",
-								Packet:     fixtures.MessageA1Packet,
+								HandlerKey:  "<handler-key>",
+								InstanceID:  "<instance>",
+								LastEventID: "<last-event-id>",
+								Packet:      fixtures.MessageA1Packet,
 							},
 						},
 					)
@@ -236,10 +236,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 					gomega.Expect(ok).To(gomega.BeTrue())
 					gomega.Expect(ss).To(gomega.BeEquivalentTo(persistence.AggregateSnapshot{
-						HandlerKey: "<handler-key>",
-						InstanceID: "<instance>",
-						Version:    "<version>",
-						Packet:     fixtures.MessageA1Packet,
+						HandlerKey:  "<handler-key>",
+						InstanceID:  "<instance>",
+						LastEventID: "<last-event-id>",
+						Packet:      fixtures.MessageA1Packet,
 					}))
 				})
 			})
@@ -251,10 +251,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveAggregateSnapshot{
 							Snapshot: persistence.AggregateSnapshot{
-								HandlerKey: "<handler-key>",
-								InstanceID: "<instance>",
-								Version:    "<version>",
-								Packet:     fixtures.MessageA1Packet,
+								HandlerKey:  "<handler-key>",
+								InstanceID:  "<instance>",
+								LastEventID: "<last-event-id>",
+								Packet:      fixtures.MessageA1Packet,
 							},
 						},
 					)
@@ -266,10 +266,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveAggregateSnapshot{
 							Snapshot: persistence.AggregateSnapshot{
-								HandlerKey: "<handler-key>",
-								InstanceID: "<instance>",
-								Version:    "<version-2>",
-								Packet:     fixtures.MessageA1Packet,
+								HandlerKey:  "<handler-key>",
+								InstanceID:  "<instance>",
+								LastEventID: "<last-event-id-2>",
+								Packet:      fixtures.MessageA1Packet,
 							},
 						},
 					)
@@ -278,10 +278,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 					gomega.Expect(ok).To(gomega.BeTrue())
 					gomega.Expect(ss).To(gomega.BeEquivalentTo(persistence.AggregateSnapshot{
-						HandlerKey: "<handler-key>",
-						InstanceID: "<instance>",
-						Version:    "<version-2>",
-						Packet:     fixtures.MessageA1Packet,
+						HandlerKey:  "<handler-key>",
+						InstanceID:  "<instance>",
+						LastEventID: "<last-event-id-2>",
+						Packet:      fixtures.MessageA1Packet,
 					}))
 				})
 			})
@@ -299,10 +299,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 							dataStore,
 							persistence.SaveAggregateSnapshot{
 								Snapshot: persistence.AggregateSnapshot{
-									HandlerKey: hk,
-									InstanceID: id,
-									Version:    strconv.FormatUint(i, 10),
-									Packet:     fixtures.MessageA1Packet,
+									HandlerKey:  hk,
+									InstanceID:  id,
+									LastEventID: strconv.FormatUint(i, 10),
+									Packet:      fixtures.MessageA1Packet,
 								},
 							},
 						)
@@ -320,10 +320,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 				gomega.Expect(ok).To(gomega.BeTrue())
 				gomega.Expect(ss).To(gomega.Equal(
 					persistence.AggregateSnapshot{
-						HandlerKey: "<handler-key-1>",
-						InstanceID: "<instance-a>",
-						Version:    "0",
-						Packet:     fixtures.MessageA1Packet,
+						HandlerKey:  "<handler-key-1>",
+						InstanceID:  "<instance-a>",
+						LastEventID: "0",
+						Packet:      fixtures.MessageA1Packet,
 					},
 				))
 
@@ -331,10 +331,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 				gomega.Expect(ok).To(gomega.BeTrue())
 				gomega.Expect(ss).To(gomega.Equal(
 					persistence.AggregateSnapshot{
-						HandlerKey: "<handler-key-1>",
-						InstanceID: "<instance-b>",
-						Version:    "1",
-						Packet:     fixtures.MessageA1Packet,
+						HandlerKey:  "<handler-key-1>",
+						InstanceID:  "<instance-b>",
+						LastEventID: "1",
+						Packet:      fixtures.MessageA1Packet,
 					},
 				))
 
@@ -342,10 +342,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 				gomega.Expect(ok).To(gomega.BeTrue())
 				gomega.Expect(ss).To(gomega.Equal(
 					persistence.AggregateSnapshot{
-						HandlerKey: "<handler-key-2>",
-						InstanceID: "<instance-a>",
-						Version:    "2",
-						Packet:     fixtures.MessageA1Packet,
+						HandlerKey:  "<handler-key-2>",
+						InstanceID:  "<instance-a>",
+						LastEventID: "2",
+						Packet:      fixtures.MessageA1Packet,
 					},
 				))
 			})

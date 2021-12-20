@@ -81,7 +81,7 @@ func (ds *dataStore) LoadAggregateSnapshot(
 				ds.appKey,
 			); ok {
 				ss := loadAggregateSnapshot(root, hk, id)
-				inst.Version = ss.GetVersion()
+				inst.LastEventID = ss.GetLastEventId()
 				inst.Packet.MediaType = ss.GetMediaType()
 				inst.Packet.Data = ss.GetData()
 			}
@@ -188,9 +188,9 @@ func loadAggregateMetaData(root *bbolt.Bucket, hk, id string) *pb.AggregateMetaD
 func saveAggregateSnapshot(root *bbolt.Bucket, inst persistence.AggregateSnapshot) {
 	data, err := proto.Marshal(
 		&pb.AggregateSnapshot{
-			Version:   inst.Version,
-			MediaType: inst.Packet.MediaType,
-			Data:      inst.Packet.Data,
+			LastEventId: inst.LastEventID,
+			MediaType:   inst.Packet.MediaType,
+			Data:        inst.Packet.Data,
 		},
 	)
 	bboltx.Must(err)

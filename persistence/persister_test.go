@@ -69,10 +69,10 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveAggregateSnapshot{
 					Snapshot: AggregateSnapshot{
-						HandlerKey: "<snapshot-key>",
-						InstanceID: "<instance-a>",
-						Version:    "<barrier_event_id>",
-						Packet:     fixtures.MessageA1Packet,
+						HandlerKey:  "<snapshot-key>",
+						InstanceID:  "<instance-a>",
+						LastEventID: "<last_event_id>",
+						Packet:      fixtures.MessageA1Packet,
 					},
 				},
 				RemoveAggregateSnapshot{
@@ -134,10 +134,10 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveAggregateSnapshot{
 					Snapshot: AggregateSnapshot{
-						HandlerKey: "<snapshot-key>",
-						InstanceID: "<instance-a>",
-						Version:    "<barrier_event_id>",
-						Packet:     fixtures.MessageA1Packet,
+						HandlerKey:  "<snapshot-key>",
+						InstanceID:  "<instance-a>",
+						LastEventID: "<last_event_id>",
+						Packet:      fixtures.MessageA1Packet,
 					},
 				},
 				SaveEvent{
