@@ -35,14 +35,8 @@ func (ds *dataStore) LoadAggregateSnapshot(
 	defer ds.db.mutex.RUnlock()
 
 	key := instanceKey{hk, id}
-	if inst, ok := ds.db.aggregate.snapshot[key]; ok {
-		return inst, true, nil
-	}
-
-	return persistence.AggregateSnapshot{
-		HandlerKey: hk,
-		InstanceID: id,
-	}, false, nil
+	ss, ok := ds.db.aggregate.snapshot[key]; ok {
+	return ss, ok, nil
 }
 
 // VisitSaveAggregateMetaData returns an error if a "SaveAggregateMetaData"
