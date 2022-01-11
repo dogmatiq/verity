@@ -92,7 +92,6 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 		})
 
 		ginkgo.Describe("func LoadAggregateSnapshot()", func() {
-
 			ginkgo.It("returns the current persisted snapshot", func() {
 				expect := persistence.AggregateSnapshot{
 					HandlerKey:  "<handler-key>",
