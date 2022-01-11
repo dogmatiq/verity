@@ -35,7 +35,8 @@ func (ds *dataStore) LoadAggregateSnapshot(
 	defer ds.db.mutex.RUnlock()
 
 	key := instanceKey{hk, id}
-	ss, ok := ds.db.aggregate.snapshot[key]; ok {
+	ss, ok := ds.db.aggregate.snapshot[key]
+
 	return ss, ok, nil
 }
 

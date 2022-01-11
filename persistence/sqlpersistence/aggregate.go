@@ -152,20 +152,14 @@ func (c *committer) VisitSaveAggregateSnapshot(
 		return err
 	}
 
-	ok, err = c.driver.UpdateAggregateSnapshot(
+	_, err = c.driver.UpdateAggregateSnapshot(
 		ctx,
 		c.tx,
 		c.appKey,
 		op.Snapshot,
 	)
 
-	if ok || err != nil {
-		return err
-	}
-
-	return persistence.NotFoundError{
-		Cause: op,
-	}
+	return err
 }
 
 // VisitRemoveAggregateSnapshot applies the changes in a "RemoveAggregateSnapshot"
@@ -174,22 +168,12 @@ func (c *committer) VisitRemoveAggregateSnapshot(
 	ctx context.Context,
 	op persistence.RemoveAggregateSnapshot,
 ) error {
-	ok, err := c.driver.DeleteAggregateSnapshot(
+	_, err := c.driver.DeleteAggregateSnapshot(
 		ctx,
 		c.tx,
 		c.appKey,
 		op.Snapshot,
 	)
 
-	if err != nil {
-		return err
-	}
-
-	if ok {
-		return nil
-	}
-
-	return persistence.NotFoundError{
-		Cause: op,
-	}
+	return err
 }
