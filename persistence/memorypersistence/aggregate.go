@@ -81,18 +81,7 @@ func (v *validator) VisitRemoveAggregateSnapshot(
 	_ context.Context,
 	op persistence.RemoveAggregateSnapshot,
 ) error {
-	inst := op.Snapshot
-	key := instanceKey{inst.HandlerKey, inst.InstanceID}
-
-	if x, ok := v.db.aggregate.snapshot[key]; ok {
-		if inst.LastEventID == x.LastEventID {
-			return nil
-		}
-	}
-
-	return persistence.NotFoundError{
-		Cause: op,
-	}
+	return nil
 }
 
 // VisitSaveAggregateMetaData applies the changes in a "SaveAggregateMetaData"
