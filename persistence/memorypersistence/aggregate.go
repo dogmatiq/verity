@@ -64,15 +64,7 @@ func (v *validator) VisitSaveAggregateSnapshot(
 	_ context.Context,
 	op persistence.SaveAggregateSnapshot,
 ) error {
-	ss := op.Snapshot
-
-	if ss.HandlerKey != "" && ss.InstanceID != "" {
-		return nil
-	}
-
-	return persistence.NotFoundError{
-		Cause: op,
-	}
+	return nil
 }
 
 // VisitRemoveAggregateSnapshot returns an error if a "RemoveAggregateSnapshot"
