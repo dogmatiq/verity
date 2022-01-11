@@ -217,7 +217,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 		})
 
 		ginkgo.Describe("type persistence.SaveAggregateSnapshot", func() {
-			ginkgo.When("the instance does not exist", func() {
+			ginkgo.When("there is no snapshot of the instance", func() {
 				ginkgo.It("creates the instance", func() {
 					persist(
 						tc.Context,
