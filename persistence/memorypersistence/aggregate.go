@@ -63,7 +63,7 @@ func (v *validator) VisitSaveAggregateMetaData(
 // operation can not be applied to the database.
 func (v *validator) VisitSaveAggregateSnapshot(
 	_ context.Context,
-	op persistence.SaveAggregateSnapshot,
+	_ persistence.SaveAggregateSnapshot,
 ) error {
 	return nil
 }
@@ -72,7 +72,7 @@ func (v *validator) VisitSaveAggregateSnapshot(
 // operation can not be applied to the database.
 func (v *validator) VisitRemoveAggregateSnapshot(
 	_ context.Context,
-	op persistence.RemoveAggregateSnapshot,
+	_ persistence.RemoveAggregateSnapshot,
 ) error {
 	return nil
 }
@@ -134,6 +134,11 @@ func (c *committer) VisitRemoveAggregateSnapshot(
 	inst := op.Snapshot
 	key := instanceKey{inst.HandlerKey, inst.InstanceID}
 
-	c.db.process.remove(key)
+	c.db.aggregate.remove(key)
 	return nil
+}
+
+// remove the snapshot instance with the given key.
+func (db *aggregateDatabase) remove(key instanceKey) {
+	delete(db.snapshot, key)
 }
