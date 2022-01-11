@@ -278,7 +278,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(err).To(MatchError("no codecs support the '*fixtures.AggregateRoot' type"))
 			})
 
-			It("updates the snapshot if interval revision", func() {
+			It("updates the snapshot if the revision is a multiple of the snapshot interval", func() {
 				upstream.HandleCommandFunc = func(
 					x dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
