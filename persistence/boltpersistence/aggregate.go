@@ -88,7 +88,10 @@ func (ds *dataStore) LoadAggregateSnapshot(
 		},
 	)
 
-	return inst, true, nil
+	// is only set if snapshot is found
+	ok := inst.LastEventID != ""
+
+	return inst, ok, nil
 }
 
 // VisitSaveAggregateMetaData applies the changes in a "SaveAggregateMetaData"
