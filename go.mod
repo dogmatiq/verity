@@ -6,7 +6,7 @@ require (
 	github.com/dogmatiq/configkit v0.11.1
 	github.com/dogmatiq/cosyne v0.2.0
 	github.com/dogmatiq/discoverkit v0.1.1
-	github.com/dogmatiq/dodeca v1.2.0
+	github.com/dogmatiq/dodeca v1.3.1
 	github.com/dogmatiq/dogma v0.11.1
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/interopspec v0.5.0
@@ -22,6 +22,6 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/multierr v1.7.0
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	google.golang.org/grpc v1.42.0
+	google.golang.org/grpc v1.43.0
 	google.golang.org/protobuf v1.27.1
 )
