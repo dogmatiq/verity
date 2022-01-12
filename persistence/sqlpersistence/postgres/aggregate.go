@@ -200,12 +200,10 @@ func (driver) DeleteAggregateSnapshot(
 		`DELETE FROM verity.aggregate_snapshot
 		WHERE app_key = $1
 		AND handler_key = $2
-		AND instance_id = $3
-		AND last_event_id = $4`,
+		AND instance_id = $3`,
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
-		inst.LastEventID,
 	), nil
 }
 

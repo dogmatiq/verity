@@ -192,12 +192,10 @@ func (driver) DeleteAggregateSnapshot(
 		`DELETE FROM aggregate_snapshot
 		WHERE app_key = ?
 		AND handler_key = ?
-		AND instance_id = ?
-		AND last_event_id = ?`,
+		AND instance_id = ?`,
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
-		inst.LastEventID,
 	), nil
 }
 

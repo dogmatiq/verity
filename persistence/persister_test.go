@@ -24,6 +24,7 @@ var _ = Describe("type Operation (interface)", func() {
 			},
 			Entry("type SaveAggregateMetaData", SaveAggregateMetaData{}, "SaveAggregateMetaData"),
 			Entry("type SaveAggregateSnapshot", SaveAggregateSnapshot{}, "SaveAggregateSnapshot"),
+			Entry("type RemoveAggregateSnapshot", RemoveAggregateSnapshot{}, "RemoveAggregateSnapshot"),
 			Entry("type SaveEvent", SaveEvent{}, "SaveEvent"),
 			Entry("type SaveProcessInstance", SaveProcessInstance{}, "SaveProcessInstance"),
 			Entry("type RemoveProcessInstance", RemoveProcessInstance{}, "RemoveProcessInstance"),
@@ -214,7 +215,8 @@ func (v *visitor) VisitSaveAggregateSnapshot(_ context.Context, op SaveAggregate
 }
 
 func (v *visitor) VisitRemoveAggregateSnapshot(_ context.Context, op RemoveAggregateSnapshot) error {
-	return errors.New("RemoveAggregateSnapshot")
+	v.operations = append(v.operations, op)
+	return nil
 }
 
 func (v *visitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {

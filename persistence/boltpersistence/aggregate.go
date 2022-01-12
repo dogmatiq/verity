@@ -136,7 +136,7 @@ func (c *committer) VisitRemoveAggregateSnapshot(
 ) error {
 	bboltx.DeletePath(
 		c.root,
-		processBucketKey,
+		aggregateSnapshotBucketKey,
 		[]byte(op.Snapshot.HandlerKey),
 		[]byte(op.Snapshot.InstanceID),
 	)

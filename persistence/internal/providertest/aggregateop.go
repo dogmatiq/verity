@@ -2,13 +2,12 @@ package providertest
 
 import (
 	"github.com/dogmatiq/marshalkit/fixtures"
-	"strconv"
-	"sync"
-
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega"
+	"strconv"
+	"sync"
 )
 
 // declareAggregateOperationTests declares a functional test-suite for
@@ -348,6 +347,63 @@ func declareAggregateOperationTests(tc *TestContext) {
 						Packet:      fixtures.MessageA1Packet,
 					},
 				))
+			})
+		})
+
+		ginkgo.Describe("type persistence.RemoveAggregateSnapshot", func() {
+			ginkgo.When("the aggregate snapshot instance exists", func() {
+				ginkgo.BeforeEach(func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveAggregateSnapshot{
+							Snapshot: persistence.AggregateSnapshot{
+								HandlerKey:  "<handler-key-4>",
+								InstanceID:  "<instance-4>",
+								LastEventID: "<last-event-id>",
+								Packet:      fixtures.MessageA1Packet,
+							},
+						},
+					)
+				})
+
+				ginkgo.It("removes the aggregate snapshot", func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.RemoveAggregateSnapshot{
+							Snapshot: persistence.AggregateSnapshot{
+								HandlerKey: "<handler-key-4>",
+								InstanceID: "<instance-4>",
+							},
+						},
+					)
+
+					_, ok := loadAggregateSnapshot(tc.Context, dataStore, "<handler-key-4>", "<instance-4>")
+					gomega.Expect(ok).To(gomega.BeFalse())
+				})
+
+			})
+
+			ginkgo.When("the aggregate snapshot instance does not exist", func() {
+
+				ginkgo.It("returns no error", func() {
+					op := persistence.RemoveAggregateSnapshot{
+						Snapshot: persistence.AggregateSnapshot{
+							HandlerKey:  "<handler-key>",
+							InstanceID:  "<instance>",
+							LastEventID: "<last-event-id>",
+							Packet:      fixtures.MessageA1Packet,
+						},
+					}
+
+					_, err := dataStore.Persist(
+						tc.Context,
+						persistence.Batch{op},
+					)
+					gomega.Expect(err).To(gomega.BeNil())
+				},
+				)
 			})
 		})
 	})
