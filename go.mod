@@ -18,7 +18,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.0
+	github.com/onsi/gomega v1.18.1
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/multierr v1.7.0
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
