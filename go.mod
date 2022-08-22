@@ -9,7 +9,7 @@ require (
 	github.com/dogmatiq/dodeca v1.3.1
 	github.com/dogmatiq/dogma v0.11.1
 	github.com/dogmatiq/iago v0.4.0
-	github.com/dogmatiq/interopspec v0.5.0
+	github.com/dogmatiq/interopspec v0.5.1
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v0.2.1
 	github.com/dogmatiq/marshalkit v0.7.2
@@ -23,5 +23,5 @@ require (
 	go.uber.org/multierr v1.8.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.48.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 )
