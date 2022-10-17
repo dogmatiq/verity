@@ -1,4 +1,5 @@
 CGO_ENABLED ?= 1
+GO_RACE_DETECTION = false
 
 -include .makefiles/Makefile
 -include .makefiles/pkg/protobuf/v2/Makefile
