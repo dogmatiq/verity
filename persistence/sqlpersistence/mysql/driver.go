@@ -45,7 +45,6 @@ func (driver) Begin(ctx context.Context, db *sql.DB) (*sql.Tx, error) {
 func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
-	createLockSchema(ctx, db)
 	createAggregateSchema(ctx, db)
 	createEventSchema(ctx, db)
 	createOffsetSchema(ctx, db)
@@ -59,7 +58,6 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func (driver) DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
-	dropLockSchema(ctx, db)
 	dropAggregateSchema(ctx, db)
 	dropEventSchema(ctx, db)
 	dropOffsetSchema(ctx, db)

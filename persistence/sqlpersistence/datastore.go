@@ -3,30 +3,20 @@ package sqlpersistence
 import (
 	"context"
 	"database/sql"
-	"errors"
-	"fmt"
 	"sync"
-	"time"
 
-	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/persistence"
-	"go.uber.org/multierr"
 )
 
 // dataStore is an implementation of persistence.DataStore for SQL databases.
 type dataStore struct {
-	db      *sql.DB
-	driver  Driver
-	appKey  string
-	lockID  int64
-	lockTTL time.Duration
+	db     *sql.DB
+	driver Driver
+	appKey string
 
-	closeM     sync.Mutex
-	ctx        context.Context
-	cancel     context.CancelFunc
-	done       chan struct{}
-	closeCause error
-	release    func() error
+	closeM  sync.Mutex
+	close   chan struct{}
+	release func() error
 }
 
 // newDataStore returns a new data-store.
@@ -34,27 +24,15 @@ func newDataStore(
 	db *sql.DB,
 	d Driver,
 	k string,
-	lockID int64,
-	lockTTL time.Duration,
 	r func() error,
 ) *dataStore {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	ds := &dataStore{
+	return &dataStore{
 		db:      db,
 		driver:  d,
 		appKey:  k,
-		lockID:  lockID,
-		lockTTL: lockTTL,
-		ctx:     ctx,
-		cancel:  cancel,
-		done:    make(chan struct{}),
+		close:   make(chan struct{}),
 		release: r,
 	}
-
-	go ds.maintainLock()
-
-	return ds
 }
 
 // Persist commits a batch of operations atomically.
@@ -107,25 +85,14 @@ func (ds *dataStore) Close() error {
 	ds.closeM.Lock()
 	defer ds.closeM.Unlock()
 
-	if ds.closeCause != nil {
+	select {
+	case <-ds.close:
 		return persistence.ErrDataStoreClosed
+	default:
 	}
 
-	ds.cancel()
-	<-ds.done
-
-	// Forcefully release the current lock, allowing up to the lockTTL period to
-	// do so. Any longer and the lock will expire anyway.
-	ctx, cancel := context.WithTimeout(context.Background(), ds.lockTTL)
-	defer cancel()
-
-	// Release the lock *before* ds.release() is called, as it may close the DB.
-	err := ds.driver.ReleaseLock(ctx, ds.db, ds.lockID)
-
-	return multierr.Append(
-		err,
-		ds.release(),
-	)
+	close(ds.close)
+	return ds.release()
 }
 
 // withDB calls fn with the database that should be used by this data-store.
@@ -139,8 +106,8 @@ func (ds *dataStore) withDB(
 	// First, we check if the data-store has already been closed by checking if
 	// it's context is canceled.
 	select {
-	case <-ds.done:
-		return ds.closeCause
+	case <-ds.close:
+		return persistence.ErrDataStoreClosed
 	default:
 	}
 
@@ -151,7 +118,7 @@ func (ds *dataStore) withDB(
 
 	go func() {
 		select {
-		case <-ds.done:
+		case <-ds.close:
 			// Cancel this new context if the data-store is closed.
 			cancel()
 		case <-fnCtx.Done():
@@ -169,49 +136,13 @@ func (ds *dataStore) withDB(
 	// closure.
 	if err == context.Canceled && ctx.Err() != context.Canceled {
 		select {
-		case <-ds.done:
-			return ds.closeCause
+		case <-ds.close:
+			return persistence.ErrDataStoreClosed
 		default:
 		}
 	}
 
 	return err
-}
-
-// maintainLock periodically renews the data-store's lock on the application
-// data. If the lock can not be renewed the data-store is closed.
-func (ds *dataStore) maintainLock() {
-	defer close(ds.done)
-	defer ds.cancel()
-
-	for {
-		ok, err := ds.driver.RenewLock(
-			ds.ctx,
-			ds.db,
-			ds.lockID,
-			ds.lockTTL,
-		)
-
-		if err == context.Canceled {
-			ds.closeCause = persistence.ErrDataStoreClosed
-			return
-		}
-
-		if err != nil {
-			ds.closeCause = fmt.Errorf("unable to renew data-store lock: %w", err)
-			return
-		}
-
-		if !ok {
-			ds.closeCause = errors.New("unable to renew expired data-store lock")
-			return
-		}
-
-		if err := linger.Sleep(ds.ctx, ds.lockTTL/2); err != nil {
-			ds.closeCause = persistence.ErrDataStoreClosed
-			return
-		}
-	}
 }
 
 // committer is an implementation of persitence.OperationVisitor that
