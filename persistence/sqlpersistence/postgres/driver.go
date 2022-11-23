@@ -37,7 +37,6 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 
 	sqlx.Exec(ctx, db, `CREATE SCHEMA IF NOT EXISTS verity`)
 
-	createLockSchema(ctx, db)
 	createAggregateSchema(ctx, db)
 	createEventSchema(ctx, db)
 	createOffsetSchema(ctx, db)

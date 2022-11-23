@@ -7,7 +7,6 @@ import (
 
 // Driver is used to interface with the underlying SQL database.
 type Driver interface {
-	LockDriver
 	AggregateDriver
 	EventDriver
 	OffsetDriver

@@ -7,9 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/persistence"
-	"go.uber.org/multierr"
 )
 
 var (
@@ -24,10 +22,6 @@ var (
 	// DefaultMaxConnLifetime is the default maximum lifetime of database
 	// connections.
 	DefaultMaxConnLifetime = 10 * time.Minute
-
-	// DefaultLockTTL is the default interval at which providers renew the locks
-	// on a specific application's data.
-	DefaultLockTTL = 10 * time.Second
 )
 
 // Provider is an implementation of provider.Provider for SQL that uses an
@@ -41,10 +35,6 @@ type Provider struct {
 	// Driver is the Verity SQL driver to use with this database. If it is nil,
 	// it is chosen automatically from one of the built-in drivers.
 	Driver Driver
-
-	// LockTTL is the interval at which the provider renews its exclusive lock
-	// on the application's data. If it is non-positive, DefaultLockTTL is used.
-	LockTTL time.Duration
 }
 
 // Open returns a data-store for a specific application.
@@ -58,7 +48,6 @@ func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, e
 		ctx,
 		k,
 		p.Driver,
-		p.LockTTL,
 		func() (*sql.DB, error) {
 			return p.DB, nil
 		},
@@ -83,10 +72,6 @@ type DSNProvider struct {
 	// Driver is the Verity SQL driver to use with this database. If it is nil,
 	// it is chosen automatically from one of the built-in drivers.
 	Driver Driver
-
-	// LockTTL is the interval at which the provider renews its exclusive lock
-	// on the application's data. If it is non-positive, DefaultLockTTL is used.
-	LockTTL time.Duration
 
 	// MaxIdleConnections is the maximum number of idle connections allowed in
 	// the database pool.
@@ -116,7 +101,6 @@ func (p *DSNProvider) Open(ctx context.Context, k string) (persistence.DataStore
 		ctx,
 		k,
 		p.Driver,
-		p.LockTTL,
 		p.openDB,
 		(*sql.DB).Close,
 	)
@@ -164,7 +148,6 @@ func (p *provider) open(
 	ctx context.Context,
 	k string,
 	d Driver,
-	lockTTL time.Duration,
 	open func() (*sql.DB, error),
 	close func(db *sql.DB) error,
 ) (_ persistence.DataStore, err error) {
@@ -192,24 +175,6 @@ func (p *provider) open(
 		p.close = close
 	}
 
-	lockTTL = linger.MustCoalesce(lockTTL, DefaultLockTTL)
-	lockID, ok, err := p.driver.AcquireLock(ctx, p.db, k, lockTTL)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, persistence.ErrDataStoreLocked
-	}
-
-	defer func() {
-		if err != nil {
-			err = multierr.Append(
-				err,
-				p.driver.ReleaseLock(ctx, p.db, lockID),
-			)
-		}
-	}()
-
 	if err := p.driver.PurgeEventFilters(ctx, p.db, k); err != nil {
 		return nil, err
 	}
@@ -220,8 +185,6 @@ func (p *provider) open(
 		p.db,
 		p.driver,
 		k,
-		lockID,
-		lockTTL,
 		p.release,
 	), nil
 }

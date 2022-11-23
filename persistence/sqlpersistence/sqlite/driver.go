@@ -3,26 +3,14 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/dogmatiq/verity/internal/x/sqlx"
 )
 
 // Driver is an implementation of sql.Driver for SQLite.
-var Driver = driver{
-	lockUpdateInterval: 10 * time.Second,
-	lockExpiryOffset:   5 * time.Second,
-}
+var Driver = driver{}
 
-type driver struct {
-	// lockUpdateInterval specifies how often an application lock's expiry timestamp
-	// should be updated.
-	lockUpdateInterval time.Duration
-
-	// lockExpiryOffset specifies how far in the future locks should be set to
-	// expire.
-	lockExpiryOffset time.Duration
-}
+type driver struct{}
 
 // IsCompatibleWith returns nil if this driver can be used with db.
 func (driver) IsCompatibleWith(ctx context.Context, db *sql.DB) error {
@@ -47,7 +35,6 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 	tx := sqlx.Begin(ctx, db)
 	defer tx.Rollback() // nolint:errcheck
 
-	createLockSchema(ctx, db)
 	createAggregateSchema(ctx, db)
 	createEventSchema(ctx, db)
 	createOffsetSchema(ctx, db)
@@ -61,7 +48,6 @@ func (driver) CreateSchema(ctx context.Context, db *sql.DB) (err error) {
 func (driver) DropSchema(ctx context.Context, db *sql.DB) (err error) {
 	defer sqlx.Recover(&err)
 
-	dropLockSchema(ctx, db)
 	dropAggregateSchema(ctx, db)
 	dropEventSchema(ctx, db)
 	dropOffsetSchema(ctx, db)
