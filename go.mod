@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/dogmatiq/configkit v0.11.1
 	github.com/dogmatiq/cosyne v0.2.0
-	github.com/dogmatiq/discoverkit v0.1.1
+	github.com/dogmatiq/discoverkit v0.1.2
 	github.com/dogmatiq/dodeca v1.3.1
 	github.com/dogmatiq/dogma v0.11.1
 	github.com/dogmatiq/iago v0.4.0
