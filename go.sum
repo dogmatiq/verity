@@ -46,8 +46,9 @@ github.com/dogmatiq/interopspec v0.5.2 h1:opcn/hxV128Lgo+1rBJY8TsIdpagwXNOawx/UT
 github.com/dogmatiq/interopspec v0.5.2/go.mod h1:RFQfwrmj1VEYy51/pFTGMcm4BHErA3eLwsxX95COf6U=
 github.com/dogmatiq/kyu v0.2.0 h1:R3DH6W7IRe/Rtp5Wg9HgrJdNJtdZO6553ho0gFfLH7Y=
 github.com/dogmatiq/kyu v0.2.0/go.mod h1:g3oZX1sgN717QwJg5376fv4FlBukSxAEHjYjvPXA7SU=
-github.com/dogmatiq/linger v0.2.1 h1:ecVwiFlTcQuQ7ygQXH5bUPkWNve8n5BmVnCYMGMQ3zc=
 github.com/dogmatiq/linger v0.2.1/go.mod h1:vQPEiGNtb3Qy+1IdmdSMyLxr4d9vPChknnQkClQimGM=
+github.com/dogmatiq/linger v1.0.0 h1:Rt+kMuaaBxrVpgs33i+iBqO7nupk2rzY3YKOTpGtPS8=
+github.com/dogmatiq/linger v1.0.0/go.mod h1:YcBCMJCcxNaXt47EnxM8rzIecLqlhku8zU0rqO38bew=
 github.com/dogmatiq/marshalkit v0.7.2 h1:ANI+RkyEalTePjB7GHlq6HKPYtX+7UcMnI+sx/BWpos=
 github.com/dogmatiq/marshalkit v0.7.2/go.mod h1:ajuO/+J4xbh/BRQUitlpPNxvqoy2dNF+NdX0ORn2r3I=
 github.com/dogmatiq/sqltest v0.3.0 h1:DCwyLWfVk/ZHsqq5Itq3H/Lqsh/CIQ6nIRwI4YLywFc=
