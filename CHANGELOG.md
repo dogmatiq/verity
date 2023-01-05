@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.1.2] - 2023-01-05
+
+### Fixed
+
+- Bumped `dogmatiq/linger` to v1.0.0
+
 ## [0.1.1] - 2022-11-23
 
 This release removes the _pessimistic_ data store lock.
@@ -34,6 +40,7 @@ optimistic concurrency error.
 [unreleased]: https://github.com/dogmatiq/verity
 [0.1.0]: https://github.com/dogmatiq/verity/releases/tag/v0.1.0
 [0.1.1]: https://github.com/dogmatiq/verity/releases/tag/v0.1.1
+[0.1.2]: https://github.com/dogmatiq/verity/releases/tag/v0.1.2
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
