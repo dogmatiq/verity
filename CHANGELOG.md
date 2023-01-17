@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.1.3] - 2023-01-18
+
+### Fixed
+
+- The `ExecuteCommand()`, `RecordEvent()` or `ScheduleTimeout()` methods on the
+  engine and handler scopes now panic if passed an invalid message.
+
 ## [0.1.2] - 2023-01-05
 
 ### Fixed
@@ -41,6 +48,7 @@ optimistic concurrency error.
 [0.1.0]: https://github.com/dogmatiq/verity/releases/tag/v0.1.0
 [0.1.1]: https://github.com/dogmatiq/verity/releases/tag/v0.1.1
 [0.1.2]: https://github.com/dogmatiq/verity/releases/tag/v0.1.2
+[0.1.3]: https://github.com/dogmatiq/verity/releases/tag/v0.1.3
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD

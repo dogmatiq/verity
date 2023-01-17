@@ -1,6 +1,7 @@
 package parcel_test
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -101,6 +102,15 @@ var _ = Describe("type Packer", func() {
 			Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a command"),
 			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected a command"),
 		)
+
+		It("panics if the message is invalid", func() {
+			Expect(func() {
+				m := MessageC{
+					Value: errors.New("<error>"),
+				}
+				packer.PackCommand(m)
+			}).To(PanicWith("fixtures.MessageC command is invalid: <error>"))
+		})
 	})
 
 	Describe("func PackEvent()", func() {
@@ -137,6 +147,15 @@ var _ = Describe("type Packer", func() {
 			Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected an event"),
 			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected an event"),
 		)
+
+		It("panics if the message is invalid", func() {
+			Expect(func() {
+				m := MessageE{
+					Value: errors.New("<error>"),
+				}
+				packer.PackEvent(m)
+			}).To(PanicWith("fixtures.MessageE event is invalid: <error>"))
+		})
 	})
 
 	It("generates UUIDs by default", func() {
@@ -249,6 +268,22 @@ var _ = Describe("type Packer", func() {
 				Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a command"),
 				Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected a command"),
 			)
+
+			It("panics if the message is invalid", func() {
+				Expect(func() {
+					packer.PackChildCommand(
+						Parcel{
+							Envelope: parent,
+							Message:  MessageF1,
+						},
+						MessageC{
+							Value: errors.New("<error>"),
+						},
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("fixtures.MessageC command is invalid: <error>"))
+			})
 		})
 
 		Describe("func PackChildEvent()", func() {
@@ -327,6 +362,22 @@ var _ = Describe("type Packer", func() {
 				Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected an event"),
 				Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected an event"),
 			)
+
+			It("panics if the message is invalid", func() {
+				Expect(func() {
+					packer.PackChildEvent(
+						Parcel{
+							Envelope: parent,
+							Message:  MessageD1,
+						},
+						MessageE{
+							Value: errors.New("<error>"),
+						},
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("fixtures.MessageE event is invalid: <error>"))
+			})
 		})
 
 		Describe("func PackChildTimeout()", func() {
@@ -411,6 +462,23 @@ var _ = Describe("type Packer", func() {
 				Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected a timeout"),
 				Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a timeout"),
 			)
+		})
+
+		It("panics if the message is invalid", func() {
+			Expect(func() {
+				packer.PackChildTimeout(
+					Parcel{
+						Envelope: parent,
+						Message:  MessageF1,
+					},
+					MessageT{
+						Value: errors.New("<error>"),
+					},
+					time.Now(),
+					handler,
+					"<instance>",
+				)
+			}).To(PanicWith("fixtures.MessageT timeout is invalid: <error>"))
 		})
 	})
 })

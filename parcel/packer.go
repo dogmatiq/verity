@@ -39,14 +39,12 @@ type Packer struct {
 
 // PackCommand returns a parcel containing the given command message.
 func (p *Packer) PackCommand(m dogma.Message) Parcel {
-	p.checkProducedRole(m, message.CommandRole)
-	return p.new(m)
+	return p.new(m, message.CommandRole)
 }
 
 // PackEvent returns a parcel containing the given event message.
 func (p *Packer) PackEvent(m dogma.Message) Parcel {
-	p.checkProducedRole(m, message.EventRole)
-	return p.new(m)
+	return p.new(m, message.EventRole)
 }
 
 // PackChildCommand returns a parcel containing the given command message,
@@ -58,11 +56,11 @@ func (p *Packer) PackChildCommand(
 	instanceID string,
 ) Parcel {
 	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
-	p.checkProducedRole(m, message.CommandRole)
 
 	return p.newChild(
 		c,
 		m,
+		message.CommandRole,
 		handler,
 		instanceID,
 	)
@@ -77,11 +75,11 @@ func (p *Packer) PackChildEvent(
 	instanceID string,
 ) Parcel {
 	p.checkConsumedRole(c.Message, message.CommandRole)
-	p.checkProducedRole(m, message.EventRole)
 
 	return p.newChild(
 		c,
 		m,
+		message.EventRole,
 		handler,
 		instanceID,
 	)
@@ -97,11 +95,11 @@ func (p *Packer) PackChildTimeout(
 	instanceID string,
 ) Parcel {
 	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
-	p.checkProducedRole(m, message.TimeoutRole)
 
 	parcel := p.newChild(
 		c,
 		m,
+		message.TimeoutRole,
 		handler,
 		instanceID,
 	)
@@ -113,7 +111,13 @@ func (p *Packer) PackChildTimeout(
 }
 
 // new returns an envelope containing the given message.
-func (p *Packer) new(m dogma.Message) Parcel {
+func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
+	p.checkProducedRole(m, r)
+
+	if err := dogma.ValidateMessage(m); err != nil {
+		panic(fmt.Sprintf("%T %s is invalid: %s", m, r, err))
+	}
+
 	id := p.generateID()
 	now := p.now()
 
@@ -140,10 +144,11 @@ func (p *Packer) new(m dogma.Message) Parcel {
 func (p *Packer) newChild(
 	c Parcel,
 	m dogma.Message,
+	r message.Role,
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	parcel := p.new(m)
+	parcel := p.new(m, r)
 
 	parcel.Envelope.CausationId = c.Envelope.GetMessageId()
 	parcel.Envelope.CorrelationId = c.Envelope.GetCorrelationId()
