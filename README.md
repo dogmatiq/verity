@@ -1,6 +1,6 @@
 <div align="center">
 
-# Dogma Marshaling Toolkit
+# Verity
 
 Verity is an event-sourced [Dogma](https://github.com/dogmatiq/dogma)
 [engine](https://github.com/dogmatiq/dogma#engine).
