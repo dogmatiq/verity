@@ -12,7 +12,7 @@ require (
 	github.com/dogmatiq/interopspec v0.5.2
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v1.1.0
-	github.com/dogmatiq/marshalkit v0.7.2
+	github.com/dogmatiq/marshalkit v0.7.3
 	github.com/dogmatiq/sqltest v0.3.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
@@ -28,7 +28,7 @@ require (
 
 require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/fxamacker/cbor/v2 v2.3.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
