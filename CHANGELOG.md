@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.1.4] - 2023-03-27
+
+- Bump `dogmatiq/marshalkit` to v0.7.3
+
 ## [0.1.3] - 2023-01-18
 
 ### Fixed
@@ -49,6 +53,7 @@ optimistic concurrency error.
 [0.1.1]: https://github.com/dogmatiq/verity/releases/tag/v0.1.1
 [0.1.2]: https://github.com/dogmatiq/verity/releases/tag/v0.1.2
 [0.1.3]: https://github.com/dogmatiq/verity/releases/tag/v0.1.3
+[0.1.4]: https://github.com/dogmatiq/verity/releases/tag/v0.1.4
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
