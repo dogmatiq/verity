@@ -65,7 +65,7 @@ var _ = Describe("type Consumer", func() {
 		}
 
 		mstream = &memorystream.Stream{
-			App: configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Types: message.NewTypeSet(
 				MessageAType,
 				MessageBType,
@@ -374,7 +374,7 @@ var _ = Describe("type Consumer", func() {
 					id configkit.Identity,
 				) (uint64, error) {
 					Expect(id).To(Equal(
-						configkit.MustNewIdentity("<app-name>", "<app-key>"),
+						configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 					))
 					return 2, nil
 				}

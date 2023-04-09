@@ -92,7 +92,7 @@ var _ = Describe("type CommandExecutor", func() {
 							CausationId:   "0",
 							SourceApplication: &envelopespec.Identity{
 								Name: "<app-name>",
-								Key:  "<app-key>",
+								Key:  DefaultAppKey,
 							},
 							CreatedAt:    "2000-01-01T00:00:00Z",
 							Description:  "{A1}",

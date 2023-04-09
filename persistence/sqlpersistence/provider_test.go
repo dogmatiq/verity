@@ -10,6 +10,7 @@ import (
 
 	"github.com/dogmatiq/sqltest"
 	"github.com/dogmatiq/sqltest/sqlstub"
+	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
 	. "github.com/dogmatiq/verity/persistence/sqlpersistence"
@@ -97,7 +98,7 @@ var _ = Describe("type DSNProvider", func() {
 				DSN:        "<nonsense-dsn>",
 			}
 
-			ds, err := provider.Open(context.Background(), "<app-key>")
+			ds, err := provider.Open(context.Background(), DefaultAppKey)
 			if ds != nil {
 				ds.Close()
 			}
@@ -131,7 +132,7 @@ var _ = Describe("type provider", func() {
 				DB: sql.OpenDB(&sqlstub.Connector{}),
 			}
 
-			ds, err := provider.Open(context.Background(), "<app-key>")
+			ds, err := provider.Open(context.Background(), DefaultAppKey)
 			if ds != nil {
 				ds.Close()
 			}

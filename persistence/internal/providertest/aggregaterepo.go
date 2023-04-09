@@ -3,6 +3,7 @@ package providertest
 import (
 	"context"
 
+	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -27,10 +28,10 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 
 		ginkgo.Describe("func LoadAggregateMetaData()", func() {
 			ginkgo.It("returns meta-data with default values if the instance does not exist", func() {
-				md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
+				md := loadAggregateMetaData(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
-						HandlerKey: "<handler-key>",
+						HandlerKey: fixtures.DefaultHandlerKey,
 						InstanceID: "<instance>",
 					},
 				))
@@ -38,7 +39,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 
 			ginkgo.It("returns the current persisted meta-data", func() {
 				expect := persistence.AggregateMetaData{
-					HandlerKey:     "<handler-key>",
+					HandlerKey:     fixtures.DefaultHandlerKey,
 					InstanceID:     "<instance>",
 					InstanceExists: true,
 					LastEventID:    "<last-event-id>",
@@ -53,7 +54,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				)
 				expect.Revision++
 
-				md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
+				md := loadAggregateMetaData(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 				gomega.Expect(md).To(gomega.Equal(expect))
 			})
 
@@ -63,7 +64,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				// the correct result.
 
 				expect := persistence.AggregateMetaData{
-					HandlerKey:     "<handler-key>",
+					HandlerKey:     fixtures.DefaultHandlerKey,
 					InstanceID:     "<instance>",
 					InstanceExists: true,
 					LastEventID:    "<last-event-id>",
@@ -81,7 +82,7 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				md, err := dataStore.LoadAggregateMetaData(ctx, "<handler-key>", "<instance>")
+				md, err := dataStore.LoadAggregateMetaData(ctx, fixtures.DefaultHandlerKey, "<instance>")
 				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
 				} else {

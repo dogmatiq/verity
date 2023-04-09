@@ -61,7 +61,7 @@ var _ = Describe("type server", func() {
 			server,
 			Marshaler,
 			WithApplication(
-				"<app-key>",
+				DefaultAppKey,
 				stream,
 				types,
 			),
@@ -102,7 +102,7 @@ var _ = Describe("type server", func() {
 
 		It("exposes messages from the data-store", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
@@ -139,7 +139,7 @@ var _ = Describe("type server", func() {
 
 		It("honours the initial offset", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 				StartPoint: &eventstreamspec.ConsumeRequest_Offset{
 					Offset: 2,
 				},
@@ -170,7 +170,7 @@ var _ = Describe("type server", func() {
 
 		It("limits results to the supplied event types", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
@@ -203,7 +203,7 @@ var _ = Describe("type server", func() {
 
 		It("transcodes events into a media-type supported by the client", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
@@ -223,7 +223,7 @@ var _ = Describe("type server", func() {
 
 		It("does not transcode events if the client supports the native media-type", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
@@ -246,7 +246,7 @@ var _ = Describe("type server", func() {
 
 		It("returns an error if the client and server have no media-types in common", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "MessageA",
@@ -309,7 +309,7 @@ var _ = Describe("type server", func() {
 
 		It("returns an INVALID_ARGUMENT error if no event types are requested", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 			}
 
 			stream, err := client.Consume(ctx, req)
@@ -324,7 +324,7 @@ var _ = Describe("type server", func() {
 
 		It("returns an INVALID_ARGUMENT error if an unrecognized event type is requested", func() {
 			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
 						PortableName: "<unknown-1>",
@@ -361,7 +361,7 @@ var _ = Describe("type server", func() {
 	Describe("func EventTypes()", func() {
 		It("returns a list of the supported event types", func() {
 			req := &eventstreamspec.EventTypesRequest{
-				ApplicationKey: "<app-key>",
+				ApplicationKey: DefaultAppKey,
 			}
 
 			res, err := client.EventTypes(ctx, req)

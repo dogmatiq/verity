@@ -41,7 +41,7 @@ var _ = Describe("type StreamAdaptor", func() {
 		It("returns zero when the projection resource does not exist", func() {
 			offset, err := adaptor.NextOffset(
 				context.Background(),
-				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(offset).To(BeNumerically("==", 0))
@@ -52,13 +52,13 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ context.Context,
 				res []byte,
 			) ([]byte, error) {
-				Expect(res).To(Equal([]byte("<app-key>")))
+				Expect(res).To(Equal([]byte(DefaultAppKey)))
 				return []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}, nil
 			}
 
 			offset, err := adaptor.NextOffset(
 				context.Background(),
-				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(offset).To(BeNumerically("==", 3))
@@ -74,7 +74,7 @@ var _ = Describe("type StreamAdaptor", func() {
 
 			_, err := adaptor.NextOffset(
 				context.Background(),
-				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			)
 			Expect(err).To(MatchError("<error>"))
 		})
@@ -89,7 +89,7 @@ var _ = Describe("type StreamAdaptor", func() {
 
 			_, err := adaptor.NextOffset(
 				context.Background(),
-				configkit.MustNewIdentity("<app-name>", "<app-key>"),
+				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			)
 			Expect(err).To(MatchError("version is 1 byte(s), expected 0 or 8"))
 		})
@@ -125,7 +125,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ dogma.ProjectionEventScope,
 				_ dogma.Message,
 			) (bool, error) {
-				Expect(r).To(Equal([]byte("<app-key>")))
+				Expect(r).To(Equal([]byte(DefaultAppKey)))
 				Expect(c).To(BeEmpty())
 				Expect(n).To(Equal([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
 				return true, nil
@@ -149,7 +149,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ dogma.ProjectionEventScope,
 				_ dogma.Message,
 			) (bool, error) {
-				Expect(r).To(Equal([]byte("<app-key>")))
+				Expect(r).To(Equal([]byte(DefaultAppKey)))
 				Expect(c).To(Equal([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}))
 				Expect(n).To(Equal([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04}))
 				return true, nil

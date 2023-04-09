@@ -48,7 +48,7 @@ var _ = Describe("type Stream", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 
 		stream = &Stream{
-			App: configkit.MustNewIdentity("<app-key>", "<app-name>"),
+			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Types: message.NewTypeSet(
 				MessageEType,
 			),

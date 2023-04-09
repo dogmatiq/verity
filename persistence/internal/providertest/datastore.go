@@ -1,6 +1,7 @@
 package providertest
 
 import (
+	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -18,7 +19,7 @@ func declareDataStoreTests(tc *TestContext) {
 			provider, closeProvider = tc.Out.NewProvider()
 
 			var err error
-			dataStore, err = provider.Open(tc.Context, "<app-key>")
+			dataStore, err = provider.Open(tc.Context, fixtures.DefaultAppKey)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 
@@ -49,7 +50,7 @@ func declareDataStoreTests(tc *TestContext) {
 					tc.Context,
 					persistence.Batch{
 						persistence.SaveOffset{
-							ApplicationKey: "<app-key>",
+							ApplicationKey: fixtures.DefaultAppKey,
 							CurrentOffset:  0,
 							NextOffset:     1,
 						},

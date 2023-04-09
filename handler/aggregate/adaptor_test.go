@@ -52,7 +52,7 @@ var _ = Describe("type Adaptor", func() {
 
 		upstream = &AggregateMessageHandler{
 			ConfigureFunc: func(c dogma.AggregateConfigurer) {
-				c.Identity("<aggregate-name>", "<aggregate-key>")
+				c.Identity("<aggregate-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
 				c.ConsumesCommandType(MessageC{})
 				c.ProducesEventType(MessageE{})
 			},
@@ -77,7 +77,7 @@ var _ = Describe("type Adaptor", func() {
 		adaptor = &Adaptor{
 			Identity: &envelopespec.Identity{
 				Name: "<aggregate-name>",
-				Key:  "<aggregate-key>",
+				Key:  "e4ff048e-79f7-45e2-9f02-3b10d17614c6",
 			},
 			Handler: upstream,
 			Loader: &Loader{
@@ -200,7 +200,7 @@ var _ = Describe("type Adaptor", func() {
 					[]persistence.Operation{
 						persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
-								HandlerKey:     "<aggregate-key>",
+								HandlerKey:     "e4ff048e-79f7-45e2-9f02-3b10d17614c6",
 								InstanceID:     "<instance>",
 								InstanceExists: true,
 								LastEventID:    "0", // deterministic ID from the packer
@@ -393,7 +393,7 @@ var _ = Describe("type Adaptor", func() {
 						[]persistence.Operation{
 							persistence.SaveAggregateMetaData{
 								MetaData: persistence.AggregateMetaData{
-									HandlerKey:     "<aggregate-key>",
+									HandlerKey:     "e4ff048e-79f7-45e2-9f02-3b10d17614c6",
 									InstanceID:     "<instance>",
 									Revision:       1,
 									InstanceExists: true,
@@ -421,7 +421,7 @@ var _ = Describe("type Adaptor", func() {
 						[]persistence.Operation{
 							persistence.SaveAggregateMetaData{
 								MetaData: persistence.AggregateMetaData{
-									HandlerKey:     "<aggregate-key>",
+									HandlerKey:     "e4ff048e-79f7-45e2-9f02-3b10d17614c6",
 									InstanceID:     "<instance>",
 									Revision:       1,
 									InstanceExists: false,
@@ -448,7 +448,7 @@ var _ = Describe("type Adaptor", func() {
 						[]persistence.Operation{
 							persistence.SaveAggregateMetaData{
 								MetaData: persistence.AggregateMetaData{
-									HandlerKey:     "<aggregate-key>",
+									HandlerKey:     "e4ff048e-79f7-45e2-9f02-3b10d17614c6",
 									InstanceID:     "<instance>",
 									Revision:       1,
 									InstanceExists: false,

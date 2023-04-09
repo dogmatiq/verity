@@ -54,7 +54,7 @@ var _ = Describe("type Adaptor", func() {
 
 		upstream = &ProcessMessageHandler{
 			ConfigureFunc: func(c dogma.ProcessConfigurer) {
-				c.Identity("<process-name>", "<process-key>")
+				c.Identity("<process-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
 				c.ConsumesEventType(MessageE{})
 				c.ProducesCommandType(MessageC{})
 				c.SchedulesTimeoutType(MessageT{})
@@ -81,7 +81,7 @@ var _ = Describe("type Adaptor", func() {
 		adaptor = &Adaptor{
 			Identity: &envelopespec.Identity{
 				Name: "<process-name>",
-				Key:  "<process-key>",
+				Key:  "2ae0b937-e806-4e70-9b23-f36298f68973",
 			},
 			Handler: upstream,
 			Loader: &Loader{
@@ -254,7 +254,7 @@ var _ = Describe("type Adaptor", func() {
 				[]persistence.Operation{
 					persistence.SaveProcessInstance{
 						Instance: persistence.ProcessInstance{
-							HandlerKey: "<process-key>",
+							HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 							InstanceID: "<instance>",
 							Packet: marshalkit.Packet{
 								MediaType: "application/json; type=ProcessRoot",
@@ -352,7 +352,7 @@ var _ = Describe("type Adaptor", func() {
 					[]persistence.Operation{
 						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<process-key>",
+								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
 								Packet: marshalkit.Packet{
 									MediaType: "application/json; type=ProcessRoot",
@@ -448,7 +448,7 @@ var _ = Describe("type Adaptor", func() {
 					[]persistence.Operation{
 						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<process-key>",
+								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
 								Packet: marshalkit.Packet{
 									MediaType: "application/json; type=ProcessRoot",
@@ -610,7 +610,7 @@ var _ = Describe("type Adaptor", func() {
 						[]persistence.Operation{
 							persistence.RemoveProcessInstance{
 								Instance: persistence.ProcessInstance{
-									HandlerKey: "<process-key>",
+									HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 									InstanceID: "<instance>",
 									Revision:   1,
 									Packet: marshalkit.Packet{

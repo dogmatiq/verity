@@ -57,18 +57,18 @@ var _ = Describe("type Loader", func() {
 				return persistence.AggregateMetaData{}, errors.New("<error>")
 			}
 
-			_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+			_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 			Expect(err).To(MatchError("<error>"))
 		})
 
 		When("the instance has never existed", func() {
 			It("returns an instance with a new meta-data value and the base root", func() {
-				inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				inst, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
 						AggregateMetaData: persistence.AggregateMetaData{
-							HandlerKey: "<handler-key>",
+							HandlerKey: DefaultHandlerKey,
 							InstanceID: "<instance>",
 						},
 						Root: base,
@@ -86,7 +86,7 @@ var _ = Describe("type Loader", func() {
 					return nil, errors.New("<error>")
 				}
 
-				_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})
@@ -104,7 +104,7 @@ var _ = Describe("type Loader", func() {
 						},
 						persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
-								HandlerKey:     "<handler-key>",
+								HandlerKey:     DefaultHandlerKey,
 								InstanceID:     "<instance>",
 								InstanceExists: true,
 							},
@@ -115,12 +115,12 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("returns an instance with the persisted meta-data and the base root", func() {
-				inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				inst, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
 						AggregateMetaData: persistence.AggregateMetaData{
-							HandlerKey:     "<handler-key>",
+							HandlerKey:     DefaultHandlerKey,
 							InstanceID:     "<instance>",
 							Revision:       1,
 							InstanceExists: true,
@@ -131,7 +131,7 @@ var _ = Describe("type Loader", func() {
 			})
 
 			It("applies historical events to the base root", func() {
-				_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(base.AppliedEvents).To(Equal(
 					[]dogma.Message{
@@ -151,13 +151,13 @@ var _ = Describe("type Loader", func() {
 					return nil, errors.New("<error>")
 				}
 
-				_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).To(MatchError("<error>"))
 			})
 
 			It("returns an error if one of the historical events can not be unmarshaled", func() {
 				loader.Marshaler = &codec.Marshaler{} // an empty marshaler cannot unmarshal anything
-				_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
 			})
 
@@ -168,7 +168,7 @@ var _ = Describe("type Loader", func() {
 						persistence.Batch{
 							persistence.SaveAggregateMetaData{
 								MetaData: persistence.AggregateMetaData{
-									HandlerKey:     "<handler-key>",
+									HandlerKey:     DefaultHandlerKey,
 									InstanceID:     "<instance>",
 									Revision:       1,
 									InstanceExists: false,
@@ -191,7 +191,7 @@ var _ = Describe("type Loader", func() {
 						return nil, errors.New("<error>")
 					}
 
-					_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+					_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 					Expect(err).ShouldNot(HaveOccurred())
 				})
 
@@ -205,7 +205,7 @@ var _ = Describe("type Loader", func() {
 								},
 								persistence.SaveAggregateMetaData{
 									MetaData: persistence.AggregateMetaData{
-										HandlerKey:     "<handler-key>",
+										HandlerKey:     DefaultHandlerKey,
 										InstanceID:     "<instance>",
 										Revision:       2,
 										InstanceExists: true,
@@ -219,7 +219,7 @@ var _ = Describe("type Loader", func() {
 					})
 
 					It("only applies events that were recorded after the destruction", func() {
-						_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+						_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(base.AppliedEvents).To(Equal(
 							[]dogma.Message{

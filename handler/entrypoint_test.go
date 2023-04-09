@@ -83,7 +83,7 @@ var _ = Describe("type EntryPoint", func() {
 				queuedEvent = NewParcel("<queued-event>", MessageQ1)
 
 				oper = persistence.SaveOffset{
-					ApplicationKey: "<app-key>",
+					ApplicationKey: DefaultAppKey,
 				}
 
 				handler.HandleMessageFunc = func(

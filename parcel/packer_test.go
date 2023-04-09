@@ -12,6 +12,7 @@ import (
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
+	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
 	. "github.com/jmalloc/gomegax"
@@ -37,12 +38,12 @@ var _ = Describe("type Packer", func() {
 
 		app = &envelopespec.Identity{
 			Name: "<app-name>",
-			Key:  "<app-key>",
+			Key:  DefaultAppKey,
 		}
 
 		handler = &envelopespec.Identity{
 			Name: "<handler-name>",
-			Key:  "<handler-key>",
+			Key:  DefaultHandlerKey,
 		}
 
 		packer = &Packer{
@@ -187,7 +188,7 @@ var _ = Describe("type Packer", func() {
 				CorrelationId: "<cause>",
 				SourceApplication: &envelopespec.Identity{
 					Name: "<app-name>",
-					Key:  "<app-key>",
+					Key:  DefaultAppKey,
 				},
 			}
 		})

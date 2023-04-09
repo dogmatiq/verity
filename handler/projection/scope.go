@@ -19,6 +19,12 @@ func (s eventScope) RecordedAt() time.Time {
 	return s.cause.CreatedAt
 }
 
+// IsPrimaryDelivery returns true on one of the application instances that
+// receive the event, and false on all other instances.
+func (s eventScope) IsPrimaryDelivery() bool {
+	return true
+}
+
 // Log records an informational message within the context of the message
 // that is being handled.
 func (s eventScope) Log(f string, v ...interface{}) {
