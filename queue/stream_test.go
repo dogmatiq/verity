@@ -69,7 +69,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				ctx,
 				persistence.Batch{
 					persistence.SaveOffset{
-						ApplicationKey: "<app-key>",
+						ApplicationKey: DefaultAppKey,
 						CurrentOffset:  0,
 						NextOffset:     123,
 					},
@@ -81,7 +81,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				ctx,
 				configkit.MustNewIdentity(
 					"<app-name>",
-					"<app-key>",
+					DefaultAppKey,
 				),
 			)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -112,7 +112,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			o, err := dataStore.LoadOffset(ctx, "<app-key>")
+			o, err := dataStore.LoadOffset(ctx, DefaultAppKey)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(o).To(BeNumerically("==", 124))
 		})
@@ -140,7 +140,7 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(err).To(Equal(
 				persistence.ConflictError{
 					Cause: persistence.SaveOffset{
-						ApplicationKey: "<app-key>",
+						ApplicationKey: DefaultAppKey,
 						CurrentOffset:  1,
 						NextOffset:     124,
 					},

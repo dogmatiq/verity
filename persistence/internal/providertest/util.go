@@ -15,7 +15,7 @@ func loadAggregateMetaData(
 	hk, id string,
 ) persistence.AggregateMetaData {
 	md, err := r.LoadAggregateMetaData(ctx, hk, id)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 
 	return md
 }
@@ -27,7 +27,7 @@ func loadProcessInstance(
 	hk, id string,
 ) persistence.ProcessInstance {
 	inst, err := r.LoadProcessInstance(ctx, hk, id)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 
 	return inst
 }
@@ -40,14 +40,14 @@ func loadEventsByType(
 	o uint64,
 ) []persistence.Event {
 	res, err := r.LoadEventsByType(ctx, f, o)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 
 	var events []persistence.Event
 
 	for {
 		ev, ok, err := res.Next(ctx)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 
 		if !ok {
 			return events
@@ -65,14 +65,14 @@ func loadEventsBySource(
 	m string,
 ) []persistence.Event {
 	res, err := r.LoadEventsBySource(ctx, hk, id, m)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 
 	var events []persistence.Event
 
 	for {
 		ev, ok, err := res.Next(ctx)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 
 		if !ok {
 			return events
@@ -90,7 +90,7 @@ func loadOffset(
 	ak string,
 ) uint64 {
 	o, err := repository.LoadOffset(ctx, ak)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 
 	return o
 }
@@ -116,7 +116,7 @@ func loadQueueMessages(
 	n int,
 ) []persistence.QueueMessage {
 	messages, err := r.LoadQueueMessages(ctx, n)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 
 	return messages
 }
@@ -128,7 +128,7 @@ func persist(
 	batch ...persistence.Operation,
 ) persistence.Result {
 	res, err := p.Persist(ctx, batch)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 
 	return res
 }

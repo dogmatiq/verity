@@ -38,20 +38,20 @@ func declareProcessOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 							},
 						},
 					)
 
-					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
 					gomega.Expect(inst.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
 				ginkgo.It("does not save the instance when an OCC conflict occurs", func() {
 					op := persistence.SaveProcessInstance{
 						Instance: persistence.ProcessInstance{
-							HandlerKey: "<handler-key>",
+							HandlerKey: verityfixtures.DefaultHandlerKey,
 							InstanceID: "<instance>",
 							Revision:   123,
 						},
@@ -67,10 +67,10 @@ func declareProcessOperationTests(tc *TestContext) {
 						},
 					))
 
-					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
 					gomega.Expect(inst).To(gomega.Equal(
 						persistence.ProcessInstance{
-							HandlerKey: "<handler-key>",
+							HandlerKey: verityfixtures.DefaultHandlerKey,
 							InstanceID: "<instance>",
 							Revision:   0,
 						},
@@ -85,7 +85,7 @@ func declareProcessOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 							},
 						},
@@ -98,14 +98,14 @@ func declareProcessOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
 							},
 						},
 					)
 
-					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
 					gomega.Expect(inst.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
@@ -120,7 +120,7 @@ func declareProcessOperationTests(tc *TestContext) {
 							dataStore,
 							persistence.SaveProcessInstance{
 								Instance: persistence.ProcessInstance{
-									HandlerKey: "<handler-key>",
+									HandlerKey: verityfixtures.DefaultHandlerKey,
 									InstanceID: "<instance>",
 									Revision:   1,
 								},
@@ -129,7 +129,7 @@ func declareProcessOperationTests(tc *TestContext) {
 
 						op := persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   uint64(conflictingRevision),
 							},
@@ -145,10 +145,10 @@ func declareProcessOperationTests(tc *TestContext) {
 							},
 						))
 
-						inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+						inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
 						gomega.Expect(inst).To(gomega.Equal(
 							persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   2,
 							},
@@ -169,7 +169,7 @@ func declareProcessOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Packet: marshalkit.Packet{
 									MediaType: "<media-type>",
@@ -186,17 +186,17 @@ func declareProcessOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.RemoveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
 							},
 						},
 					)
 
-					inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+					inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
 					gomega.Expect(inst).To(gomega.Equal(
 						persistence.ProcessInstance{
-							HandlerKey: "<handler-key>",
+							HandlerKey: verityfixtures.DefaultHandlerKey,
 							InstanceID: "<instance>",
 						},
 					))
@@ -207,18 +207,33 @@ func declareProcessOperationTests(tc *TestContext) {
 
 					m0 := persistence.QueueMessage{
 						NextAttemptAt: now,
-						Envelope:      verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageT1, now, now),
+						Envelope: verityfixtures.NewEnvelope(
+							"<message-0>",
+							dogmafixtures.MessageT1,
+							now,
+							now,
+						),
 					}
 
 					m1 := persistence.QueueMessage{
 						NextAttemptAt: now.Add(1 * time.Hour),
-						Envelope:      verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageT1, now, now),
+						Envelope: verityfixtures.NewEnvelope(
+							"<message-1>",
+							dogmafixtures.MessageT1,
+							now,
+							now,
+						),
 					}
 					m1.Envelope.SourceInstanceId = "<other-instance>"
 
 					m2 := persistence.QueueMessage{
 						NextAttemptAt: now.Add(2 * time.Hour),
-						Envelope:      verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageT1, now, now),
+						Envelope: verityfixtures.NewEnvelope(
+							"<message-2>",
+							dogmafixtures.MessageT1,
+							now,
+							now,
+						),
 					}
 
 					persist(
@@ -243,7 +258,7 @@ func declareProcessOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.RemoveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
 							},
@@ -266,7 +281,7 @@ func declareProcessOperationTests(tc *TestContext) {
 							dataStore,
 							persistence.SaveProcessInstance{
 								Instance: persistence.ProcessInstance{
-									HandlerKey: "<handler-key>",
+									HandlerKey: verityfixtures.DefaultHandlerKey,
 									InstanceID: "<instance>",
 									Revision:   1,
 								},
@@ -275,7 +290,7 @@ func declareProcessOperationTests(tc *TestContext) {
 
 						op := persistence.RemoveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   uint64(conflictingRevision),
 							},
@@ -291,10 +306,10 @@ func declareProcessOperationTests(tc *TestContext) {
 							},
 						))
 
-						inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+						inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
 						gomega.Expect(inst).To(gomega.Equal(
 							persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   2,
 							},
@@ -312,7 +327,7 @@ func declareProcessOperationTests(tc *TestContext) {
 					func(conflictingRevision int) {
 						op := persistence.RemoveProcessInstance{
 							Instance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   uint64(conflictingRevision),
 							},

@@ -43,7 +43,7 @@ var _ = Describe("type Stream", func() {
 				server,
 				in.Marshaler,
 				WithApplication(
-					"<app-key>",
+					DefaultAppKey,
 					stream,
 					in.EventTypes,
 				),
@@ -111,7 +111,7 @@ var _ = Describe("type Stream", func() {
 			server,
 			Marshaler,
 			WithApplication(
-				"<app-key>",
+				DefaultAppKey,
 				mstream,
 				types,
 			),
@@ -126,7 +126,7 @@ var _ = Describe("type Stream", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		stream = &Stream{
-			App:       configkit.MustNewIdentity("<app-name>", "<app-key>"),
+			App:       configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Client:    eventstreamspec.NewStreamAPIClient(conn),
 			Marshaler: Marshaler,
 		}

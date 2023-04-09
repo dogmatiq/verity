@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/gomega"
 )
@@ -42,11 +43,11 @@ type TestContext struct {
 	Out     Out
 }
 
-// SetupDataStore sets up a new data-store for the "<app-key>" application.
+// SetupDataStore sets up a new data-store.
 func (tc *TestContext) SetupDataStore() (persistence.DataStore, func()) {
 	p, close := tc.Out.NewProvider()
 
-	ds, err := p.Open(tc.Context, "<app-key>")
+	ds, err := p.Open(tc.Context, fixtures.DefaultAppKey)
 	if err != nil {
 		if close != nil {
 			close()

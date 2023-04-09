@@ -61,7 +61,7 @@ var _ = Describe("type Batch", func() {
 			batch := Batch{
 				SaveAggregateMetaData{
 					MetaData: AggregateMetaData{
-						HandlerKey: "<aggregate-key>",
+						HandlerKey: "e4ff048e-79f7-45e2-9f02-3b10d17614c6",
 						InstanceID: "<instance>",
 					},
 				},
@@ -70,7 +70,7 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveProcessInstance{
 					Instance: ProcessInstance{
-						HandlerKey: "<process-key>",
+						HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 						InstanceID: "<instance>", // note: same instance ID as aggregate, this is allowed
 					},
 				},
@@ -86,18 +86,18 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveProcessInstance{
 					Instance: ProcessInstance{
-						HandlerKey: "<process-key>",
+						HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 						InstanceID: "<instance-a>",
 					},
 				},
 				RemoveProcessInstance{
 					Instance: ProcessInstance{
-						HandlerKey: "<process-key>",
+						HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 						InstanceID: "<instance-b>",
 					},
 				},
 				SaveOffset{
-					ApplicationKey: "<app-key>",
+					ApplicationKey: DefaultAppKey,
 				},
 			}
 
@@ -112,7 +112,7 @@ var _ = Describe("type Batch", func() {
 			batch := Batch{
 				SaveAggregateMetaData{
 					MetaData: AggregateMetaData{
-						HandlerKey: "<handler-key>",
+						HandlerKey: DefaultHandlerKey,
 						InstanceID: "<instance>",
 					},
 				},
@@ -121,7 +121,7 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveProcessInstance{
 					Instance: ProcessInstance{
-						HandlerKey: "<process-key>",
+						HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 						InstanceID: "<instance>", // note: same instance ID as aggregate, this is allowed
 					},
 				},
@@ -136,7 +136,7 @@ var _ = Describe("type Batch", func() {
 					},
 				},
 				SaveOffset{
-					ApplicationKey: "<app-key>",
+					ApplicationKey: DefaultAppKey,
 				},
 			}
 
@@ -150,7 +150,7 @@ var _ = Describe("type Batch", func() {
 			batch := Batch{
 				SaveAggregateMetaData{
 					MetaData: AggregateMetaData{
-						HandlerKey: "<handler-key>",
+						HandlerKey: DefaultHandlerKey,
 						InstanceID: "<instance>",
 					},
 				},

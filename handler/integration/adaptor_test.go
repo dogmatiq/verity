@@ -36,7 +36,7 @@ var _ = Describe("type Adaptor", func() {
 
 		upstream = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
-				c.Identity("<integration-name>", "<integration-key>")
+				c.Identity("<integration-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
 				c.ConsumesCommandType(MessageC{})
 				c.ProducesEventType(MessageE{})
 			},
@@ -58,7 +58,7 @@ var _ = Describe("type Adaptor", func() {
 		adaptor = &Adaptor{
 			Identity: &envelopespec.Identity{
 				Name: "<integration-name>",
-				Key:  "<integration-key>",
+				Key:  "27fb3936-6f88-4873-8c56-e6a1d01f027a",
 			},
 			Handler: upstream,
 			Packer:  packer,

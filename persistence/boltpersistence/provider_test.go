@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	. "github.com/dogmatiq/verity/persistence/boltpersistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
@@ -63,7 +64,7 @@ var _ = Describe("type FileProvider", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 			defer cancel()
 
-			ds, err := provider.Open(ctx, "<app-key>")
+			ds, err := provider.Open(ctx, DefaultAppKey)
 			if ds != nil {
 				ds.Close()
 			}

@@ -9,6 +9,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit/codec"
+	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence/memorypersistence"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,10 +17,10 @@ import (
 
 var TestApplication = &Application{
 	ConfigureFunc: func(c dogma.ApplicationConfigurer) {
-		c.Identity("<app-name>", "<app-key>")
+		c.Identity("<app-name>", DefaultAppKey)
 		c.RegisterProjection(&ProjectionMessageHandler{
 			ConfigureFunc: func(c dogma.ProjectionConfigurer) {
-				c.Identity("<projection-name>", "<projection-key>")
+				c.Identity("<projection-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
 				c.ConsumesEventType(MessageA{})
 			},
 		})

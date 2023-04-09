@@ -14,6 +14,14 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	// DefaultAppKey is the default application key for test envelopes.
+	DefaultAppKey = "a96fefa1-2630-467a-b756-db2e428a56fd"
+
+	// DefaultHandlerKey is the default handler key for test envelopes.
+	DefaultHandlerKey = "16c7843f-c94f-4fd1-ba80-fd59cab793ff"
+)
+
 // NewEnvelope returns a new envelope containing the given message.
 //
 // If id is empty, a new UUID is generated.
@@ -67,11 +75,11 @@ func NewParcel(
 			CorrelationId: "<correlation>",
 			SourceApplication: &envelopespec.Identity{
 				Name: "<app-name>",
-				Key:  "<app-key>",
+				Key:  DefaultAppKey,
 			},
 			SourceHandler: &envelopespec.Identity{
 				Name: "<handler-name>",
-				Key:  "<handler-key>",
+				Key:  DefaultHandlerKey,
 			},
 			SourceInstanceId: "<instance>",
 			CreatedAt:        marshalkit.MustMarshalEnvelopeTime(createdAt),
@@ -105,7 +113,7 @@ func NewPacker(roles message.TypeRoles) *parcel.Packer {
 	return &parcel.Packer{
 		Application: &envelopespec.Identity{
 			Name: "<app-name>",
-			Key:  "<app-key>",
+			Key:  DefaultAppKey,
 		},
 		Marshaler: fixtures.Marshaler,
 		Produced:  roles,

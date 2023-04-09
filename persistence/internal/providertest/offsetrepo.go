@@ -3,6 +3,7 @@ package providertest
 import (
 	"context"
 
+	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -30,7 +31,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 				ginkgo.It("loads the initial offset as zero", func() {
 					actual, err := dataStore.LoadOffset(
 						tc.Context,
-						"<source-app-key>",
+						fixtures.DefaultAppKey,
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(0))
@@ -43,7 +44,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveOffset{
-							ApplicationKey: "<source-app-key>",
+							ApplicationKey: fixtures.DefaultAppKey,
 							CurrentOffset:  0,
 							NextOffset:     1,
 						},
@@ -51,7 +52,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 
 					actual, err := dataStore.LoadOffset(
 						tc.Context,
-						"<source-app-key>",
+						fixtures.DefaultAppKey,
 					)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(1))
@@ -67,7 +68,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 					tc.Context,
 					dataStore,
 					persistence.SaveOffset{
-						ApplicationKey: "<source-app-key>",
+						ApplicationKey: fixtures.DefaultAppKey,
 						CurrentOffset:  0,
 						NextOffset:     1,
 					},
@@ -76,7 +77,7 @@ func declareOffsetRepositoryTests(tc *TestContext) {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				actual, err := dataStore.LoadOffset(ctx, "<source-app-key>")
+				actual, err := dataStore.LoadOffset(ctx, fixtures.DefaultAppKey)
 				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
 				} else {

@@ -346,7 +346,7 @@ var _ = Describe("type Queue", func() {
 
 				By("removing the messages from the in-memory queue")
 
-				queue.RemoveTimeoutsByProcessID("<handler-key>", "<instance>")
+				queue.RemoveTimeoutsByProcessID(DefaultHandlerKey, "<instance>")
 
 				By("ensuring the next Pop() times-out")
 
@@ -360,7 +360,7 @@ var _ = Describe("type Queue", func() {
 			It("does not remove command messages", func() {
 				push(parcel0)
 
-				queue.RemoveTimeoutsByProcessID("<handler-key>", "<instance>")
+				queue.RemoveTimeoutsByProcessID(DefaultHandlerKey, "<instance>")
 
 				m, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -370,7 +370,8 @@ var _ = Describe("type Queue", func() {
 			It("does not remove timeout messages created by other handlers", func() {
 				push(parcel1)
 
-				queue.RemoveTimeoutsByProcessID("<other-handler-key>", "<instance>")
+				otherHandlerKey := "0c89fa9d-9707-4938-a961-fcb7c222da61"
+				queue.RemoveTimeoutsByProcessID(otherHandlerKey, "<instance>")
 
 				m, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -380,7 +381,7 @@ var _ = Describe("type Queue", func() {
 			It("does not remove timeout messages created by other instances of the same handler", func() {
 				push(parcel1)
 
-				queue.RemoveTimeoutsByProcessID("<handler-key>", "<other-instance>")
+				queue.RemoveTimeoutsByProcessID(DefaultHandlerKey, "<other-instance>")
 
 				m, err := queue.Pop(ctx)
 				Expect(err).ShouldNot(HaveOccurred())

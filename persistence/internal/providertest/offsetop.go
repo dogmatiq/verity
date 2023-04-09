@@ -3,6 +3,7 @@ package providertest
 import (
 	"sync"
 
+	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -33,19 +34,19 @@ func declareOffsetOperationTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveOffset{
-							ApplicationKey: "<source-app-key>",
+							ApplicationKey: fixtures.DefaultAppKey,
 							CurrentOffset:  0,
 							NextOffset:     1,
 						},
 					)
 
-					actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
+					actual := loadOffset(tc.Context, dataStore, fixtures.DefaultAppKey)
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(1))
 				})
 
 				ginkgo.It("it does not update the offset when an OCC conflict occurs", func() {
 					op := persistence.SaveOffset{
-						ApplicationKey: "<source-app-key>",
+						ApplicationKey: fixtures.DefaultAppKey,
 						CurrentOffset:  1,
 						NextOffset:     2,
 					}
@@ -60,7 +61,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 						},
 					))
 
-					actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
+					actual := loadOffset(tc.Context, dataStore, fixtures.DefaultAppKey)
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(0))
 				})
 			})
@@ -71,7 +72,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveOffset{
-							ApplicationKey: "<source-app-key>",
+							ApplicationKey: fixtures.DefaultAppKey,
 							CurrentOffset:  0,
 							NextOffset:     5,
 						},
@@ -83,13 +84,13 @@ func declareOffsetOperationTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						persistence.SaveOffset{
-							ApplicationKey: "<source-app-key>",
+							ApplicationKey: fixtures.DefaultAppKey,
 							CurrentOffset:  5,
 							NextOffset:     123,
 						},
 					)
 
-					actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
+					actual := loadOffset(tc.Context, dataStore, fixtures.DefaultAppKey)
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(123))
 				})
 
@@ -97,7 +98,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 					"it does not update the offset when an OCC conflict occurs",
 					func(conflictingOffset int) {
 						op := persistence.SaveOffset{
-							ApplicationKey: "<source-app-key>",
+							ApplicationKey: fixtures.DefaultAppKey,
 							CurrentOffset:  uint64(conflictingOffset),
 							NextOffset:     123,
 						}
@@ -112,7 +113,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 							},
 						))
 
-						actual := loadOffset(tc.Context, dataStore, "<source-app-key>")
+						actual := loadOffset(tc.Context, dataStore, fixtures.DefaultAppKey)
 						gomega.Expect(actual).To(gomega.BeEquivalentTo(5))
 					},
 					table.Entry("zero", 0),

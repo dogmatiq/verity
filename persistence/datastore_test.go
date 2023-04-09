@@ -34,27 +34,27 @@ var _ = Describe("type DataStoreSet", func() {
 
 	Describe("func Get()", func() {
 		It("opens a data-store", func() {
-			expect, err := provider.Open(ctx, "<app-key>")
+			expect, err := provider.Open(ctx, DefaultAppKey)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			provider.OpenFunc = func(
 				_ context.Context,
 				k string,
 			) (DataStore, error) {
-				Expect(k).To(Equal("<app-key>"))
+				Expect(k).To(Equal(DefaultAppKey))
 				return expect, nil
 			}
 
-			ds, err := set.Get(ctx, "<app-key>")
+			ds, err := set.Get(ctx, DefaultAppKey)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(ds).To(Equal(expect))
 		})
 
 		It("returns the same instance on subsequent calls", func() {
-			ds1, err := set.Get(ctx, "<app-key>")
+			ds1, err := set.Get(ctx, DefaultAppKey)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ds2, err := set.Get(ctx, "<app-key>")
+			ds2, err := set.Get(ctx, DefaultAppKey)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(ds1).To(BeIdenticalTo(ds2))
@@ -68,7 +68,7 @@ var _ = Describe("type DataStoreSet", func() {
 				return nil, errors.New("<error>")
 			}
 
-			ds, err := set.Get(ctx, "<app-key>")
+			ds, err := set.Get(ctx, DefaultAppKey)
 			if ds != nil {
 				ds.Close()
 			}

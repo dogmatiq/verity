@@ -3,6 +3,7 @@ package providertest
 import (
 	"sync"
 
+	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -34,20 +35,20 @@ func declareAggregateOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
-								HandlerKey: "<handler-key>",
+								HandlerKey: fixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 							},
 						},
 					)
 
-					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
+					md := loadAggregateMetaData(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
 				ginkgo.It("does not save the meta-data when an OCC conflict occurs", func() {
 					op := persistence.SaveAggregateMetaData{
 						MetaData: persistence.AggregateMetaData{
-							HandlerKey: "<handler-key>",
+							HandlerKey: fixtures.DefaultHandlerKey,
 							InstanceID: "<instance>",
 							Revision:   123,
 						},
@@ -63,10 +64,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 						},
 					))
 
-					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
+					md := loadAggregateMetaData(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 					gomega.Expect(md).To(gomega.Equal(
 						persistence.AggregateMetaData{
-							HandlerKey: "<handler-key>",
+							HandlerKey: fixtures.DefaultHandlerKey,
 							InstanceID: "<instance>",
 							Revision:   0,
 						},
@@ -81,7 +82,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
-								HandlerKey: "<handler-key>",
+								HandlerKey: fixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 							},
 						},
@@ -94,14 +95,14 @@ func declareAggregateOperationTests(tc *TestContext) {
 						dataStore,
 						persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
-								HandlerKey: "<handler-key>",
+								HandlerKey: fixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
 							},
 						},
 					)
 
-					md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
+					md := loadAggregateMetaData(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
@@ -116,7 +117,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 							dataStore,
 							persistence.SaveAggregateMetaData{
 								MetaData: persistence.AggregateMetaData{
-									HandlerKey: "<handler-key>",
+									HandlerKey: fixtures.DefaultHandlerKey,
 									InstanceID: "<instance>",
 									Revision:   1,
 								},
@@ -125,7 +126,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 						op := persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
-								HandlerKey: "<handler-key>",
+								HandlerKey: fixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   uint64(conflictingRevision),
 							},
@@ -141,10 +142,10 @@ func declareAggregateOperationTests(tc *TestContext) {
 							},
 						))
 
-						md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key>", "<instance>")
+						md := loadAggregateMetaData(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 						gomega.Expect(md).To(gomega.Equal(
 							persistence.AggregateMetaData{
-								HandlerKey: "<handler-key>",
+								HandlerKey: fixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   2,
 							},
@@ -180,33 +181,33 @@ func declareAggregateOperationTests(tc *TestContext) {
 
 				// Note the overlap of handler keys and instance IDs.
 				g.Add(3)
-				go fn("<handler-key-1>", "<instance-a>", 1)
-				go fn("<handler-key-1>", "<instance-b>", 2)
-				go fn("<handler-key-2>", "<instance-a>", 3)
+				go fn("62f12b60-52e4-4223-9b44-68ec63139f8a", "<instance-a>", 1)
+				go fn("62f12b60-52e4-4223-9b44-68ec63139f8a", "<instance-b>", 2)
+				go fn("dd581546-2cc2-486b-888d-b4a8e035fd9c", "<instance-a>", 3)
 				g.Wait()
 
-				md := loadAggregateMetaData(tc.Context, dataStore, "<handler-key-1>", "<instance-a>")
+				md := loadAggregateMetaData(tc.Context, dataStore, "62f12b60-52e4-4223-9b44-68ec63139f8a", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
-						HandlerKey: "<handler-key-1>",
+						HandlerKey: "62f12b60-52e4-4223-9b44-68ec63139f8a",
 						InstanceID: "<instance-a>",
 						Revision:   1,
 					},
 				))
 
-				md = loadAggregateMetaData(tc.Context, dataStore, "<handler-key-1>", "<instance-b>")
+				md = loadAggregateMetaData(tc.Context, dataStore, "62f12b60-52e4-4223-9b44-68ec63139f8a", "<instance-b>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
-						HandlerKey: "<handler-key-1>",
+						HandlerKey: "62f12b60-52e4-4223-9b44-68ec63139f8a",
 						InstanceID: "<instance-b>",
 						Revision:   2,
 					},
 				))
 
-				md = loadAggregateMetaData(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
+				md = loadAggregateMetaData(tc.Context, dataStore, "dd581546-2cc2-486b-888d-b4a8e035fd9c", "<instance-a>")
 				gomega.Expect(md).To(gomega.Equal(
 					persistence.AggregateMetaData{
-						HandlerKey: "<handler-key-2>",
+						HandlerKey: "dd581546-2cc2-486b-888d-b4a8e035fd9c",
 						InstanceID: "<instance-a>",
 						Revision:   3,
 					},

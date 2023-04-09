@@ -57,18 +57,18 @@ var _ = Describe("type Loader", func() {
 				return persistence.ProcessInstance{}, errors.New("<error>")
 			}
 
-			_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+			_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 			Expect(err).To(MatchError("<error>"))
 		})
 
 		When("the instance does not exist", func() {
 			It("returns an instance with a new instance value and the base root", func() {
-				inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+				inst, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(inst).To(Equal(
 					&Instance{
 						ProcessInstance: persistence.ProcessInstance{
-							HandlerKey: "<handler-key>",
+							HandlerKey: DefaultHandlerKey,
 							InstanceID: "<instance>",
 						},
 						Root: base,
@@ -85,7 +85,7 @@ var _ = Describe("type Loader", func() {
 						persistence.Batch{
 							persistence.SaveProcessInstance{
 								Instance: persistence.ProcessInstance{
-									HandlerKey: "<handler-key>",
+									HandlerKey: DefaultHandlerKey,
 									InstanceID: "<instance>",
 								},
 							},
@@ -95,12 +95,12 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("returns an instance with the persisted instance data and a stateless root", func() {
-					inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+					inst, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(inst).To(Equal(
 						&Instance{
 							ProcessInstance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
 							},
@@ -125,7 +125,7 @@ var _ = Describe("type Loader", func() {
 						persistence.Batch{
 							persistence.SaveProcessInstance{
 								Instance: persistence.ProcessInstance{
-									HandlerKey: "<handler-key>",
+									HandlerKey: DefaultHandlerKey,
 									InstanceID: "<instance>",
 									Packet:     packet,
 								},
@@ -136,12 +136,12 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("unmarshals the process state", func() {
-					inst, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+					inst, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(inst).To(Equal(
 						&Instance{
 							ProcessInstance: persistence.ProcessInstance{
-								HandlerKey: "<handler-key>",
+								HandlerKey: DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
 								Packet:     packet,
@@ -153,7 +153,7 @@ var _ = Describe("type Loader", func() {
 
 				It("returns an error if the state can not be unmarshaled", func() {
 					loader.Marshaler = &codec.Marshaler{} // an empty marshaler cannot unmarshal anything
-					_, err := loader.Load(ctx, "<handler-key>", "<instance>", base)
+					_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 					Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
 				})
 			})

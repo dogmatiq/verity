@@ -121,7 +121,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 			NewEnvelope("<id>", MessageA1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
-				Key:  "<handler-key>",
+				Key:  DefaultHandlerKey,
 			},
 			configkit.AggregateHandlerType,
 			&err,
@@ -142,7 +142,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 			NewEnvelope("<id>", MessageA1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
-				Key:  "<handler-key>",
+				Key:  DefaultHandlerKey,
 			},
 			configkit.AggregateHandlerType,
 			&err,
@@ -166,7 +166,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 			NewEnvelope("<id>", MessageA1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
-				Key:  "<handler-key>",
+				Key:  DefaultHandlerKey,
 			},
 			configkit.AggregateHandlerType,
 			&err,
@@ -189,7 +189,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 					NewEnvelope("<id>", MessageA1),
 					&envelopespec.Identity{
 						Name: "<handler-name>",
-						Key:  "<handler-key>",
+						Key:  DefaultHandlerKey,
 					},
 					configkit.AggregateHandlerType,
 					&err,
@@ -211,7 +211,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 			NewEnvelope("<id>", MessageA1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
-				Key:  "<handler-key>",
+				Key:  DefaultHandlerKey,
 			},
 			configkit.AggregateHandlerType,
 			&err,

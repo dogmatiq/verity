@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -28,10 +29,10 @@ func declareProcessRepositoryTests(tc *TestContext) {
 
 		ginkgo.Describe("func LoadProcessInstance()", func() {
 			ginkgo.It("returns an instance with default values if the instance does not exist", func() {
-				inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+				inst := loadProcessInstance(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 				gomega.Expect(inst).To(gomega.Equal(
 					persistence.ProcessInstance{
-						HandlerKey: "<handler-key>",
+						HandlerKey: fixtures.DefaultHandlerKey,
 						InstanceID: "<instance>",
 					},
 				))
@@ -39,7 +40,7 @@ func declareProcessRepositoryTests(tc *TestContext) {
 
 			ginkgo.It("returns the current persisted instance", func() {
 				expect := persistence.ProcessInstance{
-					HandlerKey: "<handler-key>",
+					HandlerKey: fixtures.DefaultHandlerKey,
 					InstanceID: "<instance>",
 					Packet: marshalkit.Packet{
 						MediaType: "<media-type>",
@@ -55,7 +56,7 @@ func declareProcessRepositoryTests(tc *TestContext) {
 				)
 				expect.Revision++
 
-				inst := loadProcessInstance(tc.Context, dataStore, "<handler-key>", "<instance>")
+				inst := loadProcessInstance(tc.Context, dataStore, fixtures.DefaultHandlerKey, "<instance>")
 				gomega.Expect(inst).To(gomega.Equal(expect))
 			})
 
@@ -65,7 +66,7 @@ func declareProcessRepositoryTests(tc *TestContext) {
 				// the correct result.
 
 				expect := persistence.ProcessInstance{
-					HandlerKey: "<handler-key>",
+					HandlerKey: fixtures.DefaultHandlerKey,
 					InstanceID: "<instance>",
 					Packet: marshalkit.Packet{
 						MediaType: "<media-type>",
@@ -84,7 +85,7 @@ func declareProcessRepositoryTests(tc *TestContext) {
 				ctx, cancel := context.WithCancel(tc.Context)
 				cancel()
 
-				md, err := dataStore.LoadProcessInstance(ctx, "<handler-key>", "<instance>")
+				md, err := dataStore.LoadProcessInstance(ctx, fixtures.DefaultHandlerKey, "<instance>")
 				if err != nil {
 					gomega.Expect(err).To(gomega.Equal(context.Canceled))
 				} else {

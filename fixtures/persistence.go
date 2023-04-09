@@ -52,7 +52,7 @@ func NewDataStoreStub() *DataStoreStub {
 		Provider: &memorypersistence.Provider{},
 	}
 
-	ds, err := p.Open(context.Background(), "<app-key>")
+	ds, err := p.Open(context.Background(), DefaultAppKey)
 	if err != nil {
 		panic(err)
 	}
