@@ -18,6 +18,7 @@ import (
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/boltpersistence"
+	"go.uber.org/zap"
 )
 
 var (
@@ -235,10 +236,24 @@ func WithMarshaler(m marshalkit.Marshaler) EngineOption {
 // WithLogger returns an engine option that sets the target for log messages
 // produced by the engine.
 //
+// l must be a [logging.Logger] or a [*zap.Logger].
+//
 // If this option is omitted or l is nil DefaultLogger is used.
-func WithLogger(l logging.Logger) EngineOption {
+func WithLogger(l any) EngineOption {
 	return func(opts *engineOptions) {
-		opts.Logger = l
+		switch l := l.(type) {
+		case *zap.Logger:
+			opts.Logger = logging.Zap(l)
+		case logging.Logger:
+			opts.Logger = l
+		case nil:
+			opts.Logger = DefaultLogger
+		default:
+			panic(fmt.Sprintf(
+				"unsupported logger type: %T",
+				l,
+			))
+		}
 	}
 }
 
