@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
-## Unreleased
+## [0.1.7] - 2023-05-03
 
 ### Added
 
@@ -74,6 +74,7 @@ optimistic concurrency error.
 [0.1.4]: https://github.com/dogmatiq/verity/releases/tag/v0.1.4
 [0.1.5]: https://github.com/dogmatiq/verity/releases/tag/v0.1.5
 [0.1.6]: https://github.com/dogmatiq/verity/releases/tag/v0.1.6
+[0.1.7]: https://github.com/dogmatiq/verity/releases/tag/v0.1.7
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
