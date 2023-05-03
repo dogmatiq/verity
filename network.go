@@ -17,6 +17,7 @@ import (
 	"github.com/dogmatiq/verity/eventstream/persistedstream"
 	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // runServer runs the listener and gRPC server.
@@ -26,6 +27,7 @@ func (e *Engine) runServer(ctx context.Context) error {
 	e.registerDiscoverAPI(server)
 	e.registerConfigAPI(server)
 	e.registerEventStreamAPI(server)
+	reflection.Register(server)
 
 	lis, err := net.Listen("tcp", e.opts.Network.ListenAddress)
 	if err != nil {
