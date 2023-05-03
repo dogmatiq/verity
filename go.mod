@@ -21,6 +21,7 @@ require (
 	github.com/onsi/gomega v1.27.6
 	go.etcd.io/bbolt v1.3.7
 	go.uber.org/multierr v1.11.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/sync v0.1.0
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
@@ -44,7 +45,6 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect

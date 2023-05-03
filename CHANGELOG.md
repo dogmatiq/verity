@@ -10,6 +10,21 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.1.8] - 2023-05-03
+
+### Fixed
+
+- Fixed `nil is not a message` error in event stream server.
+
+### Removed
+
+- Removed `networkstream.NoopUnmarshaler`. This marshaler served as an
+  optimization by skipping message unmarshaling when only the binary message
+  data is needed. Unfortunately, this approach is incompatible with
+  `dogmatiq/marshalkit` as of v0.7.3. `marshalkit` now explicitly requires
+  unmarshaled messages to implement the `dogma.Message` interface, because this
+  interface is no longer equivalent to `any`, as of Dogma v0.12.0.
+
 ## [0.1.7] - 2023-05-03
 
 ### Added

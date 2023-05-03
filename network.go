@@ -85,10 +85,8 @@ func (e *Engine) registerEventStreamAPI(s *grpc.Server) {
 				&persistedstream.Stream{
 					App:        a.Config.Identity(),
 					Repository: a.DataStore,
-					Marshaler: networkstream.NoopUnmarshaler{
-						Marshaler: e.opts.Marshaler,
-					},
-					Cache: a.EventCache,
+					Marshaler:  e.opts.Marshaler,
+					Cache:      a.EventCache,
 					// TODO: https://github.com/dogmatiq/verity/issues/76
 					// Make pre-fetch buffer size configurable.
 					PreFetch: 10,
