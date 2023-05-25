@@ -26,10 +26,7 @@ var _ = Describe("type DataStoreSet", func() {
 		set = &DataStoreSet{
 			Provider: provider,
 		}
-	})
-
-	AfterEach(func() {
-		set.Close()
+		DeferCleanup(set.Close)
 	})
 
 	Describe("func Get()", func() {

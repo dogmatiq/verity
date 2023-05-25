@@ -34,8 +34,10 @@ var _ = Describe("type QueueConsumer", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		dataStore = NewDataStoreStub()
+		DeferCleanup(dataStore.Close)
 
 		pcl = NewParcel("<id>", MessageA1)
 
@@ -87,11 +89,6 @@ var _ = Describe("type QueueConsumer", func() {
 				Parcel:       pcl,
 			},
 		})
-	})
-
-	AfterEach(func() {
-		dataStore.Close()
-		cancel()
 	})
 
 	Describe("func Run()", func() {

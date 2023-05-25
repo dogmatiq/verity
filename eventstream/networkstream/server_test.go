@@ -24,7 +24,6 @@ import (
 var _ = Describe("type server", func() {
 	var (
 		ctx      context.Context
-		cancel   func()
 		stream   *memorystream.Stream
 		listener net.Listener
 		server   *grpc.Server
@@ -34,7 +33,9 @@ var _ = Describe("type server", func() {
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		parcel0 = NewParcel("<message-0>", MessageA1)
 		parcel1 = NewParcel("<message-1>", MessageB1)
@@ -55,6 +56,7 @@ var _ = Describe("type server", func() {
 		var err error
 		listener, err = net.Listen("tcp", ":")
 		Expect(err).ShouldNot(HaveOccurred())
+		DeferCleanup(func() { listener.Close() })
 
 		server = grpc.NewServer()
 		RegisterServer(
@@ -68,6 +70,7 @@ var _ = Describe("type server", func() {
 		)
 
 		go server.Serve(listener)
+		DeferCleanup(server.Stop)
 
 		conn, err := grpc.Dial(
 			listener.Addr().String(),
@@ -76,18 +79,6 @@ var _ = Describe("type server", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		client = eventstreamspec.NewStreamAPIClient(conn)
-	})
-
-	AfterEach(func() {
-		if listener != nil {
-			listener.Close()
-		}
-
-		if server != nil {
-			server.Stop()
-		}
-
-		cancel()
 	})
 
 	Describe("func Consume()", func() {

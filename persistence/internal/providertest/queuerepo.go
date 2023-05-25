@@ -19,14 +19,15 @@ func declareQueueRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type persistence.QueueRepository", func() {
 		var (
 			dataStore persistence.DataStore
-			tearDown  func()
 
 			now                          time.Time
 			message0, message1, message2 persistence.QueueMessage
 		)
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
+			ginkgo.DeferCleanup(tearDown)
 
 			// Note, we use generated UUIDs for the message IDs to avoid them
 			// having any predictable effect on the queue order. Likewise, we
@@ -54,10 +55,6 @@ func declareQueueRepositoryTests(tc *TestContext) {
 				NextAttemptAt: now.Add(2 * time.Hour),
 				Envelope:      verityfixtures.NewEnvelope("", dogmafixtures.MessageA2),
 			}
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
 		})
 
 		ginkgo.Describe("func LoadQueueMessages()", func() {

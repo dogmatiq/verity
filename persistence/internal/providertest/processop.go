@@ -17,17 +17,12 @@ import (
 // persistence operations related to processes.
 func declareProcessOperationTests(tc *TestContext) {
 	ginkgo.Context("process operations", func() {
-		var (
-			dataStore persistence.DataStore
-			tearDown  func()
-		)
+		var dataStore persistence.DataStore
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
+			ginkgo.DeferCleanup(tearDown)
 		})
 
 		ginkgo.Describe("type persistence.SaveProcessInstance", func() {

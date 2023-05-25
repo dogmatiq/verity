@@ -14,10 +14,7 @@ func Declare(
 	before func(context.Context, In) Out,
 	after func(),
 ) {
-	var (
-		tc     TestContext
-		cancel func()
-	)
+	var tc TestContext
 
 	ginkgo.Context("persistence provider", func() {
 		ginkgo.BeforeEach(func() {
@@ -34,15 +31,13 @@ func Declare(
 				tc.Out.TestTimeout = DefaultTestTimeout
 			}
 
+			var cancel context.CancelFunc
 			tc.Context, cancel = context.WithTimeout(context.Background(), tc.Out.TestTimeout)
-		})
+			ginkgo.DeferCleanup(cancel)
 
-		ginkgo.AfterEach(func() {
 			if after != nil {
-				after()
+				ginkgo.DeferCleanup(after)
 			}
-
-			cancel()
 		})
 
 		declareAggregateOperationTests(&tc)

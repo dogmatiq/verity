@@ -19,14 +19,15 @@ func declareEventOperationTests(tc *TestContext) {
 	ginkgo.Context("event operations", func() {
 		var (
 			dataStore persistence.DataStore
-			tearDown  func()
 
 			env0, env1, env2 *envelopespec.Envelope
 			filter           map[string]struct{}
 		)
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
+			ginkgo.DeferCleanup(tearDown)
 
 			env0 = verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
 			env1 = verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
@@ -37,10 +38,6 @@ func declareEventOperationTests(tc *TestContext) {
 				env1.PortableName: {},
 				env2.PortableName: {},
 			}
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
 		})
 
 		ginkgo.Describe("type persistence.SaveEvent", func() {

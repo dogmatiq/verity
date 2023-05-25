@@ -40,12 +40,13 @@ var _ = Describe("type Stream", func() {
 var _ = Describe("type Stream", func() {
 	var (
 		ctx    context.Context
-		cancel context.CancelFunc
 		stream *Stream
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		stream = &Stream{
 			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
@@ -56,10 +57,6 @@ var _ = Describe("type Stream", func() {
 			// persisted events.
 			FirstOffset: 100,
 		}
-	})
-
-	AfterEach(func() {
-		cancel()
 	})
 
 	Describe("func Add()", func() {

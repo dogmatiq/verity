@@ -13,17 +13,12 @@ import (
 // specific persistence.AggregateRepository implementation.
 func declareAggregateRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type persistence.AggregateRepository", func() {
-		var (
-			dataStore persistence.DataStore
-			tearDown  func()
-		)
+		var dataStore persistence.DataStore
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
+			ginkgo.DeferCleanup(tearDown)
 		})
 
 		ginkgo.Describe("func LoadAggregateMetaData()", func() {

@@ -20,7 +20,6 @@ import (
 var _ = Describe("type Queue", func() {
 	var (
 		ctx                       context.Context
-		cancel                    context.CancelFunc
 		dataStore                 *DataStoreStub
 		queue                     *Queue
 		parcel0, parcel1, parcel2 parcel.Parcel
@@ -28,13 +27,16 @@ var _ = Describe("type Queue", func() {
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		parcel0 = NewParcel("<message-0>", MessageA1)                         // command
 		parcel1 = NewParcel("<message-1>", MessageA2, time.Now(), time.Now()) // timeout
 		parcel2 = NewParcel("<message-2>", MessageA3, time.Now(), time.Now()) // timeout
 
 		dataStore = NewDataStoreStub()
+		DeferCleanup(dataStore.Close)
 
 		queue = &Queue{
 			Repository: dataStore,
@@ -76,11 +78,6 @@ var _ = Describe("type Queue", func() {
 				},
 			})
 		}
-	})
-
-	AfterEach(func() {
-		dataStore.Close()
-		cancel()
 	})
 
 	When("the queue is running", func() {

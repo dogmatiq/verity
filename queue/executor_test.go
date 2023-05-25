@@ -23,7 +23,6 @@ var _ dogma.CommandExecutor = (*CommandExecutor)(nil)
 var _ = Describe("type CommandExecutor", func() {
 	var (
 		ctx       context.Context
-		cancel    context.CancelFunc
 		dataStore *DataStoreStub
 		queue     *Queue
 		loaded    chan struct{}
@@ -31,9 +30,12 @@ var _ = Describe("type CommandExecutor", func() {
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		dataStore = NewDataStoreStub()
+		DeferCleanup(dataStore.Close)
 
 		loaded = make(chan struct{})
 		dataStore.LoadQueueMessagesFunc = func(
@@ -66,11 +68,6 @@ var _ = Describe("type CommandExecutor", func() {
 			defer GinkgoRecover()
 			q.Run(ctx)
 		}()
-	})
-
-	AfterEach(func() {
-		dataStore.Close()
-		cancel()
 	})
 
 	Describe("func ExecuteCommand()", func() {

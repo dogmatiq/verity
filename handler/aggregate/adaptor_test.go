@@ -25,7 +25,6 @@ import (
 var _ = Describe("type Adaptor", func() {
 	var (
 		ctx       context.Context
-		cancel    context.CancelFunc
 		dataStore *DataStoreStub
 		upstream  *AggregateMessageHandler
 		packer    *parcel.Packer
@@ -36,9 +35,12 @@ var _ = Describe("type Adaptor", func() {
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		dataStore = NewDataStoreStub()
+		DeferCleanup(dataStore.Close)
 
 		dataStore.LoadAggregateMetaDataFunc = func(
 			_ context.Context,
@@ -89,11 +91,6 @@ var _ = Describe("type Adaptor", func() {
 			LoadTimeout: 1 * time.Second,
 			Logger:      logger,
 		}
-	})
-
-	AfterEach(func() {
-		dataStore.Close()
-		cancel()
 	})
 
 	Describe("func HandleMessage()", func() {
@@ -277,7 +274,7 @@ var _ = Describe("type Adaptor", func() {
 			_, err := adaptor.Cache.Acquire(ctx, &UnitOfWorkStub{}, "<instance>")
 			Expect(err).ShouldNot(HaveOccurred())
 
-			ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
+			ctx, cancel := context.WithTimeout(ctx, 20*time.Millisecond)
 			defer cancel()
 
 			err = adaptor.HandleMessage(ctx, work, cause)

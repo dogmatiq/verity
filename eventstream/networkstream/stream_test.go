@@ -83,7 +83,6 @@ var _ = Describe("type Stream", func() {
 var _ = Describe("type Stream", func() {
 	var (
 		ctx      context.Context
-		cancel   func()
 		mstream  *memorystream.Stream
 		listener net.Listener
 		server   *grpc.Server
@@ -94,7 +93,9 @@ var _ = Describe("type Stream", func() {
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		mstream = &memorystream.Stream{}
 
@@ -105,6 +106,7 @@ var _ = Describe("type Stream", func() {
 		var err error
 		listener, err = net.Listen("tcp", ":")
 		Expect(err).ShouldNot(HaveOccurred())
+		DeferCleanup(func() { listener.Close() })
 
 		server = grpc.NewServer()
 		RegisterServer(
@@ -118,34 +120,20 @@ var _ = Describe("type Stream", func() {
 		)
 
 		go server.Serve(listener)
+		DeferCleanup(server.Stop)
 
 		conn, err = grpc.Dial(
 			listener.Addr().String(),
 			grpc.WithInsecure(),
 		)
 		Expect(err).ShouldNot(HaveOccurred())
+		DeferCleanup(func() { conn.Close() })
 
 		stream = &Stream{
 			App:       configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Client:    eventstreamspec.NewStreamAPIClient(conn),
 			Marshaler: Marshaler,
 		}
-	})
-
-	AfterEach(func() {
-		if listener != nil {
-			listener.Close()
-		}
-
-		if server != nil {
-			server.Stop()
-		}
-
-		if conn != nil {
-			conn.Close()
-		}
-
-		cancel()
 	})
 
 	Describe("func Open()", func() {

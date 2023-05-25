@@ -25,27 +25,22 @@ var _ = Context("creating and dropping schema", func() {
 			func() {
 				var (
 					ctx      context.Context
-					cancel   context.CancelFunc
 					database *sqltest.Database
 					db       *sql.DB
 				)
 
 				BeforeEach(func() {
+					var cancel context.CancelFunc
 					ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+					DeferCleanup(cancel)
 
 					var err error
 					database, err = sqltest.NewDatabase(ctx, pair.Driver, pair.Product)
 					Expect(err).ShouldNot(HaveOccurred())
+					DeferCleanup(database.Close)
 
 					db, err = database.Open()
 					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				AfterEach(func() {
-					err := database.Close()
-					Expect(err).ShouldNot(HaveOccurred())
-
-					cancel()
 				})
 
 				Describe("func CreateSchema()", func() {

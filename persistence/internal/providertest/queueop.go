@@ -21,24 +21,21 @@ func declareQueueOperationTests(tc *TestContext) {
 	ginkgo.Context("queue operations", func() {
 		var (
 			dataStore persistence.DataStore
-			tearDown  func()
 			now       time.Time
 
 			env0, env1, env2 *envelopespec.Envelope
 		)
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
+			ginkgo.DeferCleanup(tearDown)
 
 			env0 = verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1, now, now)
 			env1 = verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2, now)
 			env2 = verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3, now)
 
 			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
 		})
 
 		ginkgo.Describe("type persistence.SaveQueueMessage", func() {

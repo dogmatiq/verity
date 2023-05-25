@@ -14,17 +14,12 @@ import (
 // persistence operations related to storing offsets.
 func declareOffsetOperationTests(tc *TestContext) {
 	ginkgo.Context("offset operations", func() {
-		var (
-			dataStore persistence.DataStore
-			tearDown  func()
-		)
+		var dataStore persistence.DataStore
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
+			ginkgo.DeferCleanup(tearDown)
 		})
 
 		ginkgo.Describe("type persistence.SaveOffset", func() {

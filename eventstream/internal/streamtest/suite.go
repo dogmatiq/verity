@@ -149,14 +149,11 @@ func Declare(
 			}
 
 			ctx, cancel = context.WithTimeout(context.Background(), out.TestTimeout)
-		})
+			ginkgo.DeferCleanup(cancel)
 
-		ginkgo.AfterEach(func() {
 			if after != nil {
-				after()
+				ginkgo.DeferCleanup(after)
 			}
-
-			cancel()
 		})
 
 		ginkgo.Describe("type Stream (interface)", func() {

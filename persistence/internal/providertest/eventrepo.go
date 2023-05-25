@@ -19,14 +19,15 @@ func declareEventRepositoryTests(tc *TestContext) {
 	ginkgo.Describe("type persistence.EventRepository", func() {
 		var (
 			dataStore persistence.DataStore
-			tearDown  func()
 
 			ev0, ev1, ev2, ev3, ev4, ev5 persistence.Event
 			filter                       map[string]struct{}
 		)
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
+			ginkgo.DeferCleanup(tearDown)
 
 			ev0 = persistence.Event{
 				Offset:   0,
@@ -80,10 +81,6 @@ func declareEventRepositoryTests(tc *TestContext) {
 				ev4.Envelope.PortableName: {},
 				ev5.Envelope.PortableName: {},
 			}
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
 		})
 
 		ginkgo.When("the store is empty", func() {

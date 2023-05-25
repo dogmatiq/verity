@@ -10,27 +10,21 @@ import (
 func declareDataStoreTests(tc *TestContext) {
 	ginkgo.Describe("type DataStore (interface)", func() {
 		var (
-			provider      persistence.Provider
-			closeProvider func()
-			dataStore     persistence.DataStore
+			provider  persistence.Provider
+			dataStore persistence.DataStore
 		)
 
 		ginkgo.BeforeEach(func() {
-			provider, closeProvider = tc.Out.NewProvider()
+			var close func()
+			provider, close = tc.Out.NewProvider()
+			if close != nil {
+				ginkgo.DeferCleanup(close)
+			}
 
 			var err error
 			dataStore, err = provider.Open(tc.Context, fixtures.DefaultAppKey)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-		})
-
-		ginkgo.AfterEach(func() {
-			if dataStore != nil {
-				dataStore.Close()
-			}
-
-			if closeProvider != nil {
-				closeProvider()
-			}
+			ginkgo.DeferCleanup(func() { dataStore.Close() })
 		})
 
 		ginkgo.Describe("func Close()", func() {

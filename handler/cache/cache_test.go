@@ -17,22 +17,19 @@ import (
 
 var _ = Describe("type Cache", func() {
 	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-		cache  *cache.Cache
+		ctx   context.Context
+		cache *cache.Cache
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		cache = &Cache{
 			TTL:    20 * time.Millisecond,
 			Logger: logging.DebugLogger, // use a debug logger to ensure debug logging paths are covered
 		}
-	})
-
-	AfterEach(func() {
-		cancel()
 	})
 
 	Describe("func Acquire()", func() {

@@ -22,7 +22,6 @@ import (
 var _ = Describe("type Adaptor", func() {
 	var (
 		ctx      context.Context
-		cancel   context.CancelFunc
 		upstream *IntegrationMessageHandler
 		packer   *parcel.Packer
 		logger   *logging.BufferedLogger
@@ -32,7 +31,9 @@ var _ = Describe("type Adaptor", func() {
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		upstream = &IntegrationMessageHandler{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
@@ -64,10 +65,6 @@ var _ = Describe("type Adaptor", func() {
 			Packer:  packer,
 			Logger:  logger,
 		}
-	})
-
-	AfterEach(func() {
-		cancel()
 	})
 
 	Describe("func HandleMessage()", func() {

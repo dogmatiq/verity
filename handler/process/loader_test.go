@@ -20,16 +20,18 @@ import (
 var _ = Describe("type Loader", func() {
 	var (
 		ctx       context.Context
-		cancel    context.CancelFunc
 		dataStore *DataStoreStub
 		base      *ProcessRoot
 		loader    *Loader
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		dataStore = NewDataStoreStub()
+		DeferCleanup(dataStore.Close)
 
 		base = &ProcessRoot{}
 
@@ -37,14 +39,6 @@ var _ = Describe("type Loader", func() {
 			Repository: dataStore,
 			Marshaler:  Marshaler,
 		}
-	})
-
-	AfterEach(func() {
-		if dataStore != nil {
-			dataStore.Close()
-		}
-
-		cancel()
 	})
 
 	Describe("func Load()", func() {

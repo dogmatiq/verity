@@ -22,7 +22,7 @@ import (
 var _ = Describe("type Consumer", func() {
 	var (
 		ctx       context.Context
-		cancel    func()
+		cancel    context.CancelFunc
 		mstream   *memorystream.Stream
 		stream    *EventStreamStub
 		eshandler *EventStreamHandlerStub
@@ -33,6 +33,7 @@ var _ = Describe("type Consumer", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		event0 = Event{
 			Offset: 0,
@@ -97,10 +98,6 @@ var _ = Describe("type Consumer", func() {
 			Semaphore:       semaphore.NewWeighted(1),
 			Logger:          logging.DiscardLogger{},
 		}
-	})
-
-	AfterEach(func() {
-		cancel()
 	})
 
 	Describe("func Run()", func() {

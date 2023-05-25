@@ -20,7 +20,6 @@ import (
 var _ = Describe("type StreamAdaptor", func() {
 	var (
 		ctx       context.Context
-		cancel    context.CancelFunc
 		dataStore *DataStoreStub
 		queue     *Queue
 		parcel    parcel.Parcel
@@ -29,7 +28,9 @@ var _ = Describe("type StreamAdaptor", func() {
 	)
 
 	BeforeEach(func() {
+		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+		DeferCleanup(cancel)
 
 		parcel = NewParcel("<message-0>", MessageE1)
 		event = eventstream.Event{
@@ -38,6 +39,7 @@ var _ = Describe("type StreamAdaptor", func() {
 		}
 
 		dataStore = NewDataStoreStub()
+		DeferCleanup(dataStore.Close)
 
 		queue = &Queue{
 			Repository: dataStore,
@@ -56,11 +58,6 @@ var _ = Describe("type StreamAdaptor", func() {
 			err := q.Run(ctx)
 			Expect(err).To(Equal(context.Canceled))
 		}()
-	})
-
-	AfterEach(func() {
-		dataStore.Close()
-		cancel()
 	})
 
 	Describe("func NextOffset()", func() {

@@ -14,17 +14,12 @@ import (
 // persistence operations related to aggregates.
 func declareAggregateOperationTests(tc *TestContext) {
 	ginkgo.Context("aggregate operations", func() {
-		var (
-			dataStore persistence.DataStore
-			tearDown  func()
-		)
+		var dataStore persistence.DataStore
 
 		ginkgo.BeforeEach(func() {
+			var tearDown func()
 			dataStore, tearDown = tc.SetupDataStore()
-		})
-
-		ginkgo.AfterEach(func() {
-			tearDown()
+			ginkgo.DeferCleanup(tearDown)
 		})
 
 		ginkgo.Describe("type persistence.SaveAggregateMetaData", func() {

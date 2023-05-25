@@ -105,10 +105,7 @@ var _ = Describe("type Engine", func() {
 
 		BeforeEach(func() {
 			ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-		})
-
-		AfterEach(func() {
-			cancel()
+			DeferCleanup(cancel)
 		})
 
 		It("returns an error if the context is canceled before calling", func() {

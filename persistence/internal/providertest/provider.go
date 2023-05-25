@@ -8,18 +8,13 @@ import (
 
 func declareProviderTests(tc *TestContext) {
 	ginkgo.Describe("type Provider (interface)", func() {
-		var (
-			provider      persistence.Provider
-			closeProvider func()
-		)
+		var provider persistence.Provider
 
 		ginkgo.BeforeEach(func() {
-			provider, closeProvider = tc.Out.NewProvider()
-		})
-
-		ginkgo.AfterEach(func() {
-			if closeProvider != nil {
-				closeProvider()
+			var close func()
+			provider, close = tc.Out.NewProvider()
+			if close != nil {
+				ginkgo.DeferCleanup(close)
 			}
 		})
 
