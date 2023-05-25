@@ -3,7 +3,7 @@ package mlog_test
 import (
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/verity/internal/mlog"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

@@ -16,8 +16,7 @@ import (
 	. "github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
 	. "github.com/jmalloc/gomegax"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

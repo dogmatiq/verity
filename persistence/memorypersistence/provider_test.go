@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
 	. "github.com/dogmatiq/verity/persistence/memorypersistence"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("type Provider", func() {

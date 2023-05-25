@@ -15,7 +15,7 @@ import (
 	"github.com/dogmatiq/verity/queue"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/jmalloc/gomegax"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/testing/protocmp"

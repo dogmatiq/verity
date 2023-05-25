@@ -10,7 +10,7 @@ import (
 	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/internal/mlog"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

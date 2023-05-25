@@ -5,7 +5,7 @@ import (
 	"time"
 
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 )
 
 // Declare declares a functional test-suite for a specific persistence.Provider

@@ -14,7 +14,7 @@ import (
 	. "github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
 	. "github.com/dogmatiq/verity/fixtures"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"golang.org/x/sync/semaphore"
 )

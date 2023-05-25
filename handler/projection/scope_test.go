@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

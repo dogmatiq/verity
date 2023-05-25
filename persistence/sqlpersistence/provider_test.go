@@ -14,7 +14,7 @@ import (
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
 	. "github.com/dogmatiq/verity/persistence/sqlpersistence"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/multierr"
 )

@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/discoverkit"
 	"github.com/dogmatiq/linger/backoff"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"google.golang.org/grpc"
 )

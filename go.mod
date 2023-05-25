@@ -18,6 +18,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/ginkgo/v2 v2.9.5
 	github.com/onsi/gomega v1.27.7
 	go.etcd.io/bbolt v1.3.7
 	go.uber.org/multierr v1.11.0
@@ -28,10 +29,12 @@ require (
 )
 
 require (
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.8.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
@@ -42,16 +45,15 @@ require (
 	github.com/jackc/pgx/v4 v4.10.0 // indirect
 	github.com/lib/pq v1.9.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.5 // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/tools v0.9.1 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

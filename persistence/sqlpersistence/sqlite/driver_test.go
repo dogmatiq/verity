@@ -13,7 +13,7 @@ import (
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
 	veritysql "github.com/dogmatiq/verity/persistence/sqlpersistence"
 	. "github.com/dogmatiq/verity/persistence/sqlpersistence/sqlite"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/dogmatiq/verity/persistence"
 	. "github.com/dogmatiq/verity/persistence/boltpersistence"
 	"github.com/dogmatiq/verity/persistence/internal/providertest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.etcd.io/bbolt"
 )

@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 

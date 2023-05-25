@@ -4,7 +4,7 @@ import (
 	. "github.com/dogmatiq/dogma/fixtures"
 	. "github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
