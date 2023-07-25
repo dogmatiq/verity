@@ -19,7 +19,7 @@ require (
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/onsi/gomega v1.27.9
+	github.com/onsi/gomega v1.27.10
 	go.etcd.io/bbolt v1.3.7
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.24.0
