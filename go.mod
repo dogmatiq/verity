@@ -22,7 +22,7 @@ require (
 	github.com/onsi/gomega v1.27.10
 	go.etcd.io/bbolt v1.3.7
 	go.uber.org/multierr v1.11.0
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.25.0
 	golang.org/x/sync v0.3.0
 	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.31.0
@@ -46,7 +46,6 @@ require (
 	github.com/lib/pq v1.9.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
