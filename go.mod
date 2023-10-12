@@ -14,7 +14,7 @@ require (
 	github.com/dogmatiq/linger v1.1.0
 	github.com/dogmatiq/marshalkit v0.7.3
 	github.com/dogmatiq/sqltest v0.3.0
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.1
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/onsi/ginkgo v1.16.5
