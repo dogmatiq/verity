@@ -21,7 +21,9 @@ var TestApplication = &Application{
 		c.RegisterProjection(&ProjectionMessageHandler{
 			ConfigureFunc: func(c dogma.ProjectionConfigurer) {
 				c.Identity("<projection-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
-				c.ConsumesEventType(MessageA{})
+				c.Routes(
+					dogma.HandlesEvent[MessageA](),
+				)
 			},
 		})
 	},

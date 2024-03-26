@@ -57,9 +57,11 @@ var _ = Describe("type Adaptor", func() {
 		upstream = &ProcessMessageHandler{
 			ConfigureFunc: func(c dogma.ProcessConfigurer) {
 				c.Identity("<process-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
-				c.ConsumesEventType(MessageE{})
-				c.ProducesCommandType(MessageC{})
-				c.SchedulesTimeoutType(MessageT{})
+				c.Routes(
+					dogma.HandlesEvent[MessageE](),
+					dogma.ExecutesCommand[MessageC](),
+					dogma.SchedulesTimeout[MessageT](),
+				)
 			},
 			RouteEventToInstanceFunc: func(_ context.Context, m dogma.Message) (string, bool, error) {
 				return "<instance>", true, nil
