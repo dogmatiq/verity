@@ -122,11 +122,12 @@ func Declare(
 							id := event0.Parcel.Envelope.GetSourceHandler()
 							c.Identity(id.GetName(), id.GetKey())
 
-							c.ConsumesCommandType(dogmafixtures.MessageX{})
-
-							c.ProducesEventType(dogmafixtures.MessageA{})
-							c.ProducesEventType(dogmafixtures.MessageB{})
-							c.ProducesEventType(dogmafixtures.MessageC{})
+							c.Routes(
+								dogma.HandlesCommand[dogmafixtures.MessageX](),
+								dogma.RecordsEvent[dogmafixtures.MessageA](),
+								dogma.RecordsEvent[dogmafixtures.MessageB](),
+								dogma.RecordsEvent[dogmafixtures.MessageC](),
+							)
 						},
 					})
 				},

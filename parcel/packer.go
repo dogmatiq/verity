@@ -114,7 +114,7 @@ func (p *Packer) PackChildTimeout(
 func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 	p.checkProducedRole(m, r)
 
-	if err := dogma.ValidateMessage(m); err != nil {
+	if err := m.Validate(); err != nil {
 		panic(fmt.Sprintf("%T %s is invalid: %s", m, r, err))
 	}
 
@@ -128,7 +128,7 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 			CausationId:       id,
 			SourceApplication: p.Application,
 			CreatedAt:         marshalkit.MustMarshalEnvelopeTime(now),
-			Description:       dogma.DescribeMessage(m),
+			Description:       m.MessageDescription(),
 		},
 		Message:   m,
 		CreatedAt: now,

@@ -31,31 +31,39 @@ var _ = Describe("type Engine", func() {
 				c.RegisterAggregate(&AggregateMessageHandler{
 					ConfigureFunc: func(c dogma.AggregateConfigurer) {
 						c.Identity("<agg-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
-						c.ConsumesCommandType(MessageC{})
-						c.ProducesEventType(MessageE{})
+						c.Routes(
+							dogma.HandlesCommand[MessageC](),
+							dogma.RecordsEvent[MessageE](),
+						)
 					},
 				})
 
 				c.RegisterProcess(&ProcessMessageHandler{
 					ConfigureFunc: func(c dogma.ProcessConfigurer) {
 						c.Identity("<proc-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
-						c.ConsumesEventType(MessageE{})
-						c.ProducesCommandType(MessageI{})
+						c.Routes(
+							dogma.HandlesEvent[MessageE](),
+							dogma.ExecutesCommand[MessageI](),
+						)
 					},
 				})
 
 				c.RegisterIntegration(&IntegrationMessageHandler{
 					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 						c.Identity("<int-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
-						c.ConsumesCommandType(MessageI{})
-						c.ProducesEventType(MessageJ{})
+						c.Routes(
+							dogma.HandlesCommand[MessageI](),
+							dogma.RecordsEvent[MessageJ](),
+						)
 					},
 				})
 
 				c.RegisterProjection(&ProjectionMessageHandler{
 					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
 						c.Identity("<proj-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
-						c.ConsumesEventType(MessageE{})
+						c.Routes(
+							dogma.HandlesEvent[MessageE](),
+						)
 						c.DeliveryPolicy(deliveryPolicy)
 					},
 				})

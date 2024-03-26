@@ -58,7 +58,11 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 }
 
 // ExecuteCommand enqueues a command for execution.
-func (e *Engine) ExecuteCommand(ctx context.Context, m dogma.Message) error {
+func (e *Engine) ExecuteCommand(
+	ctx context.Context,
+	m dogma.Message,
+	options ...dogma.ExecuteCommandOption,
+) error {
 	select {
 	case <-e.ready:
 	case <-ctx.Done():
@@ -68,7 +72,7 @@ func (e *Engine) ExecuteCommand(ctx context.Context, m dogma.Message) error {
 	mt := message.TypeOf(m)
 
 	if x, ok := e.executors[mt]; ok {
-		return x.ExecuteCommand(ctx, m)
+		return x.ExecuteCommand(ctx, m, options...)
 	}
 
 	return fmt.Errorf("no application accepts %s commands", mt)

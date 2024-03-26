@@ -84,7 +84,7 @@ func NewParcel(
 			SourceInstanceId: "<instance>",
 			CreatedAt:        marshalkit.MustMarshalEnvelopeTime(createdAt),
 			ScheduledFor:     marshalkit.MustMarshalEnvelopeTime(scheduledFor),
-			Description:      dogma.DescribeMessage(m),
+			Description:      m.MessageDescription(),
 		},
 		Message:      m,
 		CreatedAt:    createdAt,

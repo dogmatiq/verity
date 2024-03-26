@@ -98,7 +98,7 @@ func (e *Engine) initApp(
 
 // newQueue returns a new queue for a specific app.
 func (e *Engine) newQueue(
-	cfg configkit.RichApplication,
+	_ configkit.RichApplication,
 	ds persistence.DataStore,
 ) *queue.Queue {
 	return &queue.Queue{
@@ -310,7 +310,7 @@ func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.R
 	return nil
 }
 
-func (f *handlerFactory) VisitRichProjection(_ context.Context, cfg configkit.RichProjection) error {
+func (f *handlerFactory) VisitRichProjection(context.Context, configkit.RichProjection) error {
 	return nil
 }
 
