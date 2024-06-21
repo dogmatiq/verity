@@ -10,6 +10,16 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.2.1] - 2024-06-21
+
+### Changed
+
+- Bump `dogmatiq/marshalkit` to v0.7.4, which introduces better handling of
+  messages with conflicting names.
+- Add the new `stateless.DefaultCodec` to the default set of marshaling codecs
+  as a special case for `dogma.StatelessProcessRoot` values that does not depend
+  on any other specific code, such as Protocol Buffers or JSON.
+
 ## [0.2.0] - 2024-03-26
 
 - **[BC]** Bump `dogmatiq/dogma` to v0.13.0.
