@@ -16,6 +16,7 @@ import (
 	"github.com/dogmatiq/marshalkit/codec/cbor"
 	"github.com/dogmatiq/marshalkit/codec/json"
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
+	"github.com/dogmatiq/marshalkit/codec/stateless"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/boltpersistence"
 	"go.uber.org/zap"
@@ -210,6 +211,7 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 	m, err := codec.NewMarshaler(
 		types,
 		[]codec.Codec{
+			stateless.DefaultCodec,
 			protobuf.DefaultNativeCodec,
 			json.DefaultCodec,
 			cbor.DefaultCodec,

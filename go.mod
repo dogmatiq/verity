@@ -12,7 +12,7 @@ require (
 	github.com/dogmatiq/interopspec v0.5.3
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v1.1.0
-	github.com/dogmatiq/marshalkit v0.7.3
+	github.com/dogmatiq/marshalkit v0.7.4
 	github.com/dogmatiq/sqltest v0.3.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -25,11 +25,11 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.7.0
 	google.golang.org/grpc v1.64.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
-	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
