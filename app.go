@@ -232,7 +232,24 @@ type handlerFactory struct {
 func (f *handlerFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
 	f.app = marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity())
 	f.handler = handler.Router{}
-	return cfg.RichHandlers().AcceptRichVisitor(ctx, f)
+
+	for _, h := range cfg.RichHandlers() {
+		if h.IsDisabled() {
+			logging.Log(
+				f.engineLogger,
+				"[%s@%s] handler is disabled",
+				cfg.Identity().Name,
+				f.app.Name,
+			)
+			continue
+		}
+
+		if err := h.AcceptRichVisitor(ctx, f); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
