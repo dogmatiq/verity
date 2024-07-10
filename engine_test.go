@@ -74,7 +74,6 @@ var _ = Describe("type Engine", func() {
 						c.Routes(
 							dogma.HandlesEvent[MessageE](),
 						)
-						c.DeliveryPolicy(deliveryPolicy)
 						c.Disable()
 					},
 				})
@@ -107,7 +106,7 @@ var _ = Describe("type Engine", func() {
 			}).To(Panic())
 		})
 
-		It("returns an error if a projection uses an unsupported delivery policy", func() {
+		It("panics if a projection uses an unsupported delivery policy", func() {
 			deliveryPolicy = dogma.BroadcastProjectionDeliveryPolicy{}
 
 			Expect(func() {
