@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.2.2] - 2024-07-16
+
+### Added
+
+- Added support for `Disable()` method in `dogmatiq/dogma` v0.13.1.
+
 ## [0.2.1] - 2024-06-21
 
 ### Changed
@@ -105,6 +111,8 @@ optimistic concurrency error.
 [0.1.6]: https://github.com/dogmatiq/verity/releases/tag/v0.1.6
 [0.1.7]: https://github.com/dogmatiq/verity/releases/tag/v0.1.7
 [0.2.0]: https://github.com/dogmatiq/verity/releases/tag/v0.2.0
+[0.2.1]: https://github.com/dogmatiq/verity/releases/tag/v0.2.1
+[0.2.2]: https://github.com/dogmatiq/verity/releases/tag/v0.2.2
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
