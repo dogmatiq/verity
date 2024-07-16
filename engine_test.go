@@ -67,6 +67,16 @@ var _ = Describe("type Engine", func() {
 						c.DeliveryPolicy(deliveryPolicy)
 					},
 				})
+
+				c.RegisterProjection(&ProjectionMessageHandler{
+					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
+						c.Identity("<disabled-proj-name>", "4ad6edf4-78b3-46bc-8321-0e1b834e3808")
+						c.Routes(
+							dogma.HandlesEvent[MessageE](),
+						)
+						c.Disable()
+					},
+				})
 			},
 		}
 	})
@@ -96,7 +106,7 @@ var _ = Describe("type Engine", func() {
 			}).To(Panic())
 		})
 
-		It("returns an error if a projection uses an unsupported delivery policy", func() {
+		It("panics if a projection uses an unsupported delivery policy", func() {
 			deliveryPolicy = dogma.BroadcastProjectionDeliveryPolicy{}
 
 			Expect(func() {
