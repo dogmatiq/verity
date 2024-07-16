@@ -3,13 +3,13 @@ module github.com/dogmatiq/verity
 go 1.21
 
 require (
-	github.com/dogmatiq/configkit v0.13.1-0.20240709220516-e4b1f94b3444
+	github.com/dogmatiq/configkit v0.13.1
 	github.com/dogmatiq/cosyne v0.2.0
 	github.com/dogmatiq/discoverkit v0.1.2
 	github.com/dogmatiq/dodeca v1.4.2
-	github.com/dogmatiq/dogma v0.13.1-0.20240708211023-af9214272677
+	github.com/dogmatiq/dogma v0.13.1
 	github.com/dogmatiq/iago v0.4.0
-	github.com/dogmatiq/interopspec v0.5.4-0.20240709214918-063ff420b159
+	github.com/dogmatiq/interopspec v0.5.4
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v1.1.0
 	github.com/dogmatiq/marshalkit v0.7.4
