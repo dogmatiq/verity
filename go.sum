@@ -9,8 +9,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dogmatiq/configkit v0.13.3 h1:2SW2jBuYZ9PWsjjBhv7pd7OLhuBJ+jcYX3PmEbBDd9U=
-github.com/dogmatiq/configkit v0.13.3/go.mod h1:qd+QnJSig1NPuBpPuEFKYL1RXH88+XODRT5tz2g1314=
+github.com/dogmatiq/configkit v0.13.4 h1:5hfWDMV5fmG1hf1VZFCFicdiLhP7QxW5+O9FNMnkml4=
+github.com/dogmatiq/configkit v0.13.4/go.mod h1:lwCG/to/1ZEJJXGyxCxqQvg7HIb8dDrQv4Xc40K32Dw=
 github.com/dogmatiq/cosyne v0.2.0 h1:tO957BpS4I9kqSw31ds6Ef4CXvV8zPAqWzbXKElsGWg=
 github.com/dogmatiq/cosyne v0.2.0/go.mod h1:dD8EZjbRX7FFw9t6P7l1nwoZbA7YxtOCfl9ZZAHPucU=
 github.com/dogmatiq/discoverkit v0.1.2 h1:NFgFe151bINH3/mNrIS6w0fiEWToSVwIHrjCDiEHw/Y=
