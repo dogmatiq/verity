@@ -60,7 +60,7 @@ var _ = Describe("type Adaptor", func() {
 					dogma.RecordsEvent[MessageE](),
 				)
 			},
-			RouteCommandToInstanceFunc: func(m dogma.Message) string {
+			RouteCommandToInstanceFunc: func(m dogma.Command) string {
 				return "<instance>"
 			},
 		}
@@ -101,7 +101,7 @@ var _ = Describe("type Adaptor", func() {
 			upstream.HandleCommandFunc = func(
 				_ dogma.AggregateRoot,
 				_ dogma.AggregateCommandScope,
-				m dogma.Message,
+				m dogma.Command,
 			) {
 				called = true
 				Expect(m).To(Equal(MessageC1))
@@ -116,7 +116,7 @@ var _ = Describe("type Adaptor", func() {
 			upstream.HandleCommandFunc = func(
 				_ dogma.AggregateRoot,
 				s dogma.AggregateCommandScope,
-				_ dogma.Message,
+				_ dogma.Command,
 			) {
 				Expect(s.InstanceID()).To(Equal("<instance>"))
 			}
@@ -139,7 +139,7 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("panics if the handler routes the message to an empty instance ID", func() {
-			upstream.RouteCommandToInstanceFunc = func(dogma.Message) string {
+			upstream.RouteCommandToInstanceFunc = func(dogma.Command) string {
 				return ""
 			}
 
@@ -165,7 +165,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					s.RecordEvent(MessageE1)
 				}
@@ -213,13 +213,13 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					x dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					s.RecordEvent(MessageE1)
 
 					r := x.(*AggregateRoot)
 					Expect(r.AppliedEvents).To(Equal(
-						[]dogma.Message{
+						[]dogma.Event{
 							MessageE1,
 						},
 					))
@@ -233,7 +233,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					s.RecordEvent(MessageE1)
 				}
@@ -254,7 +254,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					s.Log("format %s", "<value>")
 				}
@@ -310,7 +310,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					x dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					r := x.(*AggregateRoot)
 					Expect(r.AppliedEvents).To(BeEmpty())
@@ -324,7 +324,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					s.Destroy()
 				}
@@ -341,7 +341,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					_ dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					s.RecordEvent(MessageE1)
 					s.RecordEvent(MessageE2)
@@ -360,11 +360,11 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					x dogma.AggregateRoot,
 					s dogma.AggregateCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) {
 					r := x.(*AggregateRoot)
 					Expect(r.AppliedEvents).To(Equal(
-						[]dogma.Message{
+						[]dogma.Event{
 							MessageE1,
 							MessageE2,
 						},
@@ -380,7 +380,7 @@ var _ = Describe("type Adaptor", func() {
 					upstream.HandleCommandFunc = func(
 						_ dogma.AggregateRoot,
 						s dogma.AggregateCommandScope,
-						_ dogma.Message,
+						_ dogma.Command,
 					) {
 						s.Destroy()
 						s.RecordEvent(MessageE3)
@@ -408,7 +408,7 @@ var _ = Describe("type Adaptor", func() {
 					upstream.HandleCommandFunc = func(
 						_ dogma.AggregateRoot,
 						s dogma.AggregateCommandScope,
-						_ dogma.Message,
+						_ dogma.Command,
 					) {
 						s.RecordEvent(MessageE3)
 						s.Destroy()
@@ -436,7 +436,7 @@ var _ = Describe("type Adaptor", func() {
 					upstream.HandleCommandFunc = func(
 						_ dogma.AggregateRoot,
 						s dogma.AggregateCommandScope,
-						_ dogma.Message,
+						_ dogma.Command,
 					) {
 						s.Destroy()
 					}
@@ -465,14 +465,14 @@ var _ = Describe("type Adaptor", func() {
 			upstream.HandleCommandFunc = func(
 				x dogma.AggregateRoot,
 				s dogma.AggregateCommandScope,
-				_ dogma.Message,
+				_ dogma.Command,
 			) {
 				s.RecordEvent(MessageE1)
 				s.Destroy()
 
 				r := x.(*AggregateRoot)
 				Expect(r.AppliedEvents).To(Equal(
-					[]dogma.Message{
+					[]dogma.Event{
 						MessageE1,
 					},
 				))

@@ -38,7 +38,7 @@ func (s *scope) End() {
 
 // ExecuteCommand executes a command as a result of the event or timeout
 // message being handled.
-func (s *scope) ExecuteCommand(m dogma.Message) {
+func (s *scope) ExecuteCommand(m dogma.Command) {
 	p := s.packer.PackChildCommand(
 		s.cause,
 		m,
@@ -54,7 +54,7 @@ func (s *scope) ExecuteCommand(m dogma.Message) {
 
 // ScheduleTimeout schedules a timeout message to be handled by this process
 // instance at a specific time.
-func (s *scope) ScheduleTimeout(m dogma.Message, t time.Time) {
+func (s *scope) ScheduleTimeout(m dogma.Timeout, t time.Time) {
 	p := s.packer.PackChildTimeout(
 		s.cause,
 		m,

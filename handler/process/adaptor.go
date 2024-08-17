@@ -107,7 +107,7 @@ func (a *Adaptor) HandleMessage(
 			w.ScheduleTimeout(p)
 		}
 
-		return a.save(w, id, inst)
+		return a.save(w, inst)
 	}
 
 	if exists {
@@ -193,7 +193,6 @@ func (a *Adaptor) load(
 // save saves the process instance.
 func (a *Adaptor) save(
 	w handler.UnitOfWork,
-	id string,
 	inst *Instance,
 ) error {
 	// An empty packet represents a stateless process root, so we only populate

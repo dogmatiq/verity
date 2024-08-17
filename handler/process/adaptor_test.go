@@ -63,7 +63,7 @@ var _ = Describe("type Adaptor", func() {
 					dogma.SchedulesTimeout[MessageT](),
 				)
 			},
-			RouteEventToInstanceFunc: func(_ context.Context, m dogma.Message) (string, bool, error) {
+			RouteEventToInstanceFunc: func(_ context.Context, m dogma.Event) (string, bool, error) {
 				return "<instance>", true, nil
 			},
 		}
@@ -106,7 +106,7 @@ var _ = Describe("type Adaptor", func() {
 				_ context.Context,
 				_ dogma.ProcessRoot,
 				_ dogma.ProcessEventScope,
-				m dogma.Message,
+				m dogma.Event,
 			) error {
 				called = true
 				Expect(m).To(Equal(MessageE1))
@@ -123,7 +123,7 @@ var _ = Describe("type Adaptor", func() {
 				_ context.Context,
 				_ dogma.ProcessRoot,
 				_ dogma.ProcessEventScope,
-				m dogma.Message,
+				m dogma.Event,
 			) error {
 				return errors.New("<error>")
 			}
@@ -137,7 +137,7 @@ var _ = Describe("type Adaptor", func() {
 				_ context.Context,
 				_ dogma.ProcessRoot,
 				s dogma.ProcessEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) error {
 				Expect(s.InstanceID()).To(Equal("<instance>"))
 				return nil
@@ -152,7 +152,7 @@ var _ = Describe("type Adaptor", func() {
 				_ context.Context,
 				_ dogma.ProcessRoot,
 				s dogma.ProcessEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) error {
 				Expect(s.RecordedAt()).To(BeTemporally("==", cause.CreatedAt))
 				return nil
@@ -178,7 +178,7 @@ var _ = Describe("type Adaptor", func() {
 		It("returns an error if the instance can not be routed", func() {
 			upstream.RouteEventToInstanceFunc = func(
 				context.Context,
-				dogma.Message,
+				dogma.Event,
 			) (string, bool, error) {
 				return "", false, errors.New("<error>")
 			}
@@ -190,7 +190,7 @@ var _ = Describe("type Adaptor", func() {
 		It("panics if the handler routes the message to an empty instance ID", func() {
 			upstream.RouteEventToInstanceFunc = func(
 				context.Context,
-				dogma.Message,
+				dogma.Event,
 			) (string, bool, error) {
 				return "", true, nil
 			}
@@ -204,7 +204,7 @@ var _ = Describe("type Adaptor", func() {
 		It("skips the message if the handler does not route it to an instance", func() {
 			upstream.RouteEventToInstanceFunc = func(
 				context.Context,
-				dogma.Message,
+				dogma.Event,
 			) (string, bool, error) {
 				return "", false, nil
 			}
@@ -213,7 +213,7 @@ var _ = Describe("type Adaptor", func() {
 				context.Context,
 				dogma.ProcessRoot,
 				dogma.ProcessEventScope,
-				dogma.Message,
+				dogma.Event,
 			) error {
 				Fail("unexpected call")
 				return nil
@@ -239,7 +239,7 @@ var _ = Describe("type Adaptor", func() {
 				_ context.Context,
 				r dogma.ProcessRoot,
 				s dogma.ProcessEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) error {
 				r.(*ProcessRoot).Value = "<value>"
 
@@ -278,7 +278,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					s.ExecuteCommand(MessageC1)
 					return nil
@@ -315,7 +315,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					s.ExecuteCommand(MessageC1)
 					return nil
@@ -336,7 +336,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					r dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					r.(*ProcessRoot).Value = "<value>"
 					s.End()
@@ -372,7 +372,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					s.ScheduleTimeout(MessageT1, scheduledFor)
 					return nil
@@ -411,7 +411,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					s.ScheduleTimeout(MessageT1, time.Now())
 					return nil
@@ -432,7 +432,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					r dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					r.(*ProcessRoot).Value = "<value>"
 					s.End()
@@ -466,7 +466,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					s.Log("format %s", "<value>")
 					return nil
@@ -524,7 +524,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					s.End()
 					return nil
@@ -543,7 +543,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					_ dogma.ProcessRoot,
 					_ dogma.ProcessTimeoutScope,
-					m dogma.Message,
+					m dogma.Timeout,
 				) error {
 					Fail("unexpected call")
 					return nil
@@ -560,7 +560,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					r dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					r.(*ProcessRoot).Value = "<value>"
 
@@ -581,7 +581,7 @@ var _ = Describe("type Adaptor", func() {
 					_ context.Context,
 					r dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
-					_ dogma.Message,
+					_ dogma.Event,
 				) error {
 					Expect(r.(*ProcessRoot).Value).To(Equal("<value>"))
 					return nil
@@ -597,7 +597,7 @@ var _ = Describe("type Adaptor", func() {
 						_ context.Context,
 						_ dogma.ProcessRoot,
 						s dogma.ProcessEventScope,
-						_ dogma.Message,
+						_ dogma.Event,
 					) error {
 						s.End()
 						return nil
@@ -629,7 +629,7 @@ var _ = Describe("type Adaptor", func() {
 
 					upstream.RouteEventToInstanceFunc = func(
 						context.Context,
-						dogma.Message,
+						dogma.Event,
 					) (string, bool, error) {
 						Fail("unexpected call")
 						return "", false, nil
@@ -642,7 +642,7 @@ var _ = Describe("type Adaptor", func() {
 						_ context.Context,
 						_ dogma.ProcessRoot,
 						_ dogma.ProcessTimeoutScope,
-						m dogma.Message,
+						m dogma.Timeout,
 					) error {
 						called = true
 						Expect(m).To(Equal(MessageT1))
@@ -659,7 +659,7 @@ var _ = Describe("type Adaptor", func() {
 						_ context.Context,
 						_ dogma.ProcessRoot,
 						_ dogma.ProcessTimeoutScope,
-						m dogma.Message,
+						m dogma.Timeout,
 					) error {
 						return errors.New("<error>")
 					}
@@ -673,7 +673,7 @@ var _ = Describe("type Adaptor", func() {
 						_ context.Context,
 						_ dogma.ProcessRoot,
 						s dogma.ProcessTimeoutScope,
-						_ dogma.Message,
+						_ dogma.Timeout,
 					) error {
 						Expect(s.InstanceID()).To(Equal("<instance>"))
 						return nil
@@ -688,7 +688,7 @@ var _ = Describe("type Adaptor", func() {
 						_ context.Context,
 						_ dogma.ProcessRoot,
 						s dogma.ProcessTimeoutScope,
-						_ dogma.Message,
+						_ dogma.Timeout,
 					) error {
 						Expect(s.ScheduledFor()).To(BeTemporally("==", cause.ScheduledFor))
 						return nil

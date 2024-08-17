@@ -75,7 +75,7 @@ var _ = Describe("type Adaptor", func() {
 			upstream.HandleCommandFunc = func(
 				_ context.Context,
 				_ dogma.IntegrationCommandScope,
-				m dogma.Message,
+				m dogma.Command,
 			) error {
 				called = true
 				Expect(m).To(Equal(MessageC1))
@@ -92,7 +92,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					_ context.Context,
 					s dogma.IntegrationCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) error {
 					s.RecordEvent(MessageE1)
 					return nil
@@ -139,7 +139,7 @@ var _ = Describe("type Adaptor", func() {
 				upstream.HandleCommandFunc = func(
 					_ context.Context,
 					s dogma.IntegrationCommandScope,
-					_ dogma.Message,
+					_ dogma.Command,
 				) error {
 					s.Log("format %s", "<value>")
 					return nil

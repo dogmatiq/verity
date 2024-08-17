@@ -101,7 +101,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ context.Context,
 				_, _, _ []byte,
 				_ dogma.ProjectionEventScope,
-				m dogma.Message,
+				m dogma.Event,
 			) (bool, error) {
 				Expect(m).To(Equal(pcl.Message))
 				return true, nil
@@ -123,7 +123,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ context.Context,
 				r, c, n []byte,
 				_ dogma.ProjectionEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) (bool, error) {
 				Expect(r).To(Equal([]byte(DefaultAppKey)))
 				Expect(c).To(BeEmpty())
@@ -147,7 +147,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ context.Context,
 				r, c, n []byte,
 				_ dogma.ProjectionEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) (bool, error) {
 				Expect(r).To(Equal([]byte(DefaultAppKey)))
 				Expect(c).To(Equal([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}))
@@ -166,43 +166,14 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("uses the timeout hint from the handler", func() {
-			handler.TimeoutHintFunc = func(m dogma.Message) time.Duration {
-				Expect(m).To(Equal(pcl.Message))
-				return 100 * time.Millisecond
-			}
+		It("uses the adaptor's timeout", func() {
+			adaptor.Timeout = 500 * time.Millisecond
 
 			handler.HandleEventFunc = func(
 				ctx context.Context,
 				_, _, _ []byte,
 				_ dogma.ProjectionEventScope,
-				_ dogma.Message,
-			) (bool, error) {
-				dl, ok := ctx.Deadline()
-				Expect(ok).To(BeTrue())
-				Expect(dl).To(BeTemporally("~", time.Now().Add(100*time.Millisecond)))
-				return true, nil
-			}
-
-			err := adaptor.HandleEvent(
-				context.Background(),
-				0,
-				eventstream.Event{
-					Offset: 0,
-					Parcel: pcl,
-				},
-			)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("falls back to the adaptor's default timeout", func() {
-			adaptor.DefaultTimeout = 500 * time.Millisecond
-
-			handler.HandleEventFunc = func(
-				ctx context.Context,
-				_, _, _ []byte,
-				_ dogma.ProjectionEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) (bool, error) {
 				dl, ok := ctx.Deadline()
 				Expect(ok).To(BeTrue())
@@ -226,7 +197,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				ctx context.Context,
 				_, _, _ []byte,
 				_ dogma.ProjectionEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) (bool, error) {
 				dl, ok := ctx.Deadline()
 				Expect(ok).To(BeTrue())
@@ -250,7 +221,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ context.Context,
 				_, _, _ []byte,
 				_ dogma.ProjectionEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) (bool, error) {
 				return false, nil
 			}
@@ -271,7 +242,7 @@ var _ = Describe("type StreamAdaptor", func() {
 				_ context.Context,
 				_, _, _ []byte,
 				_ dogma.ProjectionEventScope,
-				_ dogma.Message,
+				_ dogma.Event,
 			) (bool, error) {
 				return false, errors.New("<error>")
 			}

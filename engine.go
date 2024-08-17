@@ -60,7 +60,7 @@ func New(app dogma.Application, options ...EngineOption) *Engine {
 // ExecuteCommand enqueues a command for execution.
 func (e *Engine) ExecuteCommand(
 	ctx context.Context,
-	m dogma.Message,
+	m dogma.Command,
 	options ...dogma.ExecuteCommandOption,
 ) error {
 	select {

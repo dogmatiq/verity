@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/internal/mlog"
 	"github.com/dogmatiq/verity/parcel"
@@ -27,9 +26,8 @@ type Adaptor struct {
 	// handler.
 	Packer *parcel.Packer
 
-	// DefaultTimeout is the timeout to apply when handling the message if the
-	// handler does not provide a timeout hint.
-	DefaultTimeout time.Duration
+	// Timeout is the timeout to apply when handling the message.
+	Timeout time.Duration
 
 	// Logger is the target for log messages produced within the handler.
 	// If it is nil, logging.DefaultLogger is used.
@@ -51,11 +49,7 @@ func (a *Adaptor) HandleMessage(
 		"",
 	)
 
-	ctx, cancel := linger.ContextWithTimeout(
-		ctx,
-		a.Handler.TimeoutHint(p.Message),
-		a.DefaultTimeout,
-	)
+	ctx, cancel := context.WithTimeout(ctx, a.Timeout)
 	defer cancel()
 
 	return a.Handler.HandleCommand(

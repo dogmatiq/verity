@@ -27,10 +27,9 @@ type StreamAdaptor struct {
 	// Handler is the projection message handler that handles the events.
 	Handler dogma.ProjectionMessageHandler
 
-	// DefaultTimeout is the maximum time to allow for handling a single event
-	// if the handler does not provide a timeout hint. If it is nil,
-	// DefaultTimeout is used.
-	DefaultTimeout time.Duration
+	// Timeout is the maximum time to allow for handling a single event. If it
+	// is non-positive, DefaultTimeout is used.
+	Timeout time.Duration
 
 	// Logger is the target for log messages produced within the handler.
 	// If it is nil, logging.DefaultLogger is used.
@@ -79,8 +78,7 @@ func (a *StreamAdaptor) HandleEvent(
 
 	ctx, cancel := linger.ContextWithTimeout(
 		ctx,
-		a.Handler.TimeoutHint(ev.Parcel.Message),
-		a.DefaultTimeout,
+		a.Timeout,
 		DefaultTimeout,
 	)
 	defer cancel()

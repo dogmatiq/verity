@@ -312,9 +312,9 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 
 func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
 	f.addRoutes(cfg, &integration.Adaptor{
-		Identity:       marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
-		Handler:        cfg.Handler(),
-		DefaultTimeout: f.opts.MessageTimeout,
+		Identity: marshalkit.MustMarshalEnvelopeIdentity(cfg.Identity()),
+		Handler:  cfg.Handler(),
+		Timeout:  f.opts.MessageTimeout,
 		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,

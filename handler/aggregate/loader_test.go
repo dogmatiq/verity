@@ -128,7 +128,7 @@ var _ = Describe("type Loader", func() {
 				_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(base.AppliedEvents).To(Equal(
-					[]dogma.Message{
+					[]dogma.Event{
 						MessageE1,
 						MessageE2,
 					},
@@ -216,7 +216,7 @@ var _ = Describe("type Loader", func() {
 						_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(base.AppliedEvents).To(Equal(
-							[]dogma.Message{
+							[]dogma.Event{
 								MessageE3,
 							},
 						))

@@ -41,7 +41,7 @@ func (s *scope) Destroy() {
 
 // RecordEvent records the occurrence of an event as a result of the command
 // message that is being handled.
-func (s *scope) RecordEvent(m dogma.Message) {
+func (s *scope) RecordEvent(m dogma.Event) {
 	p := s.packer.PackChildEvent(
 		s.cause,
 		m,

@@ -38,12 +38,12 @@ type Packer struct {
 }
 
 // PackCommand returns a parcel containing the given command message.
-func (p *Packer) PackCommand(m dogma.Message) Parcel {
+func (p *Packer) PackCommand(m dogma.Command) Parcel {
 	return p.new(m, message.CommandRole)
 }
 
 // PackEvent returns a parcel containing the given event message.
-func (p *Packer) PackEvent(m dogma.Message) Parcel {
+func (p *Packer) PackEvent(m dogma.Event) Parcel {
 	return p.new(m, message.EventRole)
 }
 
@@ -51,7 +51,7 @@ func (p *Packer) PackEvent(m dogma.Message) Parcel {
 // configured as a child of c, the cause.
 func (p *Packer) PackChildCommand(
 	c Parcel,
-	m dogma.Message,
+	m dogma.Command,
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
@@ -70,7 +70,7 @@ func (p *Packer) PackChildCommand(
 // configured as a child of c, the cause.
 func (p *Packer) PackChildEvent(
 	c Parcel,
-	m dogma.Message,
+	m dogma.Event,
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
@@ -89,7 +89,7 @@ func (p *Packer) PackChildEvent(
 // configured as a child of c, the cause.
 func (p *Packer) PackChildTimeout(
 	c Parcel,
-	m dogma.Message,
+	m dogma.Timeout,
 	t time.Time,
 	handler *envelopespec.Identity,
 	instanceID string,

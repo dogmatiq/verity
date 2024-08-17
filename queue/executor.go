@@ -19,7 +19,7 @@ type CommandExecutor struct {
 // ExecuteCommand enqueues a command for execution.
 func (x *CommandExecutor) ExecuteCommand(
 	ctx context.Context,
-	m dogma.Message,
+	m dogma.Command,
 	_ ...dogma.ExecuteCommandOption,
 ) error {
 	p := x.Packer.PackCommand(m)

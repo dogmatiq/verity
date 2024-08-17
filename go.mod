@@ -1,19 +1,20 @@
 module github.com/dogmatiq/verity
 
-go 1.21
+go 1.22
+
 toolchain go1.22.5
 
 require (
-	github.com/dogmatiq/configkit v0.13.4
+	github.com/dogmatiq/configkit v0.13.6
 	github.com/dogmatiq/cosyne v0.2.0
 	github.com/dogmatiq/discoverkit v0.1.2
 	github.com/dogmatiq/dodeca v1.4.2
-	github.com/dogmatiq/dogma v0.13.1
+	github.com/dogmatiq/dogma v0.14.0
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/interopspec v0.5.4
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v1.1.0
-	github.com/dogmatiq/marshalkit v0.7.4
+	github.com/dogmatiq/marshalkit v0.7.5
 	github.com/dogmatiq/sqltest v0.3.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -30,7 +31,7 @@ require (
 )
 
 require (
-	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
