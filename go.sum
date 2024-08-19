@@ -17,8 +17,8 @@ github.com/dogmatiq/discoverkit v0.1.2 h1:NFgFe151bINH3/mNrIS6w0fiEWToSVwIHrjCDi
 github.com/dogmatiq/discoverkit v0.1.2/go.mod h1:mUFlbosF4i5papOkUa+OfTLv09AU/1cAU7GvN0Qd+VI=
 github.com/dogmatiq/dodeca v1.4.2 h1:qVQpMfFju99fvAcV3h1lA0yVaD5X38EpO1my0iKpTqs=
 github.com/dogmatiq/dodeca v1.4.2/go.mod h1:kYImsyZhGxSOLiqzTK4Z1CB9ycSLpnJPBQa2yR//N5Q=
-github.com/dogmatiq/dogma v0.14.0 h1:hY4iMX4QskZpP+ksJbw+WLwz0JAUyWgz2Aoof6qjz44=
-github.com/dogmatiq/dogma v0.14.0/go.mod h1:9lyVA+6V2+E/exV0IrBOrkUiyFwIATEhv+b0vnB2umQ=
+github.com/dogmatiq/dogma v0.14.1 h1:uSYkfDR9Wr7zCphDIZBZpKOr1QLD4UpTJy5vD+lDFpg=
+github.com/dogmatiq/dogma v0.14.1/go.mod h1:9lyVA+6V2+E/exV0IrBOrkUiyFwIATEhv+b0vnB2umQ=
 github.com/dogmatiq/iago v0.4.0 h1:57nZqVT34IZxtCZEW/RFif7DNUEjMXgevfr/Mmd0N8I=
 github.com/dogmatiq/iago v0.4.0/go.mod h1:fishMWBtzYcjgis6d873VTv9kFm/wHYLOzOyO9ECBDc=
 github.com/dogmatiq/interopspec v0.5.4 h1:klyGPy16zUKJartJIJOBZ4JrQ4LxFiY3wgzFTTiNlDk=
