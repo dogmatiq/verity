@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -31,9 +31,9 @@ var _ = Describe("type Queue", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 		DeferCleanup(cancel)
 
-		parcel0 = NewParcel("<message-0>", MessageA1)                         // command
-		parcel1 = NewParcel("<message-1>", MessageA2, time.Now(), time.Now()) // timeout
-		parcel2 = NewParcel("<message-2>", MessageA3, time.Now(), time.Now()) // timeout
+		parcel0 = NewParcel("<message-0>", CommandA1)
+		parcel1 = NewParcel("<message-1>", TimeoutA1, time.Now(), time.Now())
+		parcel2 = NewParcel("<message-2>", TimeoutA2, time.Now(), time.Now())
 
 		dataStore = NewDataStoreStub()
 		DeferCleanup(dataStore.Close)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/persistence"
 	. "github.com/onsi/ginkgo/v2"
@@ -34,7 +34,7 @@ var _ = Describe("type Operation (interface)", func() {
 var _ = Describe("type Batch", func() {
 	Describe("func MustValidate()", func() {
 		It("panics if the batch contains multiple operations on the same entity", func() {
-			env := NewEnvelope("<id>", MessageA1)
+			env := NewEnvelope("<id>", CommandA1)
 
 			batch := Batch{
 				SaveQueueMessage{
@@ -65,7 +65,7 @@ var _ = Describe("type Batch", func() {
 					},
 				},
 				SaveEvent{
-					Envelope: NewEnvelope("<id-1>", MessageA1),
+					Envelope: NewEnvelope("<id-1>", EventE1),
 				},
 				SaveProcessInstance{
 					Instance: ProcessInstance{
@@ -75,12 +75,12 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveQueueMessage{
 					Message: QueueMessage{
-						Envelope: NewEnvelope("<id-1>", MessageA1), // Note, same as SaveEvent, this is allowed and required.
+						Envelope: NewEnvelope("<id-1>", EventE1), // Note, same as SaveEvent, this is allowed and required.
 					},
 				},
 				RemoveQueueMessage{
 					Message: QueueMessage{
-						Envelope: NewEnvelope("<id-2>", MessageA1),
+						Envelope: NewEnvelope("<id-2>", EventE1),
 					},
 				},
 				SaveProcessInstance{
@@ -116,7 +116,7 @@ var _ = Describe("type Batch", func() {
 					},
 				},
 				SaveEvent{
-					Envelope: NewEnvelope("<id-1>", MessageA1),
+					Envelope: NewEnvelope("<id-1>", EventE1),
 				},
 				SaveProcessInstance{
 					Instance: ProcessInstance{
@@ -126,12 +126,12 @@ var _ = Describe("type Batch", func() {
 				},
 				SaveQueueMessage{
 					Message: QueueMessage{
-						Envelope: NewEnvelope("<id-1>", MessageA1), // Note, same as SaveEvent, this is allowed and required.
+						Envelope: NewEnvelope("<id-1>", EventE1), // Note, same as SaveEvent, this is allowed and required.
 					},
 				},
 				RemoveQueueMessage{
 					Message: QueueMessage{
-						Envelope: NewEnvelope("<id-2>", MessageA1),
+						Envelope: NewEnvelope("<id-2>", EventE1),
 					},
 				},
 				SaveOffset{

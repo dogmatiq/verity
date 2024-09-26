@@ -1,14 +1,12 @@
 package parcel_test
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
-	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -49,14 +47,14 @@ var _ = Describe("type Packer", func() {
 			Application: app,
 			Marshaler:   Marshaler,
 			Produced: message.TypeRoles{
-				MessageCType: message.CommandRole,
-				MessageEType: message.EventRole,
-				MessageTType: message.TimeoutRole,
+				message.TypeFor[CommandStub[TypeC]](): message.CommandRole,
+				message.TypeFor[EventStub[TypeE]]():   message.EventRole,
+				message.TypeFor[TimeoutStub[TypeT]](): message.TimeoutRole,
 			},
 			Consumed: message.TypeRoles{
-				MessageDType: message.CommandRole,
-				MessageFType: message.EventRole,
-				MessageUType: message.TimeoutRole,
+				message.TypeFor[CommandStub[TypeD]](): message.CommandRole,
+				message.TypeFor[EventStub[TypeF]]():   message.EventRole,
+				message.TypeFor[TimeoutStub[TypeU]](): message.TimeoutRole,
 			},
 			GenerateID: func() string {
 				seq++
@@ -70,7 +68,7 @@ var _ = Describe("type Packer", func() {
 
 	Describe("func PackCommand()", func() {
 		It("returns a new envelope", func() {
-			p := packer.PackCommand(MessageC1)
+			p := packer.PackCommand(CommandC1)
 
 			Expect(p).To(EqualX(
 				Parcel{
@@ -80,12 +78,12 @@ var _ = Describe("type Packer", func() {
 						CorrelationId:     "00000001",
 						SourceApplication: app,
 						CreatedAt:         nowString,
-						Description:       "{C1}",
-						PortableName:      MessageCPortableName,
-						MediaType:         MessageC1Packet.MediaType,
-						Data:              MessageC1Packet.Data,
+						Description:       "command(stubs.TypeC:C1, valid)",
+						PortableName:      "CommandStub[TypeC]",
+						MediaType:         `application/json; type="CommandStub[TypeC]"`,
+						Data:              []byte(`{"content":"C1"}`),
 					},
-					Message:   MessageC1,
+					Message:   CommandC1,
 					CreatedAt: now,
 				},
 			))
@@ -98,24 +96,24 @@ var _ = Describe("type Packer", func() {
 					packer.PackCommand(m)
 				}).To(PanicWith(x))
 			},
-			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
-			Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a command"),
-			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected a command"),
+			Entry("when the message is unrecognized", CommandX1, "stubs.CommandStub[TypeX] is not a recognised message type"),
+			Entry("when the message is an event", EventE1, "stubs.EventStub[TypeE] is an event, expected a command"),
+			Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected a command"),
 		)
 
 		It("panics if the message is invalid", func() {
 			Expect(func() {
-				m := MessageC{
-					Value: errors.New("<error>"),
+				m := CommandStub[TypeC]{
+					ValidationError: "<error>",
 				}
 				packer.PackCommand(m)
-			}).To(PanicWith("fixtures.MessageC command is invalid: <error>"))
+			}).To(PanicWith("stubs.CommandStub[github.com/dogmatiq/enginekit/enginetest/stubs.TypeC] command is invalid: <error>"))
 		})
 	})
 
 	Describe("func PackEvent()", func() {
 		It("returns a new envelope", func() {
-			p := packer.PackEvent(MessageE1)
+			p := packer.PackEvent(EventE1)
 
 			Expect(p).To(EqualX(
 				Parcel{
@@ -125,12 +123,12 @@ var _ = Describe("type Packer", func() {
 						CorrelationId:     "00000001",
 						SourceApplication: app,
 						CreatedAt:         nowString,
-						Description:       "{E1}",
-						PortableName:      MessageEPortableName,
-						MediaType:         MessageE1Packet.MediaType,
-						Data:              MessageE1Packet.Data,
+						Description:       "event(stubs.TypeE:E1, valid)",
+						PortableName:      "EventStub[TypeE]",
+						MediaType:         `application/json; type="EventStub[TypeE]"`,
+						Data:              []byte(`{"content":"E1"}`),
 					},
-					Message:   MessageE1,
+					Message:   EventE1,
 					CreatedAt: now,
 				},
 			))
@@ -143,25 +141,25 @@ var _ = Describe("type Packer", func() {
 					packer.PackEvent(m)
 				}).To(PanicWith(x))
 			},
-			Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
-			Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected an event"),
-			Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected an event"),
+			Entry("when the message is unrecognized", EventX1, "stubs.EventStub[TypeX] is not a recognised message type"),
+			Entry("when the message is a command", CommandC1, "stubs.CommandStub[TypeC] is a command, expected an event"),
+			Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected an event"),
 		)
 
 		It("panics if the message is invalid", func() {
 			Expect(func() {
-				m := MessageE{
-					Value: errors.New("<error>"),
+				m := EventStub[TypeE]{
+					ValidationError: "<error>",
 				}
 				packer.PackEvent(m)
-			}).To(PanicWith("fixtures.MessageE event is invalid: <error>"))
+			}).To(PanicWith("stubs.EventStub[github.com/dogmatiq/enginekit/enginetest/stubs.TypeE] event is invalid: <error>"))
 		})
 	})
 
 	It("generates UUIDs by default", func() {
 		packer.GenerateID = nil
 
-		p := packer.PackCommand(MessageC1)
+		p := packer.PackCommand(CommandC1)
 
 		_, err := uuid.Parse(p.ID())
 		Expect(err).ShouldNot(HaveOccurred())
@@ -170,7 +168,7 @@ var _ = Describe("type Packer", func() {
 	It("uses the system clock by default", func() {
 		packer.Now = nil
 
-		p := packer.PackCommand(MessageC1)
+		p := packer.PackCommand(CommandC1)
 
 		createdAt, err := marshalkit.UnmarshalEnvelopeTime(p.Envelope.GetCreatedAt())
 		Expect(err).ShouldNot(HaveOccurred())
@@ -201,7 +199,7 @@ var _ = Describe("type Packer", func() {
 							Envelope: parent,
 							Message:  cause,
 						},
-						MessageC1,
+						CommandC1,
 						handler,
 						"<instance>",
 					)
@@ -216,18 +214,18 @@ var _ = Describe("type Packer", func() {
 								SourceHandler:     handler,
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         nowString,
-								Description:       "{C1}",
-								PortableName:      MessageCPortableName,
-								MediaType:         MessageC1Packet.MediaType,
-								Data:              MessageC1Packet.Data,
+								Description:       "command(stubs.TypeC:C1, valid)",
+								PortableName:      "CommandStub[TypeC]",
+								MediaType:         `application/json; type="CommandStub[TypeC]"`,
+								Data:              []byte(`{"content":"C1"}`),
 							},
-							Message:   MessageC1,
+							Message:   CommandC1,
 							CreatedAt: now,
 						},
 					))
 				},
-				Entry("when the cause is an event", MessageF1),
-				Entry("when the cause is a timeout", MessageU1),
+				Entry("when the cause is an event", EventF1),
+				Entry("when the cause is a timeout", TimeoutU1),
 			)
 
 			DescribeTable(
@@ -239,14 +237,14 @@ var _ = Describe("type Packer", func() {
 								Envelope: parent,
 								Message:  cause,
 							},
-							MessageC1,
+							CommandC1,
 							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
 				},
-				Entry("when the cause is unrecognized", MessageX1, "fixtures.MessageX is not consumed by this handler"),
-				Entry("when the cause is a command", MessageD1, "fixtures.MessageD is a command, expected an event or timeout"),
+				Entry("when the cause is unrecognized", EventX1, "stubs.EventStub[TypeX] is not consumed by this handler"),
+				Entry("when the cause is a command", CommandD1, "stubs.CommandStub[TypeD] is a command, expected an event or timeout"),
 			)
 
 			DescribeTable(
@@ -256,7 +254,7 @@ var _ = Describe("type Packer", func() {
 						packer.PackChildCommand(
 							Parcel{
 								Envelope: parent,
-								Message:  MessageF1,
+								Message:  EventF1,
 							},
 							m,
 							handler,
@@ -264,9 +262,9 @@ var _ = Describe("type Packer", func() {
 						)
 					}).To(PanicWith(x))
 				},
-				Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
-				Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a command"),
-				Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected a command"),
+				Entry("when the message is unrecognized", CommandX1, "stubs.CommandStub[TypeX] is not a recognised message type"),
+				Entry("when the message is an event", EventE1, "stubs.EventStub[TypeE] is an event, expected a command"),
+				Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected a command"),
 			)
 
 			It("panics if the message is invalid", func() {
@@ -274,15 +272,15 @@ var _ = Describe("type Packer", func() {
 					packer.PackChildCommand(
 						Parcel{
 							Envelope: parent,
-							Message:  MessageF1,
+							Message:  EventF1,
 						},
-						MessageC{
-							Value: errors.New("<error>"),
+						CommandStub[TypeC]{
+							ValidationError: "<error>",
 						},
 						handler,
 						"<instance>",
 					)
-				}).To(PanicWith("fixtures.MessageC command is invalid: <error>"))
+				}).To(PanicWith("stubs.CommandStub[github.com/dogmatiq/enginekit/enginetest/stubs.TypeC] command is invalid: <error>"))
 			})
 		})
 
@@ -295,7 +293,7 @@ var _ = Describe("type Packer", func() {
 							Envelope: parent,
 							Message:  cause,
 						},
-						MessageE1,
+						EventE1,
 						handler,
 						"<instance>",
 					)
@@ -310,17 +308,17 @@ var _ = Describe("type Packer", func() {
 								SourceHandler:     handler,
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         nowString,
-								Description:       "{E1}",
-								PortableName:      MessageEPortableName,
-								MediaType:         MessageE1Packet.MediaType,
-								Data:              MessageE1Packet.Data,
+								Description:       "event(stubs.TypeE:E1, valid)",
+								PortableName:      "EventStub[TypeE]",
+								MediaType:         `application/json; type="EventStub[TypeE]"`,
+								Data:              []byte(`{"content":"E1"}`),
 							},
-							Message:   MessageE1,
+							Message:   EventE1,
 							CreatedAt: now,
 						},
 					))
 				},
-				Entry("when the cause is a command", MessageD1),
+				Entry("when the cause is a command", CommandD1),
 			)
 
 			DescribeTable(
@@ -332,15 +330,15 @@ var _ = Describe("type Packer", func() {
 								Envelope: parent,
 								Message:  cause,
 							},
-							MessageE1,
+							EventE1,
 							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
 				},
-				Entry("when the cause is unrecognized", MessageX1, "fixtures.MessageX is not consumed by this handler"),
-				Entry("when the cause is an event", MessageF1, "fixtures.MessageF is an event, expected a command"),
-				Entry("when the cause is a timeout", MessageU1, "fixtures.MessageU is a timeout, expected a command"),
+				Entry("when the cause is unrecognized", CommandX1, "stubs.CommandStub[TypeX] is not consumed by this handler"),
+				Entry("when the cause is an event", EventF1, "stubs.EventStub[TypeF] is an event, expected a command"),
+				Entry("when the cause is a timeout", TimeoutU1, "stubs.TimeoutStub[TypeU] is a timeout, expected a command"),
 			)
 
 			DescribeTable(
@@ -350,7 +348,7 @@ var _ = Describe("type Packer", func() {
 						packer.PackChildEvent(
 							Parcel{
 								Envelope: parent,
-								Message:  MessageD1,
+								Message:  CommandD1,
 							},
 							m,
 							handler,
@@ -358,9 +356,9 @@ var _ = Describe("type Packer", func() {
 						)
 					}).To(PanicWith(x))
 				},
-				Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
-				Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected an event"),
-				Entry("when the message is a timeout", MessageT1, "fixtures.MessageT is a timeout, expected an event"),
+				Entry("when the message is unrecognized", EventX1, "stubs.EventStub[TypeX] is not a recognised message type"),
+				Entry("when the message is a command", CommandC1, "stubs.CommandStub[TypeC] is a command, expected an event"),
+				Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected an event"),
 			)
 
 			It("panics if the message is invalid", func() {
@@ -368,15 +366,15 @@ var _ = Describe("type Packer", func() {
 					packer.PackChildEvent(
 						Parcel{
 							Envelope: parent,
-							Message:  MessageD1,
+							Message:  CommandD1,
 						},
-						MessageE{
-							Value: errors.New("<error>"),
+						EventStub[TypeE]{
+							ValidationError: "<error>",
 						},
 						handler,
 						"<instance>",
 					)
-				}).To(PanicWith("fixtures.MessageE event is invalid: <error>"))
+				}).To(PanicWith("stubs.EventStub[github.com/dogmatiq/enginekit/enginetest/stubs.TypeE] event is invalid: <error>"))
 			})
 		})
 
@@ -390,7 +388,7 @@ var _ = Describe("type Packer", func() {
 							Envelope: parent,
 							Message:  cause,
 						},
-						MessageT1,
+						TimeoutT1,
 						scheduledFor,
 						handler,
 						"<instance>",
@@ -407,19 +405,19 @@ var _ = Describe("type Packer", func() {
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         nowString,
 								ScheduledFor:      marshalkit.MustMarshalEnvelopeTime(scheduledFor),
-								Description:       "{T1}",
-								PortableName:      MessageTPortableName,
-								MediaType:         MessageT1Packet.MediaType,
-								Data:              MessageT1Packet.Data,
+								Description:       "timeout(stubs.TypeT:T1, valid)",
+								PortableName:      "TimeoutStub[TypeT]",
+								MediaType:         `application/json; type="TimeoutStub[TypeT]"`,
+								Data:              []byte(`{"content":"T1"}`),
 							},
-							Message:      MessageT1,
+							Message:      TimeoutT1,
 							CreatedAt:    now,
 							ScheduledFor: scheduledFor,
 						},
 					))
 				},
-				Entry("when the cause is an event", MessageF1),
-				Entry("when the cause is a timeout", MessageU1),
+				Entry("when the cause is an event", EventF1),
+				Entry("when the cause is a timeout", TimeoutU1),
 			)
 
 			DescribeTable(
@@ -431,15 +429,15 @@ var _ = Describe("type Packer", func() {
 								Envelope: parent,
 								Message:  cause,
 							},
-							MessageT1,
+							TimeoutT1,
 							time.Now(),
 							handler,
 							"<instance>",
 						)
 					}).To(PanicWith(x))
 				},
-				Entry("when the cause is unrecognized", MessageX1, "fixtures.MessageX is not consumed by this handler"),
-				Entry("when the cause is a command", MessageD1, "fixtures.MessageD is a command, expected an event or timeout"),
+				Entry("when the cause is unrecognized", EventX1, "stubs.EventStub[TypeX] is not consumed by this handler"),
+				Entry("when the cause is a command", CommandD1, "stubs.CommandStub[TypeD] is a command, expected an event or timeout"),
 			)
 
 			DescribeTable(
@@ -449,7 +447,7 @@ var _ = Describe("type Packer", func() {
 						packer.PackChildTimeout(
 							Parcel{
 								Envelope: parent,
-								Message:  MessageF1,
+								Message:  EventF1,
 							},
 							m,
 							time.Now(),
@@ -458,9 +456,9 @@ var _ = Describe("type Packer", func() {
 						)
 					}).To(PanicWith(x))
 				},
-				Entry("when the message is unrecognized", MessageX1, "fixtures.MessageX is not a recognised message type"),
-				Entry("when the message is a command", MessageC1, "fixtures.MessageC is a command, expected a timeout"),
-				Entry("when the message is an event", MessageE1, "fixtures.MessageE is an event, expected a timeout"),
+				Entry("when the message is unrecognized", TimeoutX1, "stubs.TimeoutStub[TypeX] is not a recognised message type"),
+				Entry("when the message is a command", CommandC1, "stubs.CommandStub[TypeC] is a command, expected a timeout"),
+				Entry("when the message is an event", EventE1, "stubs.EventStub[TypeE] is an event, expected a timeout"),
 			)
 		})
 
@@ -469,16 +467,16 @@ var _ = Describe("type Packer", func() {
 				packer.PackChildTimeout(
 					Parcel{
 						Envelope: parent,
-						Message:  MessageF1,
+						Message:  EventF1,
 					},
-					MessageT{
-						Value: errors.New("<error>"),
+					TimeoutStub[TypeT]{
+						ValidationError: "<error>",
 					},
 					time.Now(),
 					handler,
 					"<instance>",
 				)
-			}).To(PanicWith("fixtures.MessageT timeout is invalid: <error>"))
+			}).To(PanicWith("stubs.TimeoutStub[github.com/dogmatiq/enginekit/enginetest/stubs.TypeT] timeout is invalid: <error>"))
 		})
 	})
 })

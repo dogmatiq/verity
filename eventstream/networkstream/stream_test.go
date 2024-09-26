@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
-	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
@@ -99,9 +98,8 @@ var _ = Describe("type Stream", func() {
 
 		mstream = &memorystream.Stream{}
 
-		pcl = NewParcel("<message-1>", MessageA1)
-
-		types = message.NewTypeSet(MessageAType)
+		pcl = NewParcel("<message-1>", EventA1)
+		types = message.TypesOf(EventA1)
 
 		var err error
 		listener, err = net.Listen("tcp", ":")

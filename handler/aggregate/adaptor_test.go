@@ -5,11 +5,10 @@ import (
 	"errors"
 	"time"
 
-	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -26,7 +25,7 @@ var _ = Describe("type Adaptor", func() {
 	var (
 		ctx       context.Context
 		dataStore *DataStoreStub
-		upstream  *AggregateMessageHandler
+		upstream  *AggregateMessageHandlerStub
 		packer    *parcel.Packer
 		logger    *logging.BufferedLogger
 		work      *UnitOfWorkStub
@@ -52,12 +51,12 @@ var _ = Describe("type Adaptor", func() {
 			}, nil
 		}
 
-		upstream = &AggregateMessageHandler{
+		upstream = &AggregateMessageHandlerStub{
 			ConfigureFunc: func(c dogma.AggregateConfigurer) {
 				c.Identity("<aggregate-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
 				c.Routes(
-					dogma.HandlesCommand[MessageC](),
-					dogma.RecordsEvent[MessageE](),
+					dogma.HandlesCommand[CommandStub[TypeC]](),
+					dogma.RecordsEvent[EventStub[TypeE]](),
 				)
 			},
 			RouteCommandToInstanceFunc: func(m dogma.Command) string {
@@ -67,8 +66,8 @@ var _ = Describe("type Adaptor", func() {
 
 		packer = NewPacker(
 			message.TypeRoles{
-				MessageCType: message.CommandRole,
-				MessageEType: message.EventRole,
+				message.TypeFor[CommandStub[TypeC]](): message.CommandRole,
+				message.TypeFor[EventStub[TypeE]]():   message.EventRole,
 			},
 		)
 
@@ -76,7 +75,7 @@ var _ = Describe("type Adaptor", func() {
 
 		work = &UnitOfWorkStub{}
 
-		cause = NewParcel("<consume>", MessageC1)
+		cause = NewParcel("<consume>", CommandC1)
 
 		adaptor = &Adaptor{
 			Identity: &envelopespec.Identity{
@@ -104,7 +103,7 @@ var _ = Describe("type Adaptor", func() {
 				m dogma.Command,
 			) {
 				called = true
-				Expect(m).To(Equal(MessageC1))
+				Expect(m).To(Equal(CommandC1))
 			}
 
 			err := adaptor.HandleMessage(ctx, work, cause)
@@ -146,7 +145,7 @@ var _ = Describe("type Adaptor", func() {
 			Expect(func() {
 				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
-			}).To(PanicWith("*fixtures.AggregateMessageHandler.RouteCommandToInstance() returned an empty instance ID while routing a fixtures.MessageC command"))
+			}).To(PanicWith("*stubs.AggregateMessageHandlerStub.RouteCommandToInstance() returned an empty instance ID while routing a stubs.CommandStub[github.com/dogmatiq/enginekit/enginetest/stubs.TypeC] command"))
 		})
 
 		It("panics if the handler returns a nil root", func() {
@@ -157,7 +156,7 @@ var _ = Describe("type Adaptor", func() {
 			Expect(func() {
 				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
-			}).To(PanicWith("*fixtures.AggregateMessageHandler.New() returned nil"))
+			}).To(PanicWith("*stubs.AggregateMessageHandlerStub.New() returned nil"))
 		})
 
 		When("an event is recorded", func() {
@@ -167,7 +166,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Command,
 				) {
-					s.RecordEvent(MessageE1)
+					s.RecordEvent(EventE1)
 				}
 
 				err := adaptor.HandleMessage(ctx, work, cause)
@@ -184,12 +183,12 @@ var _ = Describe("type Adaptor", func() {
 								SourceHandler:     adaptor.Identity,
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         "2000-01-01T00:00:00Z",
-								Description:       "{E1}",
-								PortableName:      MessageEPortableName,
-								MediaType:         MessageE1Packet.MediaType,
-								Data:              MessageE1Packet.Data,
+								Description:       "event(stubs.TypeE:E1, valid)",
+								PortableName:      "EventStub[TypeE]",
+								MediaType:         `application/json; type="EventStub[TypeE]"`,
+								Data:              []byte(`{"content":"E1"}`),
 							},
-							Message:   MessageE1,
+							Message:   EventE1,
 							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
 					},
@@ -215,12 +214,12 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Command,
 				) {
-					s.RecordEvent(MessageE1)
+					s.RecordEvent(EventE1)
 
-					r := x.(*AggregateRoot)
+					r := x.(*AggregateRootStub)
 					Expect(r.AppliedEvents).To(Equal(
 						[]dogma.Event{
-							MessageE1,
+							EventE1,
 						},
 					))
 				}
@@ -235,7 +234,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Command,
 				) {
-					s.RecordEvent(MessageE1)
+					s.RecordEvent(EventE1)
 				}
 
 				err := adaptor.HandleMessage(ctx, work, cause)
@@ -243,7 +242,7 @@ var _ = Describe("type Adaptor", func() {
 
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
+						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    EventStub[TypeE] ● event(stubs.TypeE:E1, valid)",
 					},
 				))
 			})
@@ -266,7 +265,7 @@ var _ = Describe("type Adaptor", func() {
 			It("logs using the standard format", func() {
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
+						Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    CommandStub[TypeC] ● format <value>",
 					},
 				))
 			})
@@ -312,7 +311,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Command,
 				) {
-					r := x.(*AggregateRoot)
+					r := x.(*AggregateRootStub)
 					Expect(r.AppliedEvents).To(BeEmpty())
 				}
 
@@ -343,8 +342,8 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Command,
 				) {
-					s.RecordEvent(MessageE1)
-					s.RecordEvent(MessageE2)
+					s.RecordEvent(EventE1)
+					s.RecordEvent(EventE2)
 				}
 
 				err := adaptor.HandleMessage(ctx, work, cause)
@@ -362,11 +361,11 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.AggregateCommandScope,
 					_ dogma.Command,
 				) {
-					r := x.(*AggregateRoot)
+					r := x.(*AggregateRootStub)
 					Expect(r.AppliedEvents).To(Equal(
 						[]dogma.Event{
-							MessageE1,
-							MessageE2,
+							EventE1,
+							EventE2,
 						},
 					))
 				}
@@ -383,7 +382,7 @@ var _ = Describe("type Adaptor", func() {
 						_ dogma.Command,
 					) {
 						s.Destroy()
-						s.RecordEvent(MessageE3)
+						s.RecordEvent(EventE3)
 					}
 
 					err := adaptor.HandleMessage(ctx, work, cause)
@@ -410,7 +409,7 @@ var _ = Describe("type Adaptor", func() {
 						s dogma.AggregateCommandScope,
 						_ dogma.Command,
 					) {
-						s.RecordEvent(MessageE3)
+						s.RecordEvent(EventE3)
 						s.Destroy()
 					}
 
@@ -467,13 +466,13 @@ var _ = Describe("type Adaptor", func() {
 				s dogma.AggregateCommandScope,
 				_ dogma.Command,
 			) {
-				s.RecordEvent(MessageE1)
+				s.RecordEvent(EventE1)
 				s.Destroy()
 
-				r := x.(*AggregateRoot)
+				r := x.(*AggregateRootStub)
 				Expect(r.AppliedEvents).To(Equal(
 					[]dogma.Event{
-						MessageE1,
+						EventE1,
 					},
 				))
 			}

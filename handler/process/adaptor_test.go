@@ -5,11 +5,10 @@ import (
 	"errors"
 	"time"
 
-	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
@@ -28,7 +27,7 @@ var _ = Describe("type Adaptor", func() {
 	var (
 		ctx       context.Context
 		dataStore *DataStoreStub
-		upstream  *ProcessMessageHandler
+		upstream  *ProcessMessageHandlerStub
 		packer    *parcel.Packer
 		logger    *logging.BufferedLogger
 		work      *UnitOfWorkStub
@@ -54,13 +53,13 @@ var _ = Describe("type Adaptor", func() {
 			}, nil
 		}
 
-		upstream = &ProcessMessageHandler{
+		upstream = &ProcessMessageHandlerStub{
 			ConfigureFunc: func(c dogma.ProcessConfigurer) {
 				c.Identity("<process-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
 				c.Routes(
-					dogma.HandlesEvent[MessageE](),
-					dogma.ExecutesCommand[MessageC](),
-					dogma.SchedulesTimeout[MessageT](),
+					dogma.HandlesEvent[EventStub[TypeE]](),
+					dogma.ExecutesCommand[CommandStub[TypeC]](),
+					dogma.SchedulesTimeout[TimeoutStub[TypeT]](),
 				)
 			},
 			RouteEventToInstanceFunc: func(_ context.Context, m dogma.Event) (string, bool, error) {
@@ -70,9 +69,9 @@ var _ = Describe("type Adaptor", func() {
 
 		packer = NewPacker(
 			message.TypeRoles{
-				MessageCType: message.CommandRole,
-				MessageEType: message.EventRole,
-				MessageTType: message.TimeoutRole,
+				message.TypeFor[CommandStub[TypeC]](): message.CommandRole,
+				message.TypeFor[EventStub[TypeE]]():   message.EventRole,
+				message.TypeFor[TimeoutStub[TypeT]](): message.TimeoutRole,
 			},
 		)
 
@@ -80,7 +79,7 @@ var _ = Describe("type Adaptor", func() {
 
 		work = &UnitOfWorkStub{}
 
-		cause = NewParcel("<consume>", MessageE1)
+		cause = NewParcel("<consume>", EventE1)
 
 		adaptor = &Adaptor{
 			Identity: &envelopespec.Identity{
@@ -109,7 +108,7 @@ var _ = Describe("type Adaptor", func() {
 				m dogma.Event,
 			) error {
 				called = true
-				Expect(m).To(Equal(MessageE1))
+				Expect(m).To(Equal(EventE1))
 				return nil
 			}
 
@@ -198,7 +197,7 @@ var _ = Describe("type Adaptor", func() {
 			Expect(func() {
 				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
-			}).To(PanicWith("*fixtures.ProcessMessageHandler.RouteEventToInstance() returned an empty instance ID while routing a fixtures.MessageE event"))
+			}).To(PanicWith("*stubs.ProcessMessageHandlerStub.RouteEventToInstance() returned an empty instance ID while routing a stubs.EventStub[github.com/dogmatiq/enginekit/enginetest/stubs.TypeE] event"))
 		})
 
 		It("skips the message if the handler does not route it to an instance", func() {
@@ -231,7 +230,7 @@ var _ = Describe("type Adaptor", func() {
 			Expect(func() {
 				err := adaptor.HandleMessage(ctx, work, cause)
 				Expect(err).ShouldNot(HaveOccurred())
-			}).To(PanicWith("*fixtures.ProcessMessageHandler.New() returned nil"))
+			}).To(PanicWith("*stubs.ProcessMessageHandlerStub.New() returned nil"))
 		})
 
 		It("saves the process instance", func() {
@@ -241,7 +240,7 @@ var _ = Describe("type Adaptor", func() {
 				s dogma.ProcessEventScope,
 				_ dogma.Event,
 			) error {
-				r.(*ProcessRoot).Value = "<value>"
+				r.(*ProcessRootStub).Value = "<value>"
 
 				return nil
 			}
@@ -256,8 +255,8 @@ var _ = Describe("type Adaptor", func() {
 							HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 							InstanceID: "<instance>",
 							Packet: marshalkit.Packet{
-								MediaType: "application/json; type=ProcessRoot",
-								Data:      []byte(`{"Value":"\u003cvalue\u003e"}`),
+								MediaType: "application/json; type=ProcessRootStub",
+								Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 							},
 						},
 					},
@@ -269,7 +268,7 @@ var _ = Describe("type Adaptor", func() {
 			adaptor.Marshaler = &codec.Marshaler{} // an empty marshaler cannot marshal anything
 
 			err := adaptor.HandleMessage(ctx, work, cause)
-			Expect(err).To(MatchError("no codecs support the '*fixtures.ProcessRoot' type"))
+			Expect(err).To(MatchError("no codecs support the '*stubs.ProcessRootStub' type"))
 		})
 
 		When("a command is executed", func() {
@@ -280,7 +279,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					s.ExecuteCommand(MessageC1)
+					s.ExecuteCommand(CommandC1)
 					return nil
 				}
 
@@ -298,12 +297,12 @@ var _ = Describe("type Adaptor", func() {
 								SourceHandler:     adaptor.Identity,
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         "2000-01-01T00:00:00Z",
-								Description:       "{C1}",
-								PortableName:      MessageCPortableName,
-								MediaType:         MessageC1Packet.MediaType,
-								Data:              MessageC1Packet.Data,
+								Description:       "command(stubs.TypeC:C1, valid)",
+								PortableName:      "CommandStub[TypeC]",
+								MediaType:         `application/json; type="CommandStub[TypeC]"`,
+								Data:              []byte(`{"content":"C1"}`),
 							},
-							Message:   MessageC1,
+							Message:   CommandC1,
 							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
 					},
@@ -317,7 +316,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					s.ExecuteCommand(MessageC1)
+					s.ExecuteCommand(CommandC1)
 					return nil
 				}
 
@@ -326,7 +325,7 @@ var _ = Describe("type Adaptor", func() {
 
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageC ● {C1}",
+						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    CommandStub[TypeC] ● command(stubs.TypeC:C1, valid)",
 					},
 				))
 			})
@@ -338,9 +337,9 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					r.(*ProcessRoot).Value = "<value>"
+					r.(*ProcessRootStub).Value = "<value>"
 					s.End()
-					s.ExecuteCommand(MessageC1)
+					s.ExecuteCommand(CommandC1)
 					return nil
 				}
 
@@ -354,8 +353,8 @@ var _ = Describe("type Adaptor", func() {
 								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
 								Packet: marshalkit.Packet{
-									MediaType: "application/json; type=ProcessRoot",
-									Data:      []byte(`{"Value":"\u003cvalue\u003e"}`),
+									MediaType: "application/json; type=ProcessRootStub",
+									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 								},
 							},
 						},
@@ -374,7 +373,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					s.ScheduleTimeout(MessageT1, scheduledFor)
+					s.ScheduleTimeout(TimeoutT1, scheduledFor)
 					return nil
 				}
 
@@ -393,12 +392,12 @@ var _ = Describe("type Adaptor", func() {
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         "2000-01-01T00:00:00Z",
 								ScheduledFor:      "2020-01-01T00:00:00Z",
-								Description:       "{T1}",
-								PortableName:      MessageTPortableName,
-								MediaType:         MessageT1Packet.MediaType,
-								Data:              MessageT1Packet.Data,
+								Description:       "timeout(stubs.TypeT:T1, valid)",
+								PortableName:      "TimeoutStub[TypeT]",
+								MediaType:         `application/json; type="TimeoutStub[TypeT]"`,
+								Data:              []byte(`{"content":"T1"}`),
 							},
-							Message:      MessageT1,
+							Message:      TimeoutT1,
 							CreatedAt:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 							ScheduledFor: scheduledFor,
 						},
@@ -413,7 +412,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					s.ScheduleTimeout(MessageT1, time.Now())
+					s.ScheduleTimeout(TimeoutT1, time.Now())
 					return nil
 				}
 
@@ -422,7 +421,7 @@ var _ = Describe("type Adaptor", func() {
 
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageT ● {T1}",
+						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    TimeoutStub[TypeT] ● timeout(stubs.TypeT:T1, valid)",
 					},
 				))
 			})
@@ -434,9 +433,9 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					r.(*ProcessRoot).Value = "<value>"
+					r.(*ProcessRootStub).Value = "<value>"
 					s.End()
-					s.ScheduleTimeout(MessageT1, time.Now())
+					s.ScheduleTimeout(TimeoutT1, time.Now())
 					return nil
 				}
 
@@ -450,8 +449,8 @@ var _ = Describe("type Adaptor", func() {
 								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
 								Packet: marshalkit.Packet{
-									MediaType: "application/json; type=ProcessRoot",
-									Data:      []byte(`{"Value":"\u003cvalue\u003e"}`),
+									MediaType: "application/json; type=ProcessRootStub",
+									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 								},
 							},
 						},
@@ -479,7 +478,7 @@ var _ = Describe("type Adaptor", func() {
 			It("logs using the standard format", func() {
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageE ● format <value>",
+						Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    EventStub[TypeE] ● format <value>",
 					},
 				))
 			})
@@ -537,7 +536,7 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			It("does not action timeout messages", func() {
-				cause = NewParcel("<consume>", MessageT1, time.Now(), time.Now())
+				cause = NewParcel("<consume>", TimeoutT1, time.Now(), time.Now())
 
 				upstream.HandleTimeoutFunc = func(
 					_ context.Context,
@@ -562,7 +561,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					r.(*ProcessRoot).Value = "<value>"
+					r.(*ProcessRootStub).Value = "<value>"
 
 					return nil
 				}
@@ -583,7 +582,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					Expect(r.(*ProcessRoot).Value).To(Equal("<value>"))
+					Expect(r.(*ProcessRootStub).Value).To(Equal("<value>"))
 					return nil
 				}
 
@@ -613,8 +612,8 @@ var _ = Describe("type Adaptor", func() {
 									InstanceID: "<instance>",
 									Revision:   1,
 									Packet: marshalkit.Packet{
-										MediaType: "application/json; type=ProcessRoot",
-										Data:      []byte(`{"Value":"\u003cvalue\u003e"}`),
+										MediaType: "application/json; type=ProcessRootStub",
+										Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 									},
 								},
 							},
@@ -625,7 +624,7 @@ var _ = Describe("type Adaptor", func() {
 
 			When("a timeout message is being handled", func() {
 				BeforeEach(func() {
-					cause = NewParcel("<consume>", MessageT1, time.Now(), time.Now())
+					cause = NewParcel("<consume>", TimeoutT1, time.Now(), time.Now())
 
 					upstream.RouteEventToInstanceFunc = func(
 						context.Context,
@@ -645,7 +644,7 @@ var _ = Describe("type Adaptor", func() {
 						m dogma.Timeout,
 					) error {
 						called = true
-						Expect(m).To(Equal(MessageT1))
+						Expect(m).To(Equal(TimeoutT1))
 						return nil
 					}
 

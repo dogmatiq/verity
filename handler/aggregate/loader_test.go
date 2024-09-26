@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -20,7 +20,7 @@ var _ = Describe("type Loader", func() {
 	var (
 		ctx       context.Context
 		dataStore *DataStoreStub
-		base      *AggregateRoot
+		base      *AggregateRootStub
 		loader    *Loader
 	)
 
@@ -32,7 +32,7 @@ var _ = Describe("type Loader", func() {
 		dataStore = NewDataStoreStub()
 		DeferCleanup(dataStore.Close)
 
-		base = &AggregateRoot{}
+		base = &AggregateRootStub{}
 
 		loader = &Loader{
 			AggregateRepository: dataStore,
@@ -91,10 +91,10 @@ var _ = Describe("type Loader", func() {
 					ctx,
 					persistence.Batch{
 						persistence.SaveEvent{
-							Envelope: NewEnvelope("<event-0>", MessageE1),
+							Envelope: NewEnvelope("<event-0>", EventE1),
 						},
 						persistence.SaveEvent{
-							Envelope: NewEnvelope("<event-1>", MessageE2),
+							Envelope: NewEnvelope("<event-1>", EventE2),
 						},
 						persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
@@ -129,8 +129,8 @@ var _ = Describe("type Loader", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(base.AppliedEvents).To(Equal(
 					[]dogma.Event{
-						MessageE1,
-						MessageE2,
+						EventE1,
+						EventE2,
 					},
 				))
 			})
@@ -195,7 +195,7 @@ var _ = Describe("type Loader", func() {
 							ctx,
 							persistence.Batch{
 								persistence.SaveEvent{
-									Envelope: NewEnvelope("<event-2>", MessageE3),
+									Envelope: NewEnvelope("<event-2>", EventE3),
 								},
 								persistence.SaveAggregateMetaData{
 									MetaData: persistence.AggregateMetaData{
@@ -217,7 +217,7 @@ var _ = Describe("type Loader", func() {
 						Expect(err).ShouldNot(HaveOccurred())
 						Expect(base.AppliedEvents).To(Equal(
 							[]dogma.Event{
-								MessageE3,
+								EventE3,
 							},
 						))
 					})

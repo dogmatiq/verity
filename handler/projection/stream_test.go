@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler/projection"
@@ -22,14 +22,14 @@ var _ eventstream.Handler = (*StreamAdaptor)(nil)
 var _ = Describe("type StreamAdaptor", func() {
 	var (
 		pcl     parcel.Parcel
-		handler *ProjectionMessageHandler
+		handler *ProjectionMessageHandlerStub
 		logger  *logging.BufferedLogger
 		adaptor *StreamAdaptor
 	)
 
 	BeforeEach(func() {
-		pcl = NewParcel("<id>", MessageA1)
-		handler = &ProjectionMessageHandler{}
+		pcl = NewParcel("<id>", EventE1)
+		handler = &ProjectionMessageHandlerStub{}
 		logger = &logging.BufferedLogger{}
 		adaptor = &StreamAdaptor{
 			Handler: handler,

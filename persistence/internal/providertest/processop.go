@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/marshalkit"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
@@ -204,7 +204,7 @@ func declareProcessOperationTests(tc *TestContext) {
 						NextAttemptAt: now,
 						Envelope: verityfixtures.NewEnvelope(
 							"<message-0>",
-							dogmafixtures.MessageT1,
+							stubs.TimeoutT1,
 							now,
 							now,
 						),
@@ -214,7 +214,7 @@ func declareProcessOperationTests(tc *TestContext) {
 						NextAttemptAt: now.Add(1 * time.Hour),
 						Envelope: verityfixtures.NewEnvelope(
 							"<message-1>",
-							dogmafixtures.MessageT1,
+							stubs.TimeoutT1,
 							now,
 							now,
 						),
@@ -225,7 +225,7 @@ func declareProcessOperationTests(tc *TestContext) {
 						NextAttemptAt: now.Add(2 * time.Hour),
 						Envelope: verityfixtures.NewEnvelope(
 							"<message-2>",
-							dogmafixtures.MessageT1,
+							stubs.TimeoutT1,
 							now,
 							now,
 						),

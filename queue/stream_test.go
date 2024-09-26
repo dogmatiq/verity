@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -32,7 +32,7 @@ var _ = Describe("type StreamAdaptor", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 		DeferCleanup(cancel)
 
-		parcel = NewParcel("<message-0>", MessageE1)
+		parcel = NewParcel("<message-0>", EventE1)
 		event = eventstream.Event{
 			Offset: 123,
 			Parcel: parcel,

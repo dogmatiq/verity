@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
-	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
 	. "github.com/dogmatiq/verity/eventstream/memorystream"
@@ -51,7 +50,7 @@ var _ = Describe("type Stream", func() {
 		stream = &Stream{
 			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Types: message.NewTypeSet(
-				MessageEType,
+				message.TypeFor[EventStub[TypeA]](),
 			),
 			// For the purposes of our test, we assume there are already 100
 			// persisted events.
@@ -145,8 +144,8 @@ func addEvents(
 				Offset: o,
 				Parcel: NewParcel(
 					id,
-					MessageE{
-						Value: id,
+					EventStub[TypeA]{
+						Content: TypeA(id),
 					},
 				),
 			},
@@ -172,8 +171,8 @@ func expectEventsToBeAvailable(
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(ev.Parcel.Message).To(
 			Equal(
-				MessageE{
-					Value: fmt.Sprintf("<event-%d>", o),
+				EventStub[TypeA]{
+					Content: TypeA(fmt.Sprintf("<event-%d>", o)),
 				},
 			),
 			fmt.Sprintf("unexpected event at offset %d", o),

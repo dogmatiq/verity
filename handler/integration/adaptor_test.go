@@ -4,13 +4,11 @@ import (
 	"context"
 	"time"
 
-	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler/integration"
 	"github.com/dogmatiq/verity/parcel"
@@ -22,7 +20,7 @@ import (
 var _ = Describe("type Adaptor", func() {
 	var (
 		ctx      context.Context
-		upstream *IntegrationMessageHandler
+		upstream *IntegrationMessageHandlerStub
 		packer   *parcel.Packer
 		logger   *logging.BufferedLogger
 		work     *UnitOfWorkStub
@@ -35,20 +33,20 @@ var _ = Describe("type Adaptor", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 		DeferCleanup(cancel)
 
-		upstream = &IntegrationMessageHandler{
+		upstream = &IntegrationMessageHandlerStub{
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 				c.Identity("<integration-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
 				c.Routes(
-					dogma.HandlesCommand[MessageC](),
-					dogma.RecordsEvent[MessageE](),
+					dogma.HandlesCommand[CommandStub[TypeC]](),
+					dogma.RecordsEvent[EventStub[TypeE]](),
 				)
 			},
 		}
 
 		packer = NewPacker(
 			message.TypeRoles{
-				MessageCType: message.CommandRole,
-				MessageEType: message.EventRole,
+				message.TypeFor[CommandStub[TypeC]](): message.CommandRole,
+				message.TypeFor[EventStub[TypeE]]():   message.EventRole,
 			},
 		)
 
@@ -56,7 +54,7 @@ var _ = Describe("type Adaptor", func() {
 
 		work = &UnitOfWorkStub{}
 
-		cause = NewParcel("<consume>", MessageC1)
+		cause = NewParcel("<consume>", CommandC1)
 
 		adaptor = &Adaptor{
 			Identity: &envelopespec.Identity{
@@ -78,7 +76,7 @@ var _ = Describe("type Adaptor", func() {
 				m dogma.Command,
 			) error {
 				called = true
-				Expect(m).To(Equal(MessageC1))
+				Expect(m).To(Equal(CommandC1))
 				return nil
 			}
 
@@ -94,7 +92,7 @@ var _ = Describe("type Adaptor", func() {
 					s dogma.IntegrationCommandScope,
 					_ dogma.Command,
 				) error {
-					s.RecordEvent(MessageE1)
+					s.RecordEvent(EventE1)
 					return nil
 				}
 
@@ -113,12 +111,12 @@ var _ = Describe("type Adaptor", func() {
 								SourceApplication: packer.Application,
 								SourceHandler:     adaptor.Identity,
 								CreatedAt:         "2000-01-01T00:00:00Z",
-								Description:       "{E1}",
-								PortableName:      MessageEPortableName,
-								MediaType:         MessageE1Packet.MediaType,
-								Data:              MessageE1Packet.Data,
+								Description:       "event(stubs.TypeE:E1, valid)",
+								PortableName:      "EventStub[TypeE]",
+								MediaType:         `application/json; type="EventStub[TypeE]"`,
+								Data:              []byte(`{"content":"E1"}`),
 							},
-							Message:   MessageE1,
+							Message:   EventE1,
 							CreatedAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 						},
 					},
@@ -128,7 +126,7 @@ var _ = Describe("type Adaptor", func() {
 			It("logs about the event", func() {
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    MessageE ● {E1}",
+						Message: "= 0  ∵ <consume>  ⋲ <correlation>  ▲    EventStub[TypeE] ● event(stubs.TypeE:E1, valid)",
 					},
 				))
 			})
@@ -152,7 +150,7 @@ var _ = Describe("type Adaptor", func() {
 			It("logs using the standard format", func() {
 				Expect(logger.Messages()).To(ContainElement(
 					logging.BufferedLogMessage{
-						Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
+						Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    CommandStub[TypeC] ● format <value>",
 					},
 				))
 			})

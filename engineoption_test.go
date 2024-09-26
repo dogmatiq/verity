@@ -6,7 +6,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -15,14 +15,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var TestApplication = &Application{
+var TestApplication = &ApplicationStub{
 	ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 		c.Identity("<app-name>", DefaultAppKey)
-		c.RegisterProjection(&ProjectionMessageHandler{
+		c.RegisterProjection(&ProjectionMessageHandlerStub{
 			ConfigureFunc: func(c dogma.ProjectionConfigurer) {
 				c.Identity("<projection-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
 				c.Routes(
-					dogma.HandlesEvent[MessageA](),
+					dogma.HandlesEvent[EventStub[TypeA]](),
 				)
 			},
 		})

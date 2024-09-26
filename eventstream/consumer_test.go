@@ -6,10 +6,9 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
-	. "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
@@ -37,39 +36,39 @@ var _ = Describe("type Consumer", func() {
 
 		event0 = Event{
 			Offset: 0,
-			Parcel: NewParcel("<message-0>", MessageA1),
+			Parcel: NewParcel("<message-0>", EventA1),
 		}
 
 		event1 = Event{
 			Offset: 1,
-			Parcel: NewParcel("<message-1>", MessageB1),
+			Parcel: NewParcel("<message-1>", EventB1),
 		}
 
 		event2 = Event{
 			Offset: 2,
-			Parcel: NewParcel("<message-2>", MessageA2),
+			Parcel: NewParcel("<message-2>", EventA2),
 		}
 
 		event3 = Event{
 			Offset: 3,
-			Parcel: NewParcel("<message-3>", MessageB2),
+			Parcel: NewParcel("<message-3>", EventB2),
 		}
 
 		event4 = Event{
 			Offset: 4,
-			Parcel: NewParcel("<message-4>", MessageA3),
+			Parcel: NewParcel("<message-4>", EventA3),
 		}
 
 		event5 = Event{
 			Offset: 5,
-			Parcel: NewParcel("<message-5>", MessageB3),
+			Parcel: NewParcel("<message-5>", EventB3),
 		}
 
 		mstream = &memorystream.Stream{
 			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Types: message.NewTypeSet(
-				MessageAType,
-				MessageBType,
+				message.TypeFor[EventStub[TypeA]](),
+				message.TypeFor[EventStub[TypeB]](),
 			),
 		}
 
@@ -91,7 +90,7 @@ var _ = Describe("type Consumer", func() {
 		consumer = &Consumer{
 			Stream: stream,
 			EventTypes: message.NewTypeSet(
-				MessageAType,
+				message.TypeFor[EventStub[TypeA]](),
 			),
 			Handler:         eshandler,
 			BackoffStrategy: backoff.Constant(10 * time.Millisecond),
@@ -132,7 +131,9 @@ var _ = Describe("type Consumer", func() {
 			stream.EventTypesFunc = func(
 				context.Context,
 			) (message.TypeCollection, error) {
-				return message.NewTypeSet(MessageCType), nil
+				return message.NewTypeSet(
+					message.TypeFor[EventStub[TypeC]](),
+				), nil
 			}
 
 			err := consumer.Run(ctx)
@@ -213,8 +214,8 @@ var _ = Describe("type Consumer", func() {
 		It("restarts the consumer if the event offset is earlier than the consumed offset", func() {
 			// Ensure the consumer tries to consume all event types.
 			consumer.EventTypes = message.NewTypeSet(
-				MessageAType,
-				MessageBType,
+				message.TypeFor[EventStub[TypeA]](),
+				message.TypeFor[EventStub[TypeB]](),
 			)
 
 			// Configure the stream to return an offset before the one we
