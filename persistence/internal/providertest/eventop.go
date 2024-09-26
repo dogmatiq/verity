@@ -4,7 +4,7 @@ import (
 	"sort"
 	"sync"
 
-	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
@@ -29,9 +29,9 @@ func declareEventOperationTests(tc *TestContext) {
 			dataStore, tearDown = tc.SetupDataStore()
 			ginkgo.DeferCleanup(tearDown)
 
-			env0 = verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1)
-			env1 = verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1)
-			env2 = verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1)
+			env0 = verityfixtures.NewEnvelope("<message-0>", stubs.EventA1)
+			env1 = verityfixtures.NewEnvelope("<message-1>", stubs.EventB1)
+			env2 = verityfixtures.NewEnvelope("<message-2>", stubs.EventC1)
 
 			filter = map[string]struct{}{
 				env0.PortableName: {},

@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -56,7 +56,7 @@ var _ = Describe("type CommandExecutor", func() {
 			Persister: dataStore,
 			Packer: NewPacker(
 				message.TypeRoles{
-					message.TypeOf(MessageA{}): message.CommandRole,
+					message.TypeFor[CommandStub[TypeA]](): message.CommandRole,
 				},
 			),
 		}
@@ -72,7 +72,7 @@ var _ = Describe("type CommandExecutor", func() {
 
 	Describe("func ExecuteCommand()", func() {
 		It("persists the message", func() {
-			err := executor.ExecuteCommand(ctx, MessageA1)
+			err := executor.ExecuteCommand(ctx, CommandA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			dataStore.LoadQueueMessagesFunc = nil
@@ -92,10 +92,10 @@ var _ = Describe("type CommandExecutor", func() {
 								Key:  DefaultAppKey,
 							},
 							CreatedAt:    "2000-01-01T00:00:00Z",
-							Description:  "{A1}",
-							PortableName: MessageAPortableName,
-							MediaType:    MessageA1Packet.MediaType,
-							Data:         MessageA1Packet.Data,
+							Description:  "command(stubs.TypeA:A1, valid)",
+							PortableName: "CommandStub[TypeA]",
+							MediaType:    `application/json; type="CommandStub[TypeA]"`,
+							Data:         []byte(`{"content":"A1"}`),
 						},
 					},
 				},
@@ -112,12 +112,12 @@ var _ = Describe("type CommandExecutor", func() {
 				// wasn't just loaded from the repository.
 			}
 
-			err := executor.ExecuteCommand(ctx, MessageA1)
+			err := executor.ExecuteCommand(ctx, CommandA1)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			m, err := queue.Pop(ctx)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(m.Parcel.Message).To(Equal(MessageA1))
+			Expect(m.Parcel.Message).To(Equal(CommandA1))
 		})
 
 		It("returns an error if persistence fails", func() {
@@ -128,7 +128,7 @@ var _ = Describe("type CommandExecutor", func() {
 				return persistence.Result{}, errors.New("<error>")
 			}
 
-			err := executor.ExecuteCommand(ctx, MessageA1)
+			err := executor.ExecuteCommand(ctx, CommandA1)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	. "github.com/dogmatiq/verity"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence/memorypersistence"
@@ -17,62 +17,62 @@ var _ dogma.CommandExecutor = (*Engine)(nil)
 
 var _ = Describe("type Engine", func() {
 	var (
-		app            *Application
+		app            *ApplicationStub
 		deliveryPolicy dogma.ProjectionDeliveryPolicy
 	)
 
 	BeforeEach(func() {
 		deliveryPolicy = dogma.UnicastProjectionDeliveryPolicy{}
 
-		app = &Application{
+		app = &ApplicationStub{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 				c.Identity("<app-name>", DefaultAppKey)
 
-				c.RegisterAggregate(&AggregateMessageHandler{
+				c.RegisterAggregate(&AggregateMessageHandlerStub{
 					ConfigureFunc: func(c dogma.AggregateConfigurer) {
 						c.Identity("<agg-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
 						c.Routes(
-							dogma.HandlesCommand[MessageC](),
-							dogma.RecordsEvent[MessageE](),
+							dogma.HandlesCommand[CommandStub[TypeC]](),
+							dogma.RecordsEvent[EventStub[TypeE]](),
 						)
 					},
 				})
 
-				c.RegisterProcess(&ProcessMessageHandler{
+				c.RegisterProcess(&ProcessMessageHandlerStub{
 					ConfigureFunc: func(c dogma.ProcessConfigurer) {
 						c.Identity("<proc-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
 						c.Routes(
-							dogma.HandlesEvent[MessageE](),
-							dogma.ExecutesCommand[MessageI](),
+							dogma.HandlesEvent[EventStub[TypeE]](),
+							dogma.ExecutesCommand[CommandStub[TypeI]](),
 						)
 					},
 				})
 
-				c.RegisterIntegration(&IntegrationMessageHandler{
+				c.RegisterIntegration(&IntegrationMessageHandlerStub{
 					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 						c.Identity("<int-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
 						c.Routes(
-							dogma.HandlesCommand[MessageI](),
-							dogma.RecordsEvent[MessageJ](),
+							dogma.HandlesCommand[CommandStub[TypeI]](),
+							dogma.RecordsEvent[EventStub[TypeJ]](),
 						)
 					},
 				})
 
-				c.RegisterProjection(&ProjectionMessageHandler{
+				c.RegisterProjection(&ProjectionMessageHandlerStub{
 					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
 						c.Identity("<proj-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
 						c.Routes(
-							dogma.HandlesEvent[MessageE](),
+							dogma.HandlesEvent[EventStub[TypeE]](),
 						)
 						c.DeliveryPolicy(deliveryPolicy)
 					},
 				})
 
-				c.RegisterProjection(&ProjectionMessageHandler{
+				c.RegisterProjection(&ProjectionMessageHandlerStub{
 					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
 						c.Identity("<disabled-proj-name>", "4ad6edf4-78b3-46bc-8321-0e1b834e3808")
 						c.Routes(
-							dogma.HandlesEvent[MessageE](),
+							dogma.HandlesEvent[EventStub[TypeE]](),
 						)
 						c.Disable()
 					},

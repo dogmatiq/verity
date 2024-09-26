@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
@@ -21,7 +21,7 @@ var _ = Describe("type Loader", func() {
 	var (
 		ctx       context.Context
 		dataStore *DataStoreStub
-		base      *ProcessRoot
+		base      *ProcessRootStub
 		loader    *Loader
 	)
 
@@ -33,7 +33,7 @@ var _ = Describe("type Loader", func() {
 		dataStore = NewDataStoreStub()
 		DeferCleanup(dataStore.Close)
 
-		base = &ProcessRoot{}
+		base = &ProcessRootStub{}
 
 		loader = &Loader{
 			Repository: dataStore,

@@ -3,7 +3,7 @@ package parcel_test
 import (
 	"time"
 
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -25,7 +25,7 @@ var _ = Describe("type Parcel", func() {
 
 		env = NewEnvelope(
 			"<id>",
-			MessageA1,
+			CommandA1,
 			createdAt,
 			scheduledFor,
 		)
@@ -48,7 +48,7 @@ var _ = Describe("type Parcel", func() {
 			Expect(p).To(EqualX(
 				Parcel{
 					Envelope:     env,
-					Message:      MessageA1,
+					Message:      CommandA1,
 					CreatedAt:    createdAt,
 					ScheduledFor: scheduledFor,
 				},

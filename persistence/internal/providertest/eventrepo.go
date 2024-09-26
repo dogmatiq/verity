@@ -2,10 +2,12 @@ package providertest
 
 import (
 	"context"
+	"reflect"
 	"sync"
 
-	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
-	marshalfixtures "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/marshalkit"
+	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
@@ -31,32 +33,32 @@ func declareEventRepositoryTests(tc *TestContext) {
 
 			ev0 = persistence.Event{
 				Offset:   0,
-				Envelope: verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1),
+				Envelope: verityfixtures.NewEnvelope("<message-0>", stubs.EventA1),
 			}
 
 			ev1 = persistence.Event{
 				Offset:   1,
-				Envelope: verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageB1),
+				Envelope: verityfixtures.NewEnvelope("<message-1>", stubs.EventB1),
 			}
 
 			ev2 = persistence.Event{
 				Offset:   2,
-				Envelope: verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageC1),
+				Envelope: verityfixtures.NewEnvelope("<message-2>", stubs.EventC1),
 			}
 
 			ev3 = persistence.Event{
 				Offset:   3,
-				Envelope: verityfixtures.NewEnvelope("<message-3>", dogmafixtures.MessageA2),
+				Envelope: verityfixtures.NewEnvelope("<message-3>", stubs.EventA2),
 			}
 
 			ev4 = persistence.Event{
 				Offset:   4,
-				Envelope: verityfixtures.NewEnvelope("<message-4>", dogmafixtures.MessageB2),
+				Envelope: verityfixtures.NewEnvelope("<message-4>", stubs.EventB2),
 			}
 
 			ev5 = persistence.Event{
 				Offset:   5,
-				Envelope: verityfixtures.NewEnvelope("<message-5>", dogmafixtures.MessageC2),
+				Envelope: verityfixtures.NewEnvelope("<message-5>", stubs.EventC2),
 			}
 
 			// Setup some different source handler values to test the aggregate
@@ -173,8 +175,8 @@ func declareEventRepositoryTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						map[string]struct{}{
-							marshalfixtures.MessageAPortableName: {},
-							marshalfixtures.MessageCPortableName: {},
+							marshalkit.MustMarshalType(marshalkitfixtures.Marshaler, reflect.TypeOf(stubs.EventA1)): {},
+							marshalkit.MustMarshalType(marshalkitfixtures.Marshaler, reflect.TypeOf(stubs.EventC1)): {},
 						},
 						0,
 					)
@@ -229,7 +231,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 							tc.Context,
 							dataStore,
 							map[string]struct{}{
-								marshalfixtures.MessageAPortableName: {},
+								marshalkit.MustMarshalType(marshalkitfixtures.Marshaler, reflect.TypeOf(stubs.EventA1)): {},
 							},
 							0,
 						)

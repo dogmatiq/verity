@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
-	configkitfixtures "github.com/dogmatiq/configkit/fixtures"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
-	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/marshalkit"
 	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
@@ -81,27 +80,27 @@ func Declare(
 	ginkgo.BeforeEach(func() {
 		event0 = eventstream.Event{
 			Offset: 0,
-			Parcel: verityfixtures.NewParcel("<message-0>", dogmafixtures.MessageA1),
+			Parcel: verityfixtures.NewParcel("<message-0>", stubs.EventA1),
 		}
 
 		event1 = eventstream.Event{
 			Offset: 1,
-			Parcel: verityfixtures.NewParcel("<message-1>", dogmafixtures.MessageB1),
+			Parcel: verityfixtures.NewParcel("<message-1>", stubs.EventB1),
 		}
 
 		event2 = eventstream.Event{
 			Offset: 2,
-			Parcel: verityfixtures.NewParcel("<message-2>", dogmafixtures.MessageA2),
+			Parcel: verityfixtures.NewParcel("<message-2>", stubs.EventA2),
 		}
 
 		event3 = eventstream.Event{
 			Offset: 3,
-			Parcel: verityfixtures.NewParcel("<message-3>", dogmafixtures.MessageB2),
+			Parcel: verityfixtures.NewParcel("<message-3>", stubs.EventB2),
 		}
 
 		event4 = eventstream.Event{
 			Offset: 4,
-			Parcel: verityfixtures.NewParcel("<message-4>", dogmafixtures.MessageC1),
+			Parcel: verityfixtures.NewParcel("<message-4>", stubs.EventC1),
 		}
 	})
 
@@ -110,23 +109,23 @@ func Declare(
 			setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancelSetup()
 
-			cfg := configkit.FromApplication(&dogmafixtures.Application{
+			cfg := configkit.FromApplication(&stubs.ApplicationStub{
 				ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 					// use the application identity from the envelope fixtures
 					id := event0.Parcel.Envelope.GetSourceApplication()
 					c.Identity(id.GetName(), id.GetKey())
 
-					c.RegisterIntegration(&dogmafixtures.IntegrationMessageHandler{
+					c.RegisterIntegration(&stubs.IntegrationMessageHandlerStub{
 						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 							// use the handler identity from the envelope fixtures
 							id := event0.Parcel.Envelope.GetSourceHandler()
 							c.Identity(id.GetName(), id.GetKey())
 
 							c.Routes(
-								dogma.HandlesCommand[dogmafixtures.MessageX](),
-								dogma.RecordsEvent[dogmafixtures.MessageA](),
-								dogma.RecordsEvent[dogmafixtures.MessageB](),
-								dogma.RecordsEvent[dogmafixtures.MessageC](),
+								dogma.HandlesCommand[stubs.CommandStub[stubs.TypeX]](),
+								dogma.RecordsEvent[stubs.EventStub[stubs.TypeA]](),
+								dogma.RecordsEvent[stubs.EventStub[stubs.TypeB]](),
+								dogma.RecordsEvent[stubs.EventStub[stubs.TypeC]](),
 							)
 						},
 					})
@@ -189,7 +188,7 @@ func Declare(
 
 				ginkgo.It("limits results to the supplied message types", func() {
 					types := message.NewTypeSet(
-						configkitfixtures.MessageAType,
+						message.TypeFor[stubs.EventStub[stubs.TypeA]](),
 					)
 
 					cur, err := out.Stream.Open(ctx, 0, types)
@@ -373,8 +372,8 @@ func Declare(
 								// https://github.com/dogmatiq/verity/issues/194.
 
 								types := message.NewTypeSet(
-									configkitfixtures.MessageBType,
-									configkitfixtures.MessageCType,
+									message.TypeFor[stubs.EventStub[stubs.TypeB]](),
+									message.TypeFor[stubs.EventStub[stubs.TypeC]](),
 								)
 
 								ginkgo.By("opening a cursor at an offset with an event that does not match the filter")

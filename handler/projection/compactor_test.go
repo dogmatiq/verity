@@ -7,7 +7,7 @@ import (
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	. "github.com/dogmatiq/verity/handler/projection"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,13 +17,13 @@ import (
 var _ = Describe("type Compactor", func() {
 	var (
 		logger    *logging.BufferedLogger
-		handler   *ProjectionMessageHandler
+		handler   *ProjectionMessageHandlerStub
 		compactor *Compactor
 	)
 
 	BeforeEach(func() {
 		logger = &logging.BufferedLogger{}
-		handler = &ProjectionMessageHandler{}
+		handler = &ProjectionMessageHandlerStub{}
 		compactor = &Compactor{
 			Handler:   handler,
 			Interval:  1 * time.Millisecond,

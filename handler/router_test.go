@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	. "github.com/dogmatiq/configkit/fixtures"
-	. "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/configkit/message"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/parcel"
@@ -27,7 +27,7 @@ var _ = Describe("type Router", func() {
 		upstream2 = &HandlerStub{}
 
 		router = Router{
-			MessageAType: []Handler{
+			message.TypeFor[CommandStub[TypeA]](): []Handler{
 				upstream1,
 				upstream2,
 			},
@@ -35,7 +35,7 @@ var _ = Describe("type Router", func() {
 	})
 
 	It("dispatches to handlers based on the message type", func() {
-		pcl := NewParcel("<id>", MessageA1)
+		pcl := NewParcel("<id>", CommandA1)
 
 		var called1, called2 bool
 
@@ -68,7 +68,7 @@ var _ = Describe("type Router", func() {
 	})
 
 	It("stops dispatching if one of the handlers fails", func() {
-		pcl := NewParcel("<id>", MessageA1)
+		pcl := NewParcel("<id>", CommandA1)
 
 		upstream1.HandleMessageFunc = func(
 			_ context.Context,
@@ -92,7 +92,7 @@ var _ = Describe("type Router", func() {
 	})
 
 	It("returns an error if there is no upstream handler for the message type", func() {
-		pcl := NewParcel("<id>", MessageB1)
+		pcl := NewParcel("<id>", CommandB1)
 
 		upstream1.HandleMessageFunc = func(
 			context.Context,
@@ -104,6 +104,6 @@ var _ = Describe("type Router", func() {
 		}
 
 		err := router.HandleMessage(context.Background(), work, pcl)
-		Expect(err).To(MatchError("no route for 'fixtures.MessageB' messages"))
+		Expect(err).To(MatchError("no route for 'stubs.CommandStub[TypeB]' messages"))
 	})
 })

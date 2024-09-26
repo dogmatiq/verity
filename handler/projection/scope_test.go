@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,7 +20,7 @@ var _ = Describe("type eventScope", func() {
 		logger = &logging.BufferedLogger{}
 
 		sc = &eventScope{
-			cause:  NewParcel("<consume>", MessageC1),
+			cause:  NewParcel("<consume>", EventE1),
 			logger: logger,
 		}
 	})
@@ -47,7 +47,7 @@ var _ = Describe("type eventScope", func() {
 
 			Expect(logger.Messages()).To(ContainElement(
 				logging.BufferedLogMessage{
-					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    MessageC ● format <value>",
+					Message: "= <consume>  ∵ <cause>  ⋲ <correlation>  ▼    EventStub[TypeE] ● format <value>",
 				},
 			))
 		})

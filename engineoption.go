@@ -13,7 +13,6 @@ import (
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/codec"
-	"github.com/dogmatiq/marshalkit/codec/cbor"
 	"github.com/dogmatiq/marshalkit/codec/json"
 	"github.com/dogmatiq/marshalkit/codec/protobuf"
 	"github.com/dogmatiq/marshalkit/codec/stateless"
@@ -214,7 +213,6 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 			stateless.DefaultCodec,
 			protobuf.DefaultNativeCodec,
 			json.DefaultCodec,
-			cbor.DefaultCodec,
 		},
 	)
 	if err != nil {

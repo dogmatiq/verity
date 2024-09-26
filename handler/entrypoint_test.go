@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler"
@@ -29,12 +29,12 @@ var _ = Describe("type EntryPoint", func() {
 	BeforeEach(func() {
 		handler = &HandlerStub{}
 
-		cause = NewParcel("<consume>", MessageC1)
+		cause = NewParcel("<consume>", CommandC1)
 
 		ack = &AcknowledgerStub{}
 
 		entryPoint = &EntryPoint{
-			QueueEvents: message.TypesOf(MessageQ{}),
+			QueueEvents: message.TypesOf(EventQ1),
 			Handler:     handler,
 			OnSuccess:   func(Result) {},
 		}
@@ -69,18 +69,18 @@ var _ = Describe("type EntryPoint", func() {
 			)
 
 			BeforeEach(func() {
-				command = NewParcel("<command>", MessageC1)
+				command = NewParcel("<command>", CommandC1)
 
 				timeout = NewParcel(
 					"<timeout>",
-					MessageT1,
+					TimeoutT1,
 					time.Now(),
 					time.Now().Add(1*time.Hour),
 				)
 
-				unqueuedEvent = NewParcel("<unqueued-event>", MessageU1)
+				unqueuedEvent = NewParcel("<unqueued-event>", EventU1)
 
-				queuedEvent = NewParcel("<queued-event>", MessageQ1)
+				queuedEvent = NewParcel("<queued-event>", EventQ1)
 
 				oper = persistence.SaveOffset{
 					ApplicationKey: DefaultAppKey,

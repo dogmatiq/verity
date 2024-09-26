@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -39,7 +39,7 @@ var _ = Describe("type QueueConsumer", func() {
 		dataStore = NewDataStoreStub()
 		DeferCleanup(dataStore.Close)
 
-		pcl = NewParcel("<id>", MessageA1)
+		pcl = NewParcel("<id>", CommandA1)
 
 		handler = &HandlerStub{}
 

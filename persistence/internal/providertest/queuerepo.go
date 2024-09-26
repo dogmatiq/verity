@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
@@ -41,19 +41,19 @@ func declareQueueRepositoryTests(tc *TestContext) {
 			message0 = persistence.QueueMessage{
 				FailureCount:  1,
 				NextAttemptAt: now.Add(3 * time.Hour),
-				Envelope:      verityfixtures.NewEnvelope("", dogmafixtures.MessageA3),
+				Envelope:      verityfixtures.NewEnvelope("", stubs.CommandA3),
 			}
 
 			message1 = persistence.QueueMessage{
 				FailureCount:  2,
 				NextAttemptAt: now.Add(-10 * time.Hour),
-				Envelope:      verityfixtures.NewEnvelope("", dogmafixtures.MessageA1),
+				Envelope:      verityfixtures.NewEnvelope("", stubs.CommandA1),
 			}
 
 			message2 = persistence.QueueMessage{
 				FailureCount:  3,
 				NextAttemptAt: now.Add(2 * time.Hour),
-				Envelope:      verityfixtures.NewEnvelope("", dogmafixtures.MessageA2),
+				Envelope:      verityfixtures.NewEnvelope("", stubs.CommandA2),
 			}
 		})
 

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	dogmafixtures "github.com/dogmatiq/dogma/fixtures"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
@@ -31,9 +31,9 @@ func declareQueueOperationTests(tc *TestContext) {
 			dataStore, tearDown = tc.SetupDataStore()
 			ginkgo.DeferCleanup(tearDown)
 
-			env0 = verityfixtures.NewEnvelope("<message-0>", dogmafixtures.MessageA1, now, now)
-			env1 = verityfixtures.NewEnvelope("<message-1>", dogmafixtures.MessageA2, now)
-			env2 = verityfixtures.NewEnvelope("<message-2>", dogmafixtures.MessageA3, now)
+			env0 = verityfixtures.NewEnvelope("<message-0>", stubs.CommandA1, now, now)
+			env1 = verityfixtures.NewEnvelope("<message-1>", stubs.CommandA2, now)
+			env2 = verityfixtures.NewEnvelope("<message-2>", stubs.CommandA3, now)
 
 			now = time.Now().Truncate(time.Millisecond) // we only expect NextAttemptAt to have millisecond precision
 		})

@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/internal/mlog"
@@ -20,13 +20,13 @@ var _ = Describe("func LogConsume()", func() {
 
 		LogConsume(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			0,
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    CommandStub[TypeC] ● command(stubs.TypeC:C1, valid)",
 			},
 		))
 	})
@@ -36,13 +36,13 @@ var _ = Describe("func LogConsume()", func() {
 
 		LogConsume(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			1,
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ↻  MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼ ↻  CommandStub[TypeC] ● command(stubs.TypeC:C1, valid)",
 			},
 		))
 	})
@@ -54,12 +54,12 @@ var _ = Describe("func LogProduce()", func() {
 
 		LogProduce(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▲    MessageA ● {A1}",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▲    CommandStub[TypeC] ● command(stubs.TypeC:C1, valid)",
 			},
 		))
 	})
@@ -71,14 +71,14 @@ var _ = Describe("func LogNack()", func() {
 
 		LogNack(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			errors.New("<error>"),
 			5*time.Second,
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  MessageA ● <error> ● next retry in 5s",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▽ ✖  CommandStub[TypeC] ● <error> ● next retry in 5s",
 			},
 		))
 	})
@@ -90,14 +90,14 @@ var _ = Describe("func LogFromScope()", func() {
 
 		LogFromScope(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			"format %s",
 			[]interface{}{"<value>"},
 		)
 
 		Expect(logger.Messages()).To(ContainElement(
 			logging.BufferedLogMessage{
-				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    MessageA ● format <value>",
+				Message: "= <id>  ∵ <cause>  ⋲ <correlation>  ▼    CommandStub[TypeC] ● format <value>",
 			},
 		))
 	})
@@ -118,7 +118,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 	It("logs in the correct format", func() {
 		LogHandlerResult(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
 				Key:  DefaultHandlerKey,
@@ -139,7 +139,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 	It("includes the optional message", func() {
 		LogHandlerResult(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
 				Key:  DefaultHandlerKey,
@@ -163,7 +163,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 
 		LogHandlerResult(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
 				Key:  DefaultHandlerKey,
@@ -186,7 +186,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 			func() {
 				defer LogHandlerResult(
 					logger,
-					NewEnvelope("<id>", MessageA1),
+					NewEnvelope("<id>", CommandC1),
 					&envelopespec.Identity{
 						Name: "<handler-name>",
 						Key:  DefaultHandlerKey,
@@ -208,7 +208,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 
 		LogHandlerResult(
 			logger,
-			NewEnvelope("<id>", MessageA1),
+			NewEnvelope("<id>", CommandC1),
 			&envelopespec.Identity{
 				Name: "<handler-name>",
 				Key:  DefaultHandlerKey,

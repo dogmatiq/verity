@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
-	. "github.com/dogmatiq/dogma/fixtures"
+	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
@@ -37,10 +37,10 @@ var _ = Describe("type server", func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
 		DeferCleanup(cancel)
 
-		parcel0 = NewParcel("<message-0>", MessageA1)
-		parcel1 = NewParcel("<message-1>", MessageB1)
-		parcel2 = NewParcel("<message-2>", MessageA2)
-		parcel3 = NewParcel("<message-3>", MessageB2)
+		parcel0 = NewParcel("<message-0>", EventA1)
+		parcel1 = NewParcel("<message-1>", EventB1)
+		parcel2 = NewParcel("<message-2>", EventA2)
+		parcel3 = NewParcel("<message-3>", EventB2)
 
 		types := message.TypesOf(
 			parcel0.Message,
@@ -96,12 +96,12 @@ var _ = Describe("type server", func() {
 				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
-						PortableName: "MessageA",
-						MediaTypes:   []string{"application/json; type=MessageA"},
+						PortableName: "EventStub[TypeA]",
+						MediaTypes:   []string{`application/json; type="EventStub[TypeA]"`},
 					},
 					{
-						PortableName: "MessageB",
-						MediaTypes:   []string{"application/json; type=MessageB"},
+						PortableName: "EventStub[TypeB]",
+						MediaTypes:   []string{`application/json; type="EventStub[TypeB]"`},
 					},
 				},
 			}
@@ -136,12 +136,12 @@ var _ = Describe("type server", func() {
 				},
 				EventTypes: []*eventstreamspec.EventType{
 					{
-						PortableName: "MessageA",
-						MediaTypes:   []string{"application/json; type=MessageA"},
+						PortableName: "EventStub[TypeA]",
+						MediaTypes:   []string{`application/json; type="EventStub[TypeA]"`},
 					},
 					{
-						PortableName: "MessageB",
-						MediaTypes:   []string{"application/json; type=MessageB"},
+						PortableName: "EventStub[TypeB]",
+						MediaTypes:   []string{`application/json; type="EventStub[TypeB]"`},
 					},
 				},
 			}
@@ -164,8 +164,8 @@ var _ = Describe("type server", func() {
 				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
-						PortableName: "MessageA",
-						MediaTypes:   []string{"application/json; type=MessageA"},
+						PortableName: "EventStub[TypeA]",
+						MediaTypes:   []string{`application/json; type="EventStub[TypeA]"`},
 					},
 				},
 			}
@@ -192,56 +192,13 @@ var _ = Describe("type server", func() {
 			))
 		})
 
-		It("transcodes events into a media-type supported by the client", func() {
-			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: DefaultAppKey,
-				EventTypes: []*eventstreamspec.EventType{
-					{
-						PortableName: "MessageA",
-						MediaTypes:   []string{"application/cbor; type=MessageA"},
-					},
-				},
-			}
-
-			stream, err := client.Consume(ctx, req)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			res, err := stream.Recv()
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(res.Envelope.MediaType).To(Equal("application/cbor; type=MessageA"))
-			Expect(res.Envelope.Data).To(Equal([]byte("\xa1eValuebA1")))
-		})
-
-		It("does not transcode events if the client supports the native media-type", func() {
-			req := &eventstreamspec.ConsumeRequest{
-				ApplicationKey: DefaultAppKey,
-				EventTypes: []*eventstreamspec.EventType{
-					{
-						PortableName: "MessageA",
-						MediaTypes: []string{
-							"application/cbor; type=MessageA", // note that CBOR is preferred by the client
-							"application/json; type=MessageA", // but JSON is native, so will still be used
-						},
-					},
-				},
-			}
-
-			stream, err := client.Consume(ctx, req)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			res, err := stream.Recv()
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(res.Envelope.MediaType).To(Equal("application/json; type=MessageA"))
-			Expect(string(res.Envelope.Data)).To(Equal(`{"Value":"A1"}`))
-		})
-
 		It("returns an error if the client and server have no media-types in common", func() {
 			req := &eventstreamspec.ConsumeRequest{
 				ApplicationKey: DefaultAppKey,
 				EventTypes: []*eventstreamspec.EventType{
 					{
-						PortableName: "MessageA",
-						MediaTypes:   []string{"application/unknown; type=MessageA"},
+						PortableName: "EventStub[TypeA]",
+						MediaTypes:   []string{`application/unknown; type="EventStub[TypeA]"`},
 					},
 				},
 			}
@@ -252,12 +209,12 @@ var _ = Describe("type server", func() {
 			_, err = stream.Recv()
 			s, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
-			Expect(s.Message()).To(Equal("none of the requested media-types for 'MessageA' events are supported"))
+			Expect(s.Message()).To(Equal("none of the requested media-types for 'EventStub[TypeA]' events are supported"))
 			Expect(s.Code()).To(Equal(codes.InvalidArgument))
 			Expect(s.Details()).To(ContainElement(
 				EqualX(
 					&eventstreamspec.NoRecognizedMediaTypes{
-						PortableName: "MessageA",
+						PortableName: "EventStub[TypeA]",
 					},
 				),
 			))
@@ -360,17 +317,15 @@ var _ = Describe("type server", func() {
 
 			Expect(res.GetEventTypes()).To(ConsistOf(
 				&eventstreamspec.EventType{
-					PortableName: "MessageA",
+					PortableName: "EventStub[TypeA]",
 					MediaTypes: []string{
-						"application/json; type=MessageA",
-						"application/cbor; type=MessageA",
+						`application/json; type="EventStub[TypeA]"`,
 					},
 				},
 				&eventstreamspec.EventType{
-					PortableName: "MessageB",
+					PortableName: "EventStub[TypeB]",
 					MediaTypes: []string{
-						"application/json; type=MessageB",
-						"application/cbor; type=MessageB",
+						`application/json; type="EventStub[TypeB]"`,
 					},
 				},
 			))
