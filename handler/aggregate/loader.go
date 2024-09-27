@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
 )
@@ -28,7 +28,7 @@ type Loader struct {
 
 	// Marshaler is used to marshal/unmarshal aggregate snapshots and historical
 	// events,
-	Marshaler marshalkit.ValueMarshaler
+	Marshaler marshaler.Marshaler
 }
 
 // Load loads the aggregate instance with the given ID.

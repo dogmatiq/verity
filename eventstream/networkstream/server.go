@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/marshalkit"
@@ -35,7 +36,7 @@ func WithApplication(
 // RegisterServer registers an event stream server for the given streams.
 func RegisterServer(
 	s *grpc.Server,
-	m marshalkit.Marshaler,
+	m marshaler.Marshaler,
 	options ...ServerOption,
 ) {
 	d := &dispatcher{
@@ -129,7 +130,7 @@ func (d *dispatcher) EventTypes(
 // a single application.
 type server struct {
 	stream    eventstream.Stream
-	marshaler marshalkit.Marshaler
+	marshaler marshaler.Marshaler
 	types     map[string]message.Type
 	resp      *eventstreamspec.EventTypesResponse
 }

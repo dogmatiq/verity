@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/persistence"
 )
 
@@ -21,7 +21,7 @@ type Loader struct {
 	Repository persistence.ProcessRepository
 
 	// Marshaler is used to marshal/unmarshal process instances.
-	Marshaler marshalkit.ValueMarshaler
+	Marshaler marshaler.Marshaler
 }
 
 // Load loads the aggregate instance with the given ID.

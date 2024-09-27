@@ -6,7 +6,6 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/parcel"

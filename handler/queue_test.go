@@ -7,7 +7,6 @@ import (
 
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/linger/backoff"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/parcel"

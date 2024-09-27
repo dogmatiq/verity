@@ -8,8 +8,8 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/handler/cache"
 	"github.com/dogmatiq/verity/internal/mlog"
@@ -31,7 +31,7 @@ type Adaptor struct {
 	Loader *Loader
 
 	// Marshaler is used to marshal process instances.
-	Marshaler marshalkit.ValueMarshaler
+	Marshaler marshaler.Marshaler
 
 	// Cache is an in-memory cache of process instances.
 	Cache cache.Cache

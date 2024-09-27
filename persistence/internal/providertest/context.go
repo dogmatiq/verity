@@ -45,12 +45,12 @@ type TestContext struct {
 
 // SetupDataStore sets up a new data-store.
 func (tc *TestContext) SetupDataStore() (persistence.DataStore, func()) {
-	p, close := tc.Out.NewProvider()
+	p, closeProvider := tc.Out.NewProvider()
 
 	ds, err := p.Open(tc.Context, fixtures.DefaultAppKey)
 	if err != nil {
-		if close != nil {
-			close()
+		if closeProvider != nil {
+			closeProvider()
 		}
 
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -59,8 +59,8 @@ func (tc *TestContext) SetupDataStore() (persistence.DataStore, func()) {
 	return ds, func() {
 		ds.Close()
 
-		if close != nil {
-			close()
+		if closeProvider != nil {
+			closeProvider()
 		}
 	}
 }

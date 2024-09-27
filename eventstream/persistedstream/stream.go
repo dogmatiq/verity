@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/persistence"
@@ -23,7 +24,7 @@ type Stream struct {
 	Repository persistence.EventRepository
 
 	// Marshaler is used to unmarshal messages.
-	Marshaler marshalkit.Marshaler
+	Marshaler marshaler.Marshaler
 
 	// Cache is an in-memory stream that contains recently recorded events.
 	//

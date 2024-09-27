@@ -7,9 +7,7 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/marshalkit/codec"
-	. "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/enginekit/marshaler"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler/process"
 	"github.com/dogmatiq/verity/persistence"
@@ -105,7 +103,7 @@ var _ = Describe("type Loader", func() {
 			})
 
 			When("the packet is not empty", func() {
-				var packet marshalkit.Packet
+				var packet marshaler.Packet
 
 				BeforeEach(func() {
 					base.Value = "<value>"
@@ -146,8 +144,12 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("returns an error if the state can not be unmarshaled", func() {
-					loader.Marshaler = &codec.Marshaler{} // an empty marshaler cannot unmarshal anything
-					_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
+					m, err := marshaler.New(nil, nil) // an empty marshaler cannot unmarshal anything
+					Expect(err).ShouldNot(HaveOccurred())
+
+					loader.Marshaler = m
+
+					_, err = loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 					Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
 				})
 			})

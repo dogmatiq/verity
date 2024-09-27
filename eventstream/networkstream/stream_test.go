@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
 	. "github.com/dogmatiq/verity/eventstream/networkstream"

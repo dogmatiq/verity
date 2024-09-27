@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/marshalkit/fixtures"
@@ -115,7 +116,7 @@ func NewPacker(roles message.TypeRoles) *parcel.Packer {
 			Name: "<app-name>",
 			Key:  DefaultAppKey,
 		},
-		Marshaler: fixtures.Marshaler,
+		Marshaler: stubs.Marshaler,
 		Produced:  roles,
 		Consumed:  roles,
 		GenerateID: func() string {

@@ -3,7 +3,7 @@ package providertest
 import (
 	"context"
 
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo/v2"
@@ -37,7 +37,7 @@ func declareProcessRepositoryTests(tc *TestContext) {
 				expect := persistence.ProcessInstance{
 					HandlerKey: fixtures.DefaultHandlerKey,
 					InstanceID: "<instance>",
-					Packet: marshalkit.Packet{
+					Packet: marshaler.Packet{
 						MediaType: "<media-type>",
 						Data:      []byte("<data>"),
 					},
@@ -63,7 +63,7 @@ func declareProcessRepositoryTests(tc *TestContext) {
 				expect := persistence.ProcessInstance{
 					HandlerKey: fixtures.DefaultHandlerKey,
 					InstanceID: "<instance>",
-					Packet: marshalkit.Packet{
+					Packet: marshaler.Packet{
 						MediaType: "<media-type>",
 						Data:      []byte("<data>"),
 					},

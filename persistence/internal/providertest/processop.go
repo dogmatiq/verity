@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/enginekit/marshaler"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -166,7 +166,7 @@ func declareProcessOperationTests(tc *TestContext) {
 							Instance: persistence.ProcessInstance{
 								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
-								Packet: marshalkit.Packet{
+								Packet: marshaler.Packet{
 									MediaType: "<media-type>",
 									Data:      []byte("<data>"),
 								},
@@ -402,7 +402,7 @@ func declareProcessOperationTests(tc *TestContext) {
 			}()
 
 			// update
-			i1.Packet = marshalkit.Packet{
+			i1.Packet = marshaler.Packet{
 				MediaType: "<media-type>",
 				Data:      []byte("<data>"),
 			}
@@ -453,7 +453,7 @@ func declareProcessOperationTests(tc *TestContext) {
 					HandlerKey: "<handler-key-1>",
 					InstanceID: "<instance-b>",
 					Revision:   2,
-					Packet: marshalkit.Packet{
+					Packet: marshaler.Packet{
 						MediaType: "<media-type>",
 						Data:      []byte("<data>"),
 					},

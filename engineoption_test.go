@@ -7,8 +7,8 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/linger/backoff"
-	"github.com/dogmatiq/marshalkit/codec"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence/memorypersistence"
 	. "github.com/onsi/ginkgo/v2"
@@ -206,7 +206,8 @@ var _ = Describe("func WithProjectionCompactTimeout()", func() {
 
 var _ = Describe("func WithMarshaler()", func() {
 	It("sets the marshaler", func() {
-		m := &codec.Marshaler{}
+		m, err := marshaler.New(nil, nil)
+		Expect(err).ShouldNot(HaveOccurred())
 
 		opts := resolveEngineOptions(
 			WithApplication(TestApplication),

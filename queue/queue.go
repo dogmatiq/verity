@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/kyu"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
 )
@@ -27,7 +27,7 @@ type Queue struct {
 	Repository persistence.QueueRepository
 
 	// Marshaler is used to unmarshal the messages loaded via the repository.
-	Marshaler marshalkit.ValueMarshaler
+	Marshaler marshaler.Marshaler
 
 	// BufferSize is the maximum number of messages to buffer in memory.
 	// If it is non-positive, DefaultBufferSize is used.

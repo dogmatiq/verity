@@ -11,10 +11,10 @@ func declareProviderTests(tc *TestContext) {
 		var provider persistence.Provider
 
 		ginkgo.BeforeEach(func() {
-			var close func()
-			provider, close = tc.Out.NewProvider()
-			if close != nil {
-				ginkgo.DeferCleanup(close)
+			var closeProvider func()
+			provider, closeProvider = tc.Out.NewProvider()
+			if closeProvider != nil {
+				ginkgo.DeferCleanup(closeProvider)
 			}
 		})
 

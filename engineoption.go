@@ -9,13 +9,12 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/marshaler"
+	"github.com/dogmatiq/enginekit/marshaler/codecs/json"
+	"github.com/dogmatiq/enginekit/marshaler/codecs/protobuf"
+	"github.com/dogmatiq/enginekit/marshaler/codecs/stateless"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
-	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/marshalkit/codec"
-	"github.com/dogmatiq/marshalkit/codec/json"
-	"github.com/dogmatiq/marshalkit/codec/protobuf"
-	"github.com/dogmatiq/marshalkit/codec/stateless"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/dogmatiq/verity/persistence/boltpersistence"
 	"go.uber.org/zap"
@@ -191,7 +190,7 @@ func WithProjectionCompactTimeout(d time.Duration) EngineOption {
 // applications.
 //
 // It is used if the WithMarshaler() option is omitted.
-func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshaler {
+func NewDefaultMarshaler(configs []configkit.RichApplication) marshaler.Marshaler {
 	var types []reflect.Type
 	for _, cfg := range configs {
 		for t := range cfg.MessageTypes().All() {
@@ -207,9 +206,9 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 		)
 	}
 
-	m, err := codec.NewMarshaler(
+	m, err := marshaler.New(
 		types,
-		[]codec.Codec{
+		[]marshaler.Codec{
 			stateless.DefaultCodec,
 			protobuf.DefaultNativeCodec,
 			json.DefaultCodec,
@@ -227,7 +226,7 @@ func NewDefaultMarshaler(configs []configkit.RichApplication) marshalkit.Marshal
 //
 // If this option is omitted or m is nil, NewDefaultMarshaler() is called to
 // obtain the default marshaler.
-func WithMarshaler(m marshalkit.Marshaler) EngineOption {
+func WithMarshaler(m marshaler.Marshaler) EngineOption {
 	return func(opts *engineOptions) {
 		opts.Marshaler = m
 	}
@@ -264,7 +263,7 @@ type engineOptions struct {
 	MessageTimeout            time.Duration
 	MessageBackoff            backoff.Strategy
 	ConcurrencyLimit          uint
-	Marshaler                 marshalkit.Marshaler
+	Marshaler                 marshaler.Marshaler
 	ProjectionCompactInterval time.Duration
 	ProjectionCompactTimeout  time.Duration
 	Logger                    logging.Logger

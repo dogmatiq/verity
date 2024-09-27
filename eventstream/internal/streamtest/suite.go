@@ -10,9 +10,8 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/linger"
-	"github.com/dogmatiq/marshalkit"
-	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/eventstream"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/parcel"
@@ -32,7 +31,7 @@ type In struct {
 	EventTypes message.TypeCollection
 
 	// Marshaler marshals and unmarshals the test message types.
-	Marshaler marshalkit.Marshaler
+	Marshaler marshaler.Marshaler
 }
 
 // Out is a container for values that are provided by the stream-specific
@@ -135,7 +134,7 @@ func Declare(
 			in = In{
 				cfg,
 				cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
-				marshalkitfixtures.Marshaler,
+				stubs.Marshaler,
 			}
 
 			out = before(setupCtx, in)

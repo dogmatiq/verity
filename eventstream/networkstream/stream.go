@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
@@ -20,7 +21,7 @@ type Stream struct {
 	Client eventstreamspec.StreamAPIClient
 
 	// Marshaler is used to marshal and unmarshal messages and message types.
-	Marshaler marshalkit.Marshaler
+	Marshaler marshaler.Marshaler
 
 	// PreFetch specifies how many messages to pre-load into memory.
 	PreFetch int

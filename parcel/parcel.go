@@ -1,9 +1,12 @@
 package parcel
 
 import (
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 )
@@ -32,16 +35,27 @@ func (p Parcel) ID() string {
 
 // FromEnvelope constructs a parcel from an envelope.
 func FromEnvelope(
-	ma marshalkit.ValueMarshaler,
+	ma marshaler.Marshaler,
 	env *envelopespec.Envelope,
 ) (Parcel, error) {
 	if err := env.Validate(); err != nil {
 		return Parcel{}, err
 	}
 
-	m, err := marshalkit.UnmarshalMessageFromEnvelope(ma, env)
+	v, err := ma.Unmarshal(marshaler.Packet{
+		MediaType: env.MediaType,
+		Data:      env.Data,
+	})
 	if err != nil {
 		return Parcel{}, err
+	}
+
+	m, ok := v.(dogma.Message)
+	if !ok {
+		return Parcel{}, fmt.Errorf(
+			"'%s' is not a message",
+			reflect.TypeOf(v),
+		)
 	}
 
 	createdAt, err := marshalkit.UnmarshalEnvelopeTime(env.GetCreatedAt())

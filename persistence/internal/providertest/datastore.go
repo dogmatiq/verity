@@ -15,10 +15,10 @@ func declareDataStoreTests(tc *TestContext) {
 		)
 
 		ginkgo.BeforeEach(func() {
-			var close func()
-			provider, close = tc.Out.NewProvider()
-			if close != nil {
-				ginkgo.DeferCleanup(close)
+			var closeProvider func()
+			provider, closeProvider = tc.Out.NewProvider()
+			if closeProvider != nil {
+				ginkgo.DeferCleanup(closeProvider)
 			}
 
 			var err error

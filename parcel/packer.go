@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/marshalkit"
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ type Packer struct {
 	Application *envelopespec.Identity
 
 	// Marshaler is used to marshal messages into envelopes.
-	Marshaler marshalkit.ValueMarshaler
+	Marshaler marshaler.Marshaler
 
 	// Produced is a map of message type to role, used to validate the messages
 	// that are being packed.
@@ -121,7 +122,7 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 	id := p.generateID()
 	now := p.now()
 
-	env := Parcel{
+	pcl := Parcel{
 		Envelope: &envelopespec.Envelope{
 			MessageId:         id,
 			CorrelationId:     id,
@@ -134,9 +135,16 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 		CreatedAt: now,
 	}
 
-	marshalkit.MustMarshalMessageIntoEnvelope(p.Marshaler, m, env.Envelope)
+	pkt, err := p.Marshaler.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
 
-	return env
+	pcl.Envelope.PortableName = pkt.PortableName()
+	pcl.Envelope.MediaType = pkt.MediaType
+	pcl.Envelope.Data = pkt.Data
+
+	return pcl
 }
 
 // newChild returns an envelope containing the given message, which was a

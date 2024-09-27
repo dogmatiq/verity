@@ -9,10 +9,8 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/marshalkit/codec"
-	. "github.com/dogmatiq/marshalkit/fixtures"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/handler"
 	. "github.com/dogmatiq/verity/handler/process"
@@ -254,7 +252,7 @@ var _ = Describe("type Adaptor", func() {
 						Instance: persistence.ProcessInstance{
 							HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 							InstanceID: "<instance>",
-							Packet: marshalkit.Packet{
+							Packet: marshaler.Packet{
 								MediaType: "application/json; type=ProcessRootStub",
 								Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 							},
@@ -265,9 +263,12 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("returns an error if the process instance can not be marshaled", func() {
-			adaptor.Marshaler = &codec.Marshaler{} // an empty marshaler cannot marshal anything
+			m, err := marshaler.New(nil, nil) // an empty marshaler cannot marshal anything
+			Expect(err).ShouldNot(HaveOccurred())
 
-			err := adaptor.HandleMessage(ctx, work, cause)
+			adaptor.Marshaler = m
+
+			err = adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).To(MatchError("no codecs support the '*stubs.ProcessRootStub' type"))
 		})
 
@@ -352,7 +353,7 @@ var _ = Describe("type Adaptor", func() {
 							Instance: persistence.ProcessInstance{
 								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
-								Packet: marshalkit.Packet{
+								Packet: marshaler.Packet{
 									MediaType: "application/json; type=ProcessRootStub",
 									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 								},
@@ -448,7 +449,7 @@ var _ = Describe("type Adaptor", func() {
 							Instance: persistence.ProcessInstance{
 								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
-								Packet: marshalkit.Packet{
+								Packet: marshaler.Packet{
 									MediaType: "application/json; type=ProcessRootStub",
 									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 								},
@@ -611,7 +612,7 @@ var _ = Describe("type Adaptor", func() {
 									HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 									InstanceID: "<instance>",
 									Revision:   1,
-									Packet: marshalkit.Packet{
+									Packet: marshaler.Packet{
 										MediaType: "application/json; type=ProcessRootStub",
 										Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
 									},

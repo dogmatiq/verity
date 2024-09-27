@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
@@ -15,7 +15,7 @@ import (
 type cursor struct {
 	repository       persistence.EventRepository
 	repositoryFilter map[string]struct{}
-	marshaler        marshalkit.ValueMarshaler
+	marshaler        marshaler.Marshaler
 	cache            eventstream.Stream
 	cacheFilter      message.TypeCollection
 	offset           uint64
