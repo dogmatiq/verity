@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/dogmatiq/marshalkit"
 )
 
 // A Parcel is a container for an envelope and the original information that was
@@ -58,20 +57,22 @@ func FromEnvelope(
 		)
 	}
 
-	createdAt, err := marshalkit.UnmarshalEnvelopeTime(env.GetCreatedAt())
+	p := Parcel{
+		Envelope: env,
+		Message:  m,
+	}
+
+	p.CreatedAt, err = time.Parse(time.RFC3339Nano, env.GetCreatedAt())
 	if err != nil {
 		return Parcel{}, err
 	}
 
-	scheduledFor, err := marshalkit.UnmarshalEnvelopeTime(env.GetScheduledFor())
-	if err != nil {
-		return Parcel{}, err
+	if t := env.GetScheduledFor(); t != "" {
+		p.ScheduledFor, err = time.Parse(time.RFC3339Nano, t)
+		if err != nil {
+			return Parcel{}, err
+		}
 	}
 
-	return Parcel{
-		Envelope:     env,
-		Message:      m,
-		CreatedAt:    createdAt,
-		ScheduledFor: scheduledFor,
-	}, nil
+	return p, nil
 }

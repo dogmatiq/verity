@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/dogmatiq/marshalkit"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
@@ -30,7 +29,7 @@ var _ = Describe("type Packer", func() {
 		seq = 0
 
 		now = time.Now()
-		nowString = marshalkit.MustMarshalEnvelopeTime(now)
+		nowString = now.Format(time.RFC3339Nano)
 
 		app = &envelopespec.Identity{
 			Name: "<app-name>",
@@ -169,7 +168,7 @@ var _ = Describe("type Packer", func() {
 
 		p := packer.PackCommand(CommandC1)
 
-		createdAt, err := marshalkit.UnmarshalEnvelopeTime(p.Envelope.GetCreatedAt())
+		createdAt, err := time.Parse(time.RFC3339Nano, p.Envelope.GetCreatedAt())
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(createdAt).To(BeTemporally("~", time.Now()))
 	})
@@ -403,7 +402,7 @@ var _ = Describe("type Packer", func() {
 								SourceHandler:     handler,
 								SourceInstanceId:  "<instance>",
 								CreatedAt:         nowString,
-								ScheduledFor:      marshalkit.MustMarshalEnvelopeTime(scheduledFor),
+								ScheduledFor:      scheduledFor.Format(time.RFC3339Nano),
 								Description:       "timeout(stubs.TypeT:T1, valid)",
 								PortableName:      "TimeoutStub[TypeT]",
 								MediaType:         `application/json; type="TimeoutStub[TypeT]"`,

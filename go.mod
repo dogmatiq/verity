@@ -15,7 +15,6 @@ require (
 	github.com/dogmatiq/interopspec v0.5.4
 	github.com/dogmatiq/kyu v0.2.0
 	github.com/dogmatiq/linger v1.1.0
-	github.com/dogmatiq/marshalkit v0.9.0
 	github.com/dogmatiq/sqltest v0.3.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0

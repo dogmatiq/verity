@@ -2,12 +2,9 @@ package providertest
 
 import (
 	"context"
-	"reflect"
 	"sync"
 
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/marshalkit"
-	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
@@ -175,8 +172,8 @@ func declareEventRepositoryTests(tc *TestContext) {
 						tc.Context,
 						dataStore,
 						map[string]struct{}{
-							marshalkit.MustMarshalType(marshalkitfixtures.Marshaler, reflect.TypeOf(stubs.EventA1)): {},
-							marshalkit.MustMarshalType(marshalkitfixtures.Marshaler, reflect.TypeOf(stubs.EventC1)): {},
+							`EventStub[TypeA]`: {},
+							`EventStub[TypeC]`: {},
 						},
 						0,
 					)
@@ -231,7 +228,7 @@ func declareEventRepositoryTests(tc *TestContext) {
 							tc.Context,
 							dataStore,
 							map[string]struct{}{
-								marshalkit.MustMarshalType(marshalkitfixtures.Marshaler, reflect.TypeOf(stubs.EventA1)): {},
+								`EventStub[TypeA]`: {},
 							},
 							0,
 						)

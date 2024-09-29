@@ -6,7 +6,6 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/enginekit/marshaler"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/persistence"
 )
@@ -71,10 +70,10 @@ func (s *Stream) Open(
 
 	rf := map[string]struct{}{}
 	f.Range(func(mt message.Type) bool {
-		n := marshalkit.MustMarshalType(
-			s.Marshaler,
-			mt.ReflectType(),
-		)
+		n, err := s.Marshaler.MarshalType(mt.ReflectType())
+		if err != nil {
+			panic(err)
+		}
 
 		rf[n] = struct{}{}
 
