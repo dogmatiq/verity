@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.2.4] - 2024-09-30
+
+### Changed
+
+- Bumped Dogma to v0.14.3
+- Replaced usage of the deprecated `marshalkit` module with `enginekit/marshaler`.
+
 ## [0.2.3] - 2024-08-17
 
 ### Changed
@@ -120,6 +127,7 @@ optimistic concurrency error.
 [0.2.1]: https://github.com/dogmatiq/verity/releases/tag/v0.2.1
 [0.2.2]: https://github.com/dogmatiq/verity/releases/tag/v0.2.2
 [0.2.3]: https://github.com/dogmatiq/verity/releases/tag/v0.2.3
+[0.2.4]: https://github.com/dogmatiq/verity/releases/tag/v0.2.4
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
