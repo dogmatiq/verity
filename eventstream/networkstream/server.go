@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/internal/x/grpcx"
 	"github.com/dogmatiq/verity/parcel"
@@ -55,7 +54,11 @@ func RegisterServer(
 
 		opt.types.Range(func(mt message.Type) bool {
 			rt := mt.ReflectType()
-			n := marshalkit.MustMarshalType(m, rt)
+
+			n, err := m.MarshalType(rt)
+			if err != nil {
+				panic(err)
+			}
 
 			svr.types[n] = mt
 			svr.resp.EventTypes = append(

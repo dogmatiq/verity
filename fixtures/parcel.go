@@ -9,8 +9,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/dogmatiq/marshalkit"
-	"github.com/dogmatiq/marshalkit/fixtures"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
 )
@@ -69,30 +67,41 @@ func NewParcel(
 	cleanseTime(&createdAt)
 	cleanseTime(&scheduledFor)
 
-	p := parcel.Parcel{
-		Envelope: &envelopespec.Envelope{
-			MessageId:     id,
-			CausationId:   "<cause>",
-			CorrelationId: "<correlation>",
-			SourceApplication: &envelopespec.Identity{
-				Name: "<app-name>",
-				Key:  DefaultAppKey,
-			},
-			SourceHandler: &envelopespec.Identity{
-				Name: "<handler-name>",
-				Key:  DefaultHandlerKey,
-			},
-			SourceInstanceId: "<instance>",
-			CreatedAt:        marshalkit.MustMarshalEnvelopeTime(createdAt),
-			ScheduledFor:     marshalkit.MustMarshalEnvelopeTime(scheduledFor),
-			Description:      m.MessageDescription(),
+	packet, err := stubs.Marshaler.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+
+	env := &envelopespec.Envelope{
+		MessageId:     id,
+		CausationId:   "<cause>",
+		CorrelationId: "<correlation>",
+		SourceApplication: &envelopespec.Identity{
+			Name: "<app-name>",
+			Key:  DefaultAppKey,
 		},
+		SourceHandler: &envelopespec.Identity{
+			Name: "<handler-name>",
+			Key:  DefaultHandlerKey,
+		},
+		SourceInstanceId: "<instance>",
+		CreatedAt:        createdAt.Format(time.RFC3339Nano),
+		Description:      m.MessageDescription(),
+		PortableName:     packet.PortableName(),
+		MediaType:        packet.MediaType,
+		Data:             packet.Data,
+	}
+
+	if !scheduledFor.IsZero() {
+		env.ScheduledFor = scheduledFor.Format(time.RFC3339Nano)
+	}
+
+	p := parcel.Parcel{
+		Envelope:     env,
 		Message:      m,
 		CreatedAt:    createdAt,
 		ScheduledFor: scheduledFor,
 	}
-
-	marshalkit.MustMarshalMessageIntoEnvelope(fixtures.Marshaler, m, p.Envelope)
 
 	return p
 }

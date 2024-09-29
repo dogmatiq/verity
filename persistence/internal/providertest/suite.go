@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	marshalkitfixtures "github.com/dogmatiq/marshalkit/fixtures"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/onsi/ginkgo/v2"
 )
 
@@ -22,7 +22,7 @@ func Declare(
 			defer cancelSetup()
 
 			tc.In = In{
-				Marshaler: marshalkitfixtures.Marshaler,
+				Marshaler: stubs.Marshaler,
 			}
 
 			tc.Out = before(setupCtx, tc.In)

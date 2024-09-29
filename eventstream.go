@@ -6,7 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/handler/projection"
 	"github.com/dogmatiq/verity/internal/x/loggingx"
@@ -121,10 +121,13 @@ func (e *Engine) runStreamConsumerForProjection(
 		Stream:     s,
 		EventTypes: h.MessageTypes().Consumed,
 		Handler: &projection.StreamAdaptor{
-			Identity: marshalkit.MustMarshalEnvelopeIdentity(h.Identity()),
-			Handler:  h.Handler(),
-			Timeout:  e.opts.MessageTimeout,
-			Logger:   a.Logger,
+			Identity: &envelopespec.Identity{
+				Name: h.Identity().Name,
+				Key:  h.Identity().Key,
+			},
+			Handler: h.Handler(),
+			Timeout: e.opts.MessageTimeout,
+			Logger:  a.Logger,
 		},
 		Semaphore:       e.semaphore,
 		BackoffStrategy: e.opts.MessageBackoff,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/marshalkit"
+	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/onsi/gomega"
@@ -15,7 +15,7 @@ import (
 type In struct {
 	// Marshaler marshals and unmarshals the test message types, aggregate roots
 	// and process roots.
-	Marshaler marshalkit.Marshaler
+	Marshaler marshaler.Marshaler
 }
 
 // Out is a container for values that are provided by the provider-specific

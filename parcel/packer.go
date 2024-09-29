@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/google/uuid"
 )
 
@@ -105,7 +104,7 @@ func (p *Packer) PackChildTimeout(
 		instanceID,
 	)
 
-	parcel.Envelope.ScheduledFor = marshalkit.MustMarshalEnvelopeTime(t)
+	parcel.Envelope.ScheduledFor = t.Format(time.RFC3339Nano)
 	parcel.ScheduledFor = t
 
 	return parcel
@@ -122,27 +121,26 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 	id := p.generateID()
 	now := p.now()
 
+	packet, err := p.Marshaler.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+
 	pcl := Parcel{
 		Envelope: &envelopespec.Envelope{
 			MessageId:         id,
 			CorrelationId:     id,
 			CausationId:       id,
 			SourceApplication: p.Application,
-			CreatedAt:         marshalkit.MustMarshalEnvelopeTime(now),
+			CreatedAt:         now.Format(time.RFC3339Nano),
 			Description:       m.MessageDescription(),
+			PortableName:      packet.PortableName(),
+			MediaType:         packet.MediaType,
+			Data:              packet.Data,
 		},
 		Message:   m,
 		CreatedAt: now,
 	}
-
-	pkt, err := p.Marshaler.Marshal(m)
-	if err != nil {
-		panic(err)
-	}
-
-	pcl.Envelope.PortableName = pkt.PortableName()
-	pcl.Envelope.MediaType = pkt.MediaType
-	pcl.Envelope.Data = pkt.Data
 
 	return pcl
 }

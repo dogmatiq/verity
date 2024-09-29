@@ -7,7 +7,6 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
-	"github.com/dogmatiq/marshalkit"
 	"github.com/dogmatiq/verity/eventstream"
 )
 
@@ -148,10 +147,15 @@ func (s *Stream) buildConsumeRequest(
 	f.Range(func(mt message.Type) bool {
 		rt := mt.ReflectType()
 
+		n, err := s.Marshaler.MarshalType(rt)
+		if err != nil {
+			panic(err)
+		}
+
 		req.EventTypes = append(
 			req.EventTypes,
 			&eventstreamspec.EventType{
-				PortableName: marshalkit.MustMarshalType(s.Marshaler, rt),
+				PortableName: n,
 				MediaTypes:   s.Marshaler.MediaTypesFor(rt),
 			},
 		)
