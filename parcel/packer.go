@@ -2,11 +2,13 @@ package parcel
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/google/uuid"
@@ -126,6 +128,11 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 		panic(err)
 	}
 
+	portableName, err := stubs.Marshaler.MarshalType(reflect.TypeOf(m))
+	if err != nil {
+		panic(err)
+	}
+
 	pcl := Parcel{
 		Envelope: &envelopespec.Envelope{
 			MessageId:         id,
@@ -134,7 +141,7 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 			SourceApplication: p.Application,
 			CreatedAt:         now.Format(time.RFC3339Nano),
 			Description:       m.MessageDescription(),
-			PortableName:      packet.PortableName(),
+			PortableName:      portableName,
 			MediaType:         packet.MediaType,
 			Data:              packet.Data,
 		},
