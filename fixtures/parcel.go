@@ -1,6 +1,7 @@
 package fixtures
 
 import (
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -72,6 +73,11 @@ func NewParcel(
 		panic(err)
 	}
 
+	portableName, err := stubs.Marshaler.MarshalType(reflect.TypeOf(m))
+	if err != nil {
+		panic(err)
+	}
+
 	env := &envelopespec.Envelope{
 		MessageId:     id,
 		CausationId:   "<cause>",
@@ -87,7 +93,7 @@ func NewParcel(
 		SourceInstanceId: "<instance>",
 		CreatedAt:        createdAt.Format(time.RFC3339Nano),
 		Description:      m.MessageDescription(),
-		PortableName:     packet.PortableName(),
+		PortableName:     portableName,
 		MediaType:        packet.MediaType,
 		Data:             packet.Data,
 	}
