@@ -119,7 +119,7 @@ func NewParcel(
 // MessageID is a monotonically increasing integer, starting at 0. CreatedAt
 // starts at 2000-01-01 00:00:00 UTC and increases by 1 second for each message.
 //
-// The given roles are valid both as produced and consumed roles.
+// The given types are valid both as produced and consumed messages.
 func NewPacker(types ...message.Type) *parcel.Packer {
 	var (
 		m   sync.Mutex
