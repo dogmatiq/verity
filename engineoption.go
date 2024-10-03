@@ -193,7 +193,7 @@ func WithProjectionCompactTimeout(d time.Duration) EngineOption {
 func NewDefaultMarshaler(configs []configkit.RichApplication) marshaler.Marshaler {
 	var types []reflect.Type
 	for _, cfg := range configs {
-		for t := range cfg.MessageTypes().All() {
+		for t := range cfg.MessageTypes() {
 			types = append(types, t.ReflectType())
 		}
 

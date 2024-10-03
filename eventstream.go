@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/handler/projection"
@@ -65,18 +66,18 @@ func (e *Engine) runStreamConsumerForQueue(
 	s eventstream.Stream,
 	a *app,
 ) error {
-	events := message.TypeSet{}
+	var events *sets.Set[message.Type]
 
 	// Find all events that are consumed by processes. Events consumed by
 	// projections are not included as each projection handler has its own
 	// consumer.
 	for _, h := range a.Config.RichHandlers().Processes() {
-		h.MessageTypes().Consumed.RangeByRole(
-			message.EventRole,
-			func(t message.Type) bool {
-				events.Add(t)
-				return true
-			},
+		events = events.Union(
+			sets.NewFromKeys(
+				h.
+					MessageTypes().
+					Consumed(message.EventKind),
+			),
 		)
 	}
 
@@ -118,8 +119,12 @@ func (e *Engine) runStreamConsumerForProjection(
 	h configkit.RichProjection,
 ) error {
 	c := &eventstream.Consumer{
-		Stream:     s,
-		EventTypes: h.MessageTypes().Consumed,
+		Stream: s,
+		EventTypes: sets.NewFromKeys(
+			h.
+				MessageTypes().
+				Consumed(),
+		),
 		Handler: &projection.StreamAdaptor{
 			Identity: &envelopespec.Identity{
 				Name: h.Identity().Name,

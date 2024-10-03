@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -44,16 +45,16 @@ var _ = Describe("type Packer", func() {
 		packer = &Packer{
 			Application: app,
 			Marshaler:   Marshaler,
-			Produced: message.TypeRoles{
-				message.TypeFor[CommandStub[TypeC]](): message.CommandRole,
-				message.TypeFor[EventStub[TypeE]]():   message.EventRole,
-				message.TypeFor[TimeoutStub[TypeT]](): message.TimeoutRole,
-			},
-			Consumed: message.TypeRoles{
-				message.TypeFor[CommandStub[TypeD]](): message.CommandRole,
-				message.TypeFor[EventStub[TypeF]]():   message.EventRole,
-				message.TypeFor[TimeoutStub[TypeU]](): message.TimeoutRole,
-			},
+			Produced: sets.New(
+				message.TypeFor[CommandStub[TypeC]](),
+				message.TypeFor[EventStub[TypeE]](),
+				message.TypeFor[TimeoutStub[TypeT]](),
+			),
+			Consumed: sets.New(
+				message.TypeFor[CommandStub[TypeD]](),
+				message.TypeFor[EventStub[TypeF]](),
+				message.TypeFor[TimeoutStub[TypeU]](),
+			),
 			GenerateID: func() string {
 				seq++
 				return fmt.Sprintf("%08d", seq)
@@ -87,17 +88,11 @@ var _ = Describe("type Packer", func() {
 			))
 		})
 
-		DescribeTable(
-			"it panics if the message type is incorrect",
-			func(m dogma.Message, x string) {
-				Expect(func() {
-					packer.PackCommand(m)
-				}).To(PanicWith(x))
-			},
-			Entry("when the message is unrecognized", CommandX1, "stubs.CommandStub[TypeX] is not a recognised message type"),
-			Entry("when the message is an event", EventE1, "stubs.EventStub[TypeE] is an event, expected a command"),
-			Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected a command"),
-		)
+		It("panics if the message is not recognized", func() {
+			Expect(func() {
+				packer.PackCommand(CommandX1)
+			}).To(PanicWith("stubs.CommandStub[TypeX] is not a recognized message type"))
+		})
 
 		It("panics if the message is invalid", func() {
 			Expect(func() {
@@ -132,17 +127,11 @@ var _ = Describe("type Packer", func() {
 			))
 		})
 
-		DescribeTable(
-			"it panics if the message type is incorrect",
-			func(m dogma.Message, x string) {
-				Expect(func() {
-					packer.PackEvent(m)
-				}).To(PanicWith(x))
-			},
-			Entry("when the message is unrecognized", EventX1, "stubs.EventStub[TypeX] is not a recognised message type"),
-			Entry("when the message is a command", CommandC1, "stubs.CommandStub[TypeC] is a command, expected an event"),
-			Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected an event"),
-		)
+		It("panics if the message is not recognized", func() {
+			Expect(func() {
+				packer.PackEvent(EventX1)
+			}).To(PanicWith("stubs.EventStub[TypeX] is not a recognized message type"))
+		})
 
 		It("panics if the message is invalid", func() {
 			Expect(func() {
@@ -226,44 +215,33 @@ var _ = Describe("type Packer", func() {
 				Entry("when the cause is a timeout", TimeoutU1),
 			)
 
-			DescribeTable(
-				"it panics if the cause's message type is incorrect",
-				func(cause dogma.Message, x string) {
-					Expect(func() {
-						packer.PackChildCommand(
-							Parcel{
-								Envelope: parent,
-								Message:  cause,
-							},
-							CommandC1,
-							handler,
-							"<instance>",
-						)
-					}).To(PanicWith(x))
-				},
-				Entry("when the cause is unrecognized", EventX1, "stubs.EventStub[TypeX] is not consumed by this handler"),
-				Entry("when the cause is a command", CommandD1, "stubs.CommandStub[TypeD] is a command, expected an event or timeout"),
-			)
+			It("panics if the causal message is not recognized", func() {
+				Expect(func() {
+					packer.PackChildCommand(
+						Parcel{
+							Envelope: parent,
+							Message:  EventX1,
+						},
+						CommandC1,
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("stubs.EventStub[TypeX] is not consumed by this handler"))
+			})
 
-			DescribeTable(
-				"it panics if the message type is incorrect",
-				func(m dogma.Message, x string) {
-					Expect(func() {
-						packer.PackChildCommand(
-							Parcel{
-								Envelope: parent,
-								Message:  EventF1,
-							},
-							m,
-							handler,
-							"<instance>",
-						)
-					}).To(PanicWith(x))
-				},
-				Entry("when the message is unrecognized", CommandX1, "stubs.CommandStub[TypeX] is not a recognised message type"),
-				Entry("when the message is an event", EventE1, "stubs.EventStub[TypeE] is an event, expected a command"),
-				Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected a command"),
-			)
+			It("panics if the message is not recognized", func() {
+				Expect(func() {
+					packer.PackChildCommand(
+						Parcel{
+							Envelope: parent,
+							Message:  EventF1,
+						},
+						CommandX1,
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("stubs.CommandStub[TypeX] is not a recognized message type"))
+			})
 
 			It("panics if the message is invalid", func() {
 				Expect(func() {
@@ -319,45 +297,33 @@ var _ = Describe("type Packer", func() {
 				Entry("when the cause is a command", CommandD1),
 			)
 
-			DescribeTable(
-				"it panics if the cause's message type is incorrect",
-				func(cause dogma.Message, x string) {
-					Expect(func() {
-						packer.PackChildEvent(
-							Parcel{
-								Envelope: parent,
-								Message:  cause,
-							},
-							EventE1,
-							handler,
-							"<instance>",
-						)
-					}).To(PanicWith(x))
-				},
-				Entry("when the cause is unrecognized", CommandX1, "stubs.CommandStub[TypeX] is not consumed by this handler"),
-				Entry("when the cause is an event", EventF1, "stubs.EventStub[TypeF] is an event, expected a command"),
-				Entry("when the cause is a timeout", TimeoutU1, "stubs.TimeoutStub[TypeU] is a timeout, expected a command"),
-			)
+			It("panics if the causal message is not recognized", func() {
+				Expect(func() {
+					packer.PackChildEvent(
+						Parcel{
+							Envelope: parent,
+							Message:  CommandX1,
+						},
+						EventE1,
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("stubs.CommandStub[TypeX] is not consumed by this handler"))
+			})
 
-			DescribeTable(
-				"it panics if the message type is incorrect",
-				func(m dogma.Message, x string) {
-					Expect(func() {
-						packer.PackChildEvent(
-							Parcel{
-								Envelope: parent,
-								Message:  CommandD1,
-							},
-							m,
-							handler,
-							"<instance>",
-						)
-					}).To(PanicWith(x))
-				},
-				Entry("when the message is unrecognized", EventX1, "stubs.EventStub[TypeX] is not a recognised message type"),
-				Entry("when the message is a command", CommandC1, "stubs.CommandStub[TypeC] is a command, expected an event"),
-				Entry("when the message is a timeout", TimeoutT1, "stubs.TimeoutStub[TypeT] is a timeout, expected an event"),
-			)
+			It("panics if the message is not recognized", func() {
+				Expect(func() {
+					packer.PackChildEvent(
+						Parcel{
+							Envelope: parent,
+							Message:  EventF1,
+						},
+						EventX1,
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("stubs.EventStub[TypeX] is not a recognized message type"))
+			})
 
 			It("panics if the message is invalid", func() {
 				Expect(func() {
@@ -418,46 +384,35 @@ var _ = Describe("type Packer", func() {
 				Entry("when the cause is a timeout", TimeoutU1),
 			)
 
-			DescribeTable(
-				"it panics if the cause's message type is incorrect",
-				func(cause dogma.Message, x string) {
-					Expect(func() {
-						packer.PackChildTimeout(
-							Parcel{
-								Envelope: parent,
-								Message:  cause,
-							},
-							TimeoutT1,
-							time.Now(),
-							handler,
-							"<instance>",
-						)
-					}).To(PanicWith(x))
-				},
-				Entry("when the cause is unrecognized", EventX1, "stubs.EventStub[TypeX] is not consumed by this handler"),
-				Entry("when the cause is a command", CommandD1, "stubs.CommandStub[TypeD] is a command, expected an event or timeout"),
-			)
+			It("panics if the causal message is not recognized", func() {
+				Expect(func() {
+					packer.PackChildTimeout(
+						Parcel{
+							Envelope: parent,
+							Message:  EventX1,
+						},
+						TimeoutX1,
+						time.Now(),
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("stubs.EventStub[TypeX] is not consumed by this handler"))
+			})
 
-			DescribeTable(
-				"it panics if the message type is incorrect",
-				func(m dogma.Message, x string) {
-					Expect(func() {
-						packer.PackChildTimeout(
-							Parcel{
-								Envelope: parent,
-								Message:  EventF1,
-							},
-							m,
-							time.Now(),
-							handler,
-							"<instance>",
-						)
-					}).To(PanicWith(x))
-				},
-				Entry("when the message is unrecognized", TimeoutX1, "stubs.TimeoutStub[TypeX] is not a recognised message type"),
-				Entry("when the message is a command", CommandC1, "stubs.CommandStub[TypeC] is a command, expected a timeout"),
-				Entry("when the message is an event", EventE1, "stubs.EventStub[TypeE] is an event, expected a timeout"),
-			)
+			It("panics if the message is not recognized", func() {
+				Expect(func() {
+					packer.PackChildTimeout(
+						Parcel{
+							Envelope: parent,
+							Message:  EventF1,
+						},
+						TimeoutX1,
+						time.Now(),
+						handler,
+						"<instance>",
+					)
+				}).To(PanicWith("stubs.TimeoutStub[TypeX] is not a recognized message type"))
+			})
 		})
 
 		It("panics if the message is invalid", func() {

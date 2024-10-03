@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	//revive:disable:dot-imports
 	"github.com/dogmatiq/discoverkit"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/onsi/ginkgo/v2"

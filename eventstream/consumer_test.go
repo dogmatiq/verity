@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/verity/eventstream"
@@ -66,7 +67,7 @@ var _ = Describe("type Consumer", func() {
 
 		mstream = &memorystream.Stream{
 			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
-			Types: message.NewTypeSet(
+			Types: sets.New(
 				message.TypeFor[EventStub[TypeA]](),
 				message.TypeFor[EventStub[TypeB]](),
 			),
@@ -89,7 +90,7 @@ var _ = Describe("type Consumer", func() {
 
 		consumer = &Consumer{
 			Stream: stream,
-			EventTypes: message.NewTypeSet(
+			EventTypes: sets.New(
 				message.TypeFor[EventStub[TypeA]](),
 			),
 			Handler:         eshandler,
@@ -130,8 +131,8 @@ var _ = Describe("type Consumer", func() {
 		It("returns if the stream does not produce any relevant events", func() {
 			stream.EventTypesFunc = func(
 				context.Context,
-			) (message.TypeCollection, error) {
-				return message.NewTypeSet(
+			) (*sets.Set[message.Type], error) {
+				return sets.New(
 					message.TypeFor[EventStub[TypeC]](),
 				), nil
 			}
@@ -144,7 +145,7 @@ var _ = Describe("type Consumer", func() {
 			stream.OpenFunc = func(
 				context.Context,
 				uint64,
-				message.TypeCollection,
+				*sets.Set[message.Type],
 			) (Cursor, error) {
 				stream.OpenFunc = nil
 
@@ -168,7 +169,7 @@ var _ = Describe("type Consumer", func() {
 		It("restarts the consumer if querying the stream's event types returns an error", func() {
 			stream.EventTypesFunc = func(
 				context.Context,
-			) (message.TypeCollection, error) {
+			) (*sets.Set[message.Type], error) {
 				stream.EventTypesFunc = nil
 
 				eshandler.HandleEventFunc = func(
@@ -213,7 +214,7 @@ var _ = Describe("type Consumer", func() {
 
 		It("restarts the consumer if the event offset is earlier than the consumed offset", func() {
 			// Ensure the consumer tries to consume all event types.
-			consumer.EventTypes = message.NewTypeSet(
+			consumer.EventTypes = sets.New(
 				message.TypeFor[EventStub[TypeA]](),
 				message.TypeFor[EventStub[TypeB]](),
 			)
@@ -223,7 +224,7 @@ var _ = Describe("type Consumer", func() {
 			stream.OpenFunc = func(
 				ctx context.Context,
 				offset uint64,
-				types message.TypeCollection,
+				types *sets.Set[message.Type],
 			) (Cursor, error) {
 				// Reset the stream to behave normally again on the next
 				// attempt at opening a cursor.

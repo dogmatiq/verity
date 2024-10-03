@@ -92,7 +92,7 @@ func (a *StreamAdaptor) HandleEvent(
 			cause:  ev.Parcel,
 			logger: a.Logger,
 		},
-		ev.Parcel.Message,
+		ev.Parcel.Message.(dogma.Event),
 	)
 	if err != nil {
 		return err

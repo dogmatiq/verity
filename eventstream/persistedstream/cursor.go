@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
@@ -17,7 +18,7 @@ type cursor struct {
 	repositoryFilter map[string]struct{}
 	marshaler        marshaler.Marshaler
 	cache            eventstream.Stream
-	cacheFilter      message.TypeCollection
+	cacheFilter      *sets.Set[message.Type]
 	offset           uint64
 	once             sync.Once
 	cancel           context.CancelFunc

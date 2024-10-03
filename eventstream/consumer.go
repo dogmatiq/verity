@@ -7,6 +7,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"golang.org/x/sync/semaphore"
@@ -33,7 +34,7 @@ type Consumer struct {
 	Stream Stream
 
 	// EventTypes is the set of event types that the handler consumes.
-	EventTypes message.TypeCollection
+	EventTypes *sets.Set[message.Type]
 
 	// Handler is the target for the events from the stream.
 	Handler Handler
@@ -97,9 +98,9 @@ func (c *Consumer) consume(ctx context.Context) error {
 		return err
 	}
 
-	relevant := message.IntersectionT(c.EventTypes, produced)
+	relevant := c.EventTypes.Intersection(produced)
 
-	if len(relevant) == 0 {
+	if relevant.Len() == 0 {
 		logging.Debug(
 			c.Logger,
 			"stream does not produce any relevant event types",
@@ -108,7 +109,7 @@ func (c *Consumer) consume(ctx context.Context) error {
 		return nil
 	}
 
-	for t := range relevant {
+	for t := range relevant.All() {
 		logging.Debug(
 			c.Logger,
 			"consuming '%s' events",
@@ -132,7 +133,7 @@ func (c *Consumer) consume(ctx context.Context) error {
 // open opens a stream cursor based on the offset given by the handler.
 func (c *Consumer) open(
 	ctx context.Context,
-	types message.TypeSet,
+	types *sets.Set[message.Type],
 ) (Cursor, error) {
 	var err error
 	c.offset, err = c.Handler.NextOffset(ctx, c.Stream.Application())
@@ -143,7 +144,7 @@ func (c *Consumer) open(
 	logging.Debug(
 		c.Logger,
 		"consuming %d event type(s), beginning at offset %d",
-		len(types),
+		types.Len(),
 		c.offset,
 	)
 

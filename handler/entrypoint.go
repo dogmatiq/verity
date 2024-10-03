@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
 )
@@ -12,7 +13,7 @@ import (
 // to a handler, and persists the result.
 type EntryPoint struct {
 	// QueueEvents is the set of event types that must be added to the queue.
-	QueueEvents message.TypeCollection
+	QueueEvents *sets.Set[message.Type]
 
 	// Handler is the handler implmentation that populates the unit-of-work.
 	Handler Handler

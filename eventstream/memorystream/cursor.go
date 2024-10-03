@@ -5,13 +5,14 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/verity/eventstream"
 )
 
 // cursor is a Cursor that reads events from an in-memory stream.
 type cursor struct {
 	offset uint64
-	filter message.TypeCollection
+	filter *sets.Set[message.Type]
 	node   *node
 
 	once   sync.Once
@@ -52,7 +53,7 @@ func (c *cursor) Next(ctx context.Context) (eventstream.Event, error) {
 		if ev.Offset == c.offset {
 			c.offset++
 
-			if c.filter.HasM(ev.Parcel.Message) {
+			if c.filter.Has(message.TypeOf(ev.Parcel.Message)) {
 				return ev, nil
 			}
 		}

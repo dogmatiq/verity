@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
@@ -19,7 +20,7 @@ import (
 type ServerOption struct {
 	key    string
 	stream eventstream.Stream
-	types  message.TypeCollection
+	types  *sets.Set[message.Type]
 }
 
 // WithApplication returns a server option that configures the server to serve
@@ -27,7 +28,7 @@ type ServerOption struct {
 func WithApplication(
 	ak string,
 	s eventstream.Stream,
-	types message.TypeCollection,
+	types *sets.Set[message.Type],
 ) ServerOption {
 	return ServerOption{ak, s, types}
 }
@@ -52,7 +53,7 @@ func RegisterServer(
 
 		d.apps[opt.key] = svr
 
-		opt.types.Range(func(mt message.Type) bool {
+		for mt := range opt.types.All() {
 			rt := mt.ReflectType()
 
 			n, err := m.MarshalType(rt)
@@ -68,9 +69,7 @@ func RegisterServer(
 					MediaTypes:   m.MediaTypesFor(rt),
 				},
 			)
-
-			return true
-		})
+		}
 	}
 
 	eventstreamspec.RegisterStreamAPIServer(s, d)
@@ -192,7 +191,7 @@ func (s *server) EventTypes(
 func (s *server) unmarshalTypes(
 	req *eventstreamspec.ConsumeRequest,
 ) (
-	message.TypeCollection,
+	*sets.Set[message.Type],
 	map[string][]string,
 	error,
 ) {
@@ -205,7 +204,7 @@ func (s *server) unmarshalTypes(
 	}
 
 	var (
-		messageTypes = message.TypeSet{}
+		messageTypes = sets.New[message.Type]()
 		mediaTypes   = map[string][]string{}
 		failures     []proto.Message
 	)
