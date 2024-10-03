@@ -61,6 +61,6 @@ func (a *Adaptor) HandleMessage(
 			work:     w,
 			cause:    p,
 		},
-		p.Message,
+		p.Message.(dogma.Command),
 	)
 }

@@ -142,7 +142,7 @@ func (a *Adaptor) route(ctx context.Context, p parcel.Parcel) (string, bool, err
 
 	// Otherwise, the message is an event, and the handler decides which
 	// instance to route to, if any.
-	id, ok, err := a.Handler.RouteEventToInstance(ctx, p.Message)
+	id, ok, err := a.Handler.RouteEventToInstance(ctx, p.Message.(dogma.Event))
 	if err != nil {
 		return "", false, err
 	}
@@ -222,10 +222,10 @@ func (a *Adaptor) handle(
 	p parcel.Parcel,
 ) error {
 	if p.ScheduledFor.IsZero() {
-		return a.Handler.HandleEvent(ctx, r, sc, p.Message)
+		return a.Handler.HandleEvent(ctx, r, sc, p.Message.(dogma.Event))
 	}
 
-	return a.Handler.HandleTimeout(ctx, r, sc, p.Message)
+	return a.Handler.HandleTimeout(ctx, r, sc, p.Message.(dogma.Timeout))
 }
 
 // mustNew returns a new process root created by the handler, or panics if the

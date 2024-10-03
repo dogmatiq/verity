@@ -8,6 +8,7 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
@@ -88,7 +89,7 @@ func (e *Engine) initApp(
 
 	e.apps[id.Key] = a
 
-	for mt := range x.Packer.Produced {
+	for mt := range x.Packer.Produced.All() {
 		e.executors[mt] = x
 	}
 
@@ -126,10 +127,11 @@ func (e *Engine) newEventCache(
 		// TODO: https://github.com/dogmatiq/verity/issues/226
 		// Make buffer size configurable.
 		BufferSize: 0,
-		Types: cfg.
-			MessageTypes().
-			Produced.
-			FilterByRole(message.EventRole),
+		Types: sets.NewFromKeys(
+			cfg.
+				MessageTypes().
+				Produced(message.EventKind),
+		),
 	}, nil
 }
 
@@ -147,10 +149,11 @@ func (e *Engine) newEventStream(
 		// TODO: https://github.com/dogmatiq/verity/issues/76
 		// Make pre-fetch buffer size configurable.
 		PreFetch: 10,
-		Types: cfg.
-			MessageTypes().
-			Produced.
-			FilterByRole(message.EventRole),
+		Types: sets.NewFromKeys(
+			cfg.
+				MessageTypes().
+				Produced(message.EventKind),
+		),
 	}
 }
 
@@ -169,10 +172,11 @@ func (e *Engine) newCommandExecutor(
 				Key:  cfg.Identity().Key,
 			},
 			Marshaler: e.opts.Marshaler,
-			Produced: cfg.
-				MessageTypes().
-				Consumed.
-				FilterByRole(message.CommandRole),
+			Produced: sets.NewFromKeys(
+				cfg.
+					MessageTypes().
+					Consumed(message.EventKind),
+			),
 		},
 	}
 }
@@ -188,7 +192,7 @@ func (e *Engine) newEntryPoint(
 	hf := &handlerFactory{
 		opts:        e.opts,
 		queue:       q,
-		queueEvents: message.TypeSet{},
+		queueEvents: sets.New[message.Type](),
 		aggregateLoader: &aggregate.Loader{
 			AggregateRepository: ds,
 			EventRepository:     ds,
@@ -221,7 +225,7 @@ func (e *Engine) newEntryPoint(
 type handlerFactory struct {
 	opts            *engineOptions
 	queue           *queue.Queue
-	queueEvents     message.TypeSet
+	queueEvents     *sets.Set[message.Type]
 	aggregateLoader *aggregate.Loader
 	processLoader   *process.Loader
 	engineLogger    logging.Logger
@@ -278,8 +282,8 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,
-			Produced:    cfg.MessageTypes().Produced,
-			Consumed:    cfg.MessageTypes().Consumed,
+			Produced:    sets.NewFromKeys(cfg.MessageTypes().Produced()),
+			Consumed:    sets.NewFromKeys(cfg.MessageTypes().Consumed()),
 		},
 		LoadTimeout: f.opts.MessageTimeout,
 		Logger:      f.appLogger,
@@ -311,8 +315,8 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,
-			Produced:    cfg.MessageTypes().Produced,
-			Consumed:    cfg.MessageTypes().Consumed,
+			Produced:    sets.NewFromKeys(cfg.MessageTypes().Produced()),
+			Consumed:    sets.NewFromKeys(cfg.MessageTypes().Consumed()),
 		},
 		LoadTimeout: f.opts.MessageTimeout,
 		Logger:      f.appLogger,
@@ -332,8 +336,8 @@ func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.R
 		Packer: &parcel.Packer{
 			Application: f.app,
 			Marshaler:   f.opts.Marshaler,
-			Produced:    cfg.MessageTypes().Produced,
-			Consumed:    cfg.MessageTypes().Consumed,
+			Produced:    sets.NewFromKeys(cfg.MessageTypes().Produced()),
+			Consumed:    sets.NewFromKeys(cfg.MessageTypes().Consumed()),
 		},
 		Logger: f.appLogger,
 	})
@@ -346,10 +350,10 @@ func (f *handlerFactory) VisitRichProjection(context.Context, configkit.RichProj
 }
 
 func (f *handlerFactory) addRoutes(cfg configkit.RichHandler, h handler.Handler) {
-	for mt, r := range cfg.MessageTypes().Consumed {
+	for mt := range cfg.MessageTypes().Consumed() {
 		f.handler[mt] = append(f.handler[mt], h)
 
-		if r == message.EventRole {
+		if mt.Kind() == message.EventKind {
 			f.queueEvents.Add(mt)
 		}
 
@@ -360,7 +364,7 @@ func (f *handlerFactory) addRoutes(cfg configkit.RichHandler, h handler.Handler)
 			cfg.Identity().Name,
 			f.app.Name,
 			mt,
-			r,
+			mt.Kind(),
 		)
 	}
 }

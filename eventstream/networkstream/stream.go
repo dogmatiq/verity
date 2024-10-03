@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream"
@@ -32,7 +33,7 @@ func (s *Stream) Application() configkit.Identity {
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error) {
+func (s *Stream) EventTypes(ctx context.Context) (*sets.Set[message.Type], error) {
 	req := &eventstreamspec.EventTypesRequest{
 		ApplicationKey: s.App.Key,
 	}
@@ -44,7 +45,7 @@ func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error)
 
 	// Build a type-set containing any message types supported both by the
 	// server and the client.
-	types := message.TypeSet{}
+	types := sets.New[message.Type]()
 	for _, t := range res.GetEventTypes() {
 		rt, err := s.Marshaler.UnmarshalType(t.GetPortableName())
 		if err == nil {
@@ -68,7 +69,7 @@ func (s *Stream) EventTypes(ctx context.Context) (message.TypeCollection, error)
 func (s *Stream) Open(
 	ctx context.Context,
 	o uint64,
-	f message.TypeCollection,
+	f *sets.Set[message.Type],
 ) (eventstream.Cursor, error) {
 	req := s.buildConsumeRequest(o, f)
 
@@ -131,7 +132,7 @@ func (s *Stream) Open(
 // stream.
 func (s *Stream) buildConsumeRequest(
 	o uint64,
-	f message.TypeCollection,
+	f *sets.Set[message.Type],
 ) *eventstreamspec.ConsumeRequest {
 	if f.Len() == 0 {
 		panic("at least one event type must be specified")
@@ -144,7 +145,7 @@ func (s *Stream) buildConsumeRequest(
 		},
 	}
 
-	f.Range(func(mt message.Type) bool {
+	for mt := range f.All() {
 		rt := mt.ReflectType()
 
 		n, err := s.Marshaler.MarshalType(rt)
@@ -159,9 +160,7 @@ func (s *Stream) buildConsumeRequest(
 				MediaTypes:   s.Marshaler.MediaTypesFor(rt),
 			},
 		)
-
-		return true
-	})
+	}
 
 	return req
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
@@ -34,7 +35,7 @@ var _ = Describe("type EntryPoint", func() {
 		ack = &AcknowledgerStub{}
 
 		entryPoint = &EntryPoint{
-			QueueEvents: message.TypesOf(EventQ1),
+			QueueEvents: sets.New(message.TypeOf(EventQ1)),
 			Handler:     handler,
 			OnSuccess:   func(Result) {},
 		}

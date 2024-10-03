@@ -3,6 +3,7 @@ package projection
 import (
 	"time"
 
+	//revive:disable:dot-imports
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	. "github.com/dogmatiq/verity/fixtures"

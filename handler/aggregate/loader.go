@@ -81,6 +81,6 @@ func (l *Loader) applyEvents(
 			return err
 		}
 
-		base.ApplyEvent(p.Message)
+		base.ApplyEvent(p.Message.(dogma.Event))
 	}
 }

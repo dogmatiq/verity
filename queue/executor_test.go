@@ -54,9 +54,7 @@ var _ = Describe("type CommandExecutor", func() {
 			Queue:     queue,
 			Persister: dataStore,
 			Packer: NewPacker(
-				message.TypeRoles{
-					message.TypeFor[CommandStub[TypeA]](): message.CommandRole,
-				},
+				message.TypeFor[CommandStub[TypeA]](),
 			),
 		}
 	})

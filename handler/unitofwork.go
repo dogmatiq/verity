@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
@@ -47,7 +48,7 @@ type DeferFunc func(Result, error)
 
 // unitOfWork is the implementation of UnitOfWork used by an EntryPoint.
 type unitOfWork struct {
-	queueEvents message.TypeCollection
+	queueEvents *sets.Set[message.Type]
 	batch       persistence.Batch
 	result      Result
 	deferred    []DeferFunc
@@ -67,7 +68,7 @@ func (w *unitOfWork) ScheduleTimeout(p parcel.Parcel) {
 func (w *unitOfWork) RecordEvent(p parcel.Parcel) {
 	w.saveEvent(p)
 
-	if w.queueEvents != nil && w.queueEvents.HasM(p.Message) {
+	if w.queueEvents.Has(message.TypeOf(p.Message)) {
 		w.saveQueueMessage(p, p.CreatedAt)
 	}
 }

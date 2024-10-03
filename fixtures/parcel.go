@@ -8,6 +8,7 @@ import (
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/parcel"
@@ -119,12 +120,14 @@ func NewParcel(
 // starts at 2000-01-01 00:00:00 UTC and increases by 1 second for each message.
 //
 // The given roles are valid both as produced and consumed roles.
-func NewPacker(roles message.TypeRoles) *parcel.Packer {
+func NewPacker(types ...message.Type) *parcel.Packer {
 	var (
 		m   sync.Mutex
 		id  int64
 		now = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	)
+
+	typeSet := sets.New(types...)
 
 	return &parcel.Packer{
 		Application: &envelopespec.Identity{
@@ -132,8 +135,8 @@ func NewPacker(roles message.TypeRoles) *parcel.Packer {
 			Key:  DefaultAppKey,
 		},
 		Marshaler: stubs.Marshaler,
-		Produced:  roles,
-		Consumed:  roles,
+		Produced:  typeSet,
+		Consumed:  typeSet,
 		GenerateID: func() string {
 			m.Lock()
 			defer m.Unlock()

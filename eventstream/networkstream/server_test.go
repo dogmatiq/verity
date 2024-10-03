@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
@@ -41,11 +42,11 @@ var _ = Describe("type server", func() {
 		parcel2 = NewParcel("<message-2>", EventA2)
 		parcel3 = NewParcel("<message-3>", EventB2)
 
-		types := message.TypesOf(
-			parcel0.Message,
-			parcel1.Message,
-			parcel2.Message,
-			parcel3.Message,
+		types := sets.New(
+			message.TypeOf(parcel0.Message),
+			message.TypeOf(parcel1.Message),
+			message.TypeOf(parcel2.Message),
+			message.TypeOf(parcel3.Message),
 		)
 
 		stream = &memorystream.Stream{

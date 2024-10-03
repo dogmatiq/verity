@@ -2,12 +2,11 @@ package parcel
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
 	"time"
 
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/envelopespec"
@@ -22,13 +21,13 @@ type Packer struct {
 	// Marshaler is used to marshal messages into envelopes.
 	Marshaler marshaler.Marshaler
 
-	// Produced is a map of message type to role, used to validate the messages
-	// that are being packed.
-	Produced message.TypeRoles
+	// Produced is the set of message types that are produced by this
+	// application.
+	Produced *sets.Set[message.Type]
 
-	// Consumed is a map of message type to role for consumed messages, which
-	// can be the cause of new messages.
-	Consumed message.TypeRoles
+	// Consumed is the set of message types that are consumed by this
+	// application.
+	Consumed *sets.Set[message.Type]
 
 	// GenerateID is a function used to generate new message IDs. If it is nil,
 	// a UUID is generated.
@@ -41,12 +40,20 @@ type Packer struct {
 
 // PackCommand returns a parcel containing the given command message.
 func (p *Packer) PackCommand(m dogma.Command) Parcel {
-	return p.new(m, message.CommandRole)
+	if err := m.Validate(nil); err != nil {
+		panic(fmt.Sprintf("%T command is invalid: %s", m, err))
+	}
+
+	return p.new(m)
 }
 
 // PackEvent returns a parcel containing the given event message.
 func (p *Packer) PackEvent(m dogma.Event) Parcel {
-	return p.new(m, message.EventRole)
+	if err := m.Validate(nil); err != nil {
+		panic(fmt.Sprintf("%T event is invalid: %s", m, err))
+	}
+
+	return p.new(m)
 }
 
 // PackChildCommand returns a parcel containing the given command message,
@@ -57,12 +64,13 @@ func (p *Packer) PackChildCommand(
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
+	if err := m.Validate(nil); err != nil {
+		panic(fmt.Sprintf("%T command is invalid: %s", m, err))
+	}
 
 	return p.newChild(
 		c,
 		m,
-		message.CommandRole,
 		handler,
 		instanceID,
 	)
@@ -76,12 +84,13 @@ func (p *Packer) PackChildEvent(
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	p.checkConsumedRole(c.Message, message.CommandRole)
+	if err := m.Validate(nil); err != nil {
+		panic(fmt.Sprintf("%T event is invalid: %s", m, err))
+	}
 
 	return p.newChild(
 		c,
 		m,
-		message.EventRole,
 		handler,
 		instanceID,
 	)
@@ -96,12 +105,13 @@ func (p *Packer) PackChildTimeout(
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	p.checkConsumedRole(c.Message, message.EventRole, message.TimeoutRole)
+	if err := m.Validate(nil); err != nil {
+		panic(fmt.Sprintf("%T timeout is invalid: %s", m, err))
+	}
 
 	parcel := p.newChild(
 		c,
 		m,
-		message.TimeoutRole,
 		handler,
 		instanceID,
 	)
@@ -113,11 +123,10 @@ func (p *Packer) PackChildTimeout(
 }
 
 // new returns an envelope containing the given message.
-func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
-	p.checkProducedRole(m, r)
-
-	if err := m.Validate(); err != nil {
-		panic(fmt.Sprintf("%T %s is invalid: %s", m, r, err))
+func (p *Packer) new(m dogma.Message) Parcel {
+	mt := message.TypeOf(m)
+	if !p.Produced.Has(mt) {
+		panic(fmt.Sprintf("%s is not a recognized message type", mt))
 	}
 
 	id := p.generateID()
@@ -128,7 +137,7 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 		panic(err)
 	}
 
-	portableName, err := stubs.Marshaler.MarshalType(reflect.TypeOf(m))
+	portableName, err := stubs.Marshaler.MarshalType(mt.ReflectType())
 	if err != nil {
 		panic(err)
 	}
@@ -157,11 +166,15 @@ func (p *Packer) new(m dogma.Message, r message.Role) Parcel {
 func (p *Packer) newChild(
 	c Parcel,
 	m dogma.Message,
-	r message.Role,
 	handler *envelopespec.Identity,
 	instanceID string,
 ) Parcel {
-	parcel := p.new(m, r)
+	ct := message.TypeOf(c.Message)
+	if !p.Consumed.Has(ct) {
+		panic(fmt.Sprintf("%s is not consumed by this handler", ct))
+	}
+
+	parcel := p.new(m)
 
 	parcel.Envelope.CausationId = c.Envelope.GetMessageId()
 	parcel.Envelope.CorrelationId = c.Envelope.GetCorrelationId()
@@ -188,49 +201,4 @@ func (p *Packer) generateID() string {
 	}
 
 	return uuid.NewString()
-}
-
-// checkProducedRole panics if mt does not fill one of the the given roles.
-func (p *Packer) checkProducedRole(m dogma.Message, roles ...message.Role) {
-	mt := message.TypeOf(m)
-	x, ok := p.Produced[mt]
-
-	if !ok {
-		panic(fmt.Sprintf("%s is not a recognised message type", mt))
-	}
-
-	mustBeOneOf(mt, x, roles)
-}
-
-// checkConsumedRole panics if mt does not fill one of the the given roles.
-func (p *Packer) checkConsumedRole(m dogma.Message, roles ...message.Role) {
-	mt := message.TypeOf(m)
-	x, ok := p.Consumed[mt]
-
-	if !ok {
-		panic(fmt.Sprintf("%s is not consumed by this handler", mt))
-	}
-
-	mustBeOneOf(mt, x, roles)
-}
-
-// mustBe panics if x is not in roles.
-func mustBeOneOf(mt message.Type, x message.Role, roles []message.Role) {
-	if x.Is(roles...) {
-		return
-	}
-
-	var valid []string
-	for _, r := range roles {
-		valid = append(valid, r.String())
-	}
-
-	message := fmt.Sprintf(
-		"%s is a %s, expected a %s",
-		mt,
-		x,
-		strings.Join(valid, " or "),
-	)
-	message = strings.ReplaceAll(message, "a event", "an event")
-	panic(message)
 }

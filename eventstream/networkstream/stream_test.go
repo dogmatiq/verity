@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
@@ -86,7 +87,7 @@ var _ = Describe("type Stream", func() {
 		server   *grpc.Server
 		conn     *grpc.ClientConn
 		stream   *Stream
-		types    message.TypeSet
+		types    *sets.Set[message.Type]
 		pcl      parcel.Parcel
 	)
 
@@ -98,7 +99,9 @@ var _ = Describe("type Stream", func() {
 		mstream = &memorystream.Stream{}
 
 		pcl = NewParcel("<message-1>", EventA1)
-		types = message.TypesOf(EventA1)
+		types = sets.New(
+			message.TypeOf(EventA1),
+		)
 
 		var err error
 		listener, err = net.Listen("tcp", ":")

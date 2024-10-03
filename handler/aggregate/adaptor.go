@@ -78,7 +78,11 @@ func (a *Adaptor) HandleMessage(
 		instance: inst,
 	}
 
-	a.Handler.HandleCommand(inst.Root, sc, p.Message)
+	a.Handler.HandleCommand(
+		inst.Root,
+		sc,
+		p.Message.(dogma.Command),
+	)
 
 	if !sc.changed {
 		// No events were recorded at all, and the instance was not destroyed,
@@ -106,7 +110,9 @@ func (a *Adaptor) HandleMessage(
 // route returns the instance ID that the message in p is routed to, or panics
 // if the handler returns an empty string.
 func (a *Adaptor) route(p parcel.Parcel) string {
-	if id := a.Handler.RouteCommandToInstance(p.Message); id != "" {
+	if id := a.Handler.RouteCommandToInstance(
+		p.Message.(dogma.Command),
+	); id != "" {
 		return id
 	}
 

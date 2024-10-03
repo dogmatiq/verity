@@ -9,6 +9,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/linger"
@@ -28,7 +29,7 @@ type In struct {
 	Application configkit.RichApplication
 
 	// EventTypes is the set of event types that the test application produces.
-	EventTypes message.TypeCollection
+	EventTypes *sets.Set[message.Type]
 
 	// Marshaler marshals and unmarshals the test message types.
 	Marshaler marshaler.Marshaler
@@ -133,7 +134,11 @@ func Declare(
 
 			in = In{
 				cfg,
-				cfg.MessageTypes().Produced.FilterByRole(message.EventRole),
+				sets.NewFromKeys(
+					cfg.
+						MessageTypes().
+						Produced(message.EventKind),
+				),
 				stubs.Marshaler,
 			}
 
@@ -186,7 +191,7 @@ func Declare(
 				})
 
 				ginkgo.It("limits results to the supplied message types", func() {
-					types := message.NewTypeSet(
+					types := sets.New(
 						message.TypeFor[stubs.EventStub[stubs.TypeA]](),
 					)
 
@@ -205,7 +210,7 @@ func Declare(
 
 				ginkgo.It("panics if no event types are specified", func() {
 					gomega.Expect(func() {
-						types := message.NewTypeSet()
+						types := sets.New[message.Type]()
 						cur, err := out.Stream.Open(ctx, 0, types)
 						if cur != nil {
 							cur.Close()
@@ -227,19 +232,18 @@ func Declare(
 
 			ginkgo.Describe("func EventTypes()", func() {
 				ginkgo.It("returns a collection that includes all of the test types", func() {
-					// This test ensures that all of the test types are supported by
-					// the stream, but does not require that these be the ONLY
-					// supported types.
+					// This test ensures that all of the test types are
+					// supported by the stream, but does not require that these
+					// be the ONLY supported types.
 					types, err := out.Stream.EventTypes(ctx)
 					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-					in.EventTypes.Range(func(t message.Type) bool {
-						gomega.Expect(types.Has(t)).To(
-							gomega.BeTrue(),
-							fmt.Sprintf("stream does not support expected message type: %s", t),
-						)
-						return true
-					})
+					gomega.Expect(
+						types.IsSuperset(in.EventTypes),
+					).To(
+						gomega.BeTrue(),
+						fmt.Sprintf("stream does not support all of the required message types"),
+					)
 				})
 			})
 		})
@@ -370,7 +374,7 @@ func Declare(
 								// This is a regression test for
 								// https://github.com/dogmatiq/verity/issues/194.
 
-								types := message.NewTypeSet(
+								types := sets.New(
 									message.TypeFor[stubs.EventStub[stubs.TypeB]](),
 									message.TypeFor[stubs.EventStub[stubs.TypeC]](),
 								)

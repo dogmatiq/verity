@@ -6,6 +6,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 )
 
 // A Stream is an ordered sequence of event messages.
@@ -14,7 +15,7 @@ type Stream interface {
 	Application() configkit.Identity
 
 	// EventTypes returns the set of event types that may appear on the stream.
-	EventTypes(ctx context.Context) (message.TypeCollection, error)
+	EventTypes(ctx context.Context) (*sets.Set[message.Type], error)
 
 	// Open returns a cursor that reads events from the stream.
 	//
@@ -26,7 +27,7 @@ type Stream interface {
 	//
 	// It returns an error if any of the event types in f are not supported, as
 	// indicated by EventTypes().
-	Open(ctx context.Context, o uint64, f message.TypeCollection) (Cursor, error)
+	Open(ctx context.Context, o uint64, f *sets.Set[message.Type]) (Cursor, error)
 }
 
 var (

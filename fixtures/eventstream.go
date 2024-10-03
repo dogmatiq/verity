@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/verity/eventstream"
 )
 
@@ -13,8 +14,8 @@ type EventStreamStub struct {
 	eventstream.Stream
 
 	ApplicationFunc func() configkit.Identity
-	EventTypesFunc  func(context.Context) (message.TypeCollection, error)
-	OpenFunc        func(context.Context, uint64, message.TypeCollection) (eventstream.Cursor, error)
+	EventTypesFunc  func(context.Context) (*sets.Set[message.Type], error)
+	OpenFunc        func(context.Context, uint64, *sets.Set[message.Type]) (eventstream.Cursor, error)
 }
 
 // Application returns the identity of the application that owns the stream.
@@ -31,7 +32,7 @@ func (s *EventStreamStub) Application() configkit.Identity {
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *EventStreamStub) EventTypes(ctx context.Context) (message.TypeCollection, error) {
+func (s *EventStreamStub) EventTypes(ctx context.Context) (*sets.Set[message.Type], error) {
 	if s.EventTypesFunc != nil {
 		return s.EventTypesFunc(ctx)
 	}
@@ -47,7 +48,7 @@ func (s *EventStreamStub) EventTypes(ctx context.Context) (message.TypeCollectio
 func (s *EventStreamStub) Open(
 	ctx context.Context,
 	offset uint64,
-	types message.TypeCollection,
+	types *sets.Set[message.Type],
 ) (eventstream.Cursor, error) {
 	if s.OpenFunc != nil {
 		return s.OpenFunc(ctx, offset, types)

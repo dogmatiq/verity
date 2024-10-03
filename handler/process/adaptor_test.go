@@ -66,11 +66,9 @@ var _ = Describe("type Adaptor", func() {
 		}
 
 		packer = NewPacker(
-			message.TypeRoles{
-				message.TypeFor[CommandStub[TypeC]](): message.CommandRole,
-				message.TypeFor[EventStub[TypeE]]():   message.EventRole,
-				message.TypeFor[TimeoutStub[TypeT]](): message.TimeoutRole,
-			},
+			message.TypeFor[CommandStub[TypeC]](),
+			message.TypeFor[EventStub[TypeE]](),
+			message.TypeFor[TimeoutStub[TypeT]](),
 		)
 
 		logger = &logging.BufferedLogger{}

@@ -10,7 +10,8 @@ import (
 	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/discoverkit"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/interopspec/configspec"
+	"github.com/dogmatiq/enginekit/collections/sets"
+	"github.com/dogmatiq/enginekit/grpc/configgrpc"
 	"github.com/dogmatiq/interopspec/discoverspec"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream/networkstream"
@@ -67,7 +68,7 @@ func (e *Engine) registerConfigAPI(s *grpc.Server) {
 		configs = append(configs, cfg)
 	}
 
-	configspec.RegisterConfigAPIServer(
+	configgrpc.RegisterConfigAPIServer(
 		s,
 		configapi.NewServer(configs...),
 	)
@@ -78,6 +79,12 @@ func (e *Engine) registerEventStreamAPI(s *grpc.Server) {
 	var options []networkstream.ServerOption
 
 	for k, a := range e.apps {
+		eventTypes := sets.NewFromKeys(
+			a.Config.
+				MessageTypes().
+				Produced(message.EventKind),
+		)
+
 		options = append(
 			options,
 			networkstream.WithApplication(
@@ -90,15 +97,9 @@ func (e *Engine) registerEventStreamAPI(s *grpc.Server) {
 					// TODO: https://github.com/dogmatiq/verity/issues/76
 					// Make pre-fetch buffer size configurable.
 					PreFetch: 10,
-					Types: a.Config.
-						MessageTypes().
-						Produced.
-						FilterByRole(message.EventRole),
+					Types:    eventTypes,
 				},
-				a.Config.
-					MessageTypes().
-					Produced.
-					FilterByRole(message.EventRole),
+				eventTypes,
 			),
 		)
 	}

@@ -3,6 +3,7 @@ package verity
 import (
 	"time"
 
+	//revive:disable:dot-imports
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"

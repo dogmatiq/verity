@@ -7,6 +7,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
@@ -49,7 +50,7 @@ var _ = Describe("type Stream", func() {
 
 		stream = &Stream{
 			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
-			Types: message.NewTypeSet(
+			Types: sets.New(
 				message.TypeFor[EventStub[TypeA]](),
 			),
 			// For the purposes of our test, we assume there are already 100

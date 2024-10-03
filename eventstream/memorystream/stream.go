@@ -8,6 +8,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/kyu"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
@@ -38,7 +39,7 @@ type Stream struct {
 	App configkit.Identity
 
 	// Types is the set of supported event types.
-	Types message.TypeCollection
+	Types *sets.Set[message.Type]
 
 	// FirstOffset is the first offset that will be kept in this stream.
 	//
@@ -70,7 +71,7 @@ func (s *Stream) Application() configkit.Identity {
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
+func (s *Stream) EventTypes(context.Context) (*sets.Set[message.Type], error) {
 	return s.Types, nil
 }
 
@@ -87,7 +88,7 @@ func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
 func (s *Stream) Open(
 	ctx context.Context,
 	o uint64,
-	f message.TypeCollection,
+	f *sets.Set[message.Type],
 ) (eventstream.Cursor, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()

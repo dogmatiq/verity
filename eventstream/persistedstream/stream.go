@@ -5,6 +5,7 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/persistence"
@@ -17,7 +18,7 @@ type Stream struct {
 	App configkit.Identity
 
 	// Types is the set of supported event types.
-	Types message.TypeCollection
+	Types *sets.Set[message.Type]
 
 	// Repository is the event repository used to load events.
 	Repository persistence.EventRepository
@@ -41,7 +42,7 @@ func (s *Stream) Application() configkit.Identity {
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
-func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
+func (s *Stream) EventTypes(context.Context) (*sets.Set[message.Type], error) {
 	return s.Types, nil
 }
 
@@ -58,7 +59,7 @@ func (s *Stream) EventTypes(context.Context) (message.TypeCollection, error) {
 func (s *Stream) Open(
 	ctx context.Context,
 	o uint64,
-	f message.TypeCollection,
+	f *sets.Set[message.Type],
 ) (eventstream.Cursor, error) {
 	if f.Len() == 0 {
 		panic("at least one event type must be specified")
@@ -69,16 +70,15 @@ func (s *Stream) Open(
 	}
 
 	rf := map[string]struct{}{}
-	f.Range(func(mt message.Type) bool {
+
+	for mt := range f.All() {
 		n, err := s.Marshaler.MarshalType(mt.ReflectType())
 		if err != nil {
 			panic(err)
 		}
 
 		rf[n] = struct{}{}
-
-		return true
-	})
+	}
 
 	consumeCtx, cancelConsume := context.WithCancel(context.Background())
 
