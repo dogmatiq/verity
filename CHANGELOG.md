@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.3.1] - 2024-10-05
+
+### Changed
+
+- Bump `configkit` to v0.16.0, and use `enginekit/message` instead of
+  `configkit/message`, which has been removed.
+
 ## [0.3.0] - 2024-10-03
 
 - Bumped Dogma to v0.15.0, which requires passing validation scopes to each
@@ -135,6 +142,7 @@ optimistic concurrency error.
 [0.2.3]: https://github.com/dogmatiq/verity/releases/tag/v0.2.3
 [0.2.4]: https://github.com/dogmatiq/verity/releases/tag/v0.2.4
 [0.3.0]: https://github.com/dogmatiq/verity/releases/tag/v0.3.0
+[0.3.1]: https://github.com/dogmatiq/verity/releases/tag/v0.3.1
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
