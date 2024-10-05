@@ -7,11 +7,11 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	configapi "github.com/dogmatiq/configkit/api"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/discoverkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/grpc/configgrpc"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/interopspec/discoverspec"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream/networkstream"

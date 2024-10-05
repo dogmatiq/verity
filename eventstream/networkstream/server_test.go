@@ -5,9 +5,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
 	. "github.com/dogmatiq/verity/eventstream/networkstream"

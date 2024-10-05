@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/memorystream"

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/marshaler"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/eventstream"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/configkit/message"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/verity/parcel"
 )
 

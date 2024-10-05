@@ -3,8 +3,8 @@ package handler
 import (
 	"time"
 
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/enginekit/collections/sets"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"

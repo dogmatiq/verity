@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/marshaler"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/persistence"
 )

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/verity/internal/x/loggingx"
 	"github.com/dogmatiq/verity/persistence"
 	"golang.org/x/sync/errgroup"

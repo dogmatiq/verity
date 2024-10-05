@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/configkit"
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/enginekit/collections/sets"
+	"github.com/dogmatiq/enginekit/message"
 )
 
 // A Stream is an ordered sequence of event messages.

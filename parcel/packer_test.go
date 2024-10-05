@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dogmatiq/configkit/message"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/parcel"

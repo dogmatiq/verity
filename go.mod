@@ -5,12 +5,12 @@ go 1.23
 toolchain go1.23.1
 
 require (
-	github.com/dogmatiq/configkit v0.15.0
+	github.com/dogmatiq/configkit v0.16.0
 	github.com/dogmatiq/cosyne v0.2.0
 	github.com/dogmatiq/discoverkit v0.1.2
 	github.com/dogmatiq/dodeca v1.4.2
 	github.com/dogmatiq/dogma v0.15.0
-	github.com/dogmatiq/enginekit v0.16.0
+	github.com/dogmatiq/enginekit v0.16.1
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/interopspec v0.5.4
 	github.com/dogmatiq/kyu v0.2.0
@@ -48,7 +48,7 @@ require (
 	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/tools v0.25.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
