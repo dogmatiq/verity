@@ -6,7 +6,6 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
-	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/interopspec/envelopespec"
@@ -137,7 +136,7 @@ func (p *Packer) new(m dogma.Message) Parcel {
 		panic(err)
 	}
 
-	portableName, err := stubs.Marshaler.MarshalType(mt.ReflectType())
+	portableName, err := p.Marshaler.MarshalType(mt.ReflectType())
 	if err != nil {
 		panic(err)
 	}

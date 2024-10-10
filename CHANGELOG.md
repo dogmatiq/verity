@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## [0.3.3] - 2024-10-10
+
+### Fixed
+
+- Remove erroneous use of stubbed marshaler in `Packer` implementation.
+
 ## [0.3.2] - 2024-10-10
 
 ### Fixed
@@ -151,6 +157,7 @@ optimistic concurrency error.
 [0.3.0]: https://github.com/dogmatiq/verity/releases/tag/v0.3.0
 [0.3.1]: https://github.com/dogmatiq/verity/releases/tag/v0.3.1
 [0.3.2]: https://github.com/dogmatiq/verity/releases/tag/v0.3.2
+[0.3.3]: https://github.com/dogmatiq/verity/releases/tag/v0.3.3
 
 <!-- version template
 ## [0.0.1] - YYYY-MM-DD
