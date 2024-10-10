@@ -175,7 +175,7 @@ func (e *Engine) newCommandExecutor(
 			Produced: sets.NewFromKeys(
 				cfg.
 					MessageTypes().
-					Consumed(message.EventKind),
+					Consumed(message.CommandKind),
 			),
 		},
 	}
