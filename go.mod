@@ -1,7 +1,7 @@
 module github.com/dogmatiq/verity
 
 go 1.23
-toolchain go1.23.1
+toolchain go1.24.1
 
 require (
 	github.com/dogmatiq/configkit v0.16.0
@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/ginkgo/v2 v2.23.0
+	github.com/onsi/ginkgo/v2 v2.23.1
 	github.com/onsi/gomega v1.36.2
 	go.etcd.io/bbolt v1.4.0
 	go.uber.org/multierr v1.11.0
