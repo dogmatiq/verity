@@ -12,7 +12,7 @@ Verity is an event-sourced [Dogma](https://github.com/dogmatiq/dogma)
 
 </div>
 
-This project will be superceded by [Veracity](github.com/dogmatiq/veracity) in
+This project will be superseded by [Veracity](github.com/dogmatiq/veracity) in
 the future.
 
 Its tests depend on the Docker stack provided by
