@@ -47,6 +47,7 @@ func (ds *dataStore) LoadProcessInstance(
 				inst.Revision = pb.GetRevision()
 				inst.Packet.MediaType = pb.GetMediaType()
 				inst.Packet.Data = pb.GetData()
+				inst.HasEnded = pb.GetHasEnded()
 			}
 		},
 	)
@@ -126,6 +127,7 @@ func saveProcessInstance(root *bbolt.Bucket, inst persistence.ProcessInstance) {
 			Revision:  inst.Revision + 1,
 			MediaType: inst.Packet.MediaType,
 			Data:      inst.Packet.Data,
+			HasEnded:  inst.HasEnded,
 		},
 	)
 	bboltx.Must(err)

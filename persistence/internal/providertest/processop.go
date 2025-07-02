@@ -42,6 +42,31 @@ func declareProcessOperationTests(tc *TestContext) {
 					gomega.Expect(inst.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
+				ginkgo.It("persists the has-ended flag", func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: verityfixtures.DefaultHandlerKey,
+								InstanceID: "<instance>",
+								Revision:   0,
+								HasEnded:   true,
+							},
+						},
+					)
+
+					inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
+					gomega.Expect(inst).To(gomega.Equal(
+						persistence.ProcessInstance{
+							HandlerKey: verityfixtures.DefaultHandlerKey,
+							InstanceID: "<instance>",
+							Revision:   1,
+							HasEnded:   true,
+						},
+					))
+				})
+
 				ginkgo.It("does not save the instance when an OCC conflict occurs", func() {
 					op := persistence.SaveProcessInstance{
 						Instance: persistence.ProcessInstance{
@@ -166,6 +191,31 @@ func declareProcessOperationTests(tc *TestContext) {
 							},
 						},
 					)
+				})
+
+				ginkgo.It("persists the has-ended flag", func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: verityfixtures.DefaultHandlerKey,
+								InstanceID: "<instance>",
+								Revision:   1,
+								HasEnded:   true,
+							},
+						},
+					)
+
+					inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
+					gomega.Expect(inst).To(gomega.Equal(
+						persistence.ProcessInstance{
+							HandlerKey: verityfixtures.DefaultHandlerKey,
+							InstanceID: "<instance>",
+							Revision:   2,
+							HasEnded:   true,
+						},
+					))
 				})
 
 				ginkgo.It("removes the timeout messages for the ended instance only", func() {
@@ -527,9 +577,9 @@ func declareProcessOperationTests(tc *TestContext) {
 			i1.Revision++
 
 			var g sync.WaitGroup
-			g.Add(3)
 
 			// create
+			g.Add(1)
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
@@ -551,6 +601,7 @@ func declareProcessOperationTests(tc *TestContext) {
 				Data:      []byte("<data>"),
 			}
 
+			g.Add(1)
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
@@ -566,7 +617,9 @@ func declareProcessOperationTests(tc *TestContext) {
 				i1.Revision++
 			}()
 
-			// remove
+			// end
+			g.Add(1)
+			i0.HasEnded = true
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
@@ -574,10 +627,12 @@ func declareProcessOperationTests(tc *TestContext) {
 				persist(
 					tc.Context,
 					dataStore,
-					persistence.RemoveProcessInstance{
+					persistence.SaveProcessInstance{
 						Instance: i0,
 					},
 				)
+
+				i0.Revision++
 			}()
 
 			g.Wait()
@@ -587,7 +642,8 @@ func declareProcessOperationTests(tc *TestContext) {
 				persistence.ProcessInstance{
 					HandlerKey: "<handler-key-1>",
 					InstanceID: "<instance-a>",
-					Revision:   0,
+					Revision:   2,
+					HasEnded:   true,
 				},
 			))
 

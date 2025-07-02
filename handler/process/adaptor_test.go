@@ -590,7 +590,7 @@ var _ = Describe("type Adaptor", func() {
 			})
 
 			When("the instance is ended", func() {
-				It("removes the process instance", func() {
+				It("removes the instance state and sets the has-ended flag", func() {
 					upstream.HandleEventFunc = func(
 						_ context.Context,
 						_ dogma.ProcessRoot,
@@ -605,15 +605,12 @@ var _ = Describe("type Adaptor", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(work.Operations).To(EqualX(
 						[]persistence.Operation{
-							persistence.RemoveProcessInstance{
+							persistence.SaveProcessInstance{
 								Instance: persistence.ProcessInstance{
 									HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 									InstanceID: "<instance>",
 									Revision:   1,
-									Packet: marshaler.Packet{
-										MediaType: "application/json; type=ProcessRootStub",
-										Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
-									},
+									HasEnded:   true,
 								},
 							},
 						},

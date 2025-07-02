@@ -28,6 +28,7 @@ type ProcessInstance struct {
 	Revision      uint64                 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
 	MediaType     string                 `protobuf:"bytes,2,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
 	Data          []byte                 `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	HasEnded      bool                   `protobuf:"varint,4,opt,name=has_ended,json=hasEnded,proto3" json:"has_ended,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -83,16 +84,24 @@ func (x *ProcessInstance) GetData() []byte {
 	return nil
 }
 
+func (x *ProcessInstance) GetHasEnded() bool {
+	if x != nil {
+		return x.HasEnded
+	}
+	return false
+}
+
 var File_github_com_dogmatiq_verity_persistence_boltpersistence_internal_pb_process_proto protoreflect.FileDescriptor
 
 const file_github_com_dogmatiq_verity_persistence_boltpersistence_internal_pb_process_proto_rawDesc = "" +
 	"\n" +
-	"Pgithub.com/dogmatiq/verity/persistence/boltpersistence/internal/pb/process.proto\x12\x1cverity.persistence.boltdb.v1\"`\n" +
+	"Pgithub.com/dogmatiq/verity/persistence/boltpersistence/internal/pb/process.proto\x12\x1cverity.persistence.boltdb.v1\"}\n" +
 	"\x0fProcessInstance\x12\x1a\n" +
 	"\brevision\x18\x01 \x01(\x04R\brevision\x12\x1d\n" +
 	"\n" +
 	"media_type\x18\x02 \x01(\tR\tmediaType\x12\x12\n" +
-	"\x04data\x18\x03 \x01(\fR\x04dataBDZBgithub.com/dogmatiq/verity/persistence/boltpersistence/internal/pbb\x06proto3"
+	"\x04data\x18\x03 \x01(\fR\x04data\x12\x1b\n" +
+	"\thas_ended\x18\x04 \x01(\bR\bhasEndedBDZBgithub.com/dogmatiq/verity/persistence/boltpersistence/internal/pbb\x06proto3"
 
 var (
 	file_github_com_dogmatiq_verity_persistence_boltpersistence_internal_pb_process_proto_rawDescOnce sync.Once
