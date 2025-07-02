@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
@@ -101,7 +100,7 @@ func declareAggregateOperationTests(tc *TestContext) {
 					gomega.Expect(md.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"it does not save the meta-data when an OCC conflict occurs",
 					func(conflictingRevision int) {
 						// Increment the meta-data once more so that it's up to
@@ -146,9 +145,9 @@ func declareAggregateOperationTests(tc *TestContext) {
 							},
 						))
 					},
-					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("too low", 1),
+					ginkgo.Entry("too high", 100),
 				)
 			})
 

@@ -19,7 +19,6 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/jmalloc/gomegax v0.0.0-20200507221434-64fca4c0e03a
-	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	go.etcd.io/bbolt v1.4.1

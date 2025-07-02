@@ -5,7 +5,6 @@ import (
 
 	"github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
@@ -89,7 +88,7 @@ func declareOffsetOperationTests(tc *TestContext) {
 					gomega.Expect(actual).To(gomega.BeEquivalentTo(123))
 				})
 
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"it does not update the offset when an OCC conflict occurs",
 					func(conflictingOffset int) {
 						op := persistence.SaveOffset{
@@ -111,9 +110,9 @@ func declareOffsetOperationTests(tc *TestContext) {
 						actual := loadOffset(tc.Context, dataStore, fixtures.DefaultAppKey)
 						gomega.Expect(actual).To(gomega.BeEquivalentTo(5))
 					},
-					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("too low", 1),
+					ginkgo.Entry("too high", 100),
 				)
 			})
 

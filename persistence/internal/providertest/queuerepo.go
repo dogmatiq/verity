@@ -8,7 +8,6 @@ import (
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
-	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
@@ -63,7 +62,7 @@ func declareQueueRepositoryTests(tc *TestContext) {
 				gomega.Expect(messages).To(gomega.BeEmpty())
 			})
 
-			table.DescribeTable(
+			ginkgo.DescribeTable(
 				"it returns messages from the queue, ordered by their next attempt time",
 				func(n int, pointers ...*persistence.QueueMessage) {
 					persist(
@@ -92,17 +91,17 @@ func declareQueueRepositoryTests(tc *TestContext) {
 					messages := loadQueueMessages(tc.Context, dataStore, n)
 					gomega.Expect(messages).To(gomegax.EqualX(expected))
 				},
-				table.Entry(
+				ginkgo.Entry(
 					"it returns all the messages if the limit is equal the length of the queue",
 					3,
 					&message1, &message2, &message0,
 				),
-				table.Entry(
+				ginkgo.Entry(
 					"it returns all the messages if the limit is larger than the length of the queue",
 					10,
 					&message1, &message2, &message0,
 				),
-				table.Entry(
+				ginkgo.Entry(
 					"it returns the messages with the earliest next-attempt times if the limit is less than the length of the queue",
 					2,
 					&message1, &message2,

@@ -9,7 +9,6 @@ import (
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
-	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"google.golang.org/protobuf/proto"
@@ -154,7 +153,7 @@ func declareQueueOperationTests(tc *TestContext) {
 					)
 				})
 
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"it does not update the message when an OCC conflict occurs",
 					func(conflictingRevision int) {
 						// Update the message once more so that it's up to
@@ -199,9 +198,9 @@ func declareQueueOperationTests(tc *TestContext) {
 							},
 						))
 					},
-					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("too low", 1),
+					ginkgo.Entry("too high", 100),
 				)
 			})
 
@@ -371,7 +370,7 @@ func declareQueueOperationTests(tc *TestContext) {
 					gomega.Expect(messages[1].Envelope).To(gomegax.EqualX(env2))
 				})
 
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"it does not remove the message when an OCC conflict occurs",
 					func(conflictingRevision int) {
 						// Update the message once more so that it's up to
@@ -416,14 +415,14 @@ func declareQueueOperationTests(tc *TestContext) {
 							},
 						))
 					},
-					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("too low", 1),
+					ginkgo.Entry("too high", 100),
 				)
 			})
 
 			ginkgo.When("the message is not on the queue", func() {
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"returns an OCC conflict error",
 					func(conflictingRevision int) {
 						op := persistence.RemoveQueueMessage{
@@ -450,8 +449,8 @@ func declareQueueOperationTests(tc *TestContext) {
 							"removal of non-existent message caused it to exist",
 						)
 					},
-					table.Entry("zero", 0),
-					table.Entry("non-zero", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("non-zero", 100),
 				)
 			})
 		})

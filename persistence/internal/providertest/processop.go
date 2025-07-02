@@ -8,7 +8,6 @@ import (
 	"github.com/dogmatiq/enginekit/marshaler"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
-	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
@@ -104,7 +103,7 @@ func declareProcessOperationTests(tc *TestContext) {
 					gomega.Expect(inst.Revision).To(gomega.BeEquivalentTo(2))
 				})
 
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"it does not save the instance when an OCC conflict occurs",
 					func(conflictingRevision int) {
 						// Increment the instance once more so that it's up to
@@ -149,9 +148,9 @@ func declareProcessOperationTests(tc *TestContext) {
 							},
 						))
 					},
-					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("too low", 1),
+					ginkgo.Entry("too high", 100),
 				)
 			})
 		})
@@ -265,7 +264,7 @@ func declareProcessOperationTests(tc *TestContext) {
 					gomega.Expect(messages[0].ID()).To(gomega.Equal("<message-1>"))
 				})
 
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"it does not remove the instance when an OCC conflict occurs",
 					func(conflictingRevision int) {
 						// Update the instance once more so that it's up to
@@ -310,14 +309,14 @@ func declareProcessOperationTests(tc *TestContext) {
 							},
 						))
 					},
-					table.Entry("zero", 0),
-					table.Entry("too low", 1),
-					table.Entry("too high", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("too low", 1),
+					ginkgo.Entry("too high", 100),
 				)
 			})
 
 			ginkgo.When("the instance does not exist", func() {
-				table.DescribeTable(
+				ginkgo.DescribeTable(
 					"returns an OCC conflict error",
 					func(conflictingRevision int) {
 						op := persistence.RemoveProcessInstance{
@@ -344,8 +343,8 @@ func declareProcessOperationTests(tc *TestContext) {
 							"removal of non-existent process instance caused it to exist",
 						)
 					},
-					table.Entry("zero", 0),
-					table.Entry("non-zero", 100),
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("non-zero", 100),
 				)
 			})
 		})
