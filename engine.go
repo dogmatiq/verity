@@ -75,7 +75,7 @@ func (e *Engine) ExecuteCommand(
 		return x.ExecuteCommand(ctx, m, options...)
 	}
 
-	return fmt.Errorf("no application accepts %s commands", mt)
+	panic(fmt.Sprintf("no application accepts %s commands", mt))
 }
 
 // Run hosts the given application until ctx is canceled or an error occurs.

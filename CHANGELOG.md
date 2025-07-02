@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog], and this project adheres to
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## Unreleased
+
+### Fixed
+
+- `Engine.ExecuteCommand()` now panics when passed an unrecognized command type
+
 ## [0.3.3] - 2024-10-10
 
 ### Fixed
