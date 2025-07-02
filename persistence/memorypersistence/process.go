@@ -72,7 +72,14 @@ func (c *committer) VisitSaveProcessInstance(
 	ctx context.Context,
 	op persistence.SaveProcessInstance,
 ) error {
-	c.db.process.save(op.Instance)
+	inst := op.Instance
+	c.db.process.save(inst)
+
+	if inst.HasEnded {
+		key := instanceKey{inst.HandlerKey, inst.InstanceID}
+		c.db.queue.removeTimeoutsByProcessInstance(key)
+	}
+
 	return nil
 }
 

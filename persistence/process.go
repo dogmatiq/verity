@@ -20,6 +20,9 @@ type ProcessInstance struct {
 
 	// Packet contains the binary representation of the process state.
 	Packet marshaler.Packet
+
+	// HasEnded flags the process as having ended.
+	HasEnded bool
 }
 
 // ProcessRepository is an interface for reading process state.

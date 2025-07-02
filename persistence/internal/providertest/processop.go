@@ -153,6 +153,90 @@ func declareProcessOperationTests(tc *TestContext) {
 					ginkgo.Entry("too high", 100),
 				)
 			})
+
+			ginkgo.When("the instance ends", func() {
+				ginkgo.BeforeEach(func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: verityfixtures.DefaultHandlerKey,
+								InstanceID: "<instance>",
+							},
+						},
+					)
+				})
+
+				ginkgo.It("removes the timeout messages for the ended instance only", func() {
+					now := time.Now()
+
+					m0 := persistence.QueueMessage{
+						NextAttemptAt: now,
+						Envelope: verityfixtures.NewEnvelope(
+							"<message-0>",
+							stubs.TimeoutT1,
+							now,
+							now,
+						),
+					}
+
+					m1 := persistence.QueueMessage{
+						NextAttemptAt: now.Add(1 * time.Hour),
+						Envelope: verityfixtures.NewEnvelope(
+							"<message-1>",
+							stubs.TimeoutT1,
+							now,
+							now,
+						),
+					}
+					m1.Envelope.SourceInstanceId = "<other-instance>"
+
+					m2 := persistence.QueueMessage{
+						NextAttemptAt: now.Add(2 * time.Hour),
+						Envelope: verityfixtures.NewEnvelope(
+							"<message-2>",
+							stubs.TimeoutT1,
+							now,
+							now,
+						),
+					}
+
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveQueueMessage{
+							Message: m0,
+						},
+						persistence.SaveQueueMessage{
+							Message: m1,
+						},
+						persistence.SaveQueueMessage{
+							Message: m2,
+						},
+					)
+					m0.Revision++
+					m1.Revision++
+					m2.Revision++
+
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: verityfixtures.DefaultHandlerKey,
+								InstanceID: "<instance>",
+								Revision:   1,
+								HasEnded:   true,
+							},
+						},
+					)
+
+					messages := loadQueueMessages(tc.Context, dataStore, 3)
+					gomega.Expect(messages).To(gomega.HaveLen(1))
+					gomega.Expect(messages[0].ID()).To(gomega.Equal("<message-1>"))
+				})
+			})
 		})
 
 		ginkgo.Describe("type persistence.RemoveProcessInstance", func() {

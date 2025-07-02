@@ -75,6 +75,13 @@ func (c *committer) VisitSaveProcessInstance(
 
 	saveProcessInstance(c.root, op.Instance)
 
+	if op.Instance.HasEnded {
+		c.removeTimeoutsByProcessInstance(
+			op.Instance.HandlerKey,
+			op.Instance.InstanceID,
+		)
+	}
+
 	return nil
 }
 

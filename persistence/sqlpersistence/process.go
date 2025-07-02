@@ -83,13 +83,25 @@ func (c *committer) VisitSaveProcessInstance(
 		c.appKey,
 		op.Instance,
 	)
-	if ok || err != nil {
+	if err != nil {
 		return err
 	}
-
-	return persistence.ConflictError{
-		Cause: op,
+	if !ok {
+		return persistence.ConflictError{
+			Cause: op,
+		}
 	}
+
+	if !op.Instance.HasEnded {
+		return nil
+	}
+
+	return c.driver.DeleteQueueTimeoutMessagesByProcessInstance(
+		ctx,
+		c.tx,
+		c.appKey,
+		op.Instance,
+	)
 }
 
 // VisitRemoveProcessInstance applies the changes in a "RemoveProcessInstance"
