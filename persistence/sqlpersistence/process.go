@@ -92,34 +92,3 @@ func (c *committer) VisitSaveProcessInstance(
 		op.Instance,
 	)
 }
-
-// VisitRemoveProcessInstance applies the changes in a "RemoveProcessInstance"
-// operation to the database.
-func (c *committer) VisitRemoveProcessInstance(
-	ctx context.Context,
-	op persistence.RemoveProcessInstance,
-) error {
-	ok, err := c.driver.DeleteProcessInstance(
-		ctx,
-		c.tx,
-		c.appKey,
-		op.Instance,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return persistence.ConflictError{
-			Cause: op,
-		}
-	}
-
-	return c.driver.DeleteQueueTimeoutMessagesByProcessInstance(
-		ctx,
-		c.tx,
-		c.appKey,
-		op.Instance,
-	)
-}

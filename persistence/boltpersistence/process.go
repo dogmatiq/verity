@@ -86,39 +86,6 @@ func (c *committer) VisitSaveProcessInstance(
 	return nil
 }
 
-// VisitRemoveProcessInstance applies the changes in a "RemoveProcessInstance"
-// operation to the database.
-func (c *committer) VisitRemoveProcessInstance(
-	ctx context.Context,
-	op persistence.RemoveProcessInstance,
-) error {
-	existing := loadProcessInstance(
-		c.root,
-		op.Instance.HandlerKey,
-		op.Instance.InstanceID,
-	)
-
-	if existing == nil || op.Instance.Revision != existing.GetRevision() {
-		return persistence.ConflictError{
-			Cause: op,
-		}
-	}
-
-	bboltx.DeletePath(
-		c.root,
-		processBucketKey,
-		[]byte(op.Instance.HandlerKey),
-		[]byte(op.Instance.InstanceID),
-	)
-
-	c.removeTimeoutsByProcessInstance(
-		op.Instance.HandlerKey,
-		op.Instance.InstanceID,
-	)
-
-	return nil
-}
-
 // saveProcessInstance saves a process instance to b. inst.Revision is
 // incremented before saving.
 func saveProcessInstance(root *bbolt.Bucket, inst persistence.ProcessInstance) {

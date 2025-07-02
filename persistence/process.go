@@ -55,24 +55,3 @@ func (op SaveProcessInstance) AcceptVisitor(ctx context.Context, v OperationVisi
 func (op SaveProcessInstance) entityKey() entityKey {
 	return entityKey{"handler", op.Instance.HandlerKey, op.Instance.InstanceID}
 }
-
-// RemoveProcessInstance is an Operation that removes a process instance.
-//
-// The instance's pending timeout messages are removed from the message queue.
-type RemoveProcessInstance struct {
-	// Instance is the instance to remove.
-	//
-	// Instance.Revision must be the revision of the process instance as
-	// currently persisted, otherwise an optimistic concurrency conflict occurs
-	// and the entire batch of operations is rejected.
-	Instance ProcessInstance
-}
-
-// AcceptVisitor calls v.VisitRemoveProcessInstance().
-func (op RemoveProcessInstance) AcceptVisitor(ctx context.Context, v OperationVisitor) error {
-	return v.VisitRemoveProcessInstance(ctx, op)
-}
-
-func (op RemoveProcessInstance) entityKey() entityKey {
-	return entityKey{"handler", op.Instance.HandlerKey, op.Instance.InstanceID}
-}

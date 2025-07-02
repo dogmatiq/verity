@@ -40,7 +40,6 @@ type OperationVisitor interface {
 	VisitSaveAggregateMetaData(context.Context, SaveAggregateMetaData) error
 	VisitSaveEvent(context.Context, SaveEvent) error
 	VisitSaveProcessInstance(context.Context, SaveProcessInstance) error
-	VisitRemoveProcessInstance(context.Context, RemoveProcessInstance) error
 	VisitSaveQueueMessage(context.Context, SaveQueueMessage) error
 	VisitRemoveQueueMessage(context.Context, RemoveQueueMessage) error
 	VisitSaveOffset(context.Context, SaveOffset) error

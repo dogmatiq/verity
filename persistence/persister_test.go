@@ -23,7 +23,6 @@ var _ = Describe("type Operation (interface)", func() {
 			Entry("type SaveAggregateMetaData", SaveAggregateMetaData{}, "SaveAggregateMetaData"),
 			Entry("type SaveEvent", SaveEvent{}, "SaveEvent"),
 			Entry("type SaveProcessInstance", SaveProcessInstance{}, "SaveProcessInstance"),
-			Entry("type RemoveProcessInstance", RemoveProcessInstance{}, "RemoveProcessInstance"),
 			Entry("type SaveQueueMessage", SaveQueueMessage{}, "SaveQueueMessage"),
 			Entry("type RemoveQueueMessage", RemoveQueueMessage{}, "RemoveQueueMessage"),
 			Entry("type SaveOffset", SaveOffset{}, "SaveOffset"),
@@ -87,12 +86,6 @@ var _ = Describe("type Batch", func() {
 					Instance: ProcessInstance{
 						HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 						InstanceID: "<instance-a>",
-					},
-				},
-				RemoveProcessInstance{
-					Instance: ProcessInstance{
-						HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
-						InstanceID: "<instance-b>",
 					},
 				},
 				SaveOffset{
@@ -181,11 +174,6 @@ func (v *visitor) VisitSaveProcessInstance(_ context.Context, op SaveProcessInst
 	return nil
 }
 
-func (v *visitor) VisitRemoveProcessInstance(_ context.Context, op RemoveProcessInstance) error {
-	v.operations = append(v.operations, op)
-	return nil
-}
-
 func (v *visitor) VisitSaveQueueMessage(_ context.Context, op SaveQueueMessage) error {
 	v.operations = append(v.operations, op)
 	return nil
@@ -213,10 +201,6 @@ func (errorVisitor) VisitSaveEvent(_ context.Context, op SaveEvent) error {
 
 func (errorVisitor) VisitSaveProcessInstance(_ context.Context, op SaveProcessInstance) error {
 	return errors.New("SaveProcessInstance")
-}
-
-func (errorVisitor) VisitRemoveProcessInstance(_ context.Context, op RemoveProcessInstance) error {
-	return errors.New("RemoveProcessInstance")
 }
 
 func (errorVisitor) VisitSaveQueueMessage(_ context.Context, op SaveQueueMessage) error {
