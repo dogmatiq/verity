@@ -73,32 +73,6 @@ func (driver) UpdateProcessInstance(
 	), nil
 }
 
-// DeleteProcessInstance deletes a process instance.
-//
-// It returns false if the row does not exist or inst.Revision is not current.
-func (driver) DeleteProcessInstance(
-	ctx context.Context,
-	tx *sql.Tx,
-	ak string,
-	inst persistence.ProcessInstance,
-) (_ bool, err error) {
-	defer sqlx.Recover(&err)
-
-	return sqlx.TryExecRow(
-		ctx,
-		tx,
-		`DELETE FROM verity.process_instance
-		WHERE app_key = $1
-		AND handler_key = $2
-		AND instance_id = $3
-		AND revision = $4`,
-		ak,
-		inst.HandlerKey,
-		inst.InstanceID,
-		inst.Revision,
-	), nil
-}
-
 // SelectProcessInstance selects a process instance's data.
 func (driver) SelectProcessInstance(
 	ctx context.Context,

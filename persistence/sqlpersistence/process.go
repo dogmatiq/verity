@@ -31,17 +31,6 @@ type ProcessDriver interface {
 		inst persistence.ProcessInstance,
 	) (bool, error)
 
-	// DeleteProcessInstance deletes a process instance.
-	//
-	// It returns false if the row does not exist or inst.Revision is not
-	// current.
-	DeleteProcessInstance(
-		ctx context.Context,
-		tx *sql.Tx,
-		ak string,
-		inst persistence.ProcessInstance,
-	) (bool, error)
-
 	// SelectProcessInstance selects a process instance's data.
 	SelectProcessInstance(
 		ctx context.Context,

@@ -244,16 +244,6 @@ func (d errorConverter) UpdateProcessInstance(
 	return ok, convertContextErrors(ctx, err)
 }
 
-func (d errorConverter) DeleteProcessInstance(
-	ctx context.Context,
-	tx *sql.Tx,
-	ak string,
-	inst persistence.ProcessInstance,
-) (bool, error) {
-	ok, err := d.d.DeleteProcessInstance(ctx, tx, ak, inst)
-	return ok, convertContextErrors(ctx, err)
-}
-
 func (d errorConverter) SelectProcessInstance(
 	ctx context.Context,
 	db *sql.DB,
