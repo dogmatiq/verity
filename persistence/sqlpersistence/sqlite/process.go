@@ -134,10 +134,6 @@ func (driver) SelectProcessInstance(
 		err = nil
 	}
 
-	// if len(inst.Packet.Data) == 0 {
-	// 	inst.Packet.Data = nil
-	// }
-
 	return inst, err
 }
 
