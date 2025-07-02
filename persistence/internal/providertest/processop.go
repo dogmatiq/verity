@@ -236,6 +236,67 @@ func declareProcessOperationTests(tc *TestContext) {
 					gomega.Expect(messages).To(gomega.HaveLen(1))
 					gomega.Expect(messages[0].ID()).To(gomega.Equal("<message-1>"))
 				})
+
+				ginkgo.DescribeTable(
+					"it does not remove the timeout messages when an OCC conflict occurs",
+					func(conflictingRevision int) {
+						now := time.Now()
+
+						m := persistence.QueueMessage{
+							NextAttemptAt: now,
+							Envelope: verityfixtures.NewEnvelope(
+								"<message>",
+								stubs.TimeoutT1,
+								now,
+								now,
+							),
+						}
+
+						// Update the instance once more so that it's up to
+						// revision 2. Otherwise we can't test for 1 as a
+						// too-low value.
+						persist(
+							tc.Context,
+							dataStore,
+							persistence.SaveProcessInstance{
+								Instance: persistence.ProcessInstance{
+									HandlerKey: verityfixtures.DefaultHandlerKey,
+									InstanceID: "<instance>",
+									Revision:   1,
+								},
+							},
+							persistence.SaveQueueMessage{
+								Message: m,
+							},
+						)
+
+						op := persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: verityfixtures.DefaultHandlerKey,
+								InstanceID: "<instance>",
+								Revision:   uint64(conflictingRevision),
+								HasEnded:   true,
+							},
+						}
+
+						_, err := dataStore.Persist(
+							tc.Context,
+							persistence.Batch{op},
+						)
+						gomega.Expect(err).To(gomega.Equal(
+							persistence.ConflictError{
+								Cause: op,
+							},
+						))
+
+						messages := loadQueueMessages(tc.Context, dataStore, 3)
+						gomega.Expect(messages).To(gomega.HaveLen(1))
+						gomega.Expect(messages[0].ID()).To(gomega.Equal("<message>"))
+					},
+					ginkgo.Entry("zero", 0),
+					ginkgo.Entry("too low", 1),
+					ginkgo.Entry("too high", 100),
+				)
 			})
 		})
 
