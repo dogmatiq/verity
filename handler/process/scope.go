@@ -1,10 +1,12 @@
 package process
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/internal/mlog"
@@ -46,7 +48,10 @@ func (s *scope) ExecuteCommand(m dogma.Command) {
 		s.instanceID,
 	)
 
-	s.ended = false
+	if s.ended {
+		panic(fmt.Sprintf("executed a command of type %s on an ended process", message.TypeOf(m)))
+	}
+
 	s.work.ExecuteCommand(p)
 
 	mlog.LogProduce(s.logger, p.Envelope)
@@ -63,7 +68,10 @@ func (s *scope) ScheduleTimeout(m dogma.Timeout, t time.Time) {
 		s.instanceID,
 	)
 
-	s.ended = false
+	if s.ended {
+		panic(fmt.Sprintf("scheduled a timeout of type %s on an ended process", message.TypeOf(m)))
+	}
+
 	s.timeouts = append(s.timeouts, p)
 
 	mlog.LogProduce(s.logger, p.Envelope)

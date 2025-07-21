@@ -96,6 +96,7 @@ func (a *Adaptor) HandleMessage(
 		packer:     a.Packer,
 		logger:     a.Logger,
 		instanceID: inst.InstanceID,
+		ended:      inst.HasEnded,
 	}
 
 	if err := a.handle(ctx, inst.Root, sc, p); err != nil {

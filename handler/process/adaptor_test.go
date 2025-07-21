@@ -329,35 +329,23 @@ var _ = Describe("type Adaptor", func() {
 				))
 			})
 
-			It("reverts a prior call to End()", func() {
+			It("panics if the process has ended", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
-					r dogma.ProcessRoot,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					r.(*ProcessRootStub).Value = "<value>"
 					s.End()
 					s.ExecuteCommand(CommandC1)
 					return nil
 				}
 
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				Expect(work.Operations).To(EqualX(
-					[]persistence.Operation{
-						persistence.SaveProcessInstance{
-							Instance: persistence.ProcessInstance{
-								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
-								InstanceID: "<instance>",
-								Packet: marshaler.Packet{
-									MediaType: "application/json; type=ProcessRootStub",
-									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
-								},
-							},
-						},
-					},
+				Expect(func() {
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+				}).To(PanicWith(
+					Equal("executed a command of type stubs.CommandStub[TypeC] on an ended process"),
 				))
 			})
 		})
@@ -425,35 +413,23 @@ var _ = Describe("type Adaptor", func() {
 				))
 			})
 
-			It("reverts a prior call to End()", func() {
+			It("panics if the process has ended", func() {
 				upstream.HandleEventFunc = func(
 					_ context.Context,
-					r dogma.ProcessRoot,
+					_ dogma.ProcessRoot,
 					s dogma.ProcessEventScope,
 					_ dogma.Event,
 				) error {
-					r.(*ProcessRootStub).Value = "<value>"
 					s.End()
 					s.ScheduleTimeout(TimeoutT1, time.Now())
 					return nil
 				}
 
-				err := adaptor.HandleMessage(ctx, work, cause)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				Expect(work.Operations).To(EqualX(
-					[]persistence.Operation{
-						persistence.SaveProcessInstance{
-							Instance: persistence.ProcessInstance{
-								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
-								InstanceID: "<instance>",
-								Packet: marshaler.Packet{
-									MediaType: "application/json; type=ProcessRootStub",
-									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
-								},
-							},
-						},
-					},
+				Expect(func() {
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+				}).To(PanicWith(
+					Equal("scheduled a timeout of type stubs.TimeoutStub[TypeT] on an ended process"),
 				))
 			})
 		})
