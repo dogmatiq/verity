@@ -27,7 +27,8 @@ func (driver) InsertProcessInstance(
 			handler_key = ?,
 			instance_id = ?,
 			media_type = ?,
-			data = ?
+			data = ?,
+			has_ended = ?
 		ON DUPLICATE KEY UPDATE
 			app_key = app_key`, // do nothing
 		ak,
@@ -35,6 +36,7 @@ func (driver) InsertProcessInstance(
 		inst.InstanceID,
 		inst.Packet.MediaType,
 		inst.Packet.Data,
+		inst.HasEnded,
 	), nil
 }
 
@@ -55,39 +57,15 @@ func (driver) UpdateProcessInstance(
 		`UPDATE process_instance SET
 			revision = revision + 1,
 			media_type = ?,
-			data = ?
+			data = ?,
+			has_ended = ?
 		WHERE app_key = ?
 		AND handler_key = ?
 		AND instance_id = ?
 		AND revision = ?`,
 		inst.Packet.MediaType,
 		inst.Packet.Data,
-		ak,
-		inst.HandlerKey,
-		inst.InstanceID,
-		inst.Revision,
-	), nil
-}
-
-// DeleteProcessInstance deletes a process instance.
-//
-// It returns false if the row does not exist or inst.Revision is not current.
-func (driver) DeleteProcessInstance(
-	ctx context.Context,
-	tx *sql.Tx,
-	ak string,
-	inst persistence.ProcessInstance,
-) (_ bool, err error) {
-	defer sqlx.Recover(&err)
-
-	return sqlx.TryExecRow(
-		ctx,
-		tx,
-		`DELETE FROM process_instance
-		WHERE app_key = ?
-		AND handler_key = ?
-		AND instance_id = ?
-		AND revision = ?`,
+		inst.HasEnded,
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
@@ -106,7 +84,8 @@ func (driver) SelectProcessInstance(
 		`SELECT
 			revision,
 			media_type,
-			data
+			data,
+			has_ended
 		FROM process_instance
 		WHERE app_key = ?
 		AND handler_key = ?
@@ -125,6 +104,7 @@ func (driver) SelectProcessInstance(
 		&inst.Revision,
 		&inst.Packet.MediaType,
 		&inst.Packet.Data,
+		&inst.HasEnded,
 	)
 	if err == sql.ErrNoRows {
 		err = nil
@@ -145,6 +125,7 @@ func createProcessSchema(ctx context.Context, db *sql.DB) {
 			revision    BIGINT NOT NULL DEFAULT 1,
 			media_type  VARBINARY(255) NOT NULL,
 			data        LONGBLOB,
+			has_ended   TINYINT(1) NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		) ENGINE=InnoDB`,

@@ -31,17 +31,6 @@ type ProcessDriver interface {
 		inst persistence.ProcessInstance,
 	) (bool, error)
 
-	// DeleteProcessInstance deletes a process instance.
-	//
-	// It returns false if the row does not exist or inst.Revision is not
-	// current.
-	DeleteProcessInstance(
-		ctx context.Context,
-		tx *sql.Tx,
-		ak string,
-		inst persistence.ProcessInstance,
-	) (bool, error)
-
 	// SelectProcessInstance selects a process instance's data.
 	SelectProcessInstance(
 		ctx context.Context,
@@ -83,36 +72,17 @@ func (c *committer) VisitSaveProcessInstance(
 		c.appKey,
 		op.Instance,
 	)
-	if ok || err != nil {
-		return err
-	}
-
-	return persistence.ConflictError{
-		Cause: op,
-	}
-}
-
-// VisitRemoveProcessInstance applies the changes in a "RemoveProcessInstance"
-// operation to the database.
-func (c *committer) VisitRemoveProcessInstance(
-	ctx context.Context,
-	op persistence.RemoveProcessInstance,
-) error {
-	ok, err := c.driver.DeleteProcessInstance(
-		ctx,
-		c.tx,
-		c.appKey,
-		op.Instance,
-	)
-
 	if err != nil {
 		return err
 	}
-
 	if !ok {
 		return persistence.ConflictError{
 			Cause: op,
 		}
+	}
+
+	if !op.Instance.HasEnded {
+		return nil
 	}
 
 	return c.driver.DeleteQueueTimeoutMessagesByProcessInstance(

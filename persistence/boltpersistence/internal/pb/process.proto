@@ -9,4 +9,5 @@ message ProcessInstance{
   uint64 revision = 1;
   string media_type = 2;
   bytes data = 3;
+  bool has_ended = 4;
 }

@@ -27,15 +27,17 @@ func (driver) InsertProcessInstance(
 			handler_key,
 			instance_id,
 			media_type,
-			data
+			data,
+			has_ended
 		) VALUES (
-			$1, $2, $3, $4, $5
+			$1, $2, $3, $4, $5, $6
 		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
 		inst.Packet.MediaType,
 		inst.Packet.Data,
+		inst.HasEnded,
 	)
 
 	n, err := res.RowsAffected()
@@ -59,39 +61,15 @@ func (driver) UpdateProcessInstance(
 		`UPDATE process_instance SET
 			revision = revision + 1,
 			media_type = $1,
-			data = $2
-		WHERE app_key = $3
-		AND handler_key = $4
-		AND instance_id = $5
-		AND revision = $6`,
+			data = $2,
+			has_ended = $3
+		WHERE app_key = $4
+		AND handler_key = $5
+		AND instance_id = $6
+		AND revision = $7`,
 		inst.Packet.MediaType,
 		inst.Packet.Data,
-		ak,
-		inst.HandlerKey,
-		inst.InstanceID,
-		inst.Revision,
-	), nil
-}
-
-// DeleteProcessInstance deletes a process instance.
-//
-// It returns false if the row does not exist or inst.Revision is not current.
-func (driver) DeleteProcessInstance(
-	ctx context.Context,
-	tx *sql.Tx,
-	ak string,
-	inst persistence.ProcessInstance,
-) (_ bool, err error) {
-	defer sqlx.Recover(&err)
-
-	return sqlx.TryExecRow(
-		ctx,
-		tx,
-		`DELETE FROM process_instance
-		WHERE app_key = $1
-		AND handler_key = $2
-		AND instance_id = $3
-		AND revision = $4`,
+		inst.HasEnded,
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
@@ -110,7 +88,8 @@ func (driver) SelectProcessInstance(
 		`SELECT
 			revision,
 			media_type,
-			data
+			data,
+			has_ended
 		FROM process_instance
 		WHERE app_key = $1
 		AND handler_key = $2
@@ -129,6 +108,7 @@ func (driver) SelectProcessInstance(
 		&inst.Revision,
 		&inst.Packet.MediaType,
 		&inst.Packet.Data,
+		&inst.HasEnded,
 	)
 	if err == sql.ErrNoRows {
 		err = nil
@@ -149,6 +129,7 @@ func createProcessSchema(ctx context.Context, db *sql.DB) {
 			revision    INTEGER NOT NULL DEFAULT 1,
 			media_type  TEXT NOT NULL,
 			data        BLOB,
+			has_ended   BOOLEAN NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		)`,

@@ -42,6 +42,31 @@ func declareProcessOperationTests(tc *TestContext) {
 					gomega.Expect(inst.Revision).To(gomega.BeEquivalentTo(1))
 				})
 
+				ginkgo.It("persists the has-ended flag", func() {
+					persist(
+						tc.Context,
+						dataStore,
+						persistence.SaveProcessInstance{
+							Instance: persistence.ProcessInstance{
+								HandlerKey: verityfixtures.DefaultHandlerKey,
+								InstanceID: "<instance>",
+								Revision:   0,
+								HasEnded:   true,
+							},
+						},
+					)
+
+					inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
+					gomega.Expect(inst).To(gomega.Equal(
+						persistence.ProcessInstance{
+							HandlerKey: verityfixtures.DefaultHandlerKey,
+							InstanceID: "<instance>",
+							Revision:   1,
+							HasEnded:   true,
+						},
+					))
+				})
+
 				ginkgo.It("does not save the instance when an OCC conflict occurs", func() {
 					op := persistence.SaveProcessInstance{
 						Instance: persistence.ProcessInstance{
@@ -153,10 +178,8 @@ func declareProcessOperationTests(tc *TestContext) {
 					ginkgo.Entry("too high", 100),
 				)
 			})
-		})
 
-		ginkgo.Describe("type persistence.RemoveProcessInstance", func() {
-			ginkgo.When("the instance exists", func() {
+			ginkgo.When("the instance ends", func() {
 				ginkgo.BeforeEach(func() {
 					persist(
 						tc.Context,
@@ -165,24 +188,21 @@ func declareProcessOperationTests(tc *TestContext) {
 							Instance: persistence.ProcessInstance{
 								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
-								Packet: marshaler.Packet{
-									MediaType: "<media-type>",
-									Data:      []byte("<data>"),
-								},
 							},
 						},
 					)
 				})
 
-				ginkgo.It("removes the instance", func() {
+				ginkgo.It("persists the has-ended flag", func() {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.RemoveProcessInstance{
+						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
 								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
+								HasEnded:   true,
 							},
 						},
 					)
@@ -192,11 +212,13 @@ func declareProcessOperationTests(tc *TestContext) {
 						persistence.ProcessInstance{
 							HandlerKey: verityfixtures.DefaultHandlerKey,
 							InstanceID: "<instance>",
+							Revision:   2,
+							HasEnded:   true,
 						},
 					))
 				})
 
-				ginkgo.It("removes the timeout messages for the removed instance only", func() {
+				ginkgo.It("removes the timeout messages for the ended instance only", func() {
 					now := time.Now()
 
 					m0 := persistence.QueueMessage{
@@ -250,11 +272,12 @@ func declareProcessOperationTests(tc *TestContext) {
 					persist(
 						tc.Context,
 						dataStore,
-						persistence.RemoveProcessInstance{
+						persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
 								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
+								HasEnded:   true,
 							},
 						},
 					)
@@ -265,8 +288,20 @@ func declareProcessOperationTests(tc *TestContext) {
 				})
 
 				ginkgo.DescribeTable(
-					"it does not remove the instance when an OCC conflict occurs",
+					"it does not remove the timeout messages when an OCC conflict occurs",
 					func(conflictingRevision int) {
+						now := time.Now()
+
+						m := persistence.QueueMessage{
+							NextAttemptAt: now,
+							Envelope: verityfixtures.NewEnvelope(
+								"<message>",
+								stubs.TimeoutT1,
+								now,
+								now,
+							),
+						}
+
 						// Update the instance once more so that it's up to
 						// revision 2. Otherwise we can't test for 1 as a
 						// too-low value.
@@ -280,13 +315,17 @@ func declareProcessOperationTests(tc *TestContext) {
 									Revision:   1,
 								},
 							},
+							persistence.SaveQueueMessage{
+								Message: m,
+							},
 						)
 
-						op := persistence.RemoveProcessInstance{
+						op := persistence.SaveProcessInstance{
 							Instance: persistence.ProcessInstance{
 								HandlerKey: verityfixtures.DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   uint64(conflictingRevision),
+								HasEnded:   true,
 							},
 						}
 
@@ -300,51 +339,13 @@ func declareProcessOperationTests(tc *TestContext) {
 							},
 						))
 
-						inst := loadProcessInstance(tc.Context, dataStore, verityfixtures.DefaultHandlerKey, "<instance>")
-						gomega.Expect(inst).To(gomega.Equal(
-							persistence.ProcessInstance{
-								HandlerKey: verityfixtures.DefaultHandlerKey,
-								InstanceID: "<instance>",
-								Revision:   2,
-							},
-						))
+						messages := loadQueueMessages(tc.Context, dataStore, 3)
+						gomega.Expect(messages).To(gomega.HaveLen(1))
+						gomega.Expect(messages[0].ID()).To(gomega.Equal("<message>"))
 					},
 					ginkgo.Entry("zero", 0),
 					ginkgo.Entry("too low", 1),
 					ginkgo.Entry("too high", 100),
-				)
-			})
-
-			ginkgo.When("the instance does not exist", func() {
-				ginkgo.DescribeTable(
-					"returns an OCC conflict error",
-					func(conflictingRevision int) {
-						op := persistence.RemoveProcessInstance{
-							Instance: persistence.ProcessInstance{
-								HandlerKey: verityfixtures.DefaultHandlerKey,
-								InstanceID: "<instance>",
-								Revision:   uint64(conflictingRevision),
-							},
-						}
-
-						_, err := dataStore.Persist(
-							tc.Context,
-							persistence.Batch{op},
-						)
-						gomega.Expect(err).To(gomega.Equal(
-							persistence.ConflictError{
-								Cause: op,
-							},
-						))
-
-						inst := loadProcessInstance(tc.Context, dataStore, "<handler-key-2>", "<instance-a>")
-						gomega.Expect(inst.Revision).To(
-							gomega.BeEquivalentTo(0),
-							"removal of non-existent process instance caused it to exist",
-						)
-					},
-					ginkgo.Entry("zero", 0),
-					ginkgo.Entry("non-zero", 100),
 				)
 			})
 		})
@@ -382,9 +383,9 @@ func declareProcessOperationTests(tc *TestContext) {
 			i1.Revision++
 
 			var g sync.WaitGroup
-			g.Add(3)
 
 			// create
+			g.Add(1)
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
@@ -406,6 +407,7 @@ func declareProcessOperationTests(tc *TestContext) {
 				Data:      []byte("<data>"),
 			}
 
+			g.Add(1)
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
@@ -421,7 +423,9 @@ func declareProcessOperationTests(tc *TestContext) {
 				i1.Revision++
 			}()
 
-			// remove
+			// end
+			g.Add(1)
+			i0.HasEnded = true
 			go func() {
 				defer ginkgo.GinkgoRecover()
 				defer g.Done()
@@ -429,10 +433,12 @@ func declareProcessOperationTests(tc *TestContext) {
 				persist(
 					tc.Context,
 					dataStore,
-					persistence.RemoveProcessInstance{
+					persistence.SaveProcessInstance{
 						Instance: i0,
 					},
 				)
+
+				i0.Revision++
 			}()
 
 			g.Wait()
@@ -442,7 +448,8 @@ func declareProcessOperationTests(tc *TestContext) {
 				persistence.ProcessInstance{
 					HandlerKey: "<handler-key-1>",
 					InstanceID: "<instance-a>",
-					Revision:   0,
+					Revision:   2,
+					HasEnded:   true,
 				},
 			))
 

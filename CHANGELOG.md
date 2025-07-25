@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Fixed
 
 - `Engine.ExecuteCommand()` now panics when passed an unrecognized command type
+- Process `scope.ExecuteCommand()` now panics when executing a command after
+  ending
+- Process `scope.ScheduleTimeout()` now panics when scheduling a timeout after
+  ending
 
 ## [0.3.3] - 2024-10-10
 

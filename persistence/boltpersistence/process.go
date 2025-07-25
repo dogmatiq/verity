@@ -47,6 +47,7 @@ func (ds *dataStore) LoadProcessInstance(
 				inst.Revision = pb.GetRevision()
 				inst.Packet.MediaType = pb.GetMediaType()
 				inst.Packet.Data = pb.GetData()
+				inst.HasEnded = pb.GetHasEnded()
 			}
 		},
 	)
@@ -75,38 +76,12 @@ func (c *committer) VisitSaveProcessInstance(
 
 	saveProcessInstance(c.root, op.Instance)
 
-	return nil
-}
-
-// VisitRemoveProcessInstance applies the changes in a "RemoveProcessInstance"
-// operation to the database.
-func (c *committer) VisitRemoveProcessInstance(
-	ctx context.Context,
-	op persistence.RemoveProcessInstance,
-) error {
-	existing := loadProcessInstance(
-		c.root,
-		op.Instance.HandlerKey,
-		op.Instance.InstanceID,
-	)
-
-	if existing == nil || op.Instance.Revision != existing.GetRevision() {
-		return persistence.ConflictError{
-			Cause: op,
-		}
+	if op.Instance.HasEnded {
+		c.removeTimeoutsByProcessInstance(
+			op.Instance.HandlerKey,
+			op.Instance.InstanceID,
+		)
 	}
-
-	bboltx.DeletePath(
-		c.root,
-		processBucketKey,
-		[]byte(op.Instance.HandlerKey),
-		[]byte(op.Instance.InstanceID),
-	)
-
-	c.removeTimeoutsByProcessInstance(
-		op.Instance.HandlerKey,
-		op.Instance.InstanceID,
-	)
 
 	return nil
 }
@@ -119,6 +94,7 @@ func saveProcessInstance(root *bbolt.Bucket, inst persistence.ProcessInstance) {
 			Revision:  inst.Revision + 1,
 			MediaType: inst.Packet.MediaType,
 			Data:      inst.Packet.Data,
+			HasEnded:  inst.HasEnded,
 		},
 	)
 	bboltx.Must(err)

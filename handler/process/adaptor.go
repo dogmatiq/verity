@@ -88,6 +88,11 @@ func (a *Adaptor) HandleMessage(
 		return nil
 	}
 
+	if inst.HasEnded {
+		// Ignore any messages to an ended process instance.
+		return nil
+	}
+
 	sc := &scope{
 		work:       w,
 		cause:      p,
@@ -106,14 +111,8 @@ func (a *Adaptor) HandleMessage(
 		for _, p := range sc.timeouts {
 			w.ScheduleTimeout(p)
 		}
-
-		return a.save(w, inst)
-	}
-
-	if exists {
-		w.Do(persistence.RemoveProcessInstance{
-			Instance: inst.ProcessInstance,
-		})
+	} else {
+		inst.HasEnded = true
 
 		w.Defer(func(_ handler.Result, err error) {
 			if err == nil {
@@ -124,7 +123,7 @@ func (a *Adaptor) HandleMessage(
 		a.Cache.Discard(rec)
 	}
 
-	return nil
+	return a.save(w, inst)
 }
 
 // route returns the instance ID that the message in p is routed to, if any.
@@ -195,9 +194,11 @@ func (a *Adaptor) save(
 	w handler.UnitOfWork,
 	inst *Instance,
 ) error {
-	// An empty packet represents a stateless process root, so we only populate
-	// the packet if the root is stafeful.
-	if inst.Root != dogma.StatelessProcessRoot {
+	if inst.HasEnded {
+		inst.Packet = marshaler.Packet{}
+	} else if inst.Root != dogma.StatelessProcessRoot {
+		// An empty packet represents a stateless process root, so we only populate
+		// the packet if the root is stateful.
 		var err error
 		inst.Packet, err = a.Marshaler.Marshal(inst.Root)
 		if err != nil {
