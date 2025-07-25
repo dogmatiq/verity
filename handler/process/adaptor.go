@@ -88,6 +88,11 @@ func (a *Adaptor) HandleMessage(
 		return nil
 	}
 
+	if exists && inst.HasEnded {
+		// Ignore any messages to an ended process instance.
+		return nil
+	}
+
 	sc := &scope{
 		work:       w,
 		cause:      p,
@@ -96,7 +101,6 @@ func (a *Adaptor) HandleMessage(
 		packer:     a.Packer,
 		logger:     a.Logger,
 		instanceID: inst.InstanceID,
-		ended:      inst.HasEnded,
 	}
 
 	if err := a.handle(ctx, inst.Root, sc, p); err != nil {
