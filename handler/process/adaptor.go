@@ -88,7 +88,7 @@ func (a *Adaptor) HandleMessage(
 		return nil
 	}
 
-	if exists && inst.HasEnded {
+	if inst.HasEnded {
 		// Ignore any messages to an ended process instance.
 		return nil
 	}

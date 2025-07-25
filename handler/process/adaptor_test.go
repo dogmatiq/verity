@@ -565,7 +565,7 @@ var _ = Describe("type Adaptor", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			When("the instance is ended", func() {
+			When("the instance has just ended", func() {
 				It("removes the instance state and sets the has-ended flag", func() {
 					upstream.HandleEventFunc = func(
 						_ context.Context,
@@ -591,6 +591,37 @@ var _ = Describe("type Adaptor", func() {
 							},
 						},
 					))
+				})
+			})
+
+			When("the instance has already ended", func() {
+				It("ignores any new messages", func() {
+					upstream.HandleEventFunc = func(
+						_ context.Context,
+						_ dogma.ProcessRoot,
+						s dogma.ProcessEventScope,
+						_ dogma.Event,
+					) error {
+						s.End()
+						return nil
+					}
+
+					err := adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					upstream.HandleEventFunc = func(
+						_ context.Context,
+						_ dogma.ProcessRoot,
+						s dogma.ProcessEventScope,
+						_ dogma.Event,
+					) error {
+						s.ExecuteCommand(CommandC1)
+						s.ScheduleTimeout(TimeoutT1, time.Now())
+						return nil
+					}
+
+					err = adaptor.HandleMessage(ctx, work, cause)
+					Expect(err).ShouldNot(HaveOccurred())
 				})
 			})
 
