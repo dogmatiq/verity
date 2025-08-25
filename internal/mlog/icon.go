@@ -123,7 +123,7 @@ func (i Icon) WithLabel(f string, v ...interface{}) IconWithLabel {
 //
 // The id is formatted using FormatID().
 func (i Icon) WithID(id string) IconWithLabel {
-	return i.WithLabel(FormatID(id))
+	return i.WithLabel("%s", FormatID(id))
 }
 
 // IconWithLabel is a container for an icon and its associated text label.
