@@ -74,7 +74,6 @@ var _ = Describe("type Loader", func() {
 					context.Context,
 					string,
 					string,
-					string,
 				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
@@ -97,9 +96,9 @@ var _ = Describe("type Loader", func() {
 						},
 						persistence.SaveAggregateMetaData{
 							MetaData: persistence.AggregateMetaData{
-								HandlerKey:     DefaultHandlerKey,
-								InstanceID:     "<instance>",
-								InstanceExists: true,
+								HandlerKey:  DefaultHandlerKey,
+								InstanceID:  "<instance>",
+								LastEventID: "<event-1>",
 							},
 						},
 					},
@@ -113,10 +112,10 @@ var _ = Describe("type Loader", func() {
 				Expect(inst).To(Equal(
 					&Instance{
 						AggregateMetaData: persistence.AggregateMetaData{
-							HandlerKey:     DefaultHandlerKey,
-							InstanceID:     "<instance>",
-							Revision:       1,
-							InstanceExists: true,
+							HandlerKey:  DefaultHandlerKey,
+							InstanceID:  "<instance>",
+							Revision:    1,
+							LastEventID: "<event-1>",
 						},
 						Root: base,
 					},
@@ -139,7 +138,6 @@ var _ = Describe("type Loader", func() {
 					context.Context,
 					string,
 					string,
-					string,
 				) (persistence.EventResult, error) {
 					return nil, errors.New("<error>")
 				}
@@ -156,75 +154,6 @@ var _ = Describe("type Loader", func() {
 
 				_, err = loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 				Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
-			})
-
-			When("the instance has been destroyed", func() {
-				BeforeEach(func() {
-					_, err := dataStore.Persist(
-						ctx,
-						persistence.Batch{
-							persistence.SaveAggregateMetaData{
-								MetaData: persistence.AggregateMetaData{
-									HandlerKey:     DefaultHandlerKey,
-									InstanceID:     "<instance>",
-									Revision:       1,
-									InstanceExists: false,
-									LastEventID:    "<event-1>",
-									BarrierEventID: "<event-1>",
-								},
-							},
-						},
-					)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				It("does not attempt to load events", func() {
-					dataStore.LoadEventsBySourceFunc = func(
-						context.Context,
-						string,
-						string,
-						string,
-					) (persistence.EventResult, error) {
-						return nil, errors.New("<error>")
-					}
-
-					_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
-					Expect(err).ShouldNot(HaveOccurred())
-				})
-
-				When("the instance is subsequently recreated", func() {
-					BeforeEach(func() {
-						_, err := dataStore.Persist(
-							ctx,
-							persistence.Batch{
-								persistence.SaveEvent{
-									Envelope: NewEnvelope("<event-2>", EventE3),
-								},
-								persistence.SaveAggregateMetaData{
-									MetaData: persistence.AggregateMetaData{
-										HandlerKey:     DefaultHandlerKey,
-										InstanceID:     "<instance>",
-										Revision:       2,
-										InstanceExists: true,
-										LastEventID:    "<event-2>",
-										BarrierEventID: "<event-1>",
-									},
-								},
-							},
-						)
-						Expect(err).ShouldNot(HaveOccurred())
-					})
-
-					It("only applies events that were recorded after the destruction", func() {
-						_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
-						Expect(err).ShouldNot(HaveOccurred())
-						Expect(base.AppliedEvents).To(Equal(
-							[]dogma.Event{
-								EventE3,
-							},
-						))
-					})
-				})
 			})
 		})
 	})

@@ -34,14 +34,6 @@ var _ = Describe("type eventScope", func() {
 		})
 	})
 
-	Describe("func IsPrimaryDelivery()", func() {
-		It("returns true", func() {
-			Expect(sc.IsPrimaryDelivery()).To(
-				BeTrue(),
-			)
-		})
-	})
-
 	Describe("func Log()", func() {
 		It("logs using the standard format", func() {
 			sc.Log("format %s", "<value>")

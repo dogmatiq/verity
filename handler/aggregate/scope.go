@@ -1,6 +1,8 @@
 package aggregate
 
 import (
+	"time"
+
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/interopspec/envelopespec"
@@ -12,31 +14,19 @@ import (
 // scope is an implementation of dogma.AggregateCommandScope. It is the
 // application-developer-facing interface to a UnitOfWork.
 type scope struct {
-	identity  *envelopespec.Identity
-	handler   dogma.AggregateMessageHandler
-	packer    *parcel.Packer
-	logger    logging.Logger
-	work      handler.UnitOfWork
-	cause     parcel.Parcel
-	instance  *Instance // the aggregate instance, this is always within a cache record
-	changed   bool      // true if RecordEvent() has been called, or Destroy() succeeded
-	destroyed bool      // true if Destroy() has been called without subsequent call to RecordEvent()
+	identity       *envelopespec.Identity
+	handler        dogma.AggregateMessageHandler
+	packer         *parcel.Packer
+	logger         logging.Logger
+	work           handler.UnitOfWork
+	cause          parcel.Parcel
+	instance       *Instance // the aggregate instance, this is always within a cache record
+	recordedEvents bool
 }
 
 // InstanceID returns the ID of the targeted aggregate instance.
 func (s *scope) InstanceID() string {
 	return s.instance.InstanceID
-}
-
-// Destroy destroys the targeted instance.
-func (s *scope) Destroy() {
-	if !s.instance.InstanceExists {
-		return
-	}
-
-	s.instance.InstanceExists = false
-	s.changed = true
-	s.destroyed = true
 }
 
 // RecordEvent records the occurrence of an event as a result of the command
@@ -51,12 +41,15 @@ func (s *scope) RecordEvent(m dogma.Event) {
 
 	s.instance.Root.ApplyEvent(m)
 	s.work.RecordEvent(p)
-	s.instance.InstanceExists = true
 	s.instance.LastEventID = p.ID()
-	s.changed = true
-	s.destroyed = false
+	s.recordedEvents = true
 
 	mlog.LogProduce(s.logger, p.Envelope)
+}
+
+// Now returns the current local time according to the engine.
+func (s *scope) Now() time.Time {
+	return time.Now()
 }
 
 // Log records an informational message within the context of the message

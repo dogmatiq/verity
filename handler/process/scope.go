@@ -80,6 +80,11 @@ func (s *scope) ScheduledFor() time.Time {
 	return s.cause.ScheduledFor
 }
 
+// Now returns the current local time according to the engine.
+func (s *scope) Now() time.Time {
+	return time.Now()
+}
+
 // Log records an informational message within the context of the message
 // that is being handled.
 func (s *scope) Log(f string, v ...interface{}) {

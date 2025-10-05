@@ -11,7 +11,6 @@ import (
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/eventstream"
-	"github.com/dogmatiq/verity/handler/projection/resource"
 	"github.com/dogmatiq/verity/internal/mlog"
 )
 
@@ -43,14 +42,7 @@ func (a *StreamAdaptor) NextOffset(
 	ctx context.Context,
 	id configkit.Identity,
 ) (uint64, error) {
-	res := resource.FromApplicationKey(id.Key)
-
-	buf, err := a.Handler.ResourceVersion(ctx, res)
-	if err != nil {
-		return 0, err
-	}
-
-	return resource.UnmarshalOffset(buf)
+	return a.Handler.CheckpointOffset(ctx, id.Key)
 }
 
 // HandleEvent handles a message consumed from the event stream.
@@ -83,14 +75,13 @@ func (a *StreamAdaptor) HandleEvent(
 	)
 	defer cancel()
 
-	ok, err := a.Handler.HandleEvent(
+	cp, err := a.Handler.HandleEvent(
 		ctx,
-		resource.FromApplicationKey(ak),
-		resource.MarshalOffset(o),
-		resource.MarshalOffset(ev.Offset+1),
 		eventScope{
-			cause:  ev.Parcel,
-			logger: a.Logger,
+			cause:      ev.Parcel,
+			checkpoint: o,
+			offset:     ev.Offset,
+			logger:     a.Logger,
 		},
 		ev.Parcel.Message.(dogma.Event),
 	)
@@ -98,7 +89,7 @@ func (a *StreamAdaptor) HandleEvent(
 		return err
 	}
 
-	if !ok {
+	if cp != ev.Offset+1 {
 		return errors.New("optimistic concurrency conflict")
 	}
 

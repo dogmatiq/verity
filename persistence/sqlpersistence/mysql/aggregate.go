@@ -26,17 +26,13 @@ func (driver) InsertAggregateMetaData(
 			app_key = ?,
 			handler_key = ?,
 			instance_id = ?,
-			instance_exists = ?,
-			last_event_id = ?,
-			barrier_event_id = ?
+			last_event_id = ?
 		ON DUPLICATE KEY UPDATE
 			app_key = app_key`, // do nothing
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
-		md.InstanceExists,
 		md.LastEventID,
-		md.BarrierEventID,
 	), nil
 }
 
@@ -56,16 +52,12 @@ func (driver) UpdateAggregateMetaData(
 		tx,
 		`UPDATE aggregate_metadata SET
 			revision = revision + 1,
-			instance_exists = ?,
-			last_event_id = ?,
-			barrier_event_id = ?
+			last_event_id = ?
 		WHERE app_key = ?
 		AND handler_key = ?
 		AND instance_id = ?
 		AND revision = ?`,
-		md.InstanceExists,
 		md.LastEventID,
-		md.BarrierEventID,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
@@ -83,9 +75,7 @@ func (driver) SelectAggregateMetaData(
 		ctx,
 		`SELECT
 			revision,
-			instance_exists,
-			last_event_id,
-			barrier_event_id
+			last_event_id
 		FROM aggregate_metadata
 		WHERE app_key = ?
 		AND handler_key = ?
@@ -102,9 +92,7 @@ func (driver) SelectAggregateMetaData(
 
 	err := row.Scan(
 		&md.Revision,
-		&md.InstanceExists,
 		&md.LastEventID,
-		&md.BarrierEventID,
 	)
 	if err == sql.ErrNoRows {
 		err = nil
@@ -119,13 +107,11 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE IF NOT EXISTS aggregate_metadata (
-			app_key          VARBINARY(255) NOT NULL,
-			handler_key      VARBINARY(255) NOT NULL,
-			instance_id      VARBINARY(255) NOT NULL,
-			revision         BIGINT NOT NULL DEFAULT 1,
-			instance_exists  TINYINT NOT NULL,
-			last_event_id    VARBINARY(255) NOT NULL,
-			barrier_event_id VARBINARY(255) NOT NULL,
+			app_key       VARBINARY(255) NOT NULL,
+			handler_key   VARBINARY(255) NOT NULL,
+			instance_id   VARBINARY(255) NOT NULL,
+			revision      BIGINT NOT NULL DEFAULT 1,
+			last_event_id VARBINARY(255) NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		) ENGINE=InnoDB`,

@@ -19,14 +19,16 @@ import (
 var TestApplication = &ApplicationStub{
 	ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 		c.Identity("<app-name>", DefaultAppKey)
-		c.RegisterProjection(&ProjectionMessageHandlerStub{
-			ConfigureFunc: func(c dogma.ProjectionConfigurer) {
-				c.Identity("<projection-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
-				c.Routes(
-					dogma.HandlesEvent[EventStub[TypeA]](),
-				)
-			},
-		})
+		c.Routes(
+			dogma.ViaProjection(&ProjectionMessageHandlerStub{
+				ConfigureFunc: func(c dogma.ProjectionConfigurer) {
+					c.Identity("<projection-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
+					c.Routes(
+						dogma.HandlesEvent[EventStub[TypeA]](),
+					)
+				},
+			}),
+		)
 	},
 }
 

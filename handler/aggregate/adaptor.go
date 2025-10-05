@@ -84,25 +84,17 @@ func (a *Adaptor) HandleMessage(
 		p.Message.(dogma.Command),
 	)
 
-	if !sc.changed {
-		// No events were recorded at all, and the instance was not destroyed,
-		// so there's no reason to update the meta-data.
+	if !sc.recordedEvents {
+		// No events were recorded at all so there's no reason to update the
+		// meta-data.
 		return nil
-	}
-
-	if sc.destroyed {
-		inst.BarrierEventID = inst.LastEventID
 	}
 
 	w.Do(persistence.SaveAggregateMetaData{
 		MetaData: inst.AggregateMetaData,
 	})
 
-	if inst.InstanceExists {
-		inst.Revision++
-	} else {
-		a.Cache.Discard(rec)
-	}
+	inst.Revision++
 
 	return nil
 }

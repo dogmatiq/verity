@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"time"
+
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/interopspec/envelopespec"
@@ -32,6 +34,11 @@ func (s *scope) RecordEvent(m dogma.Event) {
 	s.work.RecordEvent(p)
 
 	mlog.LogProduce(s.logger, p.Envelope)
+}
+
+// Now returns the current local time according to the engine.
+func (s *scope) Now() time.Time {
+	return time.Now()
 }
 
 // Log records an informational message within the context of the message

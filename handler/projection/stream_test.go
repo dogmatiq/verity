@@ -47,13 +47,13 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(offset).To(BeNumerically("==", 0))
 		})
 
-		It("unmarshals the offset from the projection resource", func() {
-			handler.ResourceVersionFunc = func(
+		It("returns the checkpoint offset from the projection resource", func() {
+			handler.CheckpointOffsetFunc = func(
 				_ context.Context,
-				res []byte,
-			) ([]byte, error) {
-				Expect(res).To(Equal([]byte(DefaultAppKey)))
-				return []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}, nil
+				id string,
+			) (uint64, error) {
+				Expect(id).To(Equal(DefaultAppKey))
+				return 3, nil
 			}
 
 			offset, err := adaptor.NextOffset(
@@ -64,12 +64,12 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(offset).To(BeNumerically("==", 3))
 		})
 
-		It("returns an error if the resource version can not be read", func() {
-			handler.ResourceVersionFunc = func(
-				_ context.Context,
-				res []byte,
-			) ([]byte, error) {
-				return nil, errors.New("<error>")
+		It("returns an error if the checkpoint offset can not be read", func() {
+			handler.CheckpointOffsetFunc = func(
+				context.Context,
+				string,
+			) (uint64, error) {
+				return 0, errors.New("<error>")
 			}
 
 			_, err := adaptor.NextOffset(
@@ -78,33 +78,17 @@ var _ = Describe("type StreamAdaptor", func() {
 			)
 			Expect(err).To(MatchError("<error>"))
 		})
-
-		It("returns an error when the current version is malformed", func() {
-			handler.ResourceVersionFunc = func(
-				context.Context,
-				[]byte,
-			) ([]byte, error) {
-				return []byte{00}, nil
-			}
-
-			_, err := adaptor.NextOffset(
-				context.Background(),
-				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
-			)
-			Expect(err).To(MatchError("version is 1 byte(s), expected 0 or 8"))
-		})
 	})
 
 	Describe("func HandleEvent()", func() {
 		It("passes the event to the handler", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
-				_, _, _ []byte,
-				_ dogma.ProjectionEventScope,
+				s dogma.ProjectionEventScope,
 				m dogma.Event,
-			) (bool, error) {
+			) (uint64, error) {
 				Expect(m).To(Equal(pcl.Message))
-				return true, nil
+				return s.Offset() + 1, nil
 			}
 
 			err := adaptor.HandleEvent(
@@ -118,17 +102,16 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("passes the correct resource and versions to the handler for the first event", func() {
+		It("passes the correct stream ID and offsets to the handler for the first event", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
-				r, c, n []byte,
-				_ dogma.ProjectionEventScope,
+				s dogma.ProjectionEventScope,
 				_ dogma.Event,
-			) (bool, error) {
-				Expect(r).To(Equal([]byte(DefaultAppKey)))
-				Expect(c).To(BeEmpty())
-				Expect(n).To(Equal([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}))
-				return true, nil
+			) (uint64, error) {
+				Expect(s.StreamID()).To(Equal(DefaultAppKey))
+				Expect(s.CheckpointOffset()).To(BeZero())
+				Expect(s.Offset()).To(BeZero())
+				return 1, nil
 			}
 
 			err := adaptor.HandleEvent(
@@ -142,17 +125,16 @@ var _ = Describe("type StreamAdaptor", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("passes the correct resource and versions to the handler for subsequent events", func() {
+		It("passes the correct stream ID and offsets to the handler for subsequent events", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
-				r, c, n []byte,
-				_ dogma.ProjectionEventScope,
+				s dogma.ProjectionEventScope,
 				_ dogma.Event,
-			) (bool, error) {
-				Expect(r).To(Equal([]byte(DefaultAppKey)))
-				Expect(c).To(Equal([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}))
-				Expect(n).To(Equal([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04}))
-				return true, nil
+			) (uint64, error) {
+				Expect(s.StreamID()).To(Equal(DefaultAppKey))
+				Expect(s.CheckpointOffset()).To(BeEquivalentTo(3))
+				Expect(s.Offset()).To(BeEquivalentTo(4))
+				return 5, nil
 			}
 
 			err := adaptor.HandleEvent(
@@ -171,14 +153,13 @@ var _ = Describe("type StreamAdaptor", func() {
 
 			handler.HandleEventFunc = func(
 				ctx context.Context,
-				_, _, _ []byte,
-				_ dogma.ProjectionEventScope,
+				s dogma.ProjectionEventScope,
 				_ dogma.Event,
-			) (bool, error) {
+			) (uint64, error) {
 				dl, ok := ctx.Deadline()
 				Expect(ok).To(BeTrue())
 				Expect(dl).To(BeTemporally("~", time.Now().Add(500*time.Millisecond)))
-				return true, nil
+				return s.Offset() + 1, nil
 			}
 
 			err := adaptor.HandleEvent(
@@ -195,14 +176,13 @@ var _ = Describe("type StreamAdaptor", func() {
 		It("falls back to the global default timeout", func() {
 			handler.HandleEventFunc = func(
 				ctx context.Context,
-				_, _, _ []byte,
-				_ dogma.ProjectionEventScope,
+				s dogma.ProjectionEventScope,
 				_ dogma.Event,
-			) (bool, error) {
+			) (uint64, error) {
 				dl, ok := ctx.Deadline()
 				Expect(ok).To(BeTrue())
 				Expect(dl).To(BeTemporally("~", time.Now().Add(DefaultTimeout)))
-				return true, nil
+				return s.Offset() + 1, nil
 			}
 
 			err := adaptor.HandleEvent(
@@ -219,11 +199,10 @@ var _ = Describe("type StreamAdaptor", func() {
 		It("returns the error when an OCC conflict occurs", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
-				_, _, _ []byte,
-				_ dogma.ProjectionEventScope,
+				s dogma.ProjectionEventScope,
 				_ dogma.Event,
-			) (bool, error) {
-				return false, nil
+			) (uint64, error) {
+				return s.Offset() + 123, nil
 			}
 
 			err := adaptor.HandleEvent(
@@ -240,11 +219,10 @@ var _ = Describe("type StreamAdaptor", func() {
 		It("returns an error if the handler returns an error", func() {
 			handler.HandleEventFunc = func(
 				_ context.Context,
-				_, _, _ []byte,
 				_ dogma.ProjectionEventScope,
 				_ dogma.Event,
-			) (bool, error) {
-				return false, errors.New("<error>")
+			) (uint64, error) {
+				return 0, errors.New("<error>")
 			}
 
 			err := adaptor.HandleEvent(

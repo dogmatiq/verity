@@ -34,11 +34,9 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 
 			ginkgo.It("returns the current persisted meta-data", func() {
 				expect := persistence.AggregateMetaData{
-					HandlerKey:     fixtures.DefaultHandlerKey,
-					InstanceID:     "<instance>",
-					InstanceExists: true,
-					LastEventID:    "<last-event-id>",
-					BarrierEventID: "<barrier-event-id>",
+					HandlerKey:  fixtures.DefaultHandlerKey,
+					InstanceID:  "<instance>",
+					LastEventID: "<last-event-id>",
 				}
 				persist(
 					tc.Context,
@@ -59,11 +57,9 @@ func declareAggregateRepositoryTests(tc *TestContext) {
 				// the correct result.
 
 				expect := persistence.AggregateMetaData{
-					HandlerKey:     fixtures.DefaultHandlerKey,
-					InstanceID:     "<instance>",
-					InstanceExists: true,
-					LastEventID:    "<last-event-id>",
-					BarrierEventID: "<barrier-event-id>",
+					HandlerKey:  fixtures.DefaultHandlerKey,
+					InstanceID:  "<instance>",
+					LastEventID: "<last-event-id>",
 				}
 				persist(
 					tc.Context,
