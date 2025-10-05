@@ -2,7 +2,6 @@ package streamtest
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -242,7 +241,7 @@ func Declare(
 						types.IsSuperset(in.EventTypes),
 					).To(
 						gomega.BeTrue(),
-						fmt.Sprintf("stream does not support all of the required message types"),
+						"stream does not support all of the required message types",
 					)
 				})
 			})
