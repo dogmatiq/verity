@@ -26,18 +26,14 @@ func (driver) InsertAggregateMetaData(
 			app_key,
 			handler_key,
 			instance_id,
-			instance_exists,
-			last_event_id,
-			barrier_event_id
+			last_event_id
 		) VALUES (
-			$1, $2, $3, $4, $5, $6
+			$1, $2, $3, $4
 		) ON CONFLICT (app_key, handler_key, instance_id) DO NOTHING`,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
-		md.InstanceExists,
 		md.LastEventID,
-		md.BarrierEventID,
 	)
 
 	n, err := res.RowsAffected()
@@ -60,16 +56,12 @@ func (driver) UpdateAggregateMetaData(
 		tx,
 		`UPDATE aggregate_metadata SET
 			revision = revision + 1,
-			instance_exists = $1,
-			last_event_id = $2,
-			barrier_event_id = $3
-		WHERE app_key = $4
-		AND handler_key = $5
-		AND instance_id = $6
-		AND revision = $7`,
-		md.InstanceExists,
+			last_event_id = $1
+		WHERE app_key = $2
+		AND handler_key = $3
+		AND instance_id = $4
+		AND revision = $5`,
 		md.LastEventID,
-		md.BarrierEventID,
 		ak,
 		md.HandlerKey,
 		md.InstanceID,
@@ -87,9 +79,7 @@ func (driver) SelectAggregateMetaData(
 		ctx,
 		`SELECT
 			revision,
-			instance_exists,
-			last_event_id,
-			barrier_event_id
+			last_event_id
 		FROM aggregate_metadata
 		WHERE app_key = $1
 		AND handler_key = $2
@@ -106,9 +96,7 @@ func (driver) SelectAggregateMetaData(
 
 	err := row.Scan(
 		&md.Revision,
-		&md.InstanceExists,
 		&md.LastEventID,
-		&md.BarrierEventID,
 	)
 	if err == sql.ErrNoRows {
 		err = nil
@@ -123,13 +111,11 @@ func createAggregateSchema(ctx context.Context, db *sql.DB) {
 		ctx,
 		db,
 		`CREATE TABLE IF NOT EXISTS aggregate_metadata (
-			app_key          TEXT NOT NULL,
-			handler_key      TEXT NOT NULL,
-			instance_id      TEXT NOT NULL,
-			revision         INTEGER NOT NULL DEFAULT 1,
-			instance_exists  BOOLEAN NOT NULL,
-			last_event_id    TEXT NOT NULL,
-			barrier_event_id TEXT NOT NULL,
+			app_key       TEXT NOT NULL,
+			handler_key   TEXT NOT NULL,
+			instance_id   TEXT NOT NULL,
+			revision      INTEGER NOT NULL DEFAULT 1,
+			last_event_id TEXT NOT NULL,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)
 		)`,

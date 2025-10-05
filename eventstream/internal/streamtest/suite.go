@@ -114,20 +114,22 @@ func Declare(
 					id := event0.Parcel.Envelope.GetSourceApplication()
 					c.Identity(id.GetName(), id.GetKey())
 
-					c.RegisterIntegration(&stubs.IntegrationMessageHandlerStub{
-						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
-							// use the handler identity from the envelope fixtures
-							id := event0.Parcel.Envelope.GetSourceHandler()
-							c.Identity(id.GetName(), id.GetKey())
+					c.Routes(
+						dogma.ViaIntegration(&stubs.IntegrationMessageHandlerStub{
+							ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+								// use the handler identity from the envelope fixtures
+								id := event0.Parcel.Envelope.GetSourceHandler()
+								c.Identity(id.GetName(), id.GetKey())
 
-							c.Routes(
-								dogma.HandlesCommand[stubs.CommandStub[stubs.TypeX]](),
-								dogma.RecordsEvent[stubs.EventStub[stubs.TypeA]](),
-								dogma.RecordsEvent[stubs.EventStub[stubs.TypeB]](),
-								dogma.RecordsEvent[stubs.EventStub[stubs.TypeC]](),
-							)
-						},
-					})
+								c.Routes(
+									dogma.HandlesCommand[stubs.CommandStub[stubs.TypeX]](),
+									dogma.RecordsEvent[stubs.EventStub[stubs.TypeA]](),
+									dogma.RecordsEvent[stubs.EventStub[stubs.TypeB]](),
+									dogma.RecordsEvent[stubs.EventStub[stubs.TypeC]](),
+								)
+							},
+						}),
+					)
 				},
 			})
 

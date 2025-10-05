@@ -16,67 +16,63 @@ import (
 var _ dogma.CommandExecutor = (*Engine)(nil)
 
 var _ = Describe("type Engine", func() {
-	var (
-		app            *ApplicationStub
-		deliveryPolicy dogma.ProjectionDeliveryPolicy
-	)
+	var app *ApplicationStub
 
 	BeforeEach(func() {
-		deliveryPolicy = dogma.UnicastProjectionDeliveryPolicy{}
-
 		app = &ApplicationStub{
 			ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 				c.Identity("<app-name>", DefaultAppKey)
 
-				c.RegisterAggregate(&AggregateMessageHandlerStub{
-					ConfigureFunc: func(c dogma.AggregateConfigurer) {
-						c.Identity("<agg-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
-						c.Routes(
-							dogma.HandlesCommand[CommandStub[TypeC]](),
-							dogma.RecordsEvent[EventStub[TypeE]](),
-						)
-					},
-				})
+				c.Routes(
+					dogma.ViaAggregate(&AggregateMessageHandlerStub{
+						ConfigureFunc: func(c dogma.AggregateConfigurer) {
+							c.Identity("<agg-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
+							c.Routes(
+								dogma.HandlesCommand[CommandStub[TypeC]](),
+								dogma.RecordsEvent[EventStub[TypeE]](),
+							)
+						},
+					}),
 
-				c.RegisterProcess(&ProcessMessageHandlerStub{
-					ConfigureFunc: func(c dogma.ProcessConfigurer) {
-						c.Identity("<proc-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
-						c.Routes(
-							dogma.HandlesEvent[EventStub[TypeE]](),
-							dogma.ExecutesCommand[CommandStub[TypeI]](),
-						)
-					},
-				})
+					dogma.ViaProcess(&ProcessMessageHandlerStub{
+						ConfigureFunc: func(c dogma.ProcessConfigurer) {
+							c.Identity("<proc-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
+							c.Routes(
+								dogma.HandlesEvent[EventStub[TypeE]](),
+								dogma.ExecutesCommand[CommandStub[TypeI]](),
+							)
+						},
+					}),
 
-				c.RegisterIntegration(&IntegrationMessageHandlerStub{
-					ConfigureFunc: func(c dogma.IntegrationConfigurer) {
-						c.Identity("<int-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
-						c.Routes(
-							dogma.HandlesCommand[CommandStub[TypeI]](),
-							dogma.RecordsEvent[EventStub[TypeJ]](),
-						)
-					},
-				})
+					dogma.ViaIntegration(&IntegrationMessageHandlerStub{
+						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
+							c.Identity("<int-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
+							c.Routes(
+								dogma.HandlesCommand[CommandStub[TypeI]](),
+								dogma.RecordsEvent[EventStub[TypeJ]](),
+							)
+						},
+					}),
 
-				c.RegisterProjection(&ProjectionMessageHandlerStub{
-					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
-						c.Identity("<proj-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
-						c.Routes(
-							dogma.HandlesEvent[EventStub[TypeE]](),
-						)
-						c.DeliveryPolicy(deliveryPolicy)
-					},
-				})
+					dogma.ViaProjection(&ProjectionMessageHandlerStub{
+						ConfigureFunc: func(c dogma.ProjectionConfigurer) {
+							c.Identity("<proj-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
+							c.Routes(
+								dogma.HandlesEvent[EventStub[TypeE]](),
+							)
+						},
+					}),
 
-				c.RegisterProjection(&ProjectionMessageHandlerStub{
-					ConfigureFunc: func(c dogma.ProjectionConfigurer) {
-						c.Identity("<disabled-proj-name>", "4ad6edf4-78b3-46bc-8321-0e1b834e3808")
-						c.Routes(
-							dogma.HandlesEvent[EventStub[TypeE]](),
-						)
-						c.Disable()
-					},
-				})
+					dogma.ViaProjection(&ProjectionMessageHandlerStub{
+						ConfigureFunc: func(c dogma.ProjectionConfigurer) {
+							c.Identity("<disabled-proj-name>", "4ad6edf4-78b3-46bc-8321-0e1b834e3808")
+							c.Routes(
+								dogma.HandlesEvent[EventStub[TypeE]](),
+							)
+							c.Disable()
+						},
+					}),
+				)
 			},
 		}
 	})
@@ -104,14 +100,6 @@ var _ = Describe("type Engine", func() {
 			Expect(func() {
 				New(nil)
 			}).To(Panic())
-		})
-
-		It("panics if a projection uses an unsupported delivery policy", func() {
-			deliveryPolicy = dogma.BroadcastProjectionDeliveryPolicy{}
-
-			Expect(func() {
-				New(app)
-			}).To(PanicWith("the <proj-name>/b084ea4f-87d1-4001-8c1a-347c29baed35 handler uses the dogma.BroadcastProjectionDeliveryPolicy delivery policy, which is not supported"))
 		})
 	})
 

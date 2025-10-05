@@ -110,7 +110,6 @@ func declareEventRepositoryTests(tc *TestContext) {
 						dataStore,
 						"<aggregate>",
 						"<instance-a>",
-						"",
 					)
 					gomega.Expect(events).To(gomega.BeEmpty())
 				})
@@ -255,42 +254,11 @@ func declareEventRepositoryTests(tc *TestContext) {
 						dataStore,
 						"<aggregate>",
 						"<instance-a>",
-						"",
 					)
 					gomega.Expect(events).To(gomegax.EqualX(
 						[]persistence.Event{
 							ev0,
 							ev2,
-						},
-					))
-				})
-
-				ginkgo.It("only returns events recorded after the barrier message", func() {
-					events := loadEventsBySource(
-						tc.Context,
-						dataStore,
-						"<aggregate>",
-						"<instance-a>",
-						ev0.ID(),
-					)
-					gomega.Expect(events).To(gomegax.EqualX(
-						[]persistence.Event{
-							ev2,
-						},
-					))
-				})
-
-				ginkgo.It("returns an error if the barrier message is not found", func() {
-					_, err := dataStore.LoadEventsBySource(
-						tc.Context,
-						"<aggregate>",
-						"<instance-a>",
-						"<unknown>",
-					)
-					gomega.Expect(err).Should(gomega.HaveOccurred())
-					gomega.Expect(err).To(gomega.Equal(
-						persistence.UnknownMessageError{
-							MessageID: "<unknown>",
 						},
 					))
 				})

@@ -41,13 +41,9 @@ type EventRepository interface {
 	//
 	// id is the instance ID, which must be empty if the handler type does not
 	// use instances.
-	//
-	// m is ID of a "barrier" message. If supplied, the results are limited to
-	// events with higher offsets than the barrier message. If the message
-	// cannot be found, UnknownMessageError is returned.
 	LoadEventsBySource(
 		ctx context.Context,
-		hk, id, m string,
+		hk, id string,
 	) (EventResult, error)
 }
 

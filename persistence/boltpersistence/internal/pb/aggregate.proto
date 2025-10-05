@@ -5,9 +5,7 @@ option go_package = "github.com/dogmatiq/verity/persistence/boltpersistence/inte
 
 // AggregateMetaData is a protocol buffers representation of
 // persistence.AggregateMetaData.
-message AggregateMetaData{
+message AggregateMetaData {
   uint64 revision = 1;
-  bool instance_exists = 2;
-  string last_event_id = 3;
-  string barrier_event_id = 4;
+  string last_event_id = 2;
 }

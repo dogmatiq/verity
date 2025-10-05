@@ -155,34 +155,11 @@ func (ds *dataStore) LoadEventsByType(
 //
 // id is the instance ID, which must be empty if the handler type does not
 // use instances.
-//
-// m is ID of a "barrier" message. If supplied, the results are limited to
-// events with higher offsets than the barrier message. If the message
-// cannot be found, UnknownMessageError is returned.
 func (ds *dataStore) LoadEventsBySource(
 	ctx context.Context,
-	hk, id, m string,
+	hk, id string,
 ) (persistence.EventResult, error) {
 	var offset uint64
-
-	if m != "" {
-		o, ok, err := ds.driver.SelectOffsetByMessageID(
-			ctx,
-			ds.db,
-			m,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if !ok {
-			return nil, persistence.UnknownMessageError{
-				MessageID: m,
-			}
-		}
-
-		offset = o + 1 // start with the message AFTER the barrier message.
-	}
 
 	rows, err := ds.driver.SelectEventsBySource( // nolint:rowserrcheck,sqlclosecheck // both handled by eventResult
 		ctx,

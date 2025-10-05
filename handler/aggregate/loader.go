@@ -44,12 +44,10 @@ func (l *Loader) Load(
 
 	inst := &Instance{md, base}
 
-	if !md.InstanceExists {
-		return inst, nil
-	}
-
-	if err := l.applyEvents(ctx, md, base); err != nil {
-		return nil, err
+	if md.LastEventID != "" {
+		if err := l.applyEvents(ctx, md, base); err != nil {
+			return nil, err
+		}
 	}
 
 	return inst, nil
@@ -64,7 +62,6 @@ func (l *Loader) applyEvents(
 		ctx,
 		md.HandlerKey,
 		md.InstanceID,
-		md.BarrierEventID,
 	)
 	if err != nil {
 		return err

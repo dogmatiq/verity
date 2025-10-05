@@ -62,9 +62,8 @@ func loadEventsBySource(
 	ctx context.Context,
 	r persistence.EventRepository,
 	hk, id string,
-	m string,
 ) []persistence.Event {
-	res, err := r.LoadEventsBySource(ctx, hk, id, m)
+	res, err := r.LoadEventsBySource(ctx, hk, id)
 	gomega.ExpectWithOffset(1, err).ShouldNot(gomega.HaveOccurred())
 	defer res.Close()
 

@@ -37,7 +37,7 @@ type DataStoreStub struct {
 
 	LoadAggregateMetaDataFunc func(context.Context, string, string) (persistence.AggregateMetaData, error)
 	LoadEventsByTypeFunc      func(context.Context, map[string]struct{}, uint64) (persistence.EventResult, error)
-	LoadEventsBySourceFunc    func(context.Context, string, string, string) (persistence.EventResult, error)
+	LoadEventsBySourceFunc    func(context.Context, string, string) (persistence.EventResult, error)
 	LoadOffsetFunc            func(context.Context, string) (uint64, error)
 	LoadProcessInstanceFunc   func(context.Context, string, string) (persistence.ProcessInstance, error)
 	LoadQueueMessagesFunc     func(context.Context, int) ([]persistence.QueueMessage, error)
@@ -79,14 +79,14 @@ func (ds *DataStoreStub) LoadAggregateMetaData(
 // LoadEventsBySource loads the events produced by a specific handler.
 func (ds *DataStoreStub) LoadEventsBySource(
 	ctx context.Context,
-	hk, id, d string,
+	hk, id string,
 ) (persistence.EventResult, error) {
 	if ds.LoadEventsBySourceFunc != nil {
-		return ds.LoadEventsBySourceFunc(ctx, hk, id, d)
+		return ds.LoadEventsBySourceFunc(ctx, hk, id)
 	}
 
 	if ds.DataStore != nil {
-		return ds.DataStore.LoadEventsBySource(ctx, hk, id, d)
+		return ds.DataStore.LoadEventsBySource(ctx, hk, id)
 	}
 
 	return nil, nil

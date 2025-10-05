@@ -10,8 +10,21 @@ import (
 
 // eventScope is an implementation of dogma.ProjectionEventScope.
 type eventScope struct {
-	cause  parcel.Parcel
-	logger logging.Logger
+	cause              parcel.Parcel
+	checkpoint, offset uint64
+	logger             logging.Logger
+}
+
+func (s eventScope) StreamID() string {
+	return s.cause.Envelope.GetSourceApplication().GetKey()
+}
+
+func (s eventScope) CheckpointOffset() uint64 {
+	return s.checkpoint
+}
+
+func (s eventScope) Offset() uint64 {
+	return s.offset
 }
 
 // RecordedAt returns the time at which the event was recorded.
@@ -19,10 +32,9 @@ func (s eventScope) RecordedAt() time.Time {
 	return s.cause.CreatedAt
 }
 
-// IsPrimaryDelivery returns true on one of the application instances that
-// receive the event, and false on all other instances.
-func (s eventScope) IsPrimaryDelivery() bool {
-	return true
+// Now returns the current local time according to the engine.
+func (s eventScope) Now() time.Time {
+	return time.Now()
 }
 
 // Log records an informational message within the context of the message
@@ -41,12 +53,12 @@ type compactScope struct {
 	logger logging.Logger
 }
 
+// Now returns the current local time according to the engine.
+func (s compactScope) Now() time.Time {
+	return time.Now()
+}
+
 // Log records an informational message within the context of compaction.
 func (s compactScope) Log(f string, v ...interface{}) {
 	logging.Log(s.logger, f, v...)
-}
-
-// Now returns the time.
-func (s compactScope) Now() time.Time {
-	return time.Now()
 }

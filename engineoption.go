@@ -91,18 +91,6 @@ func WithApplication(app dogma.Application) EngineOption {
 			}
 		}
 
-		for _, h := range cfg.RichHandlers().Projections() {
-			switch h.DeliveryPolicy().(type) {
-			case dogma.UnicastProjectionDeliveryPolicy:
-			default:
-				panic(fmt.Sprintf(
-					"the %s handler uses the %T delivery policy, which is not supported",
-					h.Identity(),
-					h.DeliveryPolicy(),
-				))
-			}
-		}
-
 		opts.AppConfigs = append(opts.AppConfigs, cfg)
 	}
 }

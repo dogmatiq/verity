@@ -21,13 +21,6 @@ var (
 	// values are envelopespec.Envelope values marshaled using protocol buffers.
 	eventEnvelopesBucketKey = []byte("envelopes")
 
-	// eventOffsetsBucketKey is the key for a child bucket that allows retrieval
-	// of event offsets by their message ID.
-	//
-	// The keys are the message IDs. The values are event offsets encoded as
-	// 8-byte big-endian packets.
-	eventOffsetsBucketKey = []byte("offsets")
-
 	// eventNextOffsetKey is the key of a value within the root bucket that
 	// contains the next unused offset encoded as 8-byte big-endian packet.
 	eventNextOffsetKey = []byte("offset")
@@ -85,23 +78,11 @@ func (ds *dataStore) LoadEventsByType(
 //
 // id is the instance ID, which must be empty if the handler type does not
 // use instances.
-//
-// m is ID of a "barrier" message. If supplied, the results are limited to
-// events with higher offsets than the barrier message. If the message
-// cannot be found, UnknownMessageError is returned.
 func (ds *dataStore) LoadEventsBySource(
 	_ context.Context,
-	hk, id, m string,
+	hk, id string,
 ) (persistence.EventResult, error) {
 	var offset uint64
-
-	if m != "" {
-		o, err := ds.offsetOf(m)
-		if err != nil {
-			return nil, err
-		}
-		offset = o + 1 // start with the message AFTER the barrier message.
-	}
 
 	return &eventResult{
 		db:     ds.db,
@@ -112,32 +93,6 @@ func (ds *dataStore) LoadEventsBySource(
 				env.GetSourceInstanceId() == id
 		},
 	}, nil
-}
-
-// offsetOf returns the offset of the message with the given ID.
-func (ds *dataStore) offsetOf(id string) (uint64, error) {
-	var offset uint64
-
-	err := ds.db.View(
-		func(tx *bbolt.Tx) error {
-			if data := bboltx.GetPath(
-				tx,
-				ds.appKey,
-				eventBucketKey,
-				eventOffsetsBucketKey,
-				[]byte(id),
-			); data != nil {
-				offset = unmarshalUint64(data)
-				return nil
-			}
-
-			return persistence.UnknownMessageError{
-				MessageID: id,
-			}
-		},
-	)
-
-	return offset, err
 }
 
 // eventResult is an implementation of persistence.EventResult for BoltDB.
@@ -214,15 +169,6 @@ func (c *committer) VisitSaveEvent(
 
 	// Save the envelope.
 	saveEventEnvelope(c.root, offset, op.Envelope)
-
-	// Save the message ID -> offset index.
-	bboltx.PutPath(
-		c.root,
-		marshalUint64(offset),
-		eventBucketKey,
-		eventOffsetsBucketKey,
-		[]byte(id),
-	)
 
 	// Add the offset to the result.
 	if c.result.EventOffsets == nil {
