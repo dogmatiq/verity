@@ -29,7 +29,7 @@ var (
 //
 // hk is the aggregate handler's identity key, id is the instance ID.
 func (ds *dataStore) LoadAggregateMetaData(
-	ctx context.Context,
+	_ context.Context,
 	hk, id string,
 ) (_ persistence.AggregateMetaData, err error) {
 	defer bboltx.Recover(&err)

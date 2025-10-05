@@ -85,7 +85,7 @@ type provider struct {
 
 // open returns a data-store for a specific application.
 func (p *provider) open(
-	ctx context.Context,
+	_ context.Context,
 	k string,
 	open func() (*bbolt.DB, error),
 	close func(db *bbolt.DB) error,

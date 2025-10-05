@@ -9,7 +9,7 @@ import (
 
 // NextEventOffset returns the next "unused" offset.
 func (ds *dataStore) NextEventOffset(
-	ctx context.Context,
+	context.Context,
 ) (uint64, error) {
 	ds.db.mutex.RLock()
 	defer ds.db.mutex.RUnlock()
@@ -25,7 +25,7 @@ func (ds *dataStore) NextEventOffset(
 // o specifies the (inclusive) lower-bound of the offset range to include in
 // the results.
 func (ds *dataStore) LoadEventsByType(
-	ctx context.Context,
+	_ context.Context,
 	f map[string]struct{},
 	o uint64,
 ) (persistence.EventResult, error) {
@@ -50,7 +50,7 @@ func (ds *dataStore) LoadEventsByType(
 // events with higher offsets than the barrier message. If the message
 // cannot be found, UnknownMessageError is returned.
 func (ds *dataStore) LoadEventsBySource(
-	ctx context.Context,
+	_ context.Context,
 	hk, id, m string,
 ) (persistence.EventResult, error) {
 	var offset uint64
@@ -91,7 +91,7 @@ type eventResult struct {
 //
 // It returns false if the are no more events in the result.
 func (r *eventResult) Next(
-	ctx context.Context,
+	context.Context,
 ) (persistence.Event, bool, error) {
 	// We only have to hold the mutex long enough to make the slice that is our
 	// "view" of the events. The individual events are never modified and so
@@ -132,8 +132,8 @@ func (r *eventResult) Close() error {
 // VisitSaveEvent returns an error if a "SaveEvent" operation can not be applied
 // to the database.
 func (v *validator) VisitSaveEvent(
-	_ context.Context,
-	op persistence.SaveEvent,
+	context.Context,
+	persistence.SaveEvent,
 ) error {
 	return nil
 }

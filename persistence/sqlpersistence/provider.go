@@ -51,7 +51,7 @@ func (p *Provider) Open(ctx context.Context, k string) (persistence.DataStore, e
 		func() (*sql.DB, error) {
 			return p.DB, nil
 		},
-		func(db *sql.DB) error {
+		func(*sql.DB) error {
 			// Don't actually close the database, since we didn't open it.
 			return nil
 		},

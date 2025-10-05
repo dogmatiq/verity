@@ -216,7 +216,7 @@ type eventResult struct {
 //
 // It returns false if the are no more events in the result.
 func (r *eventResult) Next(
-	ctx context.Context,
+	context.Context,
 ) (persistence.Event, bool, error) {
 	if r.rows.Next() {
 		ev := persistence.Event{

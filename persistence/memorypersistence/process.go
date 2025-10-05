@@ -10,7 +10,7 @@ import (
 //
 // hk is the process handler's identity key, id is the instance ID.
 func (ds *dataStore) LoadProcessInstance(
-	ctx context.Context,
+	_ context.Context,
 	hk, id string,
 ) (persistence.ProcessInstance, error) {
 	ds.db.mutex.RLock()
@@ -49,7 +49,7 @@ func (v *validator) VisitSaveProcessInstance(
 // VisitRemoveProcessInstance returns an error if a "RemoveProcessInstance"
 // operation can not be applied to the database.
 func (v *validator) VisitRemoveProcessInstance(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.RemoveProcessInstance,
 ) error {
 	inst := op.Instance
@@ -69,7 +69,7 @@ func (v *validator) VisitRemoveProcessInstance(
 // VisitSaveProcessInstance applies the changes in a "SaveProcessInstance"
 // operation to the database.
 func (c *committer) VisitSaveProcessInstance(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.SaveProcessInstance,
 ) error {
 	c.db.process.save(op.Instance)
@@ -79,7 +79,7 @@ func (c *committer) VisitSaveProcessInstance(
 // VisitRemoveProcessInstance applies the changes in a "RemoveProcessInstance"
 // operation to the database.
 func (c *committer) VisitRemoveProcessInstance(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.RemoveProcessInstance,
 ) error {
 	inst := op.Instance

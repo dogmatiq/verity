@@ -8,7 +8,7 @@ import (
 
 // LoadOffset loads the offset associated with a specific application.
 func (ds *dataStore) LoadOffset(
-	ctx context.Context,
+	_ context.Context,
 	ak string,
 ) (uint64, error) {
 	ds.db.mutex.RLock()

@@ -19,7 +19,7 @@ var (
 
 // LoadOffset loads the offset associated with a specific application.
 func (ds *dataStore) LoadOffset(
-	ctx context.Context,
+	_ context.Context,
 	ak string,
 ) (_ uint64, err error) {
 	var offset uint64

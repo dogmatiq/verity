@@ -47,7 +47,7 @@ var (
 
 // LoadQueueMessages loads the next n messages from the queue.
 func (ds *dataStore) LoadQueueMessages(
-	ctx context.Context,
+	_ context.Context,
 	n int,
 ) (_ []persistence.QueueMessage, err error) {
 	defer bboltx.Recover(&err)
@@ -107,7 +107,7 @@ func (ds *dataStore) LoadQueueMessages(
 // VisitSaveQueueMessage applies the changes in a "SaveQueueMessage" operation
 // to the database.
 func (c *committer) VisitSaveQueueMessage(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.SaveQueueMessage,
 ) error {
 	old := loadQueueMessage(c.root, op.Message.ID())
@@ -141,7 +141,7 @@ func (c *committer) VisitSaveQueueMessage(
 // VisitRemoveQueueMessage applies the changes in a "RemoveQueueMessage"
 // operation to the database.
 func (c *committer) VisitRemoveQueueMessage(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.RemoveQueueMessage,
 ) error {
 	old := loadQueueMessage(c.root, op.Message.ID())

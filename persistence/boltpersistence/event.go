@@ -35,7 +35,7 @@ var (
 
 // NextEventOffset returns the next "unused" offset.
 func (ds *dataStore) NextEventOffset(
-	ctx context.Context,
+	context.Context,
 ) (_ uint64, err error) {
 	var next uint64
 
@@ -64,7 +64,7 @@ func (ds *dataStore) NextEventOffset(
 // o specifies the (inclusive) lower-bound of the offset range to include in
 // the results.
 func (ds *dataStore) LoadEventsByType(
-	ctx context.Context,
+	_ context.Context,
 	f map[string]struct{},
 	o uint64,
 ) (persistence.EventResult, error) {
@@ -90,7 +90,7 @@ func (ds *dataStore) LoadEventsByType(
 // events with higher offsets than the barrier message. If the message
 // cannot be found, UnknownMessageError is returned.
 func (ds *dataStore) LoadEventsBySource(
-	ctx context.Context,
+	_ context.Context,
 	hk, id, m string,
 ) (persistence.EventResult, error) {
 	var offset uint64

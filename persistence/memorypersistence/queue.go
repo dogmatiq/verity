@@ -9,7 +9,7 @@ import (
 
 // LoadQueueMessages loads the next n messages from the queue.
 func (ds *dataStore) LoadQueueMessages(
-	ctx context.Context,
+	_ context.Context,
 	n int,
 ) ([]persistence.QueueMessage, error) {
 	ds.db.mutex.RLock()
@@ -56,7 +56,7 @@ func (v *validator) VisitSaveQueueMessage(
 // VisitRemoveQueueMessage returns an error if a "RemoveQueueMessage" operation
 // can not be applied to the database.
 func (v *validator) VisitRemoveQueueMessage(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.RemoveQueueMessage,
 ) error {
 	if x, ok := v.db.queue.messages[op.Message.ID()]; ok {
@@ -73,7 +73,7 @@ func (v *validator) VisitRemoveQueueMessage(
 // VisitSaveQueueMessage applies the changes in a "SaveQueueMessage" operation
 // to the database.
 func (c *committer) VisitSaveQueueMessage(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.SaveQueueMessage,
 ) error {
 	if op.Message.Revision == 0 {
@@ -87,7 +87,7 @@ func (c *committer) VisitSaveQueueMessage(
 // VisitRemoveQueueMessage applies the changes in a "RemoveQueueMessage"
 // operation to the database.
 func (c *committer) VisitRemoveQueueMessage(
-	ctx context.Context,
+	_ context.Context,
 	op persistence.RemoveQueueMessage,
 ) error {
 	c.db.queue.remove(op.Message.ID())
