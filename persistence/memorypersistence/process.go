@@ -33,11 +33,10 @@ func (v *validator) VisitSaveProcessInstance(
 	_ context.Context,
 	op persistence.SaveProcessInstance,
 ) error {
-	new := op.Instance
-	key := instanceKey{new.HandlerKey, new.InstanceID}
+	key := instanceKey{op.Instance.HandlerKey, op.Instance.InstanceID}
 	old := v.db.process.instances[key]
 
-	if new.Revision == old.Revision {
+	if op.Instance.Revision == old.Revision {
 		return nil
 	}
 

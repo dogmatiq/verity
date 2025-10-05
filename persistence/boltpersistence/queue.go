@@ -110,9 +110,9 @@ func (c *committer) VisitSaveQueueMessage(
 	_ context.Context,
 	op persistence.SaveQueueMessage,
 ) error {
-	old := loadQueueMessage(c.root, op.Message.ID())
+	oldMessage := loadQueueMessage(c.root, op.Message.ID())
 
-	if op.Message.Revision != old.GetRevision() {
+	if op.Message.Revision != oldMessage.GetRevision() {
 		return persistence.ConflictError{
 			Cause: op,
 		}
@@ -120,17 +120,17 @@ func (c *committer) VisitSaveQueueMessage(
 
 	// Ensure the envelope can not be modified.
 	if op.Message.Revision > 0 {
-		op.Message.Envelope = old.GetEnvelope()
+		op.Message.Envelope = oldMessage.GetEnvelope()
 	}
 
-	new := saveQueueMessage(c.root, op.Message)
+	newMessage := saveQueueMessage(c.root, op.Message)
 
-	if new.GetNextAttemptAt() != old.GetNextAttemptAt() {
-		if old != nil {
-			removeQueueOrder(c.root, old)
+	if newMessage.GetNextAttemptAt() != oldMessage.GetNextAttemptAt() {
+		if oldMessage != nil {
+			removeQueueOrder(c.root, oldMessage)
 		}
 
-		saveQueueOrder(c.root, new)
+		saveQueueOrder(c.root, newMessage)
 	}
 
 	addToTimeoutIndex(c.root, op.Message)

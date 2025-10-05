@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/dogmatiq/verity/internal/x/bboltx"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" // revive:disable-line:dot-imports
+	. "github.com/onsi/gomega"    // revive:disable-line:dot-imports
 )
 
 var _ = Describe("func unmarshalUint64()", func() {

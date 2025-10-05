@@ -33,11 +33,10 @@ func (v *validator) VisitSaveAggregateMetaData(
 	_ context.Context,
 	op persistence.SaveAggregateMetaData,
 ) error {
-	new := op.MetaData
-	key := instanceKey{new.HandlerKey, new.InstanceID}
+	key := instanceKey{op.MetaData.HandlerKey, op.MetaData.InstanceID}
 	old := v.db.aggregate.metadata[key]
 
-	if new.Revision == old.Revision {
+	if op.MetaData.Revision == old.Revision {
 		return nil
 	}
 

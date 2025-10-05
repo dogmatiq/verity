@@ -131,10 +131,10 @@ func (p *provider) release(k string) error {
 	}
 
 	db := p.db
-	close := p.close
+	closeDB := p.close
 
 	p.db = nil
 	p.close = nil
 
-	return close(db)
+	return closeDB(db)
 }
