@@ -163,7 +163,9 @@ func (driver) SelectNextEventOffset(
 		ctx,
 		`SELECT
 			next_offset
-		FROM event_offset`,
+		FROM event_offset
+		WHERE source_app_key = ?`,
+		ak,
 	)
 
 	var next uint64

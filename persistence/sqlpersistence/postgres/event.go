@@ -165,7 +165,9 @@ func (driver) SelectNextEventOffset(
 		ctx,
 		`SELECT
 			next_offset
-		FROM verity.event_offset`,
+		FROM verity.event_offset
+		WHERE source_app_key = $1`,
+		ak,
 	)
 
 	var next uint64

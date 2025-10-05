@@ -9,6 +9,14 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
+[bc]: https://github.com/dogmatiq/.github/blob/main/VERSIONING.md#changelogs
+
+## [Unreleased]
+
+### Fixed
+
+- Fixed issue selecting next free event offset when using SQL persistence when
+  running multiple applications on the same engine instance.
 
 ## [0.3.3] - 2024-10-10
 
@@ -149,6 +157,7 @@ optimistic concurrency error.
 [0.1.5]: https://github.com/dogmatiq/verity/releases/tag/v0.1.5
 [0.1.6]: https://github.com/dogmatiq/verity/releases/tag/v0.1.6
 [0.1.7]: https://github.com/dogmatiq/verity/releases/tag/v0.1.7
+[0.1.8]: https://github.com/dogmatiq/verity/releases/tag/v0.1.8
 [0.2.0]: https://github.com/dogmatiq/verity/releases/tag/v0.2.0
 [0.2.1]: https://github.com/dogmatiq/verity/releases/tag/v0.2.1
 [0.2.2]: https://github.com/dogmatiq/verity/releases/tag/v0.2.2
