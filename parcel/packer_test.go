@@ -46,14 +46,14 @@ var _ = Describe("type Packer", func() {
 			Application: app,
 			Marshaler:   Marshaler,
 			Produced: sets.New(
-				message.TypeFor[CommandStub[TypeC]](),
-				message.TypeFor[EventStub[TypeE]](),
-				message.TypeFor[TimeoutStub[TypeT]](),
+				message.TypeFor[*CommandStub[TypeC]](),
+				message.TypeFor[*EventStub[TypeE]](),
+				message.TypeFor[*TimeoutStub[TypeT]](),
 			),
 			Consumed: sets.New(
-				message.TypeFor[CommandStub[TypeD]](),
-				message.TypeFor[EventStub[TypeF]](),
-				message.TypeFor[TimeoutStub[TypeU]](),
+				message.TypeFor[*CommandStub[TypeD]](),
+				message.TypeFor[*EventStub[TypeF]](),
+				message.TypeFor[*TimeoutStub[TypeU]](),
 			),
 			GenerateID: func() string {
 				seq++
@@ -96,7 +96,7 @@ var _ = Describe("type Packer", func() {
 
 		It("panics if the message is invalid", func() {
 			Expect(func() {
-				m := CommandStub[TypeC]{
+				m := &CommandStub[TypeC]{
 					ValidationError: "<error>",
 				}
 				packer.PackCommand(m)
@@ -135,7 +135,7 @@ var _ = Describe("type Packer", func() {
 
 		It("panics if the message is invalid", func() {
 			Expect(func() {
-				m := EventStub[TypeE]{
+				m := &EventStub[TypeE]{
 					ValidationError: "<error>",
 				}
 				packer.PackEvent(m)
@@ -250,7 +250,7 @@ var _ = Describe("type Packer", func() {
 							Envelope: parent,
 							Message:  EventF1,
 						},
-						CommandStub[TypeC]{
+						&CommandStub[TypeC]{
 							ValidationError: "<error>",
 						},
 						handler,
@@ -332,7 +332,7 @@ var _ = Describe("type Packer", func() {
 							Envelope: parent,
 							Message:  CommandD1,
 						},
-						EventStub[TypeE]{
+						&EventStub[TypeE]{
 							ValidationError: "<error>",
 						},
 						handler,
@@ -422,7 +422,7 @@ var _ = Describe("type Packer", func() {
 						Envelope: parent,
 						Message:  EventF1,
 					},
-					TimeoutStub[TypeT]{
+					&TimeoutStub[TypeT]{
 						ValidationError: "<error>",
 					},
 					time.Now(),

@@ -10,7 +10,7 @@ require (
 	github.com/dogmatiq/discoverkit v0.1.2
 	github.com/dogmatiq/dodeca v1.4.2
 	github.com/dogmatiq/dogma v0.17.1
-	github.com/dogmatiq/enginekit v0.17.0
+	github.com/dogmatiq/enginekit v0.18.2
 	github.com/dogmatiq/iago v0.4.0
 	github.com/dogmatiq/interopspec v0.5.4
 	github.com/dogmatiq/kyu v0.2.0
@@ -31,6 +31,7 @@ require (
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/dogmatiq/primo v0.3.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect

@@ -55,9 +55,9 @@ var _ = Describe("type Adaptor", func() {
 			ConfigureFunc: func(c dogma.ProcessConfigurer) {
 				c.Identity("<process-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
 				c.Routes(
-					dogma.HandlesEvent[EventStub[TypeE]](),
-					dogma.ExecutesCommand[CommandStub[TypeC]](),
-					dogma.SchedulesTimeout[TimeoutStub[TypeT]](),
+					dogma.HandlesEvent[*EventStub[TypeE]](),
+					dogma.ExecutesCommand[*CommandStub[TypeC]](),
+					dogma.SchedulesTimeout[*TimeoutStub[TypeT]](),
 				)
 			},
 			RouteEventToInstanceFunc: func(_ context.Context, m dogma.Event) (string, bool, error) {
@@ -66,9 +66,9 @@ var _ = Describe("type Adaptor", func() {
 		}
 
 		packer = NewPacker(
-			message.TypeFor[CommandStub[TypeC]](),
-			message.TypeFor[EventStub[TypeE]](),
-			message.TypeFor[TimeoutStub[TypeT]](),
+			message.TypeFor[*CommandStub[TypeC]](),
+			message.TypeFor[*EventStub[TypeE]](),
+			message.TypeFor[*TimeoutStub[TypeT]](),
 		)
 
 		logger = &logging.BufferedLogger{}

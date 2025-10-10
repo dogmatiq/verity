@@ -68,8 +68,8 @@ var _ = Describe("type Consumer", func() {
 		mstream = &memorystream.Stream{
 			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Types: sets.New(
-				message.TypeFor[EventStub[TypeA]](),
-				message.TypeFor[EventStub[TypeB]](),
+				message.TypeFor[*EventStub[TypeA]](),
+				message.TypeFor[*EventStub[TypeB]](),
 			),
 		}
 
@@ -91,7 +91,7 @@ var _ = Describe("type Consumer", func() {
 		consumer = &Consumer{
 			Stream: stream,
 			EventTypes: sets.New(
-				message.TypeFor[EventStub[TypeA]](),
+				message.TypeFor[*EventStub[TypeA]](),
 			),
 			Handler:         eshandler,
 			BackoffStrategy: backoff.Constant(10 * time.Millisecond),
@@ -133,7 +133,7 @@ var _ = Describe("type Consumer", func() {
 				context.Context,
 			) (*sets.Set[message.Type], error) {
 				return sets.New(
-					message.TypeFor[EventStub[TypeC]](),
+					message.TypeFor[*EventStub[TypeC]](),
 				), nil
 			}
 
@@ -215,8 +215,8 @@ var _ = Describe("type Consumer", func() {
 		It("restarts the consumer if the event offset is earlier than the consumed offset", func() {
 			// Ensure the consumer tries to consume all event types.
 			consumer.EventTypes = sets.New(
-				message.TypeFor[EventStub[TypeA]](),
-				message.TypeFor[EventStub[TypeB]](),
+				message.TypeFor[*EventStub[TypeA]](),
+				message.TypeFor[*EventStub[TypeB]](),
 			)
 
 			// Configure the stream to return an offset before the one we

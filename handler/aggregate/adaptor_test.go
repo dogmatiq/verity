@@ -54,8 +54,8 @@ var _ = Describe("type Adaptor", func() {
 			ConfigureFunc: func(c dogma.AggregateConfigurer) {
 				c.Identity("<aggregate-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
 				c.Routes(
-					dogma.HandlesCommand[CommandStub[TypeC]](),
-					dogma.RecordsEvent[EventStub[TypeE]](),
+					dogma.HandlesCommand[*CommandStub[TypeC]](),
+					dogma.RecordsEvent[*EventStub[TypeE]](),
 				)
 			},
 			RouteCommandToInstanceFunc: func(m dogma.Command) string {
@@ -64,8 +64,8 @@ var _ = Describe("type Adaptor", func() {
 		}
 
 		packer = NewPacker(
-			message.TypeFor[CommandStub[TypeC]](),
-			message.TypeFor[EventStub[TypeE]](),
+			message.TypeFor[*CommandStub[TypeC]](),
+			message.TypeFor[*EventStub[TypeE]](),
 		)
 
 		logger = &logging.BufferedLogger{}

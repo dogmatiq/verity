@@ -51,7 +51,7 @@ var _ = Describe("type Stream", func() {
 		stream = &Stream{
 			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
 			Types: sets.New(
-				message.TypeFor[EventStub[TypeA]](),
+				message.TypeFor[*EventStub[TypeA]](),
 			),
 			// For the purposes of our test, we assume there are already 100
 			// persisted events.
@@ -145,7 +145,7 @@ func addEvents(
 				Offset: o,
 				Parcel: NewParcel(
 					id,
-					EventStub[TypeA]{
+					&EventStub[TypeA]{
 						Content: TypeA(id),
 					},
 				),

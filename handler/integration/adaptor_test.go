@@ -37,15 +37,15 @@ var _ = Describe("type Adaptor", func() {
 			ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 				c.Identity("<integration-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
 				c.Routes(
-					dogma.HandlesCommand[CommandStub[TypeC]](),
-					dogma.RecordsEvent[EventStub[TypeE]](),
+					dogma.HandlesCommand[*CommandStub[TypeC]](),
+					dogma.RecordsEvent[*EventStub[TypeE]](),
 				)
 			},
 		}
 
 		packer = NewPacker(
-			message.TypeFor[CommandStub[TypeC]](),
-			message.TypeFor[EventStub[TypeE]](),
+			message.TypeFor[*CommandStub[TypeC]](),
+			message.TypeFor[*EventStub[TypeE]](),
 		)
 
 		logger = &logging.BufferedLogger{}

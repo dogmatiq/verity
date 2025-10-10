@@ -9,7 +9,6 @@ import (
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/eventstream"
@@ -122,10 +121,10 @@ func Declare(
 								c.Identity(id.GetName(), id.GetKey())
 
 								c.Routes(
-									dogma.HandlesCommand[stubs.CommandStub[stubs.TypeX]](),
-									dogma.RecordsEvent[stubs.EventStub[stubs.TypeA]](),
-									dogma.RecordsEvent[stubs.EventStub[stubs.TypeB]](),
-									dogma.RecordsEvent[stubs.EventStub[stubs.TypeC]](),
+									dogma.HandlesCommand[*stubs.CommandStub[stubs.TypeX]](),
+									dogma.RecordsEvent[*stubs.EventStub[stubs.TypeA]](),
+									dogma.RecordsEvent[*stubs.EventStub[stubs.TypeB]](),
+									dogma.RecordsEvent[*stubs.EventStub[stubs.TypeC]](),
 								)
 							},
 						}),
@@ -193,7 +192,7 @@ func Declare(
 
 				ginkgo.It("limits results to the supplied message types", func() {
 					types := sets.New(
-						message.TypeFor[stubs.EventStub[stubs.TypeA]](),
+						message.TypeFor[*stubs.EventStub[stubs.TypeA]](),
 					)
 
 					cur, err := out.Stream.Open(ctx, 0, types)
@@ -376,8 +375,8 @@ func Declare(
 								// https://github.com/dogmatiq/verity/issues/194.
 
 								types := sets.New(
-									message.TypeFor[stubs.EventStub[stubs.TypeB]](),
-									message.TypeFor[stubs.EventStub[stubs.TypeC]](),
+									message.TypeFor[*stubs.EventStub[stubs.TypeB]](),
+									message.TypeFor[*stubs.EventStub[stubs.TypeC]](),
 								)
 
 								ginkgo.By("opening a cursor at an offset with an event that does not match the filter")
