@@ -5,10 +5,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
@@ -40,7 +40,6 @@ var _ = Describe("type Stream", func() {
 			server = grpc.NewServer()
 			RegisterServer(
 				server,
-				in.Marshaler,
 				WithApplication(
 					DefaultAppKey,
 					stream,
@@ -58,9 +57,8 @@ var _ = Describe("type Stream", func() {
 
 			return streamtest.Out{
 				Stream: &Stream{
-					App:       in.Application.Identity(),
-					Client:    eventstreamspec.NewStreamAPIClient(conn),
-					Marshaler: in.Marshaler,
+					App:    in.Application.Identity(),
+					Client: eventstreamspec.NewStreamAPIClient(conn),
 				},
 				Append: func(ctx context.Context, parcels ...parcel.Parcel) {
 					stream.Append(parcels...)
@@ -111,7 +109,6 @@ var _ = Describe("type Stream", func() {
 		server = grpc.NewServer()
 		RegisterServer(
 			server,
-			Marshaler,
 			WithApplication(
 				DefaultAppKey,
 				mstream,
@@ -130,9 +127,8 @@ var _ = Describe("type Stream", func() {
 		DeferCleanup(func() { conn.Close() })
 
 		stream = &Stream{
-			App:       configkit.MustNewIdentity("<app-name>", DefaultAppKey),
-			Client:    eventstreamspec.NewStreamAPIClient(conn),
-			Marshaler: Marshaler,
+			App:    identitypb.MustParse("<app-name>", DefaultAppKey),
+			Client: eventstreamspec.NewStreamAPIClient(conn),
 		}
 	})
 
@@ -160,7 +156,7 @@ var _ = Describe("type Stream", func() {
 	Describe("type cursor", func() {
 		Describe("func Next()", func() {
 			It("returns an error if the server returns an invalid envelope", func() {
-				pcl.Envelope.MessageId = ""
+				pcl.Envelope.MessageId = nil
 
 				cur, err := stream.Open(ctx, 0, types)
 				Expect(err).ShouldNot(HaveOccurred())
