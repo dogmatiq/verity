@@ -5,11 +5,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
@@ -66,7 +67,7 @@ var _ = Describe("type Consumer", func() {
 		}
 
 		mstream = &memorystream.Stream{
-			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
+			App: identitypb.MustParse("<app-name>", DefaultAppKey),
 			Types: sets.New(
 				message.TypeFor[*EventStub[TypeA]](),
 				message.TypeFor[*EventStub[TypeB]](),
@@ -238,7 +239,7 @@ var _ = Describe("type Consumer", func() {
 			// configured above.
 			eshandler.NextOffsetFunc = func(
 				context.Context,
-				configkit.Identity,
+				*identitypb.Identity,
 			) (uint64, error) {
 				return 1, nil
 			}
@@ -260,14 +261,14 @@ var _ = Describe("type Consumer", func() {
 
 		It("restarts the consumer if the message envelope is invalid", func() {
 			// Make event0 envelope invalid.
-			event0.Parcel.Envelope.MessageId = ""
+			event0.Parcel.Envelope.MessageId = nil
 
 			// Configure the handler to start at offset 0, but then try offset 2
 			// on the next attempt.
 			isRetry := false
 			eshandler.NextOffsetFunc = func(
 				context.Context,
-				configkit.Identity,
+				*identitypb.Identity,
 			) (uint64, error) {
 				if isRetry {
 					return 2, nil
@@ -295,14 +296,14 @@ var _ = Describe("type Consumer", func() {
 		It("restarts the consumer if the event's source application does not match the consumer's application", func() {
 			// Make event0 use a different source application to the one that
 			// the consumer is expecting to see.
-			event0.Parcel.Envelope.SourceApplication.Key = "<different>"
+			event0.Parcel.Envelope.SourceApplication.Key = uuidpb.Generate()
 
 			// Configure the handler to start at offset 0, but then try offset 2
 			// on the next attempt.
 			isRetry := false
 			eshandler.NextOffsetFunc = func(
 				context.Context,
-				configkit.Identity,
+				*identitypb.Identity,
 			) (uint64, error) {
 				if isRetry {
 					return 2, nil
@@ -336,7 +337,7 @@ var _ = Describe("type Consumer", func() {
 		It("returns if the context is canceled while backing off", func() {
 			eshandler.NextOffsetFunc = func(
 				context.Context,
-				configkit.Identity,
+				*identitypb.Identity,
 			) (uint64, error) {
 				return 0, errors.New("<error>")
 			}
@@ -370,11 +371,10 @@ var _ = Describe("type Consumer", func() {
 			It("starts consuming from the next offset", func() {
 				eshandler.NextOffsetFunc = func(
 					_ context.Context,
-					id configkit.Identity,
+					id *identitypb.Identity,
 				) (uint64, error) {
-					Expect(id).To(Equal(
-						configkit.MustNewIdentity("<app-name>", DefaultAppKey),
-					))
+					Expect(id.Name).To(Equal("<app-name>"))
+					Expect(id.Key.AsString()).To(BeEquivalentTo(DefaultAppKey))
 					return 2, nil
 				}
 
@@ -395,7 +395,7 @@ var _ = Describe("type Consumer", func() {
 			It("passes the correct offset to the handler", func() {
 				eshandler.NextOffsetFunc = func(
 					context.Context,
-					configkit.Identity,
+					*identitypb.Identity,
 				) (uint64, error) {
 					return 2, nil
 				}
@@ -422,7 +422,7 @@ var _ = Describe("type Consumer", func() {
 				) error {
 					eshandler.NextOffsetFunc = func(
 						context.Context,
-						configkit.Identity,
+						*identitypb.Identity,
 					) (uint64, error) {
 						return 2, nil
 					}
@@ -447,7 +447,7 @@ var _ = Describe("type Consumer", func() {
 			It("restarts the consumer when the current offset can not be read", func() {
 				eshandler.NextOffsetFunc = func(
 					context.Context,
-					configkit.Identity,
+					*identitypb.Identity,
 				) (uint64, error) {
 					eshandler.NextOffsetFunc = nil
 					return 0, errors.New("<error>")

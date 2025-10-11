@@ -1,50 +1,44 @@
 package parcel_test
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/enginetest/uuidtest"
 	"github.com/dogmatiq/enginekit/message"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/parcel"
 	"github.com/google/uuid"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ = Describe("type Packer", func() {
 	var (
-		seq          int
+		seq          *uuidtest.Sequence
 		now          time.Time
-		nowString    string
-		app, handler *envelopespec.Identity
+		app, handler *identitypb.Identity
 		packer       *Packer
 	)
 
 	BeforeEach(func() {
-		seq = 0
+		seq = uuidtest.NewSequence()
 
 		now = time.Now()
-		nowString = now.Format(time.RFC3339Nano)
 
-		app = &envelopespec.Identity{
-			Name: "<app-name>",
-			Key:  DefaultAppKey,
-		}
+		app = identitypb.MustParse("<app-name>", DefaultAppKey)
 
-		handler = &envelopespec.Identity{
-			Name: "<handler-name>",
-			Key:  DefaultHandlerKey,
-		}
+		handler = identitypb.MustParse("<handler-name>", DefaultHandlerKey)
 
 		packer = &Packer{
 			Application: app,
-			Marshaler:   Marshaler,
 			Produced: sets.New(
 				message.TypeFor[*CommandStub[TypeC]](),
 				message.TypeFor[*EventStub[TypeE]](),
@@ -55,10 +49,7 @@ var _ = Describe("type Packer", func() {
 				message.TypeFor[*EventStub[TypeF]](),
 				message.TypeFor[*TimeoutStub[TypeU]](),
 			),
-			GenerateID: func() string {
-				seq++
-				return fmt.Sprintf("%08d", seq)
-			},
+			GenerateID: seq.Next,
 			Now: func() time.Time {
 				return now
 			},
@@ -71,15 +62,14 @@ var _ = Describe("type Packer", func() {
 
 			Expect(p).To(EqualX(
 				Parcel{
-					Envelope: &envelopespec.Envelope{
-						MessageId:         "00000001",
-						CausationId:       "00000001",
-						CorrelationId:     "00000001",
+					Envelope: &envelopepb.Envelope{
+						MessageId:         seq.Nth(0),
+						CausationId:       seq.Nth(0),
+						CorrelationId:     seq.Nth(0),
 						SourceApplication: app,
-						CreatedAt:         nowString,
+						CreatedAt:         timestamppb.New(now),
 						Description:       "command(stubs.TypeC:C1, valid)",
-						PortableName:      "CommandStub[TypeC]",
-						MediaType:         `application/json; type="CommandStub[TypeC]"`,
+						TypeId:            MessageTypeUUID[*CommandStub[TypeC]](),
 						Data:              []byte(`{"content":"C1"}`),
 					},
 					Message:   CommandC1,
@@ -110,15 +100,13 @@ var _ = Describe("type Packer", func() {
 
 			Expect(p).To(EqualX(
 				Parcel{
-					Envelope: &envelopespec.Envelope{
-						MessageId:         "00000001",
-						CausationId:       "00000001",
-						CorrelationId:     "00000001",
+					Envelope: &envelopepb.Envelope{
+						MessageId:         seq.Nth(0),
+						CausationId:       seq.Nth(0),
+						CorrelationId:     seq.Nth(0),
 						SourceApplication: app,
-						CreatedAt:         nowString,
-						Description:       "event(stubs.TypeE:E1, valid)",
-						PortableName:      "EventStub[TypeE]",
-						MediaType:         `application/json; type="EventStub[TypeE]"`,
+						CreatedAt:         timestamppb.New(now),
+						TypeId:            MessageTypeUUID[*EventStub[TypeE]](),
 						Data:              []byte(`{"content":"E1"}`),
 					},
 					Message:   EventE1,
@@ -157,23 +145,23 @@ var _ = Describe("type Packer", func() {
 
 		p := packer.PackCommand(CommandC1)
 
-		createdAt, err := time.Parse(time.RFC3339Nano, p.Envelope.GetCreatedAt())
-		Expect(err).ShouldNot(HaveOccurred())
+		createdAt := p.Envelope.GetCreatedAt().AsTime()
 		Expect(createdAt).To(BeTemporally("~", time.Now()))
 	})
 
 	Context("child envelopes", func() {
-		var parent *envelopespec.Envelope
+		var parent *envelopepb.Envelope
 
 		BeforeEach(func() {
-			parent = &envelopespec.Envelope{
-				MessageId:     "<cause>",
-				CausationId:   "<cause>",
-				CorrelationId: "<cause>",
-				SourceApplication: &envelopespec.Identity{
-					Name: "<app-name>",
-					Key:  DefaultAppKey,
-				},
+			causeID := uuidpb.Generate()
+			parent = &envelopepb.Envelope{
+				MessageId:     causeID,
+				CausationId:   causeID,
+				CorrelationId: causeID,
+				SourceApplication: identitypb.New(
+					"<app-name>",
+					uuidpb.MustParse(DefaultAppKey),
+				),
 			}
 		})
 
@@ -193,17 +181,16 @@ var _ = Describe("type Packer", func() {
 
 					Expect(p).To(EqualX(
 						Parcel{
-							Envelope: &envelopespec.Envelope{
-								MessageId:         "00000001",
-								CausationId:       "<cause>",
-								CorrelationId:     "<cause>",
+							Envelope: &envelopepb.Envelope{
+								MessageId:         seq.Nth(0),
+								CausationId:       parent.GetMessageId(),
+								CorrelationId:     parent.GetMessageId(),
 								SourceApplication: app,
 								SourceHandler:     handler,
 								SourceInstanceId:  "<instance>",
-								CreatedAt:         nowString,
+								CreatedAt:         timestamppb.New(now),
 								Description:       "command(stubs.TypeC:C1, valid)",
-								PortableName:      "CommandStub[TypeC]",
-								MediaType:         `application/json; type="CommandStub[TypeC]"`,
+								TypeId:            MessageTypeUUID[*CommandStub[TypeC]](),
 								Data:              []byte(`{"content":"C1"}`),
 							},
 							Message:   CommandC1,
@@ -276,17 +263,16 @@ var _ = Describe("type Packer", func() {
 
 					Expect(p).To(EqualX(
 						Parcel{
-							Envelope: &envelopespec.Envelope{
-								MessageId:         "00000001",
-								CausationId:       "<cause>",
-								CorrelationId:     "<cause>",
+							Envelope: &envelopepb.Envelope{
+								MessageId:         seq.Nth(0),
+								CausationId:       parent.GetMessageId(),
+								CorrelationId:     parent.GetMessageId(),
 								SourceApplication: app,
 								SourceHandler:     handler,
 								SourceInstanceId:  "<instance>",
-								CreatedAt:         nowString,
+								CreatedAt:         timestamppb.New(now),
 								Description:       "event(stubs.TypeE:E1, valid)",
-								PortableName:      "EventStub[TypeE]",
-								MediaType:         `application/json; type="EventStub[TypeE]"`,
+								TypeId:            MessageTypeUUID[*EventStub[TypeE]](),
 								Data:              []byte(`{"content":"E1"}`),
 							},
 							Message:   EventE1,
@@ -360,18 +346,17 @@ var _ = Describe("type Packer", func() {
 
 					Expect(p).To(EqualX(
 						Parcel{
-							Envelope: &envelopespec.Envelope{
-								MessageId:         "00000001",
-								CausationId:       "<cause>",
-								CorrelationId:     "<cause>",
+							Envelope: &envelopepb.Envelope{
+								MessageId:         uuidpb.Generate(), // TODO,
+								CausationId:       uuidpb.Generate(), // TODO,
+								CorrelationId:     uuidpb.Generate(), // TODO,
 								SourceApplication: app,
 								SourceHandler:     handler,
 								SourceInstanceId:  "<instance>",
-								CreatedAt:         nowString,
-								ScheduledFor:      scheduledFor.Format(time.RFC3339Nano),
+								CreatedAt:         timestamppb.New(now),
+								ScheduledFor:      timestamppb.New(scheduledFor),
 								Description:       "timeout(stubs.TypeT:T1, valid)",
-								PortableName:      "TimeoutStub[TypeT]",
-								MediaType:         `application/json; type="TimeoutStub[TypeT]"`,
+								TypeId:            MessageTypeUUID[*TimeoutStub[TypeT]](),
 								Data:              []byte(`{"content":"T1"}`),
 							},
 							Message:      TimeoutT1,

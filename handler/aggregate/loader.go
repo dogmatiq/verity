@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/enginekit/marshaler"
-	"github.com/dogmatiq/verity/parcel"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	"github.com/dogmatiq/verity/persistence"
 )
 
@@ -25,10 +24,6 @@ type Loader struct {
 	// EventRepository is the repository used to load an aggregate instance's
 	// historical events.
 	EventRepository persistence.EventRepository
-
-	// Marshaler is used to marshal/unmarshal aggregate snapshots and historical
-	// events,
-	Marshaler marshaler.Marshaler
 }
 
 // Load loads the aggregate instance with the given ID.
@@ -73,11 +68,11 @@ func (l *Loader) applyEvents(
 			return err
 		}
 
-		p, err := parcel.FromEnvelope(l.Marshaler, ev.Envelope)
+		m, err := envelopepb.Unpack(ev.Envelope)
 		if err != nil {
 			return err
 		}
 
-		base.ApplyEvent(p.Message.(dogma.Event))
+		base.ApplyEvent(m.(dogma.Event))
 	}
 }

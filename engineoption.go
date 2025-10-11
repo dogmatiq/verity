@@ -2,13 +2,13 @@ package verity
 
 import (
 	"fmt"
-	"reflect"
 	"runtime"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/config"
+	"github.com/dogmatiq/enginekit/config/runtimeconfig"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"github.com/dogmatiq/verity/persistence"
@@ -75,10 +75,10 @@ type EngineOption func(*engineOptions)
 // WithApplication(), the app parameter to New(), or both.
 func WithApplication(app dogma.Application) EngineOption {
 	return func(opts *engineOptions) {
-		cfg := configkit.FromApplication(app)
+		cfg := runtimeconfig.FromApplication(app)
 
 		for _, c := range opts.AppConfigs {
-			if c.Identity().ConflictsWith(cfg.Identity()) {
+			if c.Identity().Key.Equal(cfg.Identity().Key) {
 				panic(fmt.Sprintf(
 					"can not host both %s and %s because they have conflicting identities",
 					c.Identity(),
@@ -170,52 +170,6 @@ func WithProjectionCompactTimeout(d time.Duration) EngineOption {
 	}
 }
 
-// NewDefaultMarshaler returns the default marshaler to use for the given
-// applications.
-//
-// It is used if the WithMarshaler() option is omitted.
-func NewDefaultMarshaler(configs []configkit.RichApplication) marshaler.Marshaler {
-	var types []reflect.Type
-	for _, cfg := range configs {
-		for t := range cfg.MessageTypes() {
-			types = append(types, t.ReflectType())
-		}
-
-		cfg.RichHandlers().RangeProcesses(
-			func(h configkit.RichProcess) bool {
-				r := h.Handler().New()
-				types = append(types, reflect.TypeOf(r))
-				return true
-			},
-		)
-	}
-
-	m, err := marshaler.New(
-		types,
-		[]marshaler.Codec{
-			stateless.DefaultCodec,
-			protobuf.DefaultNativeCodec,
-			json.DefaultCodec,
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	return m
-}
-
-// WithMarshaler returns a engine option that sets the marshaler used to marshal
-// and unmarshal messages and other types.
-//
-// If this option is omitted or m is nil, NewDefaultMarshaler() is called to
-// obtain the default marshaler.
-func WithMarshaler(m marshaler.Marshaler) EngineOption {
-	return func(opts *engineOptions) {
-		opts.Marshaler = m
-	}
-}
-
 // WithLogger returns an engine option that sets the target for log messages
 // produced by the engine.
 //
@@ -242,12 +196,11 @@ func WithLogger(l any) EngineOption {
 
 // engineOptions is a container for a fully-resolved set of engine options.
 type engineOptions struct {
-	AppConfigs                []configkit.RichApplication
+	AppConfigs                []*config.Application
 	PersistenceProvider       persistence.Provider
 	MessageTimeout            time.Duration
 	MessageBackoff            backoff.Strategy
 	ConcurrencyLimit          uint
-	Marshaler                 marshaler.Marshaler
 	ProjectionCompactInterval time.Duration
 	ProjectionCompactTimeout  time.Duration
 	Logger                    logging.Logger
@@ -289,10 +242,6 @@ func resolveEngineOptions(options ...EngineOption) *engineOptions {
 
 	if opts.ProjectionCompactTimeout == 0 {
 		opts.ProjectionCompactTimeout = DefaultProjectionCompactTimeout
-	}
-
-	if opts.Marshaler == nil {
-		opts.Marshaler = NewDefaultMarshaler(opts.AppConfigs)
 	}
 
 	if opts.Logger == nil {

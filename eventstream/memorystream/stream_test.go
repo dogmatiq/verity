@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
 	. "github.com/dogmatiq/verity/eventstream/memorystream"
@@ -49,7 +49,7 @@ var _ = Describe("type Stream", func() {
 		DeferCleanup(cancel)
 
 		stream = &Stream{
-			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
+			App: identitypb.MustParse("<app-name>", DefaultAppKey),
 			Types: sets.New(
 				message.TypeFor[*EventStub[TypeA]](),
 			),

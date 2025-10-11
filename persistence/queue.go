@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 )
 
 // QueueMessage is a message persisted in the message queue.
@@ -12,12 +12,12 @@ type QueueMessage struct {
 	Revision      uint64
 	FailureCount  uint
 	NextAttemptAt time.Time
-	Envelope      *envelopespec.Envelope
+	Envelope      *envelopepb.Envelope
 }
 
 // ID returns the ID of the message.
 func (m QueueMessage) ID() string {
-	return m.Envelope.GetMessageId()
+	return m.Envelope.GetMessageId().AsString()
 }
 
 // QueueRepository is an interface for reading queued messages.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/parcel"
@@ -42,7 +42,6 @@ var _ = Describe("type StreamAdaptor", func() {
 
 		queue = &Queue{
 			Repository: dataStore,
-			Marshaler:  Marshaler,
 		}
 
 		adaptor = &StreamAdaptor{
@@ -75,10 +74,7 @@ var _ = Describe("type StreamAdaptor", func() {
 
 			o, err := adaptor.NextOffset(
 				ctx,
-				configkit.MustNewIdentity(
-					"<app-name>",
-					DefaultAppKey,
-				),
+				identitypb.MustParse("<app-name>", DefaultAppKey),
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(o).To(BeNumerically("==", 123))

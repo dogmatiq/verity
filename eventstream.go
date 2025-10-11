@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
+	"github.com/dogmatiq/enginekit/config"
 	"github.com/dogmatiq/enginekit/message"
-	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/handler/projection"
 	"github.com/dogmatiq/verity/internal/x/loggingx"
@@ -49,11 +48,12 @@ func (e *Engine) runStreamConsumersForApp(
 		})
 	}
 
-	for _, h := range a.Config.RichHandlers().Projections() {
-		h := h // capture loop variable
-		g.Go(func() error {
-			return e.runStreamConsumerForProjection(ctx, s, a, h)
-		})
+	for _, h := range a.Config.Handlers() {
+		if h, ok := h.(*config.Projection); ok {
+			g.Go(func() error {
+				return e.runStreamConsumerForProjection(ctx, s, a, h)
+			})
+		}
 	}
 
 	return g.Wait()
@@ -71,14 +71,15 @@ func (e *Engine) runStreamConsumerForQueue(
 	// Find all events that are consumed by processes. Events consumed by
 	// projections are not included as each projection handler has its own
 	// consumer.
-	for _, h := range a.Config.RichHandlers().Processes() {
-		events = events.Union(
-			sets.NewFromKeys(
+	for _, h := range a.Config.Handlers() {
+		if h, ok := h.(*config.Process); ok {
+			events = events.Union(
 				h.
-					MessageTypes().
-					Consumed(message.EventKind),
-			),
-		)
+					RouteSet().
+					Filter(config.FilterByMessageKind(message.EventKind)).
+					MessageTypeSet(),
+			)
+		}
 	}
 
 	c := &eventstream.Consumer{
@@ -116,23 +117,18 @@ func (e *Engine) runStreamConsumerForProjection(
 	ctx context.Context,
 	s eventstream.Stream,
 	a *app,
-	h configkit.RichProjection,
+	h *config.Projection,
 ) error {
 	c := &eventstream.Consumer{
 		Stream: s,
-		EventTypes: sets.NewFromKeys(
-			h.
-				MessageTypes().
-				Consumed(),
-		),
+		EventTypes: h.
+			RouteSet().
+			MessageTypeSet(),
 		Handler: &projection.StreamAdaptor{
-			Identity: &envelopespec.Identity{
-				Name: h.Identity().Name,
-				Key:  h.Identity().Key,
-			},
-			Handler: h.Handler(),
-			Timeout: e.opts.MessageTimeout,
-			Logger:  a.Logger,
+			Identity: h.Identity(),
+			Handler:  h.Source.Get(),
+			Timeout:  e.opts.MessageTimeout,
+			Logger:   a.Logger,
 		},
 		Semaphore:       e.semaphore,
 		BackoffStrategy: e.opts.MessageBackoff,

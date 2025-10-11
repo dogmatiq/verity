@@ -6,19 +6,17 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
-	"github.com/dogmatiq/interopspec/envelopespec"
-	"github.com/google/uuid"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Packer puts messages into parcels.
 type Packer struct {
 	// Application is the identity of this application.
-	Application *envelopespec.Identity
-
-	// Marshaler is used to marshal messages into envelopes.
-	Marshaler marshaler.Marshaler
+	Application *identitypb.Identity
 
 	// Produced is the set of message types that are produced by this
 	// application.
@@ -30,7 +28,7 @@ type Packer struct {
 
 	// GenerateID is a function used to generate new message IDs. If it is nil,
 	// a UUID is generated.
-	GenerateID func() string
+	GenerateID func() *uuidpb.UUID
 
 	// Now is a function used to get the current time. If it is nil, time.Now()
 	// is used.
@@ -60,7 +58,7 @@ func (p *Packer) PackEvent(m dogma.Event) Parcel {
 func (p *Packer) PackChildCommand(
 	c Parcel,
 	m dogma.Command,
-	handler *envelopespec.Identity,
+	handler *identitypb.Identity,
 	instanceID string,
 ) Parcel {
 	if err := m.Validate(nil); err != nil {
@@ -80,7 +78,7 @@ func (p *Packer) PackChildCommand(
 func (p *Packer) PackChildEvent(
 	c Parcel,
 	m dogma.Event,
-	handler *envelopespec.Identity,
+	handler *identitypb.Identity,
 	instanceID string,
 ) Parcel {
 	if err := m.Validate(nil); err != nil {
@@ -101,7 +99,7 @@ func (p *Packer) PackChildTimeout(
 	c Parcel,
 	m dogma.Timeout,
 	t time.Time,
-	handler *envelopespec.Identity,
+	handler *identitypb.Identity,
 	instanceID string,
 ) Parcel {
 	if err := m.Validate(nil); err != nil {
@@ -115,7 +113,7 @@ func (p *Packer) PackChildTimeout(
 		instanceID,
 	)
 
-	parcel.Envelope.ScheduledFor = t.Format(time.RFC3339Nano)
+	parcel.Envelope.ScheduledFor = timestamppb.New(t)
 	parcel.ScheduledFor = t
 
 	return parcel
@@ -123,6 +121,11 @@ func (p *Packer) PackChildTimeout(
 
 // new returns an envelope containing the given message.
 func (p *Packer) new(m dogma.Message) Parcel {
+	rmt, ok := dogma.RegisteredMessageTypeOf(m)
+	if !ok {
+		panic(fmt.Sprintf("%T is not a registered message type", m))
+	}
+
 	mt := message.TypeOf(m)
 	if !p.Produced.Has(mt) {
 		panic(fmt.Sprintf("%s is not a recognized message type", mt))
@@ -131,27 +134,21 @@ func (p *Packer) new(m dogma.Message) Parcel {
 	id := p.generateID()
 	now := p.now()
 
-	packet, err := p.Marshaler.Marshal(m)
-	if err != nil {
-		panic(err)
-	}
-
-	portableName, err := p.Marshaler.MarshalType(mt.ReflectType())
+	data, err := m.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
 
 	pcl := Parcel{
-		Envelope: &envelopespec.Envelope{
+		Envelope: &envelopepb.Envelope{
 			MessageId:         id,
 			CorrelationId:     id,
 			CausationId:       id,
 			SourceApplication: p.Application,
-			CreatedAt:         now.Format(time.RFC3339Nano),
+			CreatedAt:         timestamppb.New(now),
 			Description:       m.MessageDescription(),
-			PortableName:      portableName,
-			MediaType:         packet.MediaType,
-			Data:              packet.Data,
+			TypeId:            uuidpb.MustParse(rmt.ID()),
+			Data:              data,
 		},
 		Message:   m,
 		CreatedAt: now,
@@ -165,7 +162,7 @@ func (p *Packer) new(m dogma.Message) Parcel {
 func (p *Packer) newChild(
 	c Parcel,
 	m dogma.Message,
-	handler *envelopespec.Identity,
+	handler *identitypb.Identity,
 	instanceID string,
 ) Parcel {
 	ct := message.TypeOf(c.Message)
@@ -194,10 +191,10 @@ func (p *Packer) now() time.Time {
 }
 
 // generateID generates a new message ID.
-func (p *Packer) generateID() string {
+func (p *Packer) generateID() *uuidpb.UUID {
 	if p.GenerateID != nil {
 		return p.GenerateID()
 	}
 
-	return uuid.NewString()
+	return uuidpb.Generate()
 }

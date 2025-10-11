@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	"github.com/dogmatiq/verity/persistence"
 	"google.golang.org/protobuf/proto"
 )
@@ -43,8 +43,8 @@ func (db *database) Close() {
 }
 
 // cloneEnvelope returns a deep-clone of env.
-func cloneEnvelope(env *envelopespec.Envelope) *envelopespec.Envelope {
-	return proto.Clone(env).(*envelopespec.Envelope)
+func cloneEnvelope(env *envelopepb.Envelope) *envelopepb.Envelope {
+	return proto.Clone(env).(*envelopepb.Envelope)
 }
 
 // validator is an implementation of persitence.OperationVisitor that

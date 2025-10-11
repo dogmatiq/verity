@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	"github.com/dogmatiq/verity/persistence"
 )
 
@@ -107,7 +107,7 @@ func (d errorConverter) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
 	o uint64,
-	env *envelopespec.Envelope,
+	env *envelopepb.Envelope,
 ) error {
 	err := d.d.InsertEvent(ctx, tx, o, env)
 	return convertContextErrors(ctx, err)

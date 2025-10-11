@@ -44,7 +44,6 @@ var _ = Describe("type QueueConsumer", func() {
 
 		mqueue = &queue.Queue{
 			Repository: dataStore,
-			Marshaler:  Marshaler,
 		}
 
 		consumer = &QueueConsumer{

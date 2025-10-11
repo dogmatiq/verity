@@ -4,11 +4,11 @@ import (
 	"time"
 
 	//revive:disable:dot-imports
-	"github.com/dogmatiq/configkit"
+
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/config/runtimeconfig"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/linger/backoff"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence/memorypersistence"
@@ -40,10 +40,12 @@ var _ = Describe("func WithApplication()", func() {
 
 		Expect(opts.AppConfigs).To(HaveLen(1))
 		Expect(
-			configkit.IsApplicationEqual(
-				opts.AppConfigs[0],
-				configkit.FromApplication(TestApplication),
-			),
+			runtimeconfig.
+				FromApplication(TestApplication).
+				Identity().
+				Equal(
+					opts.AppConfigs[0].Identity(),
+				),
 		).To(BeTrue())
 	})
 
@@ -204,31 +206,6 @@ var _ = Describe("func WithProjectionCompactTimeout()", func() {
 		Expect(func() {
 			WithProjectionCompactTimeout(-1)
 		}).To(Panic())
-	})
-})
-
-var _ = Describe("func WithMarshaler()", func() {
-	It("sets the marshaler", func() {
-		m, err := marshaler.New(nil, nil)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		opts := resolveEngineOptions(
-			WithApplication(TestApplication),
-			WithMarshaler(m),
-		)
-
-		Expect(opts.Marshaler).To(BeIdenticalTo(m))
-	})
-
-	It("constructs a default if the marshaler is nil", func() {
-		opts := resolveEngineOptions(
-			WithApplication(TestApplication),
-			WithMarshaler(nil),
-		)
-
-		Expect(opts.Marshaler).To(Equal(
-			NewDefaultMarshaler(opts.AppConfigs),
-		))
 	})
 })
 

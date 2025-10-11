@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/persistence"
 	"go.uber.org/multierr"
 )
@@ -26,7 +27,7 @@ type EventDriver interface {
 		ctx context.Context,
 		tx *sql.Tx,
 		o uint64,
-		env *envelopespec.Envelope,
+		env *envelopepb.Envelope,
 	) error
 
 	// InsertEventFilter inserts a filter that limits selected events to those
@@ -197,9 +198,9 @@ func (r *eventResult) Next(
 ) (persistence.Event, bool, error) {
 	if r.rows.Next() {
 		ev := persistence.Event{
-			Envelope: &envelopespec.Envelope{
-				SourceApplication: &envelopespec.Identity{},
-				SourceHandler:     &envelopespec.Identity{},
+			Envelope: &envelopepb.Envelope{
+				SourceApplication: &identitypb.Identity{},
+				SourceHandler:     &identitypb.Identity{},
 			},
 		}
 
@@ -262,7 +263,7 @@ func (c *committer) VisitSaveEvent(
 		c.result.EventOffsets = map[string]uint64{}
 	}
 
-	c.result.EventOffsets[op.Envelope.GetMessageId()] = offset
+	c.result.EventOffsets[op.Envelope.GetMessageId().AsString()] = offset
 
 	return nil
 }

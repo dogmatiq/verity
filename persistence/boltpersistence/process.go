@@ -45,8 +45,7 @@ func (ds *dataStore) LoadProcessInstance(
 			); ok {
 				pb := loadProcessInstance(root, hk, id)
 				inst.Revision = pb.GetRevision()
-				inst.Packet.MediaType = pb.GetMediaType()
-				inst.Packet.Data = pb.GetData()
+				inst.Data = pb.GetData()
 			}
 		},
 	)
@@ -116,9 +115,8 @@ func (c *committer) VisitRemoveProcessInstance(
 func saveProcessInstance(root *bbolt.Bucket, inst persistence.ProcessInstance) {
 	data, err := proto.Marshal(
 		&pb.ProcessInstance{
-			Revision:  inst.Revision + 1,
-			MediaType: inst.Packet.MediaType,
-			Data:      inst.Packet.Data,
+			Revision: inst.Revision + 1,
+			Data:     inst.Data,
 		},
 	)
 	bboltx.Must(err)

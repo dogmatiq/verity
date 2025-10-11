@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
@@ -12,12 +11,11 @@ import (
 
 // cursor is a Cursor that reads events from a network stream.
 type cursor struct {
-	stream    eventstreamspec.StreamAPI_ConsumeClient
-	marshaler marshaler.Marshaler
-	once      sync.Once
-	cancel    context.CancelFunc
-	events    chan eventstream.Event
-	err       error
+	stream eventstreamspec.StreamAPI_ConsumeClient
+	once   sync.Once
+	cancel context.CancelFunc
+	events chan eventstream.Event
+	err    error
 }
 
 // Next returns the next event in the stream that matches the filter.
@@ -102,7 +100,7 @@ func (c *cursor) recv() error {
 		Offset: res.Offset,
 	}
 
-	ev.Parcel, err = parcel.FromEnvelope(c.marshaler, env)
+	ev.Parcel, err = parcel.FromEnvelope(env)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/enginekit/collections/sets"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
@@ -16,7 +15,6 @@ import (
 type cursor struct {
 	repository       persistence.EventRepository
 	repositoryFilter map[string]struct{}
-	marshaler        marshaler.Marshaler
 	cache            eventstream.Stream
 	cacheFilter      *sets.Set[message.Type]
 	offset           uint64
@@ -164,7 +162,7 @@ func (c *cursor) consumeFromRepository(ctx context.Context) error {
 			Offset: pev.Offset,
 		}
 
-		ev.Parcel, err = parcel.FromEnvelope(c.marshaler, pev.Envelope)
+		ev.Parcel, err = parcel.FromEnvelope(pev.Envelope)
 		if err != nil {
 			return err
 		}

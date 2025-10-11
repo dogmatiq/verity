@@ -5,9 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
+	"github.com/dogmatiq/enginekit/config"
+	"github.com/dogmatiq/enginekit/config/runtimeconfig"
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/message"
 	"github.com/dogmatiq/linger"
@@ -24,13 +25,10 @@ import (
 type In struct {
 	// Application is a test application that is configured to record the events
 	// used within the test suite.
-	Application configkit.RichApplication
+	Application *config.Application
 
 	// EventTypes is the set of event types that the test application produces.
 	EventTypes *sets.Set[message.Type]
-
-	// Marshaler marshals and unmarshals the test message types.
-	Marshaler marshaler.Marshaler
 }
 
 // Out is a container for values that are provided by the stream-specific
@@ -107,18 +105,18 @@ func Declare(
 			setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancelSetup()
 
-			cfg := configkit.FromApplication(&stubs.ApplicationStub{
+			cfg := runtimeconfig.FromApplication(&stubs.ApplicationStub{
 				ConfigureFunc: func(c dogma.ApplicationConfigurer) {
 					// use the application identity from the envelope fixtures
 					id := event0.Parcel.Envelope.GetSourceApplication()
-					c.Identity(id.GetName(), id.GetKey())
+					c.Identity(id.GetName(), id.GetKey().AsString())
 
 					c.Routes(
 						dogma.ViaIntegration(&stubs.IntegrationMessageHandlerStub{
 							ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 								// use the handler identity from the envelope fixtures
 								id := event0.Parcel.Envelope.GetSourceHandler()
-								c.Identity(id.GetName(), id.GetKey())
+								c.Identity(id.GetName(), id.GetKey().AsString())
 
 								c.Routes(
 									dogma.HandlesCommand[*stubs.CommandStub[stubs.TypeX]](),
@@ -134,12 +132,13 @@ func Declare(
 
 			in = In{
 				cfg,
-				sets.NewFromKeys(
-					cfg.
-						MessageTypes().
-						Produced(message.EventKind),
-				),
-				stubs.Marshaler,
+				cfg.
+					RouteSet().
+					Filter(
+						config.FilterByMessageKind(message.EventKind),
+						config.FilterByRouteDirection(config.OutboundDirection),
+					).
+					MessageTypeSet(),
 			}
 
 			out = before(setupCtx, in)
