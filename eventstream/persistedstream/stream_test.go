@@ -22,7 +22,7 @@ var _ = Describe("type Stream", func() {
 			provider := &memorypersistence.Provider{}
 
 			var err error
-			dataStore, err = provider.Open(ctx, in.Application.Identity().Key)
+			dataStore, err = provider.Open(ctx, in.Application.Identity().Key.AsString())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			cache := &memorystream.Stream{
@@ -35,7 +35,6 @@ var _ = Describe("type Stream", func() {
 				App:        in.Application.Identity(),
 				Types:      in.EventTypes,
 				Repository: dataStore,
-				Marshaler:  in.Marshaler,
 				Cache:      cache,
 			}
 

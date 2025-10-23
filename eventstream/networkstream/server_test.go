@@ -61,7 +61,6 @@ var _ = Describe("type server", func() {
 		server = grpc.NewServer()
 		RegisterServer(
 			server,
-			Marshaler,
 			WithApplication(
 				DefaultAppKey,
 				stream,

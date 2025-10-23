@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/handler/cache"
 	"github.com/dogmatiq/verity/internal/mlog"
@@ -19,7 +19,7 @@ import (
 // Adaptor exposes a dogma.AggregateMessageHandler as a handler.Handler.
 type Adaptor struct {
 	// Identity is the handler's identity.
-	Identity *envelopespec.Identity
+	Identity *identitypb.Identity
 
 	// Handler is the aggregate message handler that implements the
 	// application-specific message handling logic.
@@ -135,7 +135,7 @@ func (a *Adaptor) load(
 		// Otherwise, we need to load the instance from the data-store.
 		rec.Instance, err = a.Loader.Load(
 			ctx,
-			a.Identity.Key,
+			a.Identity.Key.AsString(),
 			id,
 			mustNew(a.Handler),
 		)

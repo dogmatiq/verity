@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
@@ -58,27 +59,29 @@ func declareEventRepositoryTests(tc *TestContext) {
 				Envelope: verityfixtures.NewEnvelope("<message-5>", stubs.EventC2),
 			}
 
+			aggregateKey := uuidpb.MustParse("f6c0945b-c0c5-45c8-97b9-c093f6aa5da7")
+
 			// Setup some different source handler values to test the aggregate
 			// instance filtering.
-			ev0.Envelope.SourceHandler.Key = "<aggregate>"
+			ev0.Envelope.SourceHandler.Key = aggregateKey
 			ev0.Envelope.SourceInstanceId = "<instance-a>"
 
-			ev1.Envelope.SourceHandler.Key = "<aggregate>"
+			ev1.Envelope.SourceHandler.Key = aggregateKey
 			ev1.Envelope.SourceInstanceId = "<instance-b>"
 
-			ev2.Envelope.SourceHandler.Key = "<aggregate>"
+			ev2.Envelope.SourceHandler.Key = aggregateKey
 			ev2.Envelope.SourceInstanceId = "<instance-a>"
 
-			ev3.Envelope.SourceHandler.Key = "<aggregate>"
+			ev3.Envelope.SourceHandler.Key = aggregateKey
 			ev3.Envelope.SourceInstanceId = "<instance-b>"
 
 			filter = map[string]struct{}{
-				ev0.Envelope.PortableName: {},
-				ev1.Envelope.PortableName: {},
-				ev2.Envelope.PortableName: {},
-				ev3.Envelope.PortableName: {},
-				ev4.Envelope.PortableName: {},
-				ev5.Envelope.PortableName: {},
+				ev0.Envelope.TypeId.AsString(): {},
+				ev1.Envelope.TypeId.AsString(): {},
+				ev2.Envelope.TypeId.AsString(): {},
+				ev3.Envelope.TypeId.AsString(): {},
+				ev4.Envelope.TypeId.AsString(): {},
+				ev5.Envelope.TypeId.AsString(): {},
 			}
 		})
 

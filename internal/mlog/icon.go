@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	"github.com/dogmatiq/iago/must"
 )
 
@@ -122,8 +123,8 @@ func (i Icon) WithLabel(f string, v ...interface{}) IconWithLabel {
 // WithID return an IconWithLabel containing this icon and an ID as its label.
 //
 // The id is formatted using FormatID().
-func (i Icon) WithID(id string) IconWithLabel {
-	return i.WithLabel("%s", FormatID(id))
+func (i Icon) WithID(id *uuidpb.UUID) IconWithLabel {
+	return i.WithLabel("%s", id.AsString()[:8])
 }
 
 // IconWithLabel is a container for an icon and its associated text label.
