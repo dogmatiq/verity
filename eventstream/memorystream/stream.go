@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/kyu"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/parcel"
@@ -36,7 +36,7 @@ const DefaultBufferSize = 100
 // stream's cursor implementation is lock-free.
 type Stream struct {
 	// App is the identity of the application that owns the stream.
-	App configkit.Identity
+	App *identitypb.Identity
 
 	// Types is the set of supported event types.
 	Types *sets.Set[message.Type]
@@ -66,7 +66,7 @@ type Stream struct {
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *Stream) Application() configkit.Identity {
+func (s *Stream) Application() *identitypb.Identity {
 	return s.App
 }
 

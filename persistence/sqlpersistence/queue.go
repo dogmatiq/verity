@@ -4,7 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/persistence"
 )
 
@@ -82,9 +83,9 @@ func (ds *dataStore) LoadQueueMessages(
 
 	for rows.Next() {
 		m := persistence.QueueMessage{
-			Envelope: &envelopespec.Envelope{
-				SourceApplication: &envelopespec.Identity{},
-				SourceHandler:     &envelopespec.Identity{},
+			Envelope: &envelopepb.Envelope{
+				SourceApplication: &identitypb.Identity{},
+				SourceHandler:     &identitypb.Identity{},
 			},
 		}
 

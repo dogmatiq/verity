@@ -260,7 +260,7 @@ func saveQueueOrder(root *bbolt.Bucket, m *pb.QueueMessage) {
 		queueBucketKey,
 		queueOrderBucketKey,
 		[]byte(m.GetNextAttemptAt()),
-		[]byte(m.GetEnvelope().GetMessageId()),
+		[]byte(m.GetEnvelope().GetMessageId().AsString()),
 	)
 }
 
@@ -271,19 +271,19 @@ func removeQueueOrder(root *bbolt.Bucket, m *pb.QueueMessage) {
 		queueBucketKey,
 		queueOrderBucketKey,
 		[]byte(m.GetNextAttemptAt()),
-		[]byte(m.GetEnvelope().GetMessageId()),
+		[]byte(m.GetEnvelope().GetMessageId().AsString()),
 	)
 }
 
 // addToTimeoutIndex adds a recored for m to the timeout index.
 func addToTimeoutIndex(root *bbolt.Bucket, m persistence.QueueMessage) {
-	if m.Envelope.GetScheduledFor() != "" {
+	if m.Envelope.GetScheduledFor() != nil {
 		bboltx.PutPath(
 			root,
 			nil,
 			queueBucketKey,
 			queueTimeoutsBucketKey,
-			[]byte(m.Envelope.GetSourceHandler().GetKey()),
+			[]byte(m.Envelope.GetSourceHandler().GetKey().AsString()),
 			[]byte(m.Envelope.GetSourceInstanceId()),
 			[]byte(m.ID()),
 		)
@@ -292,12 +292,12 @@ func addToTimeoutIndex(root *bbolt.Bucket, m persistence.QueueMessage) {
 
 // addToTimeoutIndex removes the record for m to the timeout index.
 func removeFromTimeoutIndex(root *bbolt.Bucket, m persistence.QueueMessage) {
-	if m.Envelope.GetScheduledFor() != "" {
+	if m.Envelope.GetScheduledFor() != nil {
 		bboltx.DeletePath(
 			root,
 			queueBucketKey,
 			queueTimeoutsBucketKey,
-			[]byte(m.Envelope.GetSourceHandler().GetKey()),
+			[]byte(m.Envelope.GetSourceHandler().GetKey().AsString()),
 			[]byte(m.Envelope.GetSourceInstanceId()),
 			[]byte(m.ID()),
 		)
