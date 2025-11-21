@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler/projection"
@@ -41,7 +41,7 @@ var _ = Describe("type StreamAdaptor", func() {
 		It("returns zero when the projection resource does not exist", func() {
 			offset, err := adaptor.NextOffset(
 				context.Background(),
-				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
+				identitypb.MustParse("<app-name>", DefaultAppKey),
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(offset).To(BeNumerically("==", 0))
@@ -58,7 +58,7 @@ var _ = Describe("type StreamAdaptor", func() {
 
 			offset, err := adaptor.NextOffset(
 				context.Background(),
-				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
+				identitypb.MustParse("<app-name>", DefaultAppKey),
 			)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(offset).To(BeNumerically("==", 3))
@@ -74,7 +74,7 @@ var _ = Describe("type StreamAdaptor", func() {
 
 			_, err := adaptor.NextOffset(
 				context.Background(),
-				configkit.MustNewIdentity("<app-name>", DefaultAppKey),
+				identitypb.MustParse("<app-name>", DefaultAppKey),
 			)
 			Expect(err).To(MatchError("<error>"))
 		})

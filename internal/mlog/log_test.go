@@ -7,7 +7,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/internal/mlog"
 	. "github.com/onsi/ginkgo/v2"
@@ -119,10 +119,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 		LogHandlerResult(
 			logger,
 			NewEnvelope("<id>", CommandC1),
-			&envelopespec.Identity{
-				Name: "<handler-name>",
-				Key:  DefaultHandlerKey,
-			},
+			identitypb.MustParse("<handler-name>", DefaultHandlerKey),
 			configkit.AggregateHandlerType,
 			&err,
 			"",
@@ -140,10 +137,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 		LogHandlerResult(
 			logger,
 			NewEnvelope("<id>", CommandC1),
-			&envelopespec.Identity{
-				Name: "<handler-name>",
-				Key:  DefaultHandlerKey,
-			},
+			identitypb.MustParse("<handler-name>", DefaultHandlerKey),
 			configkit.AggregateHandlerType,
 			&err,
 			"format %s",
@@ -164,10 +158,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 		LogHandlerResult(
 			logger,
 			NewEnvelope("<id>", CommandC1),
-			&envelopespec.Identity{
-				Name: "<handler-name>",
-				Key:  DefaultHandlerKey,
-			},
+			identitypb.MustParse("<handler-name>", DefaultHandlerKey),
 			configkit.AggregateHandlerType,
 			&err,
 			"",
@@ -187,10 +178,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 				defer LogHandlerResult(
 					logger,
 					NewEnvelope("<id>", CommandC1),
-					&envelopespec.Identity{
-						Name: "<handler-name>",
-						Key:  DefaultHandlerKey,
-					},
+					identitypb.MustParse("<handler-name>", DefaultHandlerKey),
 					configkit.AggregateHandlerType,
 					&err,
 					"",
@@ -209,10 +197,7 @@ var _ = Describe("func LogHandlerResult()", func() {
 		LogHandlerResult(
 			logger,
 			NewEnvelope("<id>", CommandC1),
-			&envelopespec.Identity{
-				Name: "<handler-name>",
-				Key:  DefaultHandlerKey,
-			},
+			identitypb.MustParse("<handler-name>", DefaultHandlerKey),
 			configkit.AggregateHandlerType,
 			&err,
 			"",

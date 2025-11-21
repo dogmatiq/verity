@@ -3,7 +3,7 @@ package memorypersistence
 import (
 	"context"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	"github.com/dogmatiq/verity/persistence"
 )
 
@@ -20,7 +20,7 @@ func (ds *dataStore) NextEventOffset(
 // LoadEventsByType loads events that match a specific set of message types.
 //
 // f is the set of message types to include in the result. The keys of f are
-// the "portable type name" produced when the events are marshaled.
+// the registered message type IDs.
 //
 // o specifies the (inclusive) lower-bound of the offset range to include in
 // the results.
@@ -32,8 +32,8 @@ func (ds *dataStore) LoadEventsByType(
 	return &eventResult{
 		db:    ds.db,
 		index: int(o),
-		pred: func(env *envelopespec.Envelope) bool {
-			_, ok := f[env.GetPortableName()]
+		pred: func(env *envelopepb.Envelope) bool {
+			_, ok := f[env.GetTypeId().AsString()]
 			return ok
 		},
 	}, nil
@@ -51,8 +51,8 @@ func (ds *dataStore) LoadEventsBySource(
 ) (persistence.EventResult, error) {
 	return &eventResult{
 		db: ds.db,
-		pred: func(env *envelopespec.Envelope) bool {
-			return env.GetSourceHandler().GetKey() == hk &&
+		pred: func(env *envelopepb.Envelope) bool {
+			return env.GetSourceHandler().GetKey().AsString() == hk &&
 				env.GetSourceInstanceId() == id
 		},
 	}, nil
@@ -63,7 +63,7 @@ func (ds *dataStore) LoadEventsBySource(
 type eventResult struct {
 	db    *database
 	index int
-	pred  func(*envelopespec.Envelope) bool
+	pred  func(*envelopepb.Envelope) bool
 }
 
 // Next returns the next event in the result.
@@ -129,7 +129,7 @@ func (c *committer) VisitSaveEvent(
 		c.result.EventOffsets = map[string]uint64{}
 	}
 
-	c.result.EventOffsets[op.Envelope.GetMessageId()] = offset
+	c.result.EventOffsets[op.Envelope.GetMessageId().AsString()] = offset
 
 	return nil
 }
@@ -141,7 +141,7 @@ type eventDatabase struct {
 }
 
 // save appends the event in env to the database.
-func (db *eventDatabase) save(env *envelopespec.Envelope) uint64 {
+func (db *eventDatabase) save(env *envelopepb.Envelope) uint64 {
 	offset := uint64(len(db.events))
 
 	ev := persistence.Event{
