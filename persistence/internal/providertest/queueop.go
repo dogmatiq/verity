@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
@@ -22,7 +23,7 @@ func declareQueueOperationTests(tc *TestContext) {
 			dataStore persistence.DataStore
 			now       time.Time
 
-			env0, env1, env2 *envelopespec.Envelope
+			env0, env1, env2 *envelopepb.Envelope
 		)
 
 		ginkgo.BeforeEach(func() {
@@ -131,8 +132,8 @@ func declareQueueOperationTests(tc *TestContext) {
 				})
 
 				ginkgo.It("does not update the envelope", func() {
-					env := proto.Clone(env0).(*envelopespec.Envelope)
-					env.CausationId = "<different>"
+					env := proto.Clone(env0).(*envelopepb.Envelope)
+					env.CausationId = uuidpb.Generate()
 
 					persist(
 						tc.Context,
@@ -222,9 +223,9 @@ func declareQueueOperationTests(tc *TestContext) {
 				})
 
 				ginkgo.It("saves messages that were not created by a handler", func() {
-					env0.SourceHandler = &envelopespec.Identity{}
+					env0.SourceHandler = nil
 					env0.SourceInstanceId = ""
-					env0.ScheduledFor = ""
+					env0.ScheduledFor = nil
 
 					persist(
 						tc.Context,
