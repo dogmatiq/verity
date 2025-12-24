@@ -1,18 +1,18 @@
 syntax = "proto3";
 package verity.persistence.boltdb.v1;
 
-import "github.com/dogmatiq/interopspec/envelopespec/envelope.proto";
+import "github.com/dogmatiq/enginekit/protobuf/envelopepb/envelope.proto";
 
 option go_package = "github.com/dogmatiq/verity/persistence/boltpersistence/internal/pb";
 
 // QueueMessage is a protocol buffers representation of a
 // persistence.QueueMessage.
-message QueueMessage{
+message QueueMessage {
   uint64 revision = 1;
   uint64 failure_count = 2;
   string next_attempt_at = 3;
 
   reserved 4 to 14;
 
-  dogma.interop.v1.envelope.Envelope Envelope = 15;
+  dogma.protobuf.Envelope Envelope = 15;
 }

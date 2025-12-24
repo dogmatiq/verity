@@ -106,7 +106,6 @@ func (e *Engine) registerEventStreamAPI(s *grpc.Server) {
 
 	networkstream.RegisterServer(
 		s,
-		e.opts.Marshaler,
 		options...,
 	)
 }
@@ -198,9 +197,8 @@ func (e *Engine) runDiscoveredApp(ctx context.Context, a discoverkit.Application
 	_ = e.runStreamConsumersForEachApp(
 		ctx,
 		&networkstream.Stream{
-			App:       a.Identity,
-			Client:    eventstreamspec.NewStreamAPIClient(a.Connection),
-			Marshaler: e.opts.Marshaler,
+			App:    a.Identity,
+			Client: eventstreamspec.NewStreamAPIClient(a.Connection),
 			// TODO: https://github.com/dogmatiq/verity/issues/76
 			// Make pre-fetch buffer size configurable.
 			PreFetch: 10,
