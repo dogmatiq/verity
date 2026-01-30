@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/kyu"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
@@ -25,9 +24,6 @@ type Queue struct {
 	// Repository is used to load messages from the queue whenever the in-memory
 	// buffer is exhausted.
 	Repository persistence.QueueRepository
-
-	// Marshaler is used to unmarshal the messages loaded via the repository.
-	Marshaler marshaler.Marshaler
 
 	// BufferSize is the maximum number of messages to buffer in memory.
 	// If it is non-positive, DefaultBufferSize is used.
@@ -310,7 +306,7 @@ func (q *Queue) load(ctx context.Context) error {
 
 	messages := make([]Message, len(persisted))
 	for i, m := range persisted {
-		p, err := parcel.FromEnvelope(q.Marshaler, m.Envelope)
+		p, err := parcel.FromEnvelope(m.Envelope)
 		if err != nil {
 			return err
 		}
@@ -384,7 +380,7 @@ func (q *Queue) purge() {
 // indexTimeout adds m to the index of timeout messages.
 func (q *Queue) indexTimeout(m Message, e *kyu.Element) {
 	pid := processID{
-		m.Envelope.SourceHandler.Key,
+		m.Envelope.SourceHandler.Key.AsString(),
 		m.Envelope.SourceInstanceId,
 	}
 
@@ -400,7 +396,7 @@ func (q *Queue) indexTimeout(m Message, e *kyu.Element) {
 // unindexTimeout removes m from the index of timeout messages.
 func (q *Queue) unindexTimeout(m Message) {
 	pid := processID{
-		m.Envelope.SourceHandler.Key,
+		m.Envelope.SourceHandler.Key.AsString(),
 		m.Envelope.SourceInstanceId,
 	}
 

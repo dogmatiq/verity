@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/verity/persistence"
 )
 
@@ -19,9 +18,6 @@ type Instance struct {
 type Loader struct {
 	// Repository is the repository used to load process instances.
 	Repository persistence.ProcessRepository
-
-	// Marshaler is used to marshal/unmarshal process instances.
-	Marshaler marshaler.Marshaler
 }
 
 // Load loads the aggregate instance with the given ID.
@@ -45,12 +41,16 @@ func (l *Loader) Load(
 	}
 
 	// An empty packet represents a stateless process root.
-	if persisted.Packet.MediaType == "" && len(persisted.Packet.Data) == 0 {
+	if len(persisted.Data) == 0 {
 		inst.Root = dogma.StatelessProcessRoot
 		return inst, nil
 	}
 
-	inst.Root, err = l.Marshaler.Unmarshal(persisted.Packet)
+	if err := base.UnmarshalBinary(persisted.Data); err != nil {
+		return nil, err
+	}
 
-	return inst, err
+	inst.Root = base
+
+	return inst, nil
 }
