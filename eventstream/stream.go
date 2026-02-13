@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 )
 
 // A Stream is an ordered sequence of event messages.
 type Stream interface {
 	// Application returns the identity of the application that owns the stream.
-	Application() configkit.Identity
+	Application() *identitypb.Identity
 
 	// EventTypes returns the set of event types that may appear on the stream.
 	EventTypes(ctx context.Context) (*sets.Set[message.Type], error)

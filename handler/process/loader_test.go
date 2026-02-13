@@ -7,7 +7,6 @@ import (
 
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/enginekit/marshaler"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/handler/process"
 	"github.com/dogmatiq/verity/persistence"
@@ -35,7 +34,6 @@ var _ = Describe("type Loader", func() {
 
 		loader = &Loader{
 			Repository: dataStore,
-			Marshaler:  Marshaler,
 		}
 	})
 
@@ -103,13 +101,13 @@ var _ = Describe("type Loader", func() {
 			})
 
 			When("the packet is not empty", func() {
-				var packet marshaler.Packet
+				var data []byte
 
 				BeforeEach(func() {
 					base.Value = "<value>"
 
 					var err error
-					packet, err = Marshaler.Marshal(base)
+					data, err = base.MarshalBinary()
 					Expect(err).ShouldNot(HaveOccurred())
 
 					_, err = dataStore.Persist(
@@ -119,7 +117,7 @@ var _ = Describe("type Loader", func() {
 								Instance: persistence.ProcessInstance{
 									HandlerKey: DefaultHandlerKey,
 									InstanceID: "<instance>",
-									Packet:     packet,
+									Data:       data,
 								},
 							},
 						},
@@ -136,7 +134,7 @@ var _ = Describe("type Loader", func() {
 								HandlerKey: DefaultHandlerKey,
 								InstanceID: "<instance>",
 								Revision:   1,
-								Packet:     packet,
+								Data:       data,
 							},
 							Root: base,
 						},
@@ -144,12 +142,9 @@ var _ = Describe("type Loader", func() {
 				})
 
 				It("returns an error if the state can not be unmarshaled", func() {
-					m, err := marshaler.New(nil, nil) // an empty marshaler cannot unmarshal anything
-					Expect(err).ShouldNot(HaveOccurred())
+					// TODO
 
-					loader.Marshaler = m
-
-					_, err = loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
+					_, err := loader.Load(ctx, DefaultHandlerKey, "<instance>", base)
 					Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
 				})
 			})

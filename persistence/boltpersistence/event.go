@@ -3,7 +3,7 @@ package boltpersistence
 import (
 	"context"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	"github.com/dogmatiq/verity/internal/x/bboltx"
 	"github.com/dogmatiq/verity/persistence"
 	"go.etcd.io/bbolt"
@@ -52,7 +52,7 @@ func (ds *dataStore) NextEventOffset(
 // LoadEventsByType loads events that match a specific set of message types.
 //
 // f is the set of message types to include in the result. The keys of f are
-// the "portable type name" produced when the events are marshaled.
+// the registered message type IDs.
 //
 // o specifies the (inclusive) lower-bound of the offset range to include in
 // the results.
@@ -65,8 +65,8 @@ func (ds *dataStore) LoadEventsByType(
 		db:     ds.db,
 		appKey: ds.appKey,
 		offset: o,
-		pred: func(env *envelopespec.Envelope) bool {
-			_, ok := f[env.GetPortableName()]
+		pred: func(env *envelopepb.Envelope) bool {
+			_, ok := f[env.GetTypeId().AsString()]
 			return ok
 		},
 	}, nil
@@ -88,8 +88,8 @@ func (ds *dataStore) LoadEventsBySource(
 		db:     ds.db,
 		appKey: ds.appKey,
 		offset: offset,
-		pred: func(env *envelopespec.Envelope) bool {
-			return env.GetSourceHandler().GetKey() == hk &&
+		pred: func(env *envelopepb.Envelope) bool {
+			return env.GetSourceHandler().GetKey().AsString() == hk &&
 				env.GetSourceInstanceId() == id
 		},
 	}, nil
@@ -100,7 +100,7 @@ type eventResult struct {
 	db     *bbolt.DB
 	appKey []byte
 	offset uint64
-	pred   func(*envelopespec.Envelope) bool
+	pred   func(*envelopepb.Envelope) bool
 }
 
 // Next returns the next event in the result.
@@ -174,7 +174,7 @@ func (c *committer) VisitSaveEvent(
 	if c.result.EventOffsets == nil {
 		c.result.EventOffsets = map[string]uint64{}
 	}
-	c.result.EventOffsets[id] = offset
+	c.result.EventOffsets[id.AsString()] = offset
 
 	return nil
 }
@@ -201,7 +201,7 @@ func incrementEventOffset(root *bbolt.Bucket) uint64 {
 }
 
 // loadEventEnvelope loads the tiem at the given offset from b.
-func loadEventEnvelope(root *bbolt.Bucket, offset uint64) (*envelopespec.Envelope, bool) {
+func loadEventEnvelope(root *bbolt.Bucket, offset uint64) (*envelopepb.Envelope, bool) {
 	k := marshalUint64(offset)
 	v := bboltx.GetPath(
 		root,
@@ -214,14 +214,14 @@ func loadEventEnvelope(root *bbolt.Bucket, offset uint64) (*envelopespec.Envelop
 		return nil, false
 	}
 
-	var env envelopespec.Envelope
+	var env envelopepb.Envelope
 	bboltx.Must(proto.Unmarshal(v, &env))
 
 	return &env, true
 }
 
 // saveEventEnvelope saves an envelope to b at the given offset.
-func saveEventEnvelope(root *bbolt.Bucket, offset uint64, env *envelopespec.Envelope) {
+func saveEventEnvelope(root *bbolt.Bucket, offset uint64, env *envelopepb.Envelope) {
 	k := marshalUint64(offset)
 	v, err := proto.Marshal(env)
 	bboltx.Must(err)

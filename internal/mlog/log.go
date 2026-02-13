@@ -6,13 +6,15 @@ import (
 
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/dogma"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 )
 
 // LogConsume logs a message indicating that a Dogma message is being consumed.
 func LogConsume(
 	log logging.Logger,
-	env *envelopespec.Envelope,
+	env *envelopepb.Envelope,
 	fc uint,
 ) {
 	logging.LogString(
@@ -27,7 +29,7 @@ func LogConsume(
 				ConsumeIcon,
 				retryIcon(fc),
 			},
-			env.GetPortableName(),
+			messageTypeName(env),
 			env.GetDescription(),
 		),
 	)
@@ -36,7 +38,7 @@ func LogConsume(
 // LogProduce logs a message indicating that Dogma message is being produced.
 func LogProduce(
 	log logging.Logger,
-	env *envelopespec.Envelope,
+	env *envelopepb.Envelope,
 ) {
 	logging.LogString(
 		log,
@@ -50,7 +52,7 @@ func LogProduce(
 				ProduceIcon,
 				"",
 			},
-			env.GetPortableName(),
+			messageTypeName(env),
 			env.GetDescription(),
 		),
 	)
@@ -59,7 +61,7 @@ func LogProduce(
 // LogNack logs a message indicating that a request has been Nack'd.
 func LogNack(
 	log logging.Logger,
-	env *envelopespec.Envelope,
+	env *envelopepb.Envelope,
 	cause error,
 	delay time.Duration,
 ) {
@@ -75,7 +77,7 @@ func LogNack(
 				ConsumeErrorIcon,
 				ErrorIcon,
 			},
-			env.GetPortableName(),
+			messageTypeName(env),
 			cause.Error(),
 			fmt.Sprintf("next retry in %s", delay),
 		),
@@ -86,7 +88,7 @@ func LogNack(
 // via a scope.
 func LogFromScope(
 	log logging.Logger,
-	env *envelopespec.Envelope,
+	env *envelopepb.Envelope,
 	f string, v []interface{},
 ) {
 	logging.Log(
@@ -101,7 +103,7 @@ func LogFromScope(
 				ConsumeIcon,
 				"",
 			},
-			env.GetPortableName(),
+			messageTypeName(env),
 			fmt.Sprintf(f, v...),
 		),
 	)
@@ -113,8 +115,8 @@ func LogFromScope(
 // It is designed to be used with defer.
 func LogHandlerResult(
 	log logging.Logger,
-	env *envelopespec.Envelope,
-	handler *envelopespec.Identity,
+	env *envelopepb.Envelope,
+	handler *identitypb.Identity,
 	ht configkit.HandlerType,
 	err *error,
 	f string, v ...interface{},
@@ -182,4 +184,12 @@ func retryIcon(n uint) Icon {
 	}
 
 	return RetryIcon
+}
+
+func messageTypeName(env *envelopepb.Envelope) string {
+	name := env.GetTypeId().AsString()
+	if mt, ok := dogma.RegisteredMessageTypeByID(name); ok {
+		name = mt.GoType().String()
+	}
+	return name
 }

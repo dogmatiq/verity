@@ -3,18 +3,18 @@ package persistence
 import (
 	"context"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 )
 
 // Event is a persisted event message.
 type Event struct {
 	Offset   uint64
-	Envelope *envelopespec.Envelope
+	Envelope *envelopepb.Envelope
 }
 
 // ID returns the ID of the message.
 func (e Event) ID() string {
-	return e.Envelope.GetMessageId()
+	return e.Envelope.GetMessageId().AsString()
 }
 
 // EventRepository is an interface for reading event messages.
@@ -63,7 +63,7 @@ type EventResult interface {
 // SaveEvent is an Operation that persists an event message.
 type SaveEvent struct {
 	// Envelope is the envelope containing the event to persist.
-	Envelope *envelopespec.Envelope
+	Envelope *envelopepb.Envelope
 }
 
 // AcceptVisitor calls v.VisitSaveEvent().
@@ -72,5 +72,5 @@ func (op SaveEvent) AcceptVisitor(ctx context.Context, v OperationVisitor) error
 }
 
 func (op SaveEvent) entityKey() entityKey {
-	return entityKey{"event", op.Envelope.GetMessageId()}
+	return entityKey{"event", op.Envelope.GetMessageId().AsString()}
 }

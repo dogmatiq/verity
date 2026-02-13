@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/linger/backoff"
 	"golang.org/x/sync/semaphore"
@@ -19,7 +19,7 @@ type Handler interface {
 	// specific application's event stream.
 	//
 	// id is the identity of the source application.
-	NextOffset(ctx context.Context, id configkit.Identity) (uint64, error)
+	NextOffset(ctx context.Context, id *identitypb.Identity) (uint64, error)
 
 	// HandleEvent handles an event obtained from the event stream.
 	//

@@ -8,7 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/linger"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/internal/mlog"
@@ -21,7 +21,7 @@ const DefaultTimeout = 3 * time.Second
 // eventstream.Handler.
 type StreamAdaptor struct {
 	// Identity is the handler's identity.
-	Identity *envelopespec.Identity
+	Identity *identitypb.Identity
 
 	// Handler is the projection message handler that handles the events.
 	Handler dogma.ProjectionMessageHandler
@@ -40,9 +40,9 @@ type StreamAdaptor struct {
 // id is the identity of the source application.
 func (a *StreamAdaptor) NextOffset(
 	ctx context.Context,
-	id configkit.Identity,
+	id *identitypb.Identity,
 ) (uint64, error) {
-	return a.Handler.CheckpointOffset(ctx, id.Key)
+	return a.Handler.CheckpointOffset(ctx, id.Key.AsString())
 }
 
 // HandleEvent handles a message consumed from the event stream.

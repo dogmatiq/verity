@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/dogmatiq/enginekit/collections/sets"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	"github.com/dogmatiq/interopspec/envelopespec"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream"
@@ -36,7 +36,6 @@ func WithApplication(
 // RegisterServer registers an event stream server for the given streams.
 func RegisterServer(
 	s *grpc.Server,
-	m marshaler.Marshaler,
 	options ...ServerOption,
 ) {
 	d := &dispatcher{
@@ -45,10 +44,9 @@ func RegisterServer(
 
 	for _, opt := range options {
 		svr := &server{
-			stream:    opt.stream,
-			marshaler: m,
-			types:     map[string]message.Type{},
-			resp:      &eventstreamspec.EventTypesResponse{},
+			stream: opt.stream,
+			types:  map[string]message.Type{},
+			resp:   &eventstreamspec.EventTypesResponse{},
 		}
 
 		d.apps[opt.key] = svr
@@ -131,10 +129,9 @@ func (d *dispatcher) EventTypes(
 // server is an implementation of the dogma.messaging.v1 EventStream service for
 // a single application.
 type server struct {
-	stream    eventstream.Stream
-	marshaler marshaler.Marshaler
-	types     map[string]message.Type
-	resp      *eventstreamspec.EventTypesResponse
+	stream eventstream.Stream
+	types  map[string]message.Type
+	resp   *eventstreamspec.EventTypesResponse
 }
 
 func (s *server) Consume(
@@ -239,7 +236,7 @@ func (s *server) unmarshalTypes(
 func (s *server) transcode(
 	p parcel.Parcel,
 	mediaTypes map[string][]string,
-) (*envelopespec.Envelope, error) {
+) (*envelopepb.Envelope, error) {
 	n := p.Envelope.GetPortableName()
 	preferredMediaTypes := mediaTypes[n]
 

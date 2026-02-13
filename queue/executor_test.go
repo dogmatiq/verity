@@ -8,13 +8,16 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/message"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	. "github.com/dogmatiq/verity/queue"
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ dogma.CommandExecutor = (*CommandExecutor)(nil)
@@ -47,14 +50,13 @@ var _ = Describe("type CommandExecutor", func() {
 
 		queue = &Queue{
 			Repository: dataStore,
-			Marshaler:  Marshaler,
 		}
 
 		executor = &CommandExecutor{
 			Queue:     queue,
 			Persister: dataStore,
 			Packer: NewPacker(
-				message.TypeFor[CommandStub[TypeA]](),
+				message.TypeFor[*CommandStub[TypeA]](),
 			),
 		}
 	})
@@ -80,19 +82,15 @@ var _ = Describe("type CommandExecutor", func() {
 					{
 						Revision:      1,
 						NextAttemptAt: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-						Envelope: &envelopespec.Envelope{
-							MessageId:     "0",
-							CorrelationId: "0",
-							CausationId:   "0",
-							SourceApplication: &envelopespec.Identity{
-								Name: "<app-name>",
-								Key:  DefaultAppKey,
-							},
-							CreatedAt:    "2000-01-01T00:00:00Z",
-							Description:  "command(stubs.TypeA:A1, valid)",
-							PortableName: "CommandStub[TypeA]",
-							MediaType:    `application/json; type="CommandStub[TypeA]"`,
-							Data:         []byte(`{"content":"A1"}`),
+						Envelope: &envelopepb.Envelope{
+							MessageId:         uuidpb.Generate(), // TODO
+							CorrelationId:     uuidpb.Generate(), // TODO
+							CausationId:       uuidpb.Generate(), // TODO
+							SourceApplication: identitypb.MustParse("<app-name>", DefaultAppKey),
+							CreatedAt:         timestamppb.New(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)),
+							Description:       "command(stubs.TypeA:A1, valid)",
+							TypeId:            uuidpb.Generate(), // TODO
+							Data:              []byte(`{"content":"A1"}`),
 						},
 					},
 				},
