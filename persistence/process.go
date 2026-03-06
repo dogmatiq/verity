@@ -2,8 +2,6 @@ package persistence
 
 import (
 	"context"
-
-	"github.com/dogmatiq/enginekit/marshaler"
 )
 
 // ProcessInstance contains the state of a process instance.
@@ -18,8 +16,8 @@ type ProcessInstance struct {
 	// concurrency control.
 	Revision uint64
 
-	// Packet contains the binary representation of the process state.
-	Packet marshaler.Packet
+	// Data contains the binary representation of the process state.
+	Data []byte
 }
 
 // ProcessRepository is an interface for reading process state.
