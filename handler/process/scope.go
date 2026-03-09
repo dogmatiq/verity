@@ -5,7 +5,7 @@ import (
 
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/internal/mlog"
 	"github.com/dogmatiq/verity/parcel"
@@ -15,7 +15,7 @@ import (
 // dogma.ProcessTimeoutScope. It is the application-developer-facing interface
 // to a UnitOfWork.
 type scope struct {
-	identity   *envelopespec.Identity
+	identity   *identitypb.Identity
 	handler    dogma.ProcessMessageHandler
 	packer     *parcel.Packer
 	logger     logging.Logger

@@ -3,9 +3,9 @@ package fixtures
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 )
 
@@ -13,13 +13,13 @@ import (
 type EventStreamStub struct {
 	eventstream.Stream
 
-	ApplicationFunc func() configkit.Identity
+	ApplicationFunc func() *identitypb.Identity
 	EventTypesFunc  func(context.Context) (*sets.Set[message.Type], error)
 	OpenFunc        func(context.Context, uint64, *sets.Set[message.Type]) (eventstream.Cursor, error)
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *EventStreamStub) Application() configkit.Identity {
+func (s *EventStreamStub) Application() *identitypb.Identity {
 	if s.ApplicationFunc != nil {
 		return s.ApplicationFunc()
 	}
@@ -28,7 +28,7 @@ func (s *EventStreamStub) Application() configkit.Identity {
 		return s.Stream.Application()
 	}
 
-	return configkit.Identity{}
+	return nil
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
@@ -66,7 +66,7 @@ func (s *EventStreamStub) Open(
 type EventStreamHandlerStub struct {
 	eventstream.Handler
 
-	NextOffsetFunc  func(context.Context, configkit.Identity) (uint64, error)
+	NextOffsetFunc  func(context.Context, *identitypb.Identity) (uint64, error)
 	HandleEventFunc func(context.Context, uint64, eventstream.Event) error
 }
 
@@ -74,7 +74,7 @@ type EventStreamHandlerStub struct {
 // specific application's event stream.
 func (h *EventStreamHandlerStub) NextOffset(
 	ctx context.Context,
-	id configkit.Identity,
+	id *identitypb.Identity,
 ) (uint64, error) {
 	if h.NextOffsetFunc != nil {
 		return h.NextOffsetFunc(ctx, id)

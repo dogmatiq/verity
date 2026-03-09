@@ -3,10 +3,9 @@ package networkstream
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/interopspec/eventstreamspec"
 	"github.com/dogmatiq/verity/eventstream"
 )
@@ -15,27 +14,24 @@ import (
 // the dogma.messaging.v1 EventStream gRPC API.
 type Stream struct {
 	// App is the identity of the application that owns the stream.
-	App configkit.Identity
+	App *identitypb.Identity
 
 	// Client is the gRPC client used to query the event stream server.
 	Client eventstreamspec.StreamAPIClient
-
-	// Marshaler is used to marshal and unmarshal messages and message types.
-	Marshaler marshaler.Marshaler
 
 	// PreFetch specifies how many messages to pre-load into memory.
 	PreFetch int
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *Stream) Application() configkit.Identity {
+func (s *Stream) Application() *identitypb.Identity {
 	return s.App
 }
 
 // EventTypes returns the set of event types that may appear on the stream.
 func (s *Stream) EventTypes(ctx context.Context) (*sets.Set[message.Type], error) {
 	req := &eventstreamspec.EventTypesRequest{
-		ApplicationKey: s.App.Key,
+		ApplicationKey: s.App.Key.AsString(),
 	}
 
 	res, err := s.Client.EventTypes(ctx, req)
@@ -116,10 +112,9 @@ func (s *Stream) Open(
 		// If no error occurred, we hand ownership of cancelConsume() over to the
 		// cursor to be called when the cursor is closed by the user.
 		c := &cursor{
-			stream:    stream,
-			marshaler: s.Marshaler,
-			cancel:    cancelConsume,
-			events:    make(chan eventstream.Event, s.PreFetch),
+			stream: stream,
+			cancel: cancelConsume,
+			events: make(chan eventstream.Event, s.PreFetch),
 		}
 
 		go c.consume()
@@ -139,7 +134,7 @@ func (s *Stream) buildConsumeRequest(
 	}
 
 	req := &eventstreamspec.ConsumeRequest{
-		ApplicationKey: s.App.Key,
+		ApplicationKey: s.App.Key.AsString(),
 		StartPoint: &eventstreamspec.ConsumeRequest_Offset{
 			Offset: o,
 		},

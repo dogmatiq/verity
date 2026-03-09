@@ -26,15 +26,13 @@ func (driver) InsertProcessInstance(
 			app_key = ?,
 			handler_key = ?,
 			instance_id = ?,
-			media_type = ?,
 			data = ?
 		ON DUPLICATE KEY UPDATE
 			app_key = app_key`, // do nothing
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
-		inst.Packet.MediaType,
-		inst.Packet.Data,
+		inst.Data,
 	), nil
 }
 
@@ -54,14 +52,12 @@ func (driver) UpdateProcessInstance(
 		tx,
 		`UPDATE process_instance SET
 			revision = revision + 1,
-			media_type = ?,
 			data = ?
 		WHERE app_key = ?
 		AND handler_key = ?
 		AND instance_id = ?
 		AND revision = ?`,
-		inst.Packet.MediaType,
-		inst.Packet.Data,
+		inst.Data,
 		ak,
 		inst.HandlerKey,
 		inst.InstanceID,
@@ -105,7 +101,6 @@ func (driver) SelectProcessInstance(
 		ctx,
 		`SELECT
 			revision,
-			media_type,
 			data
 		FROM process_instance
 		WHERE app_key = ?
@@ -123,8 +118,7 @@ func (driver) SelectProcessInstance(
 
 	err := row.Scan(
 		&inst.Revision,
-		&inst.Packet.MediaType,
-		&inst.Packet.Data,
+		&inst.Data,
 	)
 	if err == sql.ErrNoRows {
 		err = nil
@@ -143,7 +137,6 @@ func createProcessSchema(ctx context.Context, db *sql.DB) {
 			handler_key VARBINARY(255) NOT NULL,
 			instance_id VARBINARY(255) NOT NULL,
 			revision    BIGINT NOT NULL DEFAULT 1,
-			media_type  VARBINARY(255) NOT NULL,
 			data        LONGBLOB,
 
 			PRIMARY KEY (app_key, handler_key, instance_id)

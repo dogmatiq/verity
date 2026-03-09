@@ -8,8 +8,7 @@ import (
 	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
-	"github.com/dogmatiq/enginekit/marshaler"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/handler"
 	"github.com/dogmatiq/verity/handler/cache"
 	"github.com/dogmatiq/verity/internal/mlog"
@@ -21,7 +20,7 @@ import (
 // Adaptor exposes a dogma.ProcessMessageHandler as a handler.Handler.
 type Adaptor struct {
 	// Identity is the handler's identity.
-	Identity *envelopespec.Identity
+	Identity *identitypb.Identity
 
 	// Handler is the process message handler that implements the
 	// application-specific message handling logic.
@@ -29,9 +28,6 @@ type Adaptor struct {
 
 	// Loader is used to load process instances into memory.
 	Loader *Loader
-
-	// Marshaler is used to marshal process instances.
-	Marshaler marshaler.Marshaler
 
 	// Cache is an in-memory cache of process instances.
 	Cache cache.Cache
@@ -117,7 +113,10 @@ func (a *Adaptor) HandleMessage(
 
 		w.Defer(func(_ handler.Result, err error) {
 			if err == nil {
-				a.Queue.RemoveTimeoutsByProcessID(a.Identity.GetKey(), id)
+				a.Queue.RemoveTimeoutsByProcessID(
+					a.Identity.GetKey().AsString(),
+					id,
+				)
 			}
 		})
 
@@ -178,7 +177,7 @@ func (a *Adaptor) load(
 		// Otherwise, we need to load the instance from the data-store.
 		rec.Instance, err = a.Loader.Load(
 			ctx,
-			a.Identity.Key,
+			a.Identity.Key.AsString(),
 			id,
 			mustNew(a.Handler),
 		)
@@ -199,7 +198,7 @@ func (a *Adaptor) save(
 	// the packet if the root is stafeful.
 	if inst.Root != dogma.StatelessProcessRoot {
 		var err error
-		inst.Packet, err = a.Marshaler.Marshal(inst.Root)
+		inst.Data, err = inst.Root.MarshalBinary()
 		if err != nil {
 			return err
 		}
