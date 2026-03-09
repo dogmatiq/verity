@@ -1,8 +1,6 @@
 module github.com/dogmatiq/verity
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.25.0
 
 require (
 	github.com/dogmatiq/configkit v0.17.0
@@ -24,7 +22,7 @@ require (
 	go.etcd.io/bbolt v1.4.3
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.1
-	golang.org/x/sync v0.19.0
+	golang.org/x/sync v0.20.0
 	google.golang.org/grpc v1.79.2
 	google.golang.org/protobuf v1.36.11
 )
