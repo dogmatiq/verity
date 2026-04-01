@@ -16,7 +16,7 @@ type eventScope struct {
 }
 
 func (s eventScope) StreamID() string {
-	return s.cause.Envelope.GetSourceApplication().GetKey()
+	return s.cause.Envelope.GetSourceApplication().GetKey().AsString()
 }
 
 func (s eventScope) CheckpointOffset() uint64 {

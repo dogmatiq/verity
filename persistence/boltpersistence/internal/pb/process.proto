@@ -5,8 +5,7 @@ option go_package = "github.com/dogmatiq/verity/persistence/boltpersistence/inte
 
 // ProcessInstance is a protocol buffers representation of
 // persistence.ProcessInstance.
-message ProcessInstance{
+message ProcessInstance {
   uint64 revision = 1;
-  string media_type = 2;
-  bytes data = 3;
+  bytes data = 2;
 }

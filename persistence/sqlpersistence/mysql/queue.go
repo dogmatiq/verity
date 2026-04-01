@@ -38,27 +38,25 @@ func (driver) InsertQueueMessage(
 			created_at = ?,
 			scheduled_for = ?,
 			description = ?,
-			portable_name = ?,
-			media_type = ?,
+			type_id = ?,
 			data = ?
 		ON DUPLICATE KEY UPDATE
 			app_key = app_key`, // do nothing
 		ak,
 		m.FailureCount,
 		m.NextAttemptAt,
-		m.Envelope.GetMessageId(),
-		m.Envelope.GetCausationId(),
-		m.Envelope.GetCorrelationId(),
+		m.Envelope.GetMessageId().AsString(),
+		m.Envelope.GetCausationId().AsString(),
+		m.Envelope.GetCorrelationId().AsString(),
 		m.Envelope.GetSourceApplication().GetName(),
-		m.Envelope.GetSourceApplication().GetKey(),
+		m.Envelope.GetSourceApplication().GetKey().AsString(),
 		m.Envelope.GetSourceHandler().GetName(),
-		m.Envelope.GetSourceHandler().GetKey(),
+		m.Envelope.GetSourceHandler().GetKey().AsString(),
 		m.Envelope.GetSourceInstanceId(),
-		m.Envelope.GetCreatedAt(),
-		m.Envelope.GetScheduledFor(),
+		m.Envelope.GetCreatedAt().AsTime(),
+		m.Envelope.GetScheduledFor().AsTime(),
 		m.Envelope.GetDescription(),
-		m.Envelope.GetPortableName(),
-		m.Envelope.GetMediaType(),
+		m.Envelope.GetTypeId().AsString(),
 		m.Envelope.GetData(),
 	), nil
 }
@@ -164,8 +162,7 @@ func (driver) SelectQueueMessages(
 			q.created_at,
 			q.scheduled_for,
 			q.description,
-			q.portable_name,
-			q.media_type,
+			q.type_id,
 			q.data
 		FROM queue AS q
 		WHERE q.app_key = ?
@@ -199,8 +196,7 @@ func (driver) ScanQueueMessage(
 		&m.Envelope.CreatedAt,
 		&m.Envelope.ScheduledFor,
 		&m.Envelope.Description,
-		&m.Envelope.PortableName,
-		&m.Envelope.MediaType,
+		&m.Envelope.TypeId,
 		&m.Envelope.Data,
 	)
 	if err != nil {
@@ -233,8 +229,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 			created_at          VARBINARY(255) NOT NULL,
 			scheduled_for       VARBINARY(255) NOT NULL,
 			description         VARBINARY(255) NOT NULL,
-			portable_name       VARBINARY(255) NOT NULL,
-			media_type          VARBINARY(255) NOT NULL,
+			type_id             VARBINARY(255) NOT NULL,
 			data                LONGBLOB NOT NULL,
 
 			PRIMARY KEY (app_key, message_id),

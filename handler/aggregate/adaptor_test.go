@@ -9,7 +9,9 @@ import (
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/message"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/handler"
 	. "github.com/dogmatiq/verity/handler/aggregate"
@@ -18,6 +20,7 @@ import (
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ = Describe("type Adaptor", func() {
@@ -54,8 +57,8 @@ var _ = Describe("type Adaptor", func() {
 			ConfigureFunc: func(c dogma.AggregateConfigurer) {
 				c.Identity("<aggregate-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
 				c.Routes(
-					dogma.HandlesCommand[CommandStub[TypeC]](),
-					dogma.RecordsEvent[EventStub[TypeE]](),
+					dogma.HandlesCommand[*CommandStub[TypeC]](),
+					dogma.RecordsEvent[*EventStub[TypeE]](),
 				)
 			},
 			RouteCommandToInstanceFunc: func(m dogma.Command) string {
@@ -64,8 +67,8 @@ var _ = Describe("type Adaptor", func() {
 		}
 
 		packer = NewPacker(
-			message.TypeFor[CommandStub[TypeC]](),
-			message.TypeFor[EventStub[TypeE]](),
+			message.TypeFor[*CommandStub[TypeC]](),
+			message.TypeFor[*EventStub[TypeE]](),
 		)
 
 		logger = &logging.BufferedLogger{}
@@ -75,15 +78,14 @@ var _ = Describe("type Adaptor", func() {
 		cause = NewParcel("<consume>", CommandC1)
 
 		adaptor = &Adaptor{
-			Identity: &envelopespec.Identity{
-				Name: "<aggregate-name>",
-				Key:  "e4ff048e-79f7-45e2-9f02-3b10d17614c6",
-			},
+			Identity: identitypb.New(
+				"<aggregate-name>",
+				uuidpb.MustParse("e4ff048e-79f7-45e2-9f02-3b10d17614c6"),
+			),
 			Handler: upstream,
 			Loader: &Loader{
 				AggregateRepository: dataStore,
 				EventRepository:     dataStore,
-				Marshaler:           Marshaler,
 			},
 			Packer:      packer,
 			LoadTimeout: 1 * time.Second,
@@ -172,17 +174,16 @@ var _ = Describe("type Adaptor", func() {
 				Expect(work.Events).To(EqualX(
 					[]parcel.Parcel{
 						{
-							Envelope: &envelopespec.Envelope{
-								MessageId:         "0",
-								CausationId:       "<consume>",
-								CorrelationId:     "<correlation>",
+							Envelope: &envelopepb.Envelope{
+								MessageId:         uuidpb.Generate(), // TODO
+								CausationId:       uuidpb.Generate(), // TODO
+								CorrelationId:     uuidpb.Generate(), // TODO
 								SourceApplication: packer.Application,
 								SourceHandler:     adaptor.Identity,
 								SourceInstanceId:  "<instance>",
-								CreatedAt:         "2000-01-01T00:00:00Z",
+								CreatedAt:         timestamppb.New(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)),
 								Description:       "event(stubs.TypeE:E1, valid)",
-								PortableName:      "EventStub[TypeE]",
-								MediaType:         `application/json; type="EventStub[TypeE]"`,
+								TypeId:            uuidpb.Generate(), // TODO
 								Data:              []byte(`{"content":"E1"}`),
 							},
 							Message:   EventE1,

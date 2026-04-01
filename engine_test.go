@@ -28,8 +28,8 @@ var _ = Describe("type Engine", func() {
 						ConfigureFunc: func(c dogma.AggregateConfigurer) {
 							c.Identity("<agg-name>", "e4ff048e-79f7-45e2-9f02-3b10d17614c6")
 							c.Routes(
-								dogma.HandlesCommand[CommandStub[TypeC]](),
-								dogma.RecordsEvent[EventStub[TypeE]](),
+								dogma.HandlesCommand[*CommandStub[TypeC]](),
+								dogma.RecordsEvent[*EventStub[TypeE]](),
 							)
 						},
 					}),
@@ -38,8 +38,8 @@ var _ = Describe("type Engine", func() {
 						ConfigureFunc: func(c dogma.ProcessConfigurer) {
 							c.Identity("<proc-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
 							c.Routes(
-								dogma.HandlesEvent[EventStub[TypeE]](),
-								dogma.ExecutesCommand[CommandStub[TypeI]](),
+								dogma.HandlesEvent[*EventStub[TypeE]](),
+								dogma.ExecutesCommand[*CommandStub[TypeI]](),
 							)
 						},
 					}),
@@ -48,8 +48,8 @@ var _ = Describe("type Engine", func() {
 						ConfigureFunc: func(c dogma.IntegrationConfigurer) {
 							c.Identity("<int-name>", "27fb3936-6f88-4873-8c56-e6a1d01f027a")
 							c.Routes(
-								dogma.HandlesCommand[CommandStub[TypeI]](),
-								dogma.RecordsEvent[EventStub[TypeJ]](),
+								dogma.HandlesCommand[*CommandStub[TypeI]](),
+								dogma.RecordsEvent[*EventStub[TypeJ]](),
 							)
 						},
 					}),
@@ -58,7 +58,7 @@ var _ = Describe("type Engine", func() {
 						ConfigureFunc: func(c dogma.ProjectionConfigurer) {
 							c.Identity("<proj-name>", "b084ea4f-87d1-4001-8c1a-347c29baed35")
 							c.Routes(
-								dogma.HandlesEvent[EventStub[TypeE]](),
+								dogma.HandlesEvent[*EventStub[TypeE]](),
 							)
 						},
 					}),
@@ -67,7 +67,7 @@ var _ = Describe("type Engine", func() {
 						ConfigureFunc: func(c dogma.ProjectionConfigurer) {
 							c.Identity("<disabled-proj-name>", "4ad6edf4-78b3-46bc-8321-0e1b834e3808")
 							c.Routes(
-								dogma.HandlesEvent[EventStub[TypeE]](),
+								dogma.HandlesEvent[*EventStub[TypeE]](),
 							)
 							c.Disable()
 						},

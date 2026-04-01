@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	"github.com/dogmatiq/enginekit/collections/sets"
+	"github.com/dogmatiq/enginekit/config"
 	"github.com/dogmatiq/enginekit/message"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/memorystream"
 	"github.com/dogmatiq/verity/eventstream/persistedstream"
@@ -25,7 +25,7 @@ import (
 )
 
 type app struct {
-	Config      configkit.RichApplication
+	Config      *config.Application
 	DataStore   persistence.DataStore
 	EventCache  *memorystream.Stream
 	EventStream *persistedstream.Stream
@@ -37,7 +37,7 @@ type app struct {
 // initApp initializes the engine to handle the app represented by cfg.
 func (e *Engine) initApp(
 	ctx context.Context,
-	cfg configkit.RichApplication,
+	cfg *config.Application,
 ) error {
 	logging.Log(
 		e.logger,
@@ -48,7 +48,7 @@ func (e *Engine) initApp(
 
 	id := cfg.Identity()
 
-	ds, err := e.dataStores.Get(ctx, id.Key)
+	ds, err := e.dataStores.Get(ctx, id.Key.AsString())
 	if err != nil {
 		return fmt.Errorf(
 			"unable to open data-store for %s: %w",
@@ -62,7 +62,7 @@ func (e *Engine) initApp(
 		return err
 	}
 
-	q := e.newQueue(cfg, ds)
+	q := e.newQueue(ds)
 	s := e.newEventStream(cfg, ds, c)
 	x := e.newCommandExecutor(cfg, ds, q)
 	l := loggingx.WithPrefix(
@@ -87,7 +87,7 @@ func (e *Engine) initApp(
 		e.executors = map[message.Type]dogma.CommandExecutor{}
 	}
 
-	e.apps[id.Key] = a
+	e.apps[id.Key.AsString()] = a
 
 	for mt := range x.Packer.Produced.All() {
 		e.executors[mt] = x
@@ -98,12 +98,10 @@ func (e *Engine) initApp(
 
 // newQueue returns a new queue for a specific app.
 func (e *Engine) newQueue(
-	_ configkit.RichApplication,
 	ds persistence.DataStore,
 ) *queue.Queue {
 	return &queue.Queue{
 		Repository: ds,
-		Marshaler:  e.opts.Marshaler,
 		// TODO: https://github.com/dogmatiq/verity/issues/102
 		// Make buffer size configurable.
 		BufferSize: 0,
@@ -113,7 +111,7 @@ func (e *Engine) newQueue(
 // newEventCache returns a new memory stream used as the event cache.
 func (e *Engine) newEventCache(
 	ctx context.Context,
-	cfg configkit.RichApplication,
+	cfg *config.Application,
 	ds persistence.DataStore,
 ) (*memorystream.Stream, error) {
 	next, err := ds.NextEventOffset(ctx)
@@ -127,39 +125,36 @@ func (e *Engine) newEventCache(
 		// TODO: https://github.com/dogmatiq/verity/issues/226
 		// Make buffer size configurable.
 		BufferSize: 0,
-		Types: sets.NewFromKeys(
-			cfg.
-				MessageTypes().
-				Produced(message.EventKind),
-		),
+		Types: cfg.
+			RouteSet().
+			Filter(config.FilterByMessageKind(message.EventKind)).
+			MessageTypeSet(),
 	}, nil
 }
 
 // newEventStream returns a new event stream for a specific app.
 func (e *Engine) newEventStream(
-	cfg configkit.RichApplication,
+	cfg *config.Application,
 	ds persistence.DataStore,
 	cache eventstream.Stream,
 ) *persistedstream.Stream {
 	return &persistedstream.Stream{
 		App:        cfg.Identity(),
 		Repository: ds,
-		Marshaler:  e.opts.Marshaler,
 		Cache:      cache,
 		// TODO: https://github.com/dogmatiq/verity/issues/76
 		// Make pre-fetch buffer size configurable.
 		PreFetch: 10,
-		Types: sets.NewFromKeys(
-			cfg.
-				MessageTypes().
-				Produced(message.EventKind),
-		),
+		Types: cfg.
+			RouteSet().
+			Filter(config.FilterByMessageKind(message.EventKind)).
+			MessageTypeSet(),
 	}
 }
 
 // newCommandExecutor returns a dogma.CommandExecutor for a specific app.
 func (e *Engine) newCommandExecutor(
-	cfg configkit.RichApplication,
+	cfg *config.Application,
 	p persistence.Persister,
 	q *queue.Queue,
 ) *queue.CommandExecutor {
@@ -167,23 +162,24 @@ func (e *Engine) newCommandExecutor(
 		Queue:     q,
 		Persister: p,
 		Packer: &parcel.Packer{
-			Application: &envelopespec.Identity{
+			Application: &identitypb.Identity{
 				Name: cfg.Identity().Name,
 				Key:  cfg.Identity().Key,
 			},
-			Marshaler: e.opts.Marshaler,
-			Produced: sets.NewFromKeys(
-				cfg.
-					MessageTypes().
-					Consumed(message.CommandKind),
-			),
+			Produced: cfg.
+				RouteSet().
+				Filter(
+					config.FilterByMessageKind(message.CommandKind),
+					config.FilterByMessageDirection(config.InboundDirection),
+				).
+				MessageTypeSet(),
 		},
 	}
 }
 
 // newEntryPoint returns a new handler entry point for a specific app.
 func (e *Engine) newEntryPoint(
-	cfg configkit.RichApplication,
+	cfg *config.Application,
 	ds persistence.DataStore,
 	q *queue.Queue,
 	c *memorystream.Stream,
@@ -196,19 +192,15 @@ func (e *Engine) newEntryPoint(
 		aggregateLoader: &aggregate.Loader{
 			AggregateRepository: ds,
 			EventRepository:     ds,
-			Marshaler:           e.opts.Marshaler,
 		},
 		processLoader: &process.Loader{
 			Repository: ds,
-			Marshaler:  e.opts.Marshaler,
 		},
 		appLogger:    l,
 		engineLogger: e.logger,
 	}
 
-	if err := cfg.AcceptRichVisitor(context.Background(), hf); err != nil {
-		panic(err)
-	}
+	hf.visitApplication(cfg)
 
 	return &handler.EntryPoint{
 		QueueEvents: hf.queueEvents,
@@ -231,18 +223,15 @@ type handlerFactory struct {
 	engineLogger    logging.Logger
 	appLogger       logging.Logger
 
-	app     *envelopespec.Identity
+	app     *identitypb.Identity
 	handler handler.Router
 }
 
-func (f *handlerFactory) VisitRichApplication(ctx context.Context, cfg configkit.RichApplication) error {
-	f.app = &envelopespec.Identity{
-		Name: cfg.Identity().Name,
-		Key:  cfg.Identity().Key,
-	}
+func (f *handlerFactory) visitApplication(cfg *config.Application) {
+	f.app = cfg.Identity()
 	f.handler = handler.Router{}
 
-	for _, h := range cfg.RichHandlers() {
+	for _, h := range cfg.Handlers() {
 		if h.IsDisabled() {
 			logging.Log(
 				f.engineLogger,
@@ -253,22 +242,22 @@ func (f *handlerFactory) VisitRichApplication(ctx context.Context, cfg configkit
 			continue
 		}
 
-		if err := h.AcceptRichVisitor(ctx, f); err != nil {
-			return err
+		switch h := h.(type) {
+		case *config.Aggregate:
+			f.visitAggregate(h)
+		case *config.Process:
+			f.visitProcess(h)
+		case *config.Integration:
+			f.visitIntegration(h)
 		}
 	}
-
-	return nil
 }
 
-func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.RichAggregate) error {
+func (f *handlerFactory) visitAggregate(cfg *config.Aggregate) {
 	f.addRoutes(cfg, &aggregate.Adaptor{
-		Identity: &envelopespec.Identity{
-			Name: cfg.Identity().Name,
-			Key:  cfg.Identity().Key,
-		},
-		Handler: cfg.Handler(),
-		Loader:  f.aggregateLoader,
+		Identity: cfg.Identity(),
+		Handler:  cfg.Source.Get(),
+		Loader:   f.aggregateLoader,
 		Cache: cache.Cache{
 			// TODO: https://github.com/dogmatiq/verity/issues/193
 			// Make TTL configurable.
@@ -281,26 +270,25 @@ func (f *handlerFactory) VisitRichAggregate(_ context.Context, cfg configkit.Ric
 		},
 		Packer: &parcel.Packer{
 			Application: f.app,
-			Marshaler:   f.opts.Marshaler,
-			Produced:    sets.NewFromKeys(cfg.MessageTypes().Produced()),
-			Consumed:    sets.NewFromKeys(cfg.MessageTypes().Consumed()),
+			Produced: cfg.
+				RouteSet().
+				Filter(config.FilterByMessageDirection(config.OutboundDirection)).
+				MessageTypeSet(),
+			Consumed: cfg.
+				RouteSet().
+				Filter(config.FilterByMessageDirection(config.InboundDirection)).
+				MessageTypeSet(),
 		},
 		LoadTimeout: f.opts.MessageTimeout,
 		Logger:      f.appLogger,
 	})
-
-	return nil
 }
 
-func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichProcess) error {
+func (f *handlerFactory) visitProcess(cfg *config.Process) {
 	f.addRoutes(cfg, &process.Adaptor{
-		Identity: &envelopespec.Identity{
-			Name: cfg.Identity().Name,
-			Key:  cfg.Identity().Key,
-		},
-		Handler:   cfg.Handler(),
-		Loader:    f.processLoader,
-		Marshaler: f.opts.Marshaler,
+		Identity: cfg.Identity(),
+		Handler:  cfg.Source.Get(),
+		Loader:   f.processLoader,
 		Cache: cache.Cache{
 			// TODO: https://github.com/dogmatiq/verity/issues/193
 			// Make TTL configurable.
@@ -314,43 +302,47 @@ func (f *handlerFactory) VisitRichProcess(_ context.Context, cfg configkit.RichP
 		Queue: f.queue,
 		Packer: &parcel.Packer{
 			Application: f.app,
-			Marshaler:   f.opts.Marshaler,
-			Produced:    sets.NewFromKeys(cfg.MessageTypes().Produced()),
-			Consumed:    sets.NewFromKeys(cfg.MessageTypes().Consumed()),
+			Produced: cfg.
+				RouteSet().
+				Filter(config.FilterByMessageDirection(config.OutboundDirection)).
+				MessageTypeSet(),
+			Consumed: cfg.
+				RouteSet().
+				Filter(config.FilterByMessageDirection(config.InboundDirection)).
+				MessageTypeSet(),
 		},
 		LoadTimeout: f.opts.MessageTimeout,
 		Logger:      f.appLogger,
 	})
-
-	return nil
 }
 
-func (f *handlerFactory) VisitRichIntegration(_ context.Context, cfg configkit.RichIntegration) error {
+func (f *handlerFactory) visitIntegration(cfg *config.Integration) {
 	f.addRoutes(cfg, &integration.Adaptor{
-		Identity: &envelopespec.Identity{
-			Name: cfg.Identity().Name,
-			Key:  cfg.Identity().Key,
-		},
-		Handler: cfg.Handler(),
-		Timeout: f.opts.MessageTimeout,
+		Identity: cfg.Identity(),
+		Handler:  cfg.Source.Get(),
+		Timeout:  f.opts.MessageTimeout,
 		Packer: &parcel.Packer{
 			Application: f.app,
-			Marshaler:   f.opts.Marshaler,
-			Produced:    sets.NewFromKeys(cfg.MessageTypes().Produced()),
-			Consumed:    sets.NewFromKeys(cfg.MessageTypes().Consumed()),
+			Produced: cfg.
+				RouteSet().
+				Filter(config.FilterByMessageDirection(config.OutboundDirection)).
+				MessageTypeSet(),
+			Consumed: cfg.
+				RouteSet().
+				Filter(config.FilterByMessageDirection(config.InboundDirection)).
+				MessageTypeSet(),
 		},
 		Logger: f.appLogger,
 	})
-
-	return nil
 }
 
-func (f *handlerFactory) VisitRichProjection(context.Context, configkit.RichProjection) error {
-	return nil
-}
+func (f *handlerFactory) addRoutes(cfg config.Handler, h handler.Handler) {
+	messageTypes := cfg.
+		RouteSet().
+		Filter(config.FilterByMessageDirection(config.InboundDirection)).
+		MessageTypes()
 
-func (f *handlerFactory) addRoutes(cfg configkit.RichHandler, h handler.Handler) {
-	for mt := range cfg.MessageTypes().Consumed() {
+	for mt := range messageTypes {
 		f.handler[mt] = append(f.handler[mt], h)
 
 		if mt.Kind() == message.EventKind {

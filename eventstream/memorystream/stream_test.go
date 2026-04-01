@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/eventstream/internal/streamtest"
 	. "github.com/dogmatiq/verity/eventstream/memorystream"
@@ -49,9 +49,9 @@ var _ = Describe("type Stream", func() {
 		DeferCleanup(cancel)
 
 		stream = &Stream{
-			App: configkit.MustNewIdentity("<app-name>", DefaultAppKey),
+			App: identitypb.MustParse("<app-name>", DefaultAppKey),
 			Types: sets.New(
-				message.TypeFor[EventStub[TypeA]](),
+				message.TypeFor[*EventStub[TypeA]](),
 			),
 			// For the purposes of our test, we assume there are already 100
 			// persisted events.
@@ -145,7 +145,7 @@ func addEvents(
 				Offset: o,
 				Parcel: NewParcel(
 					id,
-					EventStub[TypeA]{
+					&EventStub[TypeA]{
 						Content: TypeA(id),
 					},
 				),

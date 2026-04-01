@@ -215,12 +215,12 @@ func (db *queueDatabase) removeFromOrderIndex(m *persistence.QueueMessage) {
 // addToTimeoutIndex adds m to the db.timeouts index, if it is a timeout
 // message.
 func (db *queueDatabase) addToTimeoutIndex(m *persistence.QueueMessage) {
-	if m.Envelope.GetScheduledFor() == "" {
+	if m.Envelope.GetScheduledFor() == nil {
 		return
 	}
 
 	key := instanceKey{
-		m.Envelope.GetSourceHandler().GetKey(),
+		m.Envelope.GetSourceHandler().GetKey().AsString(),
 		m.Envelope.GetSourceInstanceId(),
 	}
 
@@ -240,12 +240,12 @@ func (db *queueDatabase) addToTimeoutIndex(m *persistence.QueueMessage) {
 
 // removeFromTimeoutIndex removes m from the db.timeouts index.
 func (db *queueDatabase) removeFromTimeoutIndex(m *persistence.QueueMessage) {
-	if m.Envelope.GetScheduledFor() == "" {
+	if m.Envelope.GetScheduledFor() == nil {
 		return
 	}
 
 	key := instanceKey{
-		m.Envelope.GetSourceHandler().GetKey(),
+		m.Envelope.GetSourceHandler().GetKey().AsString(),
 		m.Envelope.GetSourceInstanceId(),
 	}
 

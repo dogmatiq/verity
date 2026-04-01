@@ -6,7 +6,6 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/enginekit/marshaler"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/parcel"
 	"github.com/dogmatiq/verity/persistence"
@@ -39,7 +38,6 @@ var _ = Describe("type Queue", func() {
 
 		queue = &Queue{
 			Repository: dataStore,
-			Marshaler:  Marshaler,
 		}
 
 		// push is a helper function for testing the queue that persists a
@@ -514,11 +512,6 @@ var _ = Describe("type Queue", func() {
 			})
 
 			It("returns an error if a message can not be unmarshaled", func() {
-				m, err := marshaler.New(nil, nil) // an empty marshaler cannot unmarshal anything
-				Expect(err).ShouldNot(HaveOccurred())
-
-				queue.Marshaler = m
-
 				dataStore.LoadQueueMessagesFunc = func(
 					context.Context,
 					int,
@@ -530,7 +523,7 @@ var _ = Describe("type Queue", func() {
 					}, nil
 				}
 
-				err = queue.Run(ctx)
+				err := queue.Run(ctx)
 				Expect(err).To(MatchError("no codecs support the 'application/json' media-type"))
 			})
 		})

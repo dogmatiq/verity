@@ -8,9 +8,10 @@ import (
 	"github.com/dogmatiq/dodeca/logging"
 	"github.com/dogmatiq/dogma"
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
+	"github.com/dogmatiq/enginekit/protobuf/uuidpb"
 	. "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/handler"
 	. "github.com/dogmatiq/verity/handler/process"
@@ -19,6 +20,7 @@ import (
 	. "github.com/jmalloc/gomegax"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ = Describe("type Adaptor", func() {
@@ -55,9 +57,9 @@ var _ = Describe("type Adaptor", func() {
 			ConfigureFunc: func(c dogma.ProcessConfigurer) {
 				c.Identity("<process-name>", "2ae0b937-e806-4e70-9b23-f36298f68973")
 				c.Routes(
-					dogma.HandlesEvent[EventStub[TypeE]](),
-					dogma.ExecutesCommand[CommandStub[TypeC]](),
-					dogma.SchedulesTimeout[TimeoutStub[TypeT]](),
+					dogma.HandlesEvent[*EventStub[TypeE]](),
+					dogma.ExecutesCommand[*CommandStub[TypeC]](),
+					dogma.SchedulesTimeout[*TimeoutStub[TypeT]](),
 				)
 			},
 			RouteEventToInstanceFunc: func(_ context.Context, m dogma.Event) (string, bool, error) {
@@ -66,9 +68,9 @@ var _ = Describe("type Adaptor", func() {
 		}
 
 		packer = NewPacker(
-			message.TypeFor[CommandStub[TypeC]](),
-			message.TypeFor[EventStub[TypeE]](),
-			message.TypeFor[TimeoutStub[TypeT]](),
+			message.TypeFor[*CommandStub[TypeC]](),
+			message.TypeFor[*EventStub[TypeE]](),
+			message.TypeFor[*TimeoutStub[TypeT]](),
 		)
 
 		logger = &logging.BufferedLogger{}
@@ -78,16 +80,14 @@ var _ = Describe("type Adaptor", func() {
 		cause = NewParcel("<consume>", EventE1)
 
 		adaptor = &Adaptor{
-			Identity: &envelopespec.Identity{
-				Name: "<process-name>",
-				Key:  "2ae0b937-e806-4e70-9b23-f36298f68973",
-			},
+			Identity: identitypb.New(
+				"<process-name>",
+				uuidpb.MustParse("2ae0b937-e806-4e70-9b23-f36298f68973"),
+			),
 			Handler: upstream,
 			Loader: &Loader{
 				Repository: dataStore,
-				Marshaler:  Marshaler,
 			},
-			Marshaler:   Marshaler,
 			Packer:      packer,
 			LoadTimeout: 1 * time.Second,
 			Logger:      logger,
@@ -250,10 +250,7 @@ var _ = Describe("type Adaptor", func() {
 						Instance: persistence.ProcessInstance{
 							HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 							InstanceID: "<instance>",
-							Packet: marshaler.Packet{
-								MediaType: "application/json; type=ProcessRootStub",
-								Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
-							},
+							Data:       []byte(`{"value":"\u003cvalue\u003e"}`),
 						},
 					},
 				},
@@ -261,12 +258,9 @@ var _ = Describe("type Adaptor", func() {
 		})
 
 		It("returns an error if the process instance can not be marshaled", func() {
-			m, err := marshaler.New(nil, nil) // an empty marshaler cannot marshal anything
-			Expect(err).ShouldNot(HaveOccurred())
+			// TODO
 
-			adaptor.Marshaler = m
-
-			err = adaptor.HandleMessage(ctx, work, cause)
+			err := adaptor.HandleMessage(ctx, work, cause)
 			Expect(err).To(MatchError("no codecs support the '*stubs.ProcessRootStub' type"))
 		})
 
@@ -288,17 +282,16 @@ var _ = Describe("type Adaptor", func() {
 				Expect(work.Commands).To(EqualX(
 					[]parcel.Parcel{
 						{
-							Envelope: &envelopespec.Envelope{
-								MessageId:         "0",
-								CausationId:       "<consume>",
-								CorrelationId:     "<correlation>",
+							Envelope: &envelopepb.Envelope{
+								MessageId:         uuidpb.Generate(), // TODO
+								CausationId:       uuidpb.Generate(), // TODO
+								CorrelationId:     uuidpb.Generate(), // TODO
 								SourceApplication: packer.Application,
 								SourceHandler:     adaptor.Identity,
 								SourceInstanceId:  "<instance>",
-								CreatedAt:         "2000-01-01T00:00:00Z",
+								CreatedAt:         timestamppb.New(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)),
 								Description:       "command(stubs.TypeC:C1, valid)",
-								PortableName:      "CommandStub[TypeC]",
-								MediaType:         `application/json; type="CommandStub[TypeC]"`,
+								TypeId:            MessageTypeUUID[*CommandStub[TypeC]](),
 								Data:              []byte(`{"content":"C1"}`),
 							},
 							Message:   CommandC1,
@@ -351,10 +344,7 @@ var _ = Describe("type Adaptor", func() {
 							Instance: persistence.ProcessInstance{
 								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
-								Packet: marshaler.Packet{
-									MediaType: "application/json; type=ProcessRootStub",
-									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
-								},
+								Data:       []byte(`{"value":"\u003cvalue\u003e"}`),
 							},
 						},
 					},
@@ -382,18 +372,17 @@ var _ = Describe("type Adaptor", func() {
 				Expect(work.Timeouts).To(EqualX(
 					[]parcel.Parcel{
 						{
-							Envelope: &envelopespec.Envelope{
-								MessageId:         "0",
-								CausationId:       "<consume>",
-								CorrelationId:     "<correlation>",
+							Envelope: &envelopepb.Envelope{
+								MessageId:         uuidpb.Generate(), // TODO
+								CausationId:       uuidpb.Generate(), // TODO
+								CorrelationId:     uuidpb.Generate(), // TODO
 								SourceApplication: packer.Application,
 								SourceHandler:     adaptor.Identity,
 								SourceInstanceId:  "<instance>",
-								CreatedAt:         "2000-01-01T00:00:00Z",
-								ScheduledFor:      "2020-01-01T00:00:00Z",
+								CreatedAt:         timestamppb.New(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)),
+								ScheduledFor:      timestamppb.New(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)),
 								Description:       "timeout(stubs.TypeT:T1, valid)",
-								PortableName:      "TimeoutStub[TypeT]",
-								MediaType:         `application/json; type="TimeoutStub[TypeT]"`,
+								TypeId:            MessageTypeUUID[*TimeoutStub[TypeT]](),
 								Data:              []byte(`{"content":"T1"}`),
 							},
 							Message:      TimeoutT1,
@@ -447,10 +436,7 @@ var _ = Describe("type Adaptor", func() {
 							Instance: persistence.ProcessInstance{
 								HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 								InstanceID: "<instance>",
-								Packet: marshaler.Packet{
-									MediaType: "application/json; type=ProcessRootStub",
-									Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
-								},
+								Data:       []byte(`{"value":"\u003cvalue\u003e"}`),
 							},
 						},
 					},
@@ -610,10 +596,7 @@ var _ = Describe("type Adaptor", func() {
 									HandlerKey: "2ae0b937-e806-4e70-9b23-f36298f68973",
 									InstanceID: "<instance>",
 									Revision:   1,
-									Packet: marshaler.Packet{
-										MediaType: "application/json; type=ProcessRootStub",
-										Data:      []byte(`{"value":"\u003cvalue\u003e"}`),
-									},
+									Data:       []byte(`{"value":"\u003cvalue\u003e"}`),
 								},
 							},
 						},

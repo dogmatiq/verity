@@ -37,28 +37,26 @@ func (driver) InsertQueueMessage(
 				created_at,
 				scheduled_for,
 				description,
-				portable_name,
-				media_type,
+				type_id,
 				data
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
 			) ON CONFLICT (app_key, message_id) DO NOTHING`,
 		ak,
 		m.FailureCount,
 		m.NextAttemptAt,
-		m.Envelope.GetMessageId(),
-		m.Envelope.GetCausationId(),
-		m.Envelope.GetCorrelationId(),
+		m.Envelope.GetMessageId().AsString(),
+		m.Envelope.GetCausationId().AsString(),
+		m.Envelope.GetCorrelationId().AsString(),
 		m.Envelope.GetSourceApplication().GetName(),
-		m.Envelope.GetSourceApplication().GetKey(),
+		m.Envelope.GetSourceApplication().GetKey().AsString(),
 		m.Envelope.GetSourceHandler().GetName(),
-		m.Envelope.GetSourceHandler().GetKey(),
+		m.Envelope.GetSourceHandler().GetKey().AsString(),
 		m.Envelope.GetSourceInstanceId(),
-		m.Envelope.GetCreatedAt(),
+		m.Envelope.GetCreatedAt().AsTime(),
 		m.Envelope.GetScheduledFor(),
 		m.Envelope.GetDescription(),
-		m.Envelope.GetPortableName(),
-		m.Envelope.GetMediaType(),
+		m.Envelope.GetTypeId().AsString(),
 		m.Envelope.GetData(),
 	)
 
@@ -167,8 +165,7 @@ func (driver) SelectQueueMessages(
 			q.created_at,
 			q.scheduled_for,
 			q.description,
-			q.portable_name,
-			q.media_type,
+			q.type_id,
 			q.data
 		FROM verity.queue AS q
 		WHERE q.app_key = $1
@@ -200,8 +197,7 @@ func (driver) ScanQueueMessage(
 		&m.Envelope.CreatedAt,
 		&m.Envelope.ScheduledFor,
 		&m.Envelope.Description,
-		&m.Envelope.PortableName,
-		&m.Envelope.MediaType,
+		&m.Envelope.TypeId,
 		&m.Envelope.Data,
 	)
 }
@@ -227,8 +223,7 @@ func createQueueSchema(ctx context.Context, db *sql.DB) {
 			created_at          TEXT NOT NULL,
 			scheduled_for       TEXT NOT NULL,
 			description         TEXT NOT NULL,
-			portable_name       TEXT NOT NULL,
-			media_type          TEXT NOT NULL,
+			type_id             TEXT NOT NULL,
 			data                BYTEA NOT NULL,
 
 			PRIMARY KEY (app_key, message_id)

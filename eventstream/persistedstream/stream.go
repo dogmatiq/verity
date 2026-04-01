@@ -3,10 +3,9 @@ package persistedstream
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit"
 	"github.com/dogmatiq/enginekit/collections/sets"
-	"github.com/dogmatiq/enginekit/marshaler"
 	"github.com/dogmatiq/enginekit/message"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/persistence"
 )
@@ -15,16 +14,13 @@ import (
 // persistence.EventRepository.
 type Stream struct {
 	// App is the identity of the application that owns the stream.
-	App configkit.Identity
+	App *identitypb.Identity
 
 	// Types is the set of supported event types.
 	Types *sets.Set[message.Type]
 
 	// Repository is the event repository used to load events.
 	Repository persistence.EventRepository
-
-	// Marshaler is used to unmarshal messages.
-	Marshaler marshaler.Marshaler
 
 	// Cache is an in-memory stream that contains recently recorded events.
 	//
@@ -37,7 +33,7 @@ type Stream struct {
 }
 
 // Application returns the identity of the application that owns the stream.
-func (s *Stream) Application() configkit.Identity {
+func (s *Stream) Application() *identitypb.Identity {
 	return s.App
 }
 
@@ -85,7 +81,6 @@ func (s *Stream) Open(
 	c := &cursor{
 		repository:       s.Repository,
 		repositoryFilter: rf,
-		marshaler:        s.Marshaler,
 		cache:            s.Cache,
 		cacheFilter:      f,
 		offset:           o,

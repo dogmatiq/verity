@@ -4,7 +4,7 @@ import (
 	"time"
 
 	. "github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	. "github.com/dogmatiq/verity/fixtures"
 	. "github.com/dogmatiq/verity/parcel"
 	. "github.com/jmalloc/gomegax"
@@ -15,7 +15,7 @@ import (
 var _ = Describe("type Parcel", func() {
 	var (
 		createdAt, scheduledFor time.Time
-		env                     *envelopespec.Envelope
+		env                     *envelopepb.Envelope
 	)
 
 	BeforeEach(func() {
@@ -42,7 +42,7 @@ var _ = Describe("type Parcel", func() {
 
 	Describe("func FromEnvelope()", func() {
 		It("returns a parcel containing the given envelope", func() {
-			p, err := FromEnvelope(Marshaler, env)
+			p, err := FromEnvelope(env)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(p).To(EqualX(
 				Parcel{
@@ -55,30 +55,16 @@ var _ = Describe("type Parcel", func() {
 		})
 
 		It("returns an error if the envelope is not well-formed", func() {
-			env.MessageId = ""
+			env.MessageId = nil
 
-			_, err := FromEnvelope(Marshaler, env)
+			_, err := FromEnvelope(env)
 			Expect(err).Should(HaveOccurred())
 		})
 
 		It("returns an error if the message can not be unmarshaled", func() {
 			env.Data = []byte("<malformed>")
 
-			_, err := FromEnvelope(Marshaler, env)
-			Expect(err).Should(HaveOccurred())
-		})
-
-		It("returns an error if the created-at time can not be unmarshaled", func() {
-			env.CreatedAt = "<malformed>"
-
-			_, err := FromEnvelope(Marshaler, env)
-			Expect(err).Should(HaveOccurred())
-		})
-
-		It("returns an error if the scheduled-for time can not be unmarshaled", func() {
-			env.ScheduledFor = "<malformed>"
-
-			_, err := FromEnvelope(Marshaler, env)
+			_, err := FromEnvelope(env)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/dogmatiq/enginekit/enginetest/stubs"
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	verityfixtures "github.com/dogmatiq/verity/fixtures"
 	"github.com/dogmatiq/verity/persistence"
 	"github.com/jmalloc/gomegax"
@@ -20,7 +20,7 @@ func declareEventOperationTests(tc *TestContext) {
 		var (
 			dataStore persistence.DataStore
 
-			env0, env1, env2 *envelopespec.Envelope
+			env0, env1, env2 *envelopepb.Envelope
 			filter           map[string]struct{}
 		)
 
@@ -34,9 +34,9 @@ func declareEventOperationTests(tc *TestContext) {
 			env2 = verityfixtures.NewEnvelope("<message-2>", stubs.EventC1)
 
 			filter = map[string]struct{}{
-				env0.PortableName: {},
-				env1.PortableName: {},
-				env2.PortableName: {},
+				env0.TypeId.AsString(): {},
+				env1.TypeId.AsString(): {},
+				env2.TypeId.AsString(): {},
 			}
 		})
 
@@ -82,8 +82,8 @@ func declareEventOperationTests(tc *TestContext) {
 
 				gomega.Expect(res.EventOffsets).To(
 					gomega.Equal(map[string]uint64{
-						env0.GetMessageId(): 0,
-						env1.GetMessageId(): 1,
+						env0.GetMessageId().AsString(): 0,
+						env1.GetMessageId().AsString(): 1,
 					}),
 				)
 			})
@@ -95,7 +95,7 @@ func declareEventOperationTests(tc *TestContext) {
 					expect []persistence.Event
 				)
 
-				fn := func(env *envelopespec.Envelope) {
+				fn := func(env *envelopepb.Envelope) {
 					defer ginkgo.GinkgoRecover()
 					defer g.Done()
 
@@ -111,7 +111,7 @@ func declareEventOperationTests(tc *TestContext) {
 					expect = append(
 						expect,
 						persistence.Event{
-							Offset:   res.EventOffsets[env.GetMessageId()],
+							Offset:   res.EventOffsets[env.GetMessageId().AsString()],
 							Envelope: env,
 						},
 					)

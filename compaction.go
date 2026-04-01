@@ -3,7 +3,7 @@ package verity
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/enginekit/config"
 	"github.com/dogmatiq/verity/handler/projection"
 	"github.com/dogmatiq/verity/internal/x/loggingx"
 	"golang.org/x/sync/errgroup"
@@ -14,11 +14,12 @@ import (
 func (e *Engine) runCompactorsForApp(ctx context.Context, a *app) error {
 	g, ctx := errgroup.WithContext(ctx)
 
-	for _, h := range a.Config.RichHandlers().Projections() {
-		h := h // capture loop variable
-		g.Go(func() error {
-			return e.runCompactorForProjection(ctx, h, a)
-		})
+	for _, h := range a.Config.Handlers() {
+		if h, ok := h.(*config.Projection); ok {
+			g.Go(func() error {
+				return e.runCompactorForProjection(ctx, h, a)
+			})
+		}
 	}
 
 	return g.Wait()
@@ -27,11 +28,11 @@ func (e *Engine) runCompactorsForApp(ctx context.Context, a *app) error {
 // runCompactorForProjection runs a compactor for a specific projection.
 func (e *Engine) runCompactorForProjection(
 	ctx context.Context,
-	h configkit.RichProjection,
+	h *config.Projection,
 	a *app,
 ) error {
 	c := &projection.Compactor{
-		Handler:   h.Handler(),
+		Handler:   h.Source.Get(),
 		Interval:  e.opts.ProjectionCompactInterval,
 		Timeout:   e.opts.ProjectionCompactTimeout,
 		Semaphore: e.semaphore,

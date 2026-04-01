@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/dogmatiq/enginekit/enginetest/stubs"
 	"github.com/onsi/ginkgo/v2"
 )
 
@@ -21,10 +20,7 @@ func Declare(
 			setupCtx, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancelSetup()
 
-			tc.In = In{
-				Marshaler: stubs.Marshaler,
-			}
-
+			tc.In = In{}
 			tc.Out = before(setupCtx, tc.In)
 
 			if tc.Out.TestTimeout <= 0 {

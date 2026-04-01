@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/dogmatiq/interopspec/envelopespec"
+	"github.com/dogmatiq/enginekit/protobuf/envelopepb"
 	"github.com/dogmatiq/verity/internal/x/sqlx"
 	"github.com/dogmatiq/verity/persistence"
 )
@@ -38,7 +38,7 @@ func (driver) InsertEvent(
 	ctx context.Context,
 	tx *sql.Tx,
 	o uint64,
-	env *envelopespec.Envelope,
+	env *envelopepb.Envelope,
 ) error {
 	_, err := tx.ExecContext(
 		ctx,
@@ -54,25 +54,23 @@ func (driver) InsertEvent(
 				source_instance_id,
 				created_at,
 				description,
-				portable_name,
-				media_type,
+				type_id,
 				data
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 			)`,
 		o,
-		env.GetMessageId(),
-		env.GetCausationId(),
-		env.GetCorrelationId(),
+		env.GetMessageId().AsString(),
+		env.GetCausationId().AsString(),
+		env.GetCorrelationId().AsString(),
 		env.GetSourceApplication().GetName(),
-		env.GetSourceApplication().GetKey(),
+		env.GetSourceApplication().GetKey().AsString(),
 		env.GetSourceHandler().GetName(),
-		env.GetSourceHandler().GetKey(),
+		env.GetSourceHandler().GetKey().AsString(),
 		env.GetSourceInstanceId(),
-		env.GetCreatedAt(),
+		env.GetCreatedAt().AsTime(),
 		env.GetDescription(),
-		env.GetPortableName(),
-		env.GetMediaType(),
+		env.GetTypeId().AsString(),
 		env.GetData(),
 	)
 
@@ -205,8 +203,7 @@ func (driver) SelectEventsByType(
 			e.source_instance_id,
 			e.created_at,
 			e.description,
-			e.portable_name,
-			e.media_type,
+			e.type_id,
 			e.data
 		FROM verity.event AS e
 		INNER JOIN verity.event_filter_name AS ft
@@ -242,8 +239,7 @@ func (driver) SelectEventsBySource(
 			e.source_instance_id,
 			e.created_at,
 			e.description,
-			e.portable_name,
-			e.media_type,
+			e.type_id,
 			e.data
 		FROM verity.event AS e
 		WHERE e.source_app_key = $1
@@ -301,8 +297,7 @@ func (driver) ScanEvent(
 		&ev.Envelope.SourceInstanceId,
 		&ev.Envelope.CreatedAt,
 		&ev.Envelope.Description,
-		&ev.Envelope.PortableName,
-		&ev.Envelope.MediaType,
+		&ev.Envelope.TypeId,
 		&ev.Envelope.Data,
 	)
 }
@@ -333,8 +328,7 @@ func createEventSchema(ctx context.Context, db *sql.DB) {
 			source_instance_id  TEXT NOT NULL,
 			created_at          TEXT NOT NULL,
 			description         TEXT NOT NULL,
-			portable_name       TEXT NOT NULL,
-			media_type          TEXT NOT NULL,
+			type_id             TEXT NOT NULL,
 			data                BYTEA NOT NULL,
 
 			PRIMARY KEY (source_app_key, "offset")

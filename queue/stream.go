@@ -3,7 +3,7 @@ package queue
 import (
 	"context"
 
-	"github.com/dogmatiq/configkit"
+	"github.com/dogmatiq/enginekit/protobuf/identitypb"
 	"github.com/dogmatiq/verity/eventstream"
 	"github.com/dogmatiq/verity/persistence"
 )
@@ -20,8 +20,8 @@ type StreamAdaptor struct {
 // specific application's event stream.
 //
 // id is the identity of the source application.
-func (a *StreamAdaptor) NextOffset(ctx context.Context, id configkit.Identity) (uint64, error) {
-	return a.OffsetRepository.LoadOffset(ctx, id.Key)
+func (a *StreamAdaptor) NextOffset(ctx context.Context, id *identitypb.Identity) (uint64, error) {
+	return a.OffsetRepository.LoadOffset(ctx, id.Key.AsString())
 }
 
 // HandleEvent handles an event obtained from the event stream.
@@ -41,7 +41,7 @@ func (a *StreamAdaptor) HandleEvent(ctx context.Context, o uint64, ev eventstrea
 				Message: qm,
 			},
 			persistence.SaveOffset{
-				ApplicationKey: ev.Parcel.Envelope.GetSourceApplication().GetKey(),
+				ApplicationKey: ev.Parcel.Envelope.GetSourceApplication().GetKey().AsString(),
 				CurrentOffset:  o,
 				NextOffset:     ev.Offset + 1,
 			},

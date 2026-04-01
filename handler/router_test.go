@@ -27,7 +27,7 @@ var _ = Describe("type Router", func() {
 		upstream2 = &HandlerStub{}
 
 		router = Router{
-			message.TypeFor[CommandStub[TypeA]](): []Handler{
+			message.TypeFor[*CommandStub[TypeA]](): []Handler{
 				upstream1,
 				upstream2,
 			},
